@@ -15,7 +15,6 @@ import "./RewardsEmitter.sol";
 contract Profits is Upkeepable
     {
     Config config;
-
     Staking staking;
     RewardsEmitter rewardsEmitter;
 
@@ -31,7 +30,7 @@ contract Profits is Upkeepable
 	// The rewards (in USDC) that will be sent to tx.origin for calling Upkeep.performUpkeep()
 	function currentUpkeepRewards() public view returns (uint256)
 		{
-		return ( usdc.balanceOf( address( this ) ) * UPKEEP_PERCENT ) / ( 100 * 1000 );
+		return ( usdc.balanceOf( address( this ) ) * config.upkeepPercent() ) / ( 100 * 1000 );
 		}
 
 
@@ -47,19 +46,19 @@ contract Profits is Upkeepable
 		// Send some USDC to the caller of Upkeep.performUpkeep();
 		usdc.transfer( tx.origin, upkeepRewards );
 
-		usdcBalance = usdcBalance - upkeepRewards;
+//		usdcBalance = usdcBalance - upkeepRewards;
 
-		// Look at the desposited xSALT in Staking.sol and distribute the USDC to the
-		// RewardsEmitter.sol proportional to the percent votes the pools receive
-		address[] memory pools = exchange.validPools();
-
-		uint256[] memory deposits = staking.totalDepositsForAllPools( pools, true );
-		uint256 sum = 0;
-		for( uint256 i = 0; i < pools.length; i++ )
-			{
-			address poolID = pools[i];
-
-
-			}
+//		// Look at the desposited xSALT in Staking.sol and distribute the USDC to the
+//		// RewardsEmitter.sol proportional to the percent votes the pools receive
+//		address[] memory pools = exchange.validPools();
+//
+//		uint256[] memory deposits = staking.totalDepositsForAllPools( pools, true );
+//		uint256 sum = 0;
+//		for( uint256 i = 0; i < pools.length; i++ )
+//			{
+//			address poolID = pools[i];
+//
+//
+//			}
 		}
 	}
