@@ -17,6 +17,6 @@ The accounting mechanism for SALT rewards and xSALT or LP deposits is similar to
 
 At the time of deposit, the overall rewards/deposit ratio is kept constant by noting the ratio and depositing the correct amount rewards for the given deposit.  As the user has no rewards to deposit, the deposited rewards are "borrowed" and will have to be paid back later.
 
-A the time of withdrawal, the overall rewards/deposit ratio is examined to determine the claimable rewards for the given withdrawal size.  Borrowed rewards are deducted before the rewards are sent to the user.
+At the time of withdrawal, the overall rewards/deposit ratio is examined to determine the claimable rewards for the given withdrawal size.  Borrowed rewards are deducted before the rewards are sent to the user.
 
 A claim (without deposit withdrawal) determines claimable rewards for the users deposit balance, sends the rewards to the users, and then consider those rewards to be borrowed.  

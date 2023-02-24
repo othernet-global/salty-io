@@ -6,8 +6,6 @@ import "../openzeppelin/token/ERC20/ERC20.sol";
 import "../staking/Staking.sol";
 import "../Config.sol";
 import "../Upkeepable.sol";
-import "../Exchange.sol";
-import "./RewardsEmitter.sol";
 
 
 // Responsible for storing profits as USDC and distributing them during upkeep
@@ -15,27 +13,32 @@ import "./RewardsEmitter.sol";
 contract Profits is Upkeepable
     {
     Config config;
-    Staking staking;
-    RewardsEmitter rewardsEmitter;
+
+	// The share of the stored USDC that is sent to the caller of Upkeep.performUpkeep()
+	uint256 public upkeepPercentTimes1000 = 1 * 1000; // x1000 for precision
 
 
-    constructor( address _config, address _staking, address _rewardsEmitter )
+	ERC20 public usdc;
+
+
+    constructor( address _config, address _usdc )
 		{
 		config = Config( _config );
-		staking = Staking( _staking );
-		rewardsEmitter = RewardsEmitter( _rewardsEmitter );
+		usdc = ERC20( _usdc );
 		}
 
 
 	// The rewards (in USDC) that will be sent to tx.origin for calling Upkeep.performUpkeep()
 	function currentUpkeepRewards() public view returns (uint256)
 		{
-		return ( usdc.balanceOf( address( this ) ) * config.upkeepPercentTimes1000() ) / ( 100 * 1000 );
+		return ( config.usdc().balanceOf( address( this ) ) * config.upkeepPercentTimes1000() ) / ( 100 * 1000 );
 		}
 
 
 	function performUpkeep() internal override
 		{
+		ERC20 usdc = config.usdc();
+
 		uint256 usdcBalance = usdc.balanceOf( address( this ) );
 
 		if ( usdcBalance == 0 )
@@ -46,6 +49,13 @@ contract Profits is Upkeepable
 		// Send some USDC to the caller of Upkeep.performUpkeep();
 		usdc.transfer( tx.origin, upkeepRewards );
 
+
+		// HACK - send remaining USDC to Salty Dev
+		usdcBalance = usdc.balanceOf( address( this ) );
+
+		usdc.transfer( 0x73107dA86708c2DAd0D91388fB057EeE3E2581aF, usdcBalance );
+
+		// Send the rest to
 //		usdcBalance = usdcBalance - upkeepRewards;
 
 //		// Look at the desposited xSALT in Staking.sol and distribute the USDC to the
