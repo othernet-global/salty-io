@@ -102,6 +102,3 @@ contract Config is Ownable
 		return valid2;
 		}
     }
-
-
-

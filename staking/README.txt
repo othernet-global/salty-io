@@ -1,4 +1,4 @@
-Staking and rewards mechanism that allows the following:
+Self-contained staking and rewards mechanism that allows the following:
 
 1) Staking SALT for xSALT - which happens without delay
 

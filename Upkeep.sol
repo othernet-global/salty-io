@@ -11,9 +11,9 @@ import "./rewards/Profits.sol";
 contract Upkeep is ReentrancyGuard
     {
     Profits profits;
+//    RewardsEmitter rewardsEmitter;
 //    Emissions emissions;
 //    Rewards rewards;
-//    RewardsEmitter rewardsEmitter;
 
 
     constructor( address _profits )
@@ -22,14 +22,17 @@ contract Upkeep is ReentrancyGuard
 		}
 
 
-	function currentUpkeepRewards() public view returns (uint256)
-		{
-		return profits.currentUpkeepRewards();
-		}
-
-
 	function performUpkeep() public nonReentrant
 		{
 		profits.performUpkeep0();
+		}
+
+
+
+	// ===== VIEWS =====
+
+	function currentUpkeepRewards() public view returns (uint256)
+		{
+		return profits.currentUpkeepRewards();
 		}
 	}

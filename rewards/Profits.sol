@@ -14,24 +14,18 @@ contract Profits is Upkeepable
     {
     Config config;
 
-	// The share of the stored USDC that is sent to the caller of Upkeep.performUpkeep()
-	uint256 public upkeepPercentTimes1000 = 1 * 1000; // x1000 for precision
-
-
 	ERC20 public usdc;
 
+	// The share of the stored USDC that is sent to the caller of Upkeep.performUpkeep()
+	// Defaults to 1 * 1000
+	uint256 public upkeepPercentTimes1000; // x1000 for precision
 
-    constructor( address _config, address _usdc )
+
+    constructor( address _config, address _usdc, uint256 _upkeepPercentTimes1000 )
 		{
 		config = Config( _config );
 		usdc = ERC20( _usdc );
-		}
-
-
-	// The rewards (in USDC) that will be sent to tx.origin for calling Upkeep.performUpkeep()
-	function currentUpkeepRewards() public view returns (uint256)
-		{
-		return ( config.usdc().balanceOf( address( this ) ) * config.upkeepPercentTimes1000() ) / ( 100 * 1000 );
+		upkeepPercentTimes1000 = _upkeepPercentTimes1000;
 		}
 
 
@@ -70,5 +64,13 @@ contract Profits is Upkeepable
 //
 //
 //			}
+		}
+
+	// ===== VIEWS =====
+
+	// The rewards (in USDC) that will be sent to tx.origin for calling Upkeep.performUpkeep()
+	function currentUpkeepRewards() public view returns (uint256)
+		{
+		return ( config.usdc().balanceOf( address( this ) ) * config.upkeepPercentTimes1000() ) / ( 100 * 1000 );
 		}
 	}
