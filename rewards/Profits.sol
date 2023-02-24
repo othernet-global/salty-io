@@ -30,7 +30,7 @@ contract Profits is Upkeepable
 	// The rewards (in USDC) that will be sent to tx.origin for calling Upkeep.performUpkeep()
 	function currentUpkeepRewards() public view returns (uint256)
 		{
-		return ( usdc.balanceOf( address( this ) ) * config.upkeepPercent() ) / ( 100 * 1000 );
+		return ( usdc.balanceOf( address( this ) ) * config.upkeepPercentTimes1000() ) / ( 100 * 1000 );
 		}
 
 

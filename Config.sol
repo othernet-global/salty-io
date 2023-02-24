@@ -24,12 +24,16 @@ contract Config is Ownable
 	address[] allPools;
 	mapping(address=>uint256) poolValidity;												// [poolID]
 
+	// The share of the USDC stored in Profits.sol that is sent to the caller of Upkeep.performUpkeep()
+	uint256 public upkeepPercentTimes1000 = 1 * 1000; // x1000 for precision
+
+
+	// The SALT token
+	ERC20 public salt = ERC20( 0x6a07E88C86D3106359400798Efb8CB62352190AB );
+
 	// USDC - can be changed for debug purposes
-	// Defaults to USDC on Polygon
 	ERC20 public usdc = ERC20( 0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174 );
 
-	// The share of the USDC stored in Profits.sol that is sent to the caller of Upkeep.performUpkeep()
-	uint256 public upkeepPercent = 1 * 1000; // x1000 for precision
 
 
 	constructor()
@@ -85,18 +89,23 @@ contract Config is Ownable
 		}
 
 
+	// Should be multiplied by 1000 for precision
+	function setUpkeepPercentTimes1000( uint256 _upkeepPercentTimes1000 ) public onlyOwner
+		{
+		upkeepPercentTimes1000 = _upkeepPercentTimes1000;
+		}
+
+
 	function setUSDC( address _usdc ) public onlyOwner
 		{
 		usdc = ERC20( _usdc );
 		}
 
 
-	// Should be multiplied by 1000 for precision
-	function setUpkeepPercent( uint256 _upkeepPercent ) public onlyOwner
+	function setSALT( address _salt ) public onlyOwner
 		{
-		upkeepPercent = _upkeepPercent;
+		salt = ERC20( _salt );
 		}
-
 
 
 	// ===== VIEWS =====
