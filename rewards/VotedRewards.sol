@@ -3,29 +3,24 @@ pragma solidity =0.8.17;
 
 import "../openzeppelin/access/Ownable.sol";
 import "../openzeppelin/security/ReentrancyGuard.sol";
-import "./RewardsEmitter.sol";
 import "../Upkeepable.sol";
+import "./RewardsEmitter.sol";
+import "./RewardsConfig.sol";
 
 
 // Stores SALT and distributes at upkeep it to RewardsEmitter.sol::rewards[poolID][true] based on the
 // votes that each pool receives.
-// Only the SALT since the last upkeep will be stored in the contract
+// Only stores the SALT rewards transferred in since the last upkeep.
+
 contract VotedRewards is Ownable, ReentrancyGuard, Upkeepable
     {
-	RewardsEmitter rewardsEmitter;
+	RewardsConfig rewardsConfig;
 
 
-    constructor( address _rewardsEmitter )
+    constructor( address _rewardsConfig )
 		{
-		setRewardsEmitter( _rewardsEmitter );
+		rewardsConfig = RewardsConfig( _rewardsConfig );
 		}
-
-
-	function setRewardsEmitter( address _rewardsEmitter ) public onlyOwner
-		{
-		rewardsEmitter = RewardsEmitter( _rewardsEmitter );
-		}
-
 
 	function performUpkeep() internal override
 		{

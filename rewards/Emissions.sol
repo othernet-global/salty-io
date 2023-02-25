@@ -7,6 +7,7 @@ import "../Upkeepable.sol";
 
 
 // Responsible for storing the SALT emissions and distributing them over time
+
 contract Emissions is ReentrancyGuard, Upkeepable
     {
     constructor()

@@ -3,8 +3,8 @@ pragma solidity =0.8.17;
 
 import "../openzeppelin/token/ERC20/ERC20.sol";
 import "../openzeppelin/security/ReentrancyGuard.sol";
-import "./IStaking.sol";
 import "./StakingConfig.sol";
+import "./IStaking.sol";
 
 // Allows staking SALT for xSALT - which is instant
 // Allows unstaking xSALT to SALT - which requires time, with less SALT being returned with less unstake time
@@ -25,7 +25,7 @@ contract Staking is IStaking, ReentrancyGuard
 	uint256 constant CLAIMED = 3;
 
 
-    StakingConfig config;
+    StakingConfig stakingConfig;
 
 
     // For stats
@@ -65,9 +65,9 @@ contract Staking is IStaking, ReentrancyGuard
 
 
 
-	constructor( address _config )
+	constructor( address _stakingConfig )
 		{
-		config = StakingConfig( _config );
+		stakingConfig = StakingConfig( _stakingConfig );
 		}
 
 
@@ -78,7 +78,7 @@ contract Staking is IStaking, ReentrancyGuard
 		address wallet = msg.sender;
 
 		// Deposit the SALT
-		config.salt().transferFrom( wallet, address(this), amountStaked );
+		stakingConfig.salt().transferFrom( wallet, address(this), amountStaked );
 
 		// User now has more free xSALT
 		freeXSALT[wallet] += amountStaked;
@@ -94,9 +94,9 @@ contract Staking is IStaking, ReentrancyGuard
 	// 100% return at config.maxUnstakeWeeks
 	function calculateUnstake( uint256 unstakedXSALT, uint256 numWeeks ) public view returns (uint256)
 		{
-		uint256 minUnstakeWeeks = config.minUnstakeWeeks();
-        uint256 maxUnstakeWeeks = config.maxUnstakeWeeks();
-        uint256 minUnstakePercent = config.minUnstakePercent();
+		uint256 minUnstakeWeeks = stakingConfig.minUnstakeWeeks();
+        uint256 maxUnstakeWeeks = stakingConfig.maxUnstakeWeeks();
+        uint256 minUnstakePercent = stakingConfig.minUnstakePercent();
 
 		require( numWeeks >= minUnstakeWeeks, "Unstaking too short a duration" );
 		require( numWeeks <= maxUnstakeWeeks, "Unstaking too long a duration" );
@@ -115,7 +115,7 @@ contract Staking is IStaking, ReentrancyGuard
 		require( amountUnstaked <= freeXSALT[wallet], "Cannot unstake more than the xSALT balance" );
 
 		uint256 claimableSALT = calculateUnstake( amountUnstaked, numWeeks );
-		uint256 completionTime = block.timestamp + numWeeks * config.oneWeek();
+		uint256 completionTime = block.timestamp + numWeeks * stakingConfig.oneWeek();
 
 		Unstake memory u = Unstake( PENDING, wallet, amountUnstaked, claimableSALT, completionTime, nextUnstakeID );
 
@@ -169,7 +169,7 @@ contract Staking is IStaking, ReentrancyGuard
 
 		uint256 claimableSALT = u.claimableSALT;
 
-		config.salt().transfer( wallet, claimableSALT );
+		stakingConfig.salt().transfer( wallet, claimableSALT );
 
 		totalBurned += ( u.unstakedXSALT - claimableSALT );
 
@@ -246,7 +246,7 @@ contract Staking is IStaking, ReentrancyGuard
 
 		// Send the actual rewards corresponding to the withdrawal
 		if ( actualRewards != 0 )
-			config.salt().transfer( wallet, actualRewards );
+			stakingConfig.salt().transfer( wallet, actualRewards );
 
 		// Update totals
 		totalRewards[poolID][isLP] -= rewardsForAmount;
@@ -269,7 +269,7 @@ contract Staking is IStaking, ReentrancyGuard
 		for( uint256 i = 0; i < poolIDs.length; i++ )
 			{
 			address poolID = poolIDs[i];
-			require( config.isValidPool( poolID ), "Invalid poolID" );
+			require( stakingConfig.isValidPool( poolID ), "Invalid poolID" );
 
 			totalRewards[ poolID ][ areLPs[i] ] += amountsToAdd[i];
 			sum = sum + amountsToAdd[i];
@@ -277,7 +277,7 @@ contract Staking is IStaking, ReentrancyGuard
 
 		// Transfer in the SALT for all the specified rewards
 		if ( sum > 0 )
-			config.salt().transferFrom( wallet, address(this), sum );
+			stakingConfig.salt().transferFrom( wallet, address(this), sum );
 		}
 
 
@@ -301,7 +301,7 @@ contract Staking is IStaking, ReentrancyGuard
 		{
 		// Don't allow calling with poolID 0 - which is adjusted by xSALT staking and unstaking
 		require( poolID != STAKING, "Cannot call on poolID 0" );
-		require( config.isValidPool( poolID ), "Invalid poolID" );
+		require( stakingConfig.isValidPool( poolID ), "Invalid poolID" );
 		require( amountDeposited != 0, "Cannot deposit 0" );
 
 		address wallet = msg.sender;
@@ -324,7 +324,7 @@ contract Staking is IStaking, ReentrancyGuard
 		_accountForDeposit( wallet, poolID, isLP, amountDeposited );
 
 		// Set the next allowed modification time
-		earliestModificationTime[wallet][poolID] = block.timestamp + config.depositWithdrawalCooldown();
+		earliestModificationTime[wallet][poolID] = block.timestamp + stakingConfig.depositWithdrawalCooldown();
 
         emit eDeposit( wallet, poolID, isLP, amountDeposited );
 		}
@@ -356,7 +356,7 @@ contract Staking is IStaking, ReentrancyGuard
 		uint256 actualRewards = _accountForWithdrawal( wallet, poolID, isLP, amountWithdrawn );
 
 		// Set the next allowed modification time
-		earliestModificationTime[wallet][poolID] = block.timestamp + config.depositWithdrawalCooldown();
+		earliestModificationTime[wallet][poolID] = block.timestamp + stakingConfig.depositWithdrawalCooldown();
 
    	    emit eWithdrawAndClaim( wallet, poolID, isLP, actualRewards );
 		}
@@ -374,14 +374,14 @@ contract Staking is IStaking, ReentrancyGuard
 	// is the same as the amount of pendingRewards that were withdrawn
 	function claimRewards( address poolID, bool isLP ) external nonReentrant
 		{
-		require( config.isValidPool( poolID ), "Invalid poolID" );
+		require( stakingConfig.isValidPool( poolID ), "Invalid poolID" );
 
 		address wallet = msg.sender;
 
 		uint256 actualRewards = userRewards( wallet, poolID, isLP );
 
 		// Send the actual rewards
-        config.salt().transfer( wallet, actualRewards );
+        stakingConfig.salt().transfer( wallet, actualRewards );
 
 		// Indicate that the user has borrowed what they were just awarded
         borrowedRewards[wallet][poolID][isLP] += actualRewards;
@@ -398,7 +398,7 @@ contract Staking is IStaking, ReentrancyGuard
 		for( uint256 i = 0; i < poolIDs.length; i++ )
 			{
 			address poolID = poolIDs[i];
-			require( config.isValidPool( poolID ), "Invalid poolID" );
+			require( stakingConfig.isValidPool( poolID ), "Invalid poolID" );
 
 			uint256 actualRewards = userRewards( wallet, poolID, isLP );
 
@@ -409,7 +409,7 @@ contract Staking is IStaking, ReentrancyGuard
 			}
 
 		// Send the actual rewards
-		config.salt().transfer( wallet, sum );
+		stakingConfig.salt().transfer( wallet, sum );
 
    	    emit eClaimAllRewards( wallet, sum );
     	}

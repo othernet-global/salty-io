@@ -2,30 +2,21 @@
 pragma solidity =0.8.17;
 
 import "../openzeppelin/security/ReentrancyGuard.sol";
-import "../openzeppelin/token/ERC20/ERC20.sol";
-import "../staking/Staking.sol";
-import "../staking/StakingConfig.sol";
 import "../Upkeepable.sol";
+import "./RewardsConfig.sol";
 
 
 // Responsible for storing profits as USDC and distributing them during upkeep
-// Only the USDC since the last upkeep will be stored in the contract
+// Only stores the USDC transferred in since the last upkeep.
+
 contract Profits is Upkeepable
     {
-    StakingConfig rewardsConfig;
-
-	ERC20 public usdc;
-
-	// The share of the stored USDC that is sent to the caller of Upkeep.performUpkeep()
-	// Defaults to 1 * 1000
-	uint256 public upkeepPercentTimes1000; // x1000 for precision
+    RewardsConfig rewardsConfig;
 
 
-    constructor( address _stakingConfig, address _usdc, uint256 _upkeepPercentTimes1000 )
+    constructor( address _rewardsConfig )
 		{
-		rewardsConfig = StakingConfig( _stakingConfig );
-		usdc = ERC20( _usdc );
-		upkeepPercentTimes1000 = _upkeepPercentTimes1000;
+		rewardsConfig = RewardsConfig( _rewardsConfig );
 		}
 
 
@@ -34,13 +25,12 @@ contract Profits is Upkeepable
 		ERC20 usdc = rewardsConfig.usdc();
 
 		uint256 usdcBalance = usdc.balanceOf( address( this ) );
-
 		if ( usdcBalance == 0 )
 			return;
 
 		uint256 upkeepRewards = currentUpkeepRewards();
 
-		// Send some USDC to the caller of Upkeep.performUpkeep();
+		// Send some USDC to the original caller of Upkeep.performUpkeep();
 		usdc.transfer( tx.origin, upkeepRewards );
 
 
@@ -71,8 +61,8 @@ contract Profits is Upkeepable
 	// The rewards (in USDC) that will be sent to tx.origin for calling Upkeep.performUpkeep()
 	function currentUpkeepRewards() public view returns (uint256)
 		{
-		ERC20 usdc = config.usdc();
+		ERC20 usdc = rewardsConfig.usdc();
 
-		return ( usdc.balanceOf( address( this ) ) * config.upkeepPercentTimes1000() ) / ( 100 * 1000 );
+		return ( usdc.balanceOf( address( this ) ) * rewardsConfig.upkeepPercentTimes1000() ) / ( 100 * 1000 );
 		}
 	}
