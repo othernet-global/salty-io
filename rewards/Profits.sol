@@ -4,7 +4,7 @@ pragma solidity =0.8.17;
 import "../openzeppelin/security/ReentrancyGuard.sol";
 import "../openzeppelin/token/ERC20/ERC20.sol";
 import "../staking/Staking.sol";
-import "../Config.sol";
+import "../staking/StakingConfig.sol";
 import "../Upkeepable.sol";
 
 
@@ -12,7 +12,7 @@ import "../Upkeepable.sol";
 // Only the USDC since the last upkeep will be stored in the contract
 contract Profits is Upkeepable
     {
-    Config config;
+    StakingConfig rewardsConfig;
 
 	ERC20 public usdc;
 
@@ -21,9 +21,9 @@ contract Profits is Upkeepable
 	uint256 public upkeepPercentTimes1000; // x1000 for precision
 
 
-    constructor( address _config, address _usdc, uint256 _upkeepPercentTimes1000 )
+    constructor( address _stakingConfig, address _usdc, uint256 _upkeepPercentTimes1000 )
 		{
-		config = Config( _config );
+		rewardsConfig = StakingConfig( _stakingConfig );
 		usdc = ERC20( _usdc );
 		upkeepPercentTimes1000 = _upkeepPercentTimes1000;
 		}
@@ -31,7 +31,7 @@ contract Profits is Upkeepable
 
 	function performUpkeep() internal override
 		{
-		ERC20 usdc = config.usdc();
+		ERC20 usdc = rewardsConfig.usdc();
 
 		uint256 usdcBalance = usdc.balanceOf( address( this ) );
 
@@ -71,6 +71,8 @@ contract Profits is Upkeepable
 	// The rewards (in USDC) that will be sent to tx.origin for calling Upkeep.performUpkeep()
 	function currentUpkeepRewards() public view returns (uint256)
 		{
-		return ( config.usdc().balanceOf( address( this ) ) * config.upkeepPercentTimes1000() ) / ( 100 * 1000 );
+		ERC20 usdc = config.usdc();
+
+		return ( usdc.balanceOf( address( this ) ) * config.upkeepPercentTimes1000() ) / ( 100 * 1000 );
 		}
 	}

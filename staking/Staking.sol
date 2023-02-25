@@ -4,7 +4,7 @@ pragma solidity =0.8.17;
 import "../openzeppelin/token/ERC20/ERC20.sol";
 import "../openzeppelin/security/ReentrancyGuard.sol";
 import "./IStaking.sol";
-import "./Config.sol";
+import "./StakingConfig.sol";
 
 // Allows staking SALT for xSALT - which is instant
 // Allows unstaking xSALT to SALT - which requires time, with less SALT being returned with less unstake time
@@ -25,7 +25,7 @@ contract Staking is IStaking, ReentrancyGuard
 	uint256 constant CLAIMED = 3;
 
 
-    Config config;
+    StakingConfig config;
 
 
     // For stats
@@ -67,7 +67,7 @@ contract Staking is IStaking, ReentrancyGuard
 
 	constructor( address _config )
 		{
-		config = Config( _config );
+		config = StakingConfig( _config );
 		}
 
 
