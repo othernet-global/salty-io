@@ -88,7 +88,7 @@ contract RewardsEmitter is Upkeepable
 		uint256 numeratorMult = timeSinceLastUpkeep * rewardsConfig.rewardsEmitterDailyPercent();
 		uint256 denominatorMult = 100 days; // ( 100 percent ) * numberSecondsInOneDay
 
-		// Don't allow for more than 100 percent
+		// Don't allow for more than 100 percent (if it's been a long time since the last update for some reason)
 		if ( numeratorMult > denominatorMult )
 			numeratorMult = denominatorMult;
 
