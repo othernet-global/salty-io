@@ -46,8 +46,8 @@ contract Staking is IStaking, ReentrancyGuard
 
 
     // The total SALT rewards and LP or xSALT deposits for particular pools
-    mapping(address=>mapping(bool=>uint256)) totalRewards;					// [poolID][isLP]
-    mapping(address=>mapping(bool=>uint256)) totalDeposits;					// [poolID][isLP]
+    mapping(address=>mapping(bool=>uint256)) public totalRewards;			// [poolID][isLP]
+    mapping(address=>mapping(bool=>uint256)) public totalDeposits;			// [poolID][isLP]
 
 	// The amount a user has deposited for particular pools (either LP or xSALT)
     mapping(address=>
@@ -113,6 +113,7 @@ contract Staking is IStaking, ReentrancyGuard
 		address wallet = msg.sender;
 
 		require( amountUnstaked <= freeXSALT[wallet], "Cannot unstake more than the xSALT balance" );
+		require( wallet != stakingConfig.saltyPOL(), "Protocol Owned Liquidity cannot unstake" );
 
 		uint256 claimableSALT = calculateUnstake( amountUnstaked, numWeeks );
 		uint256 completionTime = block.timestamp + numWeeks * stakingConfig.oneWeek();
@@ -180,12 +181,12 @@ contract Staking is IStaking, ReentrancyGuard
 	// Transfer xSALT to another wallet
 	function transferXSALT( address destination, uint256 amountToTransfer ) public nonReentrant
 		{
-		require( destination != address(0), "Cannot send to address(0)" );
-
 		address wallet = msg.sender;
-		require( destination != wallet, "Cannot send to self" );
 
+		require( destination != address(0), "Cannot send to address(0)" );
+		require( destination != wallet, "Cannot send to self" );
 		require( amountToTransfer <= freeXSALT[wallet], "Cannot transfer more than the xSALT balance" );
+		require( wallet != stakingConfig.saltyPOL(), "Protocol Owned Liquidity cannot transfer xSALT" );
 
 		freeXSALT[wallet] -= amountToTransfer;
 		freeXSALT[destination] += amountToTransfer;
@@ -281,21 +282,6 @@ contract Staking is IStaking, ReentrancyGuard
 		}
 
 
-	// Can be added from any wallet
-	function addSALTRewards( address poolID, bool isLP, uint256 amountToAdd ) public
-		{
-		address[] memory poolIDs = new address[](1);
-        bool[] memory areLPs = new bool[](1);
-        uint256[] memory amountsToAdd = new uint256[](1);
-
-        poolIDs[0] = poolID;
-        areLPs[0] = isLP;
-        amountsToAdd[0] = amountToAdd;
-
-        addSALTRewards( poolIDs, areLPs, amountsToAdd );
-		}
-
-
 	// Deposit LP tokens or xSALT (which is used for voting on pools)
 	function deposit( address poolID, bool isLP, uint256 amountDeposited ) public nonReentrant
 		{
@@ -346,6 +332,8 @@ contract Staking is IStaking, ReentrancyGuard
 		// Withdraw the deposited LP or xSALT
 		if ( isLP )
 			{
+			require( wallet != stakingConfig.saltyPOL(), "Protocol Owned Liquidity cannot unstake LP" );
+
 			// poolID is the LP token
 			ERC20 erc20 = ERC20( poolID );
 			erc20.transfer( wallet, amountWithdrawn );
@@ -436,7 +424,7 @@ contract Staking is IStaking, ReentrancyGuard
 		}
 
 
-	function totalDepositsForAllPools( address[] memory poolIDs, bool isLP ) public view returns (uint256[] memory)
+	function totalDepositsForPools( address[] memory poolIDs, bool isLP ) public view returns (uint256[] memory)
 		{
 		uint256[] memory deposits = new uint256[]( poolIDs.length );
 
@@ -447,6 +435,20 @@ contract Staking is IStaking, ReentrancyGuard
 			}
 
 		return deposits;
+		}
+
+
+	function totalRewardsForPools( address[] memory poolIDs, bool isLP ) public view returns (uint256[] memory)
+		{
+		uint256[] memory rewards = new uint256[]( poolIDs.length );
+
+		for( uint256 i = 0; i < rewards.length; i++ )
+			{
+			address poolID = poolIDs[i];
+			rewards[i] = totalRewards[poolID][isLP];
+			}
+
+		return rewards;
 		}
 
 

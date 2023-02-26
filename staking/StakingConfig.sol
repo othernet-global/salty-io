@@ -9,6 +9,9 @@ contract StakingConfig is Ownable2Step
     {
 	ERC20 public salt;
 
+	// Salty Protocol Owned Liquidity - the address holding the protocol liquidity
+	address public saltyPOL;
+
     // Changeable for debugging purposes to accelerate time
 	uint256 public oneWeek = 5 minutes; // 1 weeks;
 
@@ -35,6 +38,12 @@ contract StakingConfig is Ownable2Step
 	function setSALT( address _salt ) public onlyOwner
 		{
 		salt = ERC20( _salt );
+		}
+
+
+	function setSaltyPOL( address _saltyPOL ) public onlyOwner
+		{
+		saltyPOL = _saltyPOL;
 		}
 
 
