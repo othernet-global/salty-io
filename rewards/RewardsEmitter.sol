@@ -10,7 +10,6 @@ import "./RewardsConfig.sol";
 // Stores SALT rewards and distributes them at a default rate of 10% per day to Staking.sol
 // Once in Staking.sol, the rewards can be claimed by users who have deposited the
 // relevant xSALT or LP (depending on if the rewards were deposited with isLP).
-// Only stores the SALT rewards transferred in since the last upkeep.
 
 contract RewardsEmitter is Upkeepable
     {
