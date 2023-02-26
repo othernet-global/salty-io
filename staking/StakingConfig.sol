@@ -51,10 +51,10 @@ contract StakingConfig is Ownable2Step
 	function whitelist( address poolID ) public onlyOwner
 		{
 		// Make sure the pool hasn't already been added to allPools
-		if ( poolAdded[poolID] == 0 )
+		if ( ! poolAdded[poolID] )
 			{
 			allPools.push( poolID );
-			poolAdded[poolID] = 1;
+			poolAdded[poolID] = true;
 			}
 
 		poolWhitelisted[poolID] = 1;
