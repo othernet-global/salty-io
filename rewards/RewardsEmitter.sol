@@ -99,9 +99,10 @@ contract RewardsEmitter is Upkeepable
 			bool isLP = areLP[i];
 
 			// Each poolID/isLP will send a percentage of the pending rewards
-			amountsToAdd[i] = ( pendingRewards[poolID][isLP] * numeratorMult ) / denominatorMult;
+			uint256 amountToAddForPool = ( pendingRewards[poolID][isLP] * numeratorMult ) / denominatorMult;
 
-			pendingRewards[poolID][isLP] -= amountsToAdd[i];
+			pendingRewards[poolID][isLP] -= amountToAddForPool;
+			amountsToAdd[i] = amountToAddForPool;
 			}
 
 		staking.addSALTRewards( poolIDs, areLP, amountsToAdd );
