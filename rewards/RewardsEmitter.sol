@@ -53,8 +53,7 @@ contract RewardsEmitter is Upkeepable
 		}
 
 
-	// Transfer a percent (default 10% per day) of the currently held rewards to Staking.sol
-	// where users can then claim them
+	// Transfer a percent (default 10% per day) of the currently held rewards to Staking.sol where users can then claim them.
 	// The percentage to transfer is interpolated from how long it's been since the last performUpkeep()
 	function performUpkeep() internal override
 		{
@@ -67,21 +66,21 @@ contract RewardsEmitter is Upkeepable
 		// Construct the arrays for all poolIDs and the true/false isLP
 		// poolID STAKING will never really appear with isLP=true, but we'll leave it in for simplicity
 		address[] memory poolIDs = new address[]( validPools.length * 2 );
-        bool[] memory areLP = new bool[]( poolIDs.length );
+        bool[] memory areLPs = new bool[]( poolIDs.length );
 
-		// Half have areLP = true
+		// Half have areLPs = true
 		uint256 numValidPools = validPools.length;
         for( uint256 i = 0; i < numValidPools; i++ )
         	{
         	poolIDs[i] = validPools[i];
-        	areLP[i] = true;
+        	areLPs[i] = true;
         	}
 
-		// Half have areLP = false
+		// Half have areLPs = false
         for( uint256 i = 0; i < numValidPools; i++ )
         	{
         	poolIDs[ numValidPools + i ] = validPools[i];
-        	areLP[ numValidPools + i ] = false;
+        	areLPs[ numValidPools + i ] = false;
         	}
 
 		// Cached for efficiency
@@ -96,15 +95,18 @@ contract RewardsEmitter is Upkeepable
 		for( uint256 i = 0; i < poolIDs.length; i++ )
 			{
 			address poolID = poolIDs[i];
-			bool isLP = areLP[i];
+			bool isLP = areLPs[i];
 
 			// Each poolID/isLP will send a percentage of the pending rewards
 			uint256 amountToAddForPool = ( pendingRewards[poolID][isLP] * numeratorMult ) / denominatorMult;
 
-			pendingRewards[poolID][isLP] -= amountToAddForPool;
-			amountsToAdd[i] = amountToAddForPool;
+			if ( amountToAddForPool != 0 )
+				{
+				pendingRewards[poolID][isLP] -= amountToAddForPool;
+				amountsToAdd[i] = amountToAddForPool;
+				}
 			}
 
-		staking.addSALTRewards( poolIDs, areLP, amountsToAdd );
+		staking.addSALTRewards( poolIDs, areLPs, amountsToAdd );
 		}
 	}
