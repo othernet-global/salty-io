@@ -28,9 +28,35 @@ contract RewardsEmitter is Upkeepable
 		rewardsConfig = RewardsConfig( _rewardsConfig );
 		stakingConfig = StakingConfig( _stakingConfig );
 		staking = Staking( _staking );
+
+		stakingConfig.salt().approve( _staking, 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff );
 		}
 
 
+	// Can be added from any wallet
+	function addSALTRewards( address[] memory poolIDs, bool[] memory areLPs, uint256[] memory amountsToAdd ) public nonReentrant
+		{
+		address wallet = msg.sender;
+
+		uint256 sum = 0;
+		for( uint256 i = 0; i < poolIDs.length; i++ )
+			{
+			address poolID = poolIDs[i];
+			require( stakingConfig.isValidPool( poolID ), "Invalid poolID" );
+
+			pendingRewards[ poolID ][ areLPs[i] ] += amountsToAdd[i];
+			sum = sum + amountsToAdd[i];
+			}
+
+		// Transfer in the SALT for all the specified rewards
+		if ( sum > 0 )
+			stakingConfig.salt().transferFrom( wallet, address(this), sum );
+		}
+
+
+	// Transfer a percent (default 10% per day) of the currently held rewards to Staking.sol
+	// where users can then claim them
+	// The percentage to transfer is interpolated from how long it's been since the last performUpkeep()
 	function performUpkeep() internal override
 		{
 		uint256 timeSinceLastUpkeep = timeSinceLastUpkeep();
@@ -45,8 +71,19 @@ contract RewardsEmitter is Upkeepable
         bool[] memory areLP = new bool[]( poolIDs.length );
 
 		// Half have areLP = true
-        for( uint256 i = 0; i < validPools.length; i++ )
+		uint256 numValidPools = validPools.length;
+        for( uint256 i = 0; i < numValidPools; i++ )
+        	{
+        	poolIDs[i] = validPools[i];
         	areLP[i] = true;
+        	}
+
+		// Half have areLP = false
+        for( uint256 i = 0; i < numValidPools; i++ )
+        	{
+        	poolIDs[ numValidPools + i ] = validPools[i];
+        	areLP[ numValidPools + i ] = false;
+        	}
 
 		// Cached for efficiency
 		uint256 numeratorMult = timeSinceLastUpkeep * rewardsConfig.rewardsEmitterDailyPercent();
