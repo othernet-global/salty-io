@@ -16,6 +16,9 @@ contract RewardsConfig is Ownable2Step
 	// Defaults to 1 * 1000
 	uint256 public upkeepPercentTimes1000; // x1000 for precision
 
+	// === REWARDS DISTRIBUTION ===
+//	uint256 public votedRewards
+
 
 	constructor( address _usdc )
 		{
