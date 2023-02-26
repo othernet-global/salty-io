@@ -89,6 +89,10 @@ contract RewardsEmitter is Upkeepable
 		uint256 numeratorMult = timeSinceLastUpkeep * rewardsConfig.rewardsEmitterDailyPercent();
 		uint256 denominatorMult = 100 days; // ( 100 percent ) * numberSecondsInOneDay
 
+		// Don't allow for more than 100 percent
+		if ( numeratorMult > denominatorMult )
+			numeratorMult = denominatorMult;
+
         uint256[] memory amountsToAdd = new uint256[]( poolIDs.length );
 		for( uint256 i = 0; i < poolIDs.length; i++ )
 			{
