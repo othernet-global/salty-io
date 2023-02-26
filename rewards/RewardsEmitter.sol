@@ -43,8 +43,10 @@ contract RewardsEmitter is Upkeepable
 			address poolID = poolIDs[i];
 			require( stakingConfig.isValidPool( poolID ), "Invalid poolID" );
 
-			pendingRewards[ poolID ][ areLPs[i] ] += amountsToAdd[i];
-			sum = sum + amountsToAdd[i];
+			uint256 amountToAdd = amountsToAdd[i];
+
+			pendingRewards[ poolID ][ areLPs[i] ] += amountToAdd;
+			sum = sum + amountToAdd;
 			}
 
 		// Transfer in the SALT for all the specified rewards
