@@ -31,7 +31,7 @@ contract VotedRewards is Upkeepable
 		address[] memory poolIDs = stakingConfig.whitelistedPools();
 
 		// Looking at the xSALT deposits (which act as votes) for each pool,
-		// we'll send a proportional amount of rewards to Staking.sol for each pool
+		// we'll send a proportional amount of rewards to RewardsEmitter.sol for each pool
 		uint256[] memory votesForPools = staking.totalDepositsForPools( poolIDs, false );
 
 		// Determine the total pool votes so we can calculate pool percentages
@@ -39,18 +39,24 @@ contract VotedRewards is Upkeepable
 		for( uint256 i = 0; i < votesForPools.length; i++ )
 			totalPoolVotes += votesForPools[i];
 
+		// Make sure some votes have been cast
+		if ( totalPoolVotes == 0 )
+			return;
+
 		uint256 saltBalance = stakingConfig.salt().balanceOf( address( this ) );
 
 		// The rewards we are adding will be claimable by those who have staked LP.
-		// So, specify areLPs = true
+		// So, specify areLPs = true for the added rewards
 		bool[] memory areLPs = new bool[]( votesForPools.length );
 		for( uint256 i = 0; i < areLPs.length; i++ )
 			areLPs[i] = true;
 
+		// The entire SALT balance will be sent - proportional to the votes received by each pool
 		uint256[] memory amountsToAdd = new uint256[]( votesForPools.length );
 		for( uint256 i = 0; i < amountsToAdd.length; i++ )
 			amountsToAdd[i] = ( saltBalance * votesForPools[i] ) / totalPoolVotes;
 
+		// Send the SALT to the RewardsEmitter
 		rewardsEmitter.addSALTRewards( poolIDs, areLPs, amountsToAdd );
 		}
 	}
