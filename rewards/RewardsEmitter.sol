@@ -107,6 +107,8 @@ contract RewardsEmitter is Upkeepable
 				}
 			}
 
+		// Send the SALT rewards to Staking.sol so that users can claim it based on the
+		// amount of xSALT or LP they have staked
 		staking.addSALTRewards( poolIDs, areLPs, amountsToAdd );
 		}
 	}
