@@ -26,7 +26,8 @@ contract StakingConfig is Ownable2Step
 
 	// Keeps track of what pools are valid
 	address[] allPools;
-	mapping(address=>uint256) poolValidity;												// [poolID]
+	mapping(address=>bool) poolAdded;													// [poolID]
+	mapping(address=>uint256) poolWhitelisted;												// [poolID]
 
 
 	constructor( address _salt )
@@ -49,15 +50,20 @@ contract StakingConfig is Ownable2Step
 
 	function whitelist( address poolID ) public onlyOwner
 		{
-		allPools.push( poolID );
+		// Make sure the pool hasn't already been added to allPools
+		if ( poolAdded[poolID] == 0 )
+			{
+			allPools.push( poolID );
+			poolAdded[poolID] = 1;
+			}
 
-		poolValidity[poolID] = 1;
+		poolWhitelisted[poolID] = 1;
 		}
 
 
 	function blacklist( address poolID ) public onlyOwner
 		{
-		poolValidity[poolID] = 0;
+		poolWhitelisted[poolID] = 0;
 		}
 
 
@@ -87,7 +93,7 @@ contract StakingConfig is Ownable2Step
 	// ===== VIEWS =====
 	function isValidPool( address poolID ) public view returns (bool)
 		{
-		return poolValidity[poolID] == 1;
+		return poolWhitelisted[poolID] == 1;
 		}
 
 
