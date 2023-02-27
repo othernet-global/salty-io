@@ -30,7 +30,7 @@ contract RewardsConfig is Ownable2Step
 
 	function setEarlyUnstakePercents( uint256 _earlyUnstake_votedRewardsPercent, uint256 _earlyUnstake_xSaltHoldersPercent ) public onlyOwner
 		{
-		require( ( _earlyUnstake_votedRewardsPercent + earlyUnstake_xSaltHoldersPercent ) == 100, "Percentages have to add up to 100" );
+		require( ( _earlyUnstake_votedRewardsPercent + earlyUnstake_xSaltHoldersPercent ) == 100, "RewardsConfig: Percentages have to add up to 100" );
 
 		earlyUnstake_votedRewardsPercent = _earlyUnstake_votedRewardsPercent;
 		earlyUnstake_xSaltHoldersPercent = _earlyUnstake_xSaltHoldersPercent;
