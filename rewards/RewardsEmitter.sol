@@ -73,7 +73,7 @@ contract RewardsEmitter is Upkeepable
 		// Setup the arrays
         for( uint256 i = 0; i < validPools.length; i++ )
         	{
-        	uint256 poolID = validPools[i];
+        	address poolID = validPools[i];
 
         	poolIDs[i] = poolID;
         	areLPs[i] = true; //Half have areLPs = true
