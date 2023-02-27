@@ -21,6 +21,11 @@ contract RewardsEmitter is Upkeepable
 	StakingConfig stakingConfig;
 	Staking staking;
 
+	event Debug(
+		uint256 x,
+		uint256 y,
+		address z );
+
 
     constructor( address _rewardsConfig, address _stakingConfig, address _staking )
 		{
@@ -65,22 +70,27 @@ contract RewardsEmitter is Upkeepable
 
 		address[] memory validPools = stakingConfig.whitelistedPools();
 
+		for( uint256 i = 0; i < validPools.length; i++ )
+			{
+			emit Debug( 0, i, validPools[i] );
+			}
+
 		// Construct the arrays for all poolIDs and the true/false isLP
 		// The very last one will be for [0][false] - which specifies generic staked SALT
 		address[] memory poolIDs = new address[]( validPools.length * 2 + 1 );
         bool[] memory areLPs = new bool[]( validPools.length * 2 + 1 );
 
 		// Setup the arrays
+		uint256 index = 0;
         for( uint256 i = 0; i < validPools.length; i++ )
         	{
         	address poolID = validPools[i];
 
-        	poolIDs[i] = poolID;
-        	areLPs[i] = true; // Half have areLPs = true
+        	poolIDs[index] = poolID;
+        	areLPs[index++] = true; // Half have areLPs = true
 
-			i++;
-        	poolIDs[i] = poolID;
-        	areLPs[i] = false; // Half have areLPs = false
+        	poolIDs[index] = poolID;
+        	areLPs[index++] = false; // Half have areLPs = false
         	}
 
 		// Cached for efficiency
@@ -100,6 +110,8 @@ contract RewardsEmitter is Upkeepable
 			// Each poolID/isLP will send a percentage of the pending rewards
 			uint256 amountToAddForPool = ( pendingRewards[poolID][isLP] * numeratorMult ) / denominatorMult;
 
+			emit Debug( 1, amountToAddForPool, poolIDs[i] );
+
 			if ( amountToAddForPool != 0 )
 				{
 				pendingRewards[poolID][isLP] -= amountToAddForPool;
@@ -110,5 +122,12 @@ contract RewardsEmitter is Upkeepable
 		// Send the SALT rewards to Staking.sol so that users can claim it based on the
 		// amount of xSALT or LP they have staked
 		staking.addSALTRewards( poolIDs, areLPs, amountsToAdd );
+		}
+
+
+	// DEBUG
+	function returnPendingRewards( address poolID, bool isLP ) public view returns (uint256)
+		{
+		return pendingRewards[poolID][isLP];
 		}
 	}
