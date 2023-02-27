@@ -41,7 +41,7 @@ contract RewardsEmitter is Upkeepable
 		for( uint256 i = 0; i < poolIDs.length; i++ )
 			{
 			address poolID = poolIDs[i];
-			require( stakingConfig.isValidPool( poolID ), "Invalid poolID" );
+			require( stakingConfig.isValidPool( poolID ), "RewardsEmitter: Invalid poolID" );
 
 			uint256 amountToAdd = amountsToAdd[i];
 
