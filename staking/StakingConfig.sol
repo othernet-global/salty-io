@@ -103,10 +103,14 @@ contract StakingConfig is Ownable2Step
 	// ===== VIEWS =====
 	function isValidPool( address poolID ) public view returns (bool)
 		{
+		if ( poolID == address(0) ) // STAKING?
+			return true;
+
 		return poolWhitelisted[poolID] == 1;
 		}
 
 
+	// This does not include the 0 poolID for generic staked SALT (not deposited to any pool)
 	function whitelistedPools() public view returns (address[] memory)
 		{
 		address[] memory valid = new address[](allPools.length);
