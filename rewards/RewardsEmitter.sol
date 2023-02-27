@@ -76,11 +76,11 @@ contract RewardsEmitter is Upkeepable
         	address poolID = validPools[i];
 
         	poolIDs[i] = poolID;
-        	areLPs[i] = true; //Half have areLPs = true
+        	areLPs[i] = true; // Half have areLPs = true
 
 			i++;
         	poolIDs[i] = poolID;
-        	areLPs[i] = false; //Half have areLPs = false
+        	areLPs[i] = false; // Half have areLPs = false
         	}
 
 		// Cached for efficiency
