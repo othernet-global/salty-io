@@ -66,9 +66,9 @@ contract RewardsEmitter is Upkeepable
 		address[] memory validPools = stakingConfig.whitelistedPools();
 
 		// Construct the arrays for all poolIDs and the true/false isLP
-		// poolID STAKING will never really appear with isLP=true, but we'll leave it in for simplicity
-		address[] memory poolIDs = new address[]( validPools.length * 2 );
-        bool[] memory areLPs = new bool[]( validPools.length * 2 );
+		// The very last one will be for [0][false] - which specifies generic staked SALT
+		address[] memory poolIDs = new address[]( validPools.length * 2 + 1 );
+        bool[] memory areLPs = new bool[]( validPools.length * 2 + 1 );
 
 		// Setup the arrays
         for( uint256 i = 0; i < validPools.length; i++ )
