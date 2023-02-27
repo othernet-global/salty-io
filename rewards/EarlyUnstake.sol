@@ -45,8 +45,8 @@ contract EarlyUnstake is Upkeepable
 		salt.transfer( address(votedRewards), votedRewardsAmount );
 
 		// Send a portion to xSALT holders
-		uint256[] memory poolIDs = new uint256[]( 1 );
-		uint256[] memory areLPs = new uint256[]( 1 );
+		address[] memory poolIDs = new address[]( 1 );
+		bool[] memory areLPs = new bool[]( 1 );
 		uint256[] memory amountsToAdd = new uint256[]( 1 );
 
 		poolIDs[0] = address(0); // STAKING pool
