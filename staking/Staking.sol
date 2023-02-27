@@ -28,10 +28,6 @@ contract Staking is IStaking, ReentrancyGuard
     StakingConfig stakingConfig;
 
 
-    // For stats
-	uint256 public totalBurned = 0;
-
-
     // The free xSALT balance for each wallet
     // This is xSALT that hasn't been used yet for voting
     mapping(address=>uint256) public freeXSALT;							// [wallet]
@@ -169,10 +165,19 @@ contract Staking is IStaking, ReentrancyGuard
 		u.status = CLAIMED;
 
 		uint256 claimableSALT = u.claimableSALT;
+		require( claimableSALT <= u.unstakedXSALT, "Claimable amount has to be less than original stake" );
 
 		stakingConfig.salt().transfer( wallet, claimableSALT );
 
-		totalBurned += ( u.unstakedXSALT - claimableSALT );
+		// See if the user unstaked early and received only a portion of their original stake
+		uint256 earlyUnstakeFee = u.unstakedXSALT - claimableSALT;
+
+		if ( earlyUnstakeFee > 0 )
+		if ( stakingConfig.earlyUnstake() != address(0) )
+			{
+			// Send the earlyUnstakeFee to EarlyUnstake.sol for later distribution on upkeep
+			stakingConfig.salt().transfer( stakingConfig.earlyUnstake(), earlyUnstakeFee );
+			}
 
 		emit eRecover( wallet, unstakeID, claimableSALT );
 		}

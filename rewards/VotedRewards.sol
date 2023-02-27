@@ -23,6 +23,8 @@ contract VotedRewards is Upkeepable
 		stakingConfig = StakingConfig( _stakingConfig );
 		staking = Staking( _staking );
 		rewardsEmitter = RewardsEmitter( _rewardsEmitter );
+
+		stakingConfig.salt().approve( _rewardsEmitter, 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff );
 		}
 
 

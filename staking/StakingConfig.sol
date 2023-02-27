@@ -12,6 +12,9 @@ contract StakingConfig is Ownable2Step
 	// Salty Protocol Owned Liquidity - the address holding the protocol liquidity
 	address public saltyPOL;
 
+	// Early Unstake Handler - early unstake fees are sent here and then distributed on upkeep
+	address public earlyUnstake;
+
     // Changeable for debugging purposes to accelerate time
 	uint256 public oneWeek = 5 minutes; // 1 weeks;
 
@@ -45,6 +48,12 @@ contract StakingConfig is Ownable2Step
 	function setSaltyPOL( address _saltyPOL ) public onlyOwner
 		{
 		saltyPOL = _saltyPOL;
+		}
+
+
+	function setEarlyUnstake( address _earlyUnstake ) public onlyOwner
+		{
+		earlyUnstake = _earlyUnstake;
 		}
 
 
