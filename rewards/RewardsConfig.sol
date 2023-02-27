@@ -17,12 +17,23 @@ contract RewardsConfig is Ownable2Step
 	uint256 public upkeepPercentTimes1000; // x1000 for precision
 
 	// === REWARDS DISTRIBUTION ===
-//	uint256 public votedRewards
+	uint256 public earlyUnstake_votedRewardsPercent = 50;
+    uint256 public earlyUnstake_xSaltHoldersPercent = 50;
+
 
 
 	constructor( address _usdc )
 		{
 		usdc = ERC20( _usdc );
+		}
+
+
+	function setEarlyUnstakePercents( uint256 _earlyUnstake_votedRewardsPercent, uint256 _earlyUnstake_xSaltHoldersPercent ) public onlyOwner
+		{
+		require( ( _earlyUnstake_votedRewardsPercent + earlyUnstake_xSaltHoldersPercent ) == 100, "Percentages have to add up to 100" );
+
+		earlyUnstake_votedRewardsPercent = _earlyUnstake_votedRewardsPercent;
+		earlyUnstake_xSaltHoldersPercent = _earlyUnstake_xSaltHoldersPercent;
 		}
 
 
