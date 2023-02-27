@@ -84,7 +84,8 @@ contract StakingConfig is Ownable2Step
 
 	function setUnstakeParams( uint256 _minUnstakeWeeks, uint256 _maxUnstakeWeeks, uint256 _minUnstakePercent ) public onlyOwner
 		{
-		require( _minUnstakeWeeks < _maxUnstakeWeeks );
+		require( _minUnstakeWeeks < _maxUnstakeWeeks, "StakingConfig: minUnstakeWeeks has to be less than maxUnstakeWeeks" );
+
 
 		minUnstakeWeeks = _minUnstakeWeeks;
 		maxUnstakeWeeks = _maxUnstakeWeeks;
