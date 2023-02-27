@@ -30,7 +30,7 @@ contract StakingConfig is Ownable2Step
 	// Keeps track of what pools are valid
 	address[] allPools;
 	mapping(address=>bool) poolAdded;													// [poolID]
-	mapping(address=>uint256) poolWhitelisted;												// [poolID]
+	mapping(address=>uint256) poolWhitelisted;										// [poolID]
 
 
 	constructor( address _salt )
