@@ -21,11 +21,6 @@ contract RewardsEmitter is Upkeepable
 	StakingConfig stakingConfig;
 	Staking staking;
 
-	event Debug(
-		uint256 x,
-		uint256 y,
-		address z );
-
 
     constructor( address _rewardsConfig, address _stakingConfig, address _staking )
 		{
@@ -70,11 +65,6 @@ contract RewardsEmitter is Upkeepable
 
 		address[] memory validPools = stakingConfig.whitelistedPools();
 
-		for( uint256 i = 0; i < validPools.length; i++ )
-			{
-			emit Debug( 0, i, validPools[i] );
-			}
-
 		// Construct the arrays for all poolIDs and the true/false isLP
 		// The very last one will be for [0][false] - which specifies generic staked SALT
 		address[] memory poolIDs = new address[]( validPools.length * 2 + 1 );
@@ -109,8 +99,6 @@ contract RewardsEmitter is Upkeepable
 
 			// Each poolID/isLP will send a percentage of the pending rewards
 			uint256 amountToAddForPool = ( pendingRewards[poolID][isLP] * numeratorMult ) / denominatorMult;
-
-			emit Debug( 1, amountToAddForPool, poolIDs[i] );
 
 			if ( amountToAddForPool != 0 )
 				{
