@@ -59,6 +59,10 @@ contract StakingConfig is Ownable2Step
 
 	function whitelist( address poolID ) public onlyOwner
 		{
+		// Don't allow whitelisting the STAKING pool as it will be made valid by default
+		// and not returned in whitelistedPools()
+		require( poolID != address(0), "Cannot whitelist poolID 0" );
+
 		// Make sure the pool hasn't already been added to allPools
 		if ( ! poolAdded[poolID] )
 			{
