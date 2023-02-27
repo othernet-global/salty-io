@@ -68,21 +68,19 @@ contract RewardsEmitter is Upkeepable
 		// Construct the arrays for all poolIDs and the true/false isLP
 		// poolID STAKING will never really appear with isLP=true, but we'll leave it in for simplicity
 		address[] memory poolIDs = new address[]( validPools.length * 2 );
-        bool[] memory areLPs = new bool[]( poolIDs.length );
+        bool[] memory areLPs = new bool[]( validPools.length * 2 );
 
-		// Half have areLPs = true
-		uint256 numValidPools = validPools.length;
-        for( uint256 i = 0; i < numValidPools; i++ )
+		// Setup the arrays
+        for( uint256 i = 0; i < validPools.length; i++ )
         	{
-        	poolIDs[i] = validPools[i];
-        	areLPs[i] = true;
-        	}
+        	uint256 poolID = validPools[i];
 
-		// Half have areLPs = false
-        for( uint256 i = 0; i < numValidPools; i++ )
-        	{
-        	poolIDs[ numValidPools + i ] = validPools[i];
-        	areLPs[ numValidPools + i ] = false;
+        	poolIDs[i] = poolID;
+        	areLPs[i] = true; //Half have areLPs = true
+
+			i++;
+        	poolIDs[i] = poolID;
+        	areLPs[i] = false; //Half have areLPs = false
         	}
 
 		// Cached for efficiency
