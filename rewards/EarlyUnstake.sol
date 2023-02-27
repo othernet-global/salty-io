@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: BSL 1.1
 pragma solidity =0.8.17;
 
+
+import "../openzeppelin/token/ERC20/ERC20.sol";
+import "../staking/StakingConfig.sol";
 import "../Upkeepable.sol";
+import "./RewardsConfig.sol";
 import "./VotedRewards.sol";
 import "./RewardsEmitter.sol";
 
@@ -11,46 +15,43 @@ import "./RewardsEmitter.sol";
 
 contract EarlyUnstake is Upkeepable
     {
-    VotedRewards votedRewards;
+    StakingConfig stakingConfig;
+    RewardsConfig rewardsConfig;
+    address votedRewards;
 	RewardsEmitter rewardsEmitter;
 
 
-    constructor( address _votedRewards, address _rewardsEmitter )
+    constructor( address _stakingConfig, address _rewardsConfig, address _votedRewards, address _rewardsEmitter )
 		{
-		votedRewards = VotedRewards( _votedRewards );
+		stakingConfig = StakingConfig( _stakingConfig );
+		rewardsConfig = RewardsConfig( _rewardsConfig );
+		votedRewards = _votedRewards;
 		rewardsEmitter = RewardsEmitter( _rewardsEmitter );
+
+		stakingConfig.salt().approve( _rewardsEmitter, 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff );
 		}
 
 
 	function performUpkeep() internal override
 		{
-		address[] memory poolIDs = stakingConfig.whitelistedPools();
-
-		// Looking at the xSALT deposits (which act as votes) for each pool,
-		// we'll send a proportional amount of rewards to RewardsEmitter.sol for each pool
-		uint256[] memory votesForPools = staking.totalDepositsForPools( poolIDs, false );
-
-		// Determine the total pool votes so we can calculate pool percentages
-		uint256 totalPoolVotes = 0;
-		for( uint256 i = 0; i < votesForPools.length; i++ )
-			totalPoolVotes += votesForPools[i];
-
-		// Make sure some votes have been cast
-		if ( totalPoolVotes == 0 )
-			return;
+		ERC20 salt = stakingConfig.salt();
 
 		uint256 saltBalance = stakingConfig.salt().balanceOf( address( this ) );
 
-		// The rewards we are adding will be claimable by those who have staked LP.
-		// So, specify areLPs = true for the added rewards
-		bool[] memory areLPs = new bool[]( votesForPools.length );
-		for( uint256 i = 0; i < areLPs.length; i++ )
-			areLPs[i] = true;
+		uint256 votedRewardsAmount = ( saltBalance * rewardsConfig.earlyUnstake_votedRewardsPercent() ) / 100;
+		uint256 xsaltHoldersAmount = saltBalance - votedRewardsAmount;
 
-		// The entire SALT balance will be sent - proportional to the votes received by each pool
-		uint256[] memory amountsToAdd = new uint256[]( votesForPools.length );
-		for( uint256 i = 0; i < amountsToAdd.length; i++ )
-			amountsToAdd[i] = ( saltBalance * votesForPools[i] ) / totalPoolVotes;
+		// Send a portion to be distributed to pools proportional to pool votes received
+		salt.transfer( address(votedRewards), votedRewardsAmount );
+
+		// Send a portion to xSALT holders
+		uint256[] memory poolIDs = new uint256[]( 1 );
+		uint256[] memory areLPs = new uint256[]( 1 );
+		uint256[] memory amountsToAdd = new uint256[]( 1 );
+
+		poolIDs[0] = address(0); // STAKING pool
+		areLPs[0] = false; // for xSALT holders
+		amountsToAdd[0] = xsaltHoldersAmount;
 
 		// Send the SALT to the RewardsEmitter
 		rewardsEmitter.addSALTRewards( poolIDs, areLPs, amountsToAdd );
