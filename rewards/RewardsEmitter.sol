@@ -35,6 +35,8 @@ contract RewardsEmitter is Upkeepable
 	// Can be added from any wallet
 	function addSALTRewards( address[] memory poolIDs, bool[] memory areLPs, uint256[] memory amountsToAdd ) public nonReentrant
 		{
+		require( ( poolIDs.length == areLPs.length )  && ( poolIDs.length == amountsToAdd.length), "RewardsEmitter: Array length mismatch" );
+
 		address wallet = msg.sender;
 
 		uint256 sum = 0;
@@ -53,6 +55,22 @@ contract RewardsEmitter is Upkeepable
 		if ( sum > 0 )
 			stakingConfig.salt().transferFrom( wallet, address(this), sum );
 		}
+
+
+	// Helper function
+	function addSALTRewards( address poolID, bool isLP, uint256 amountToAdd ) public
+		{
+		address[] memory poolIDs = new address[]( 1 );
+		bool[] memory areLPs = new bool[]( 1 );
+		uint256[] memory amountsToAdd = new uint256[]( 1 );
+
+		poolIDs[0] = poolID;
+		areLPs[0] = isLP;
+		amountsToAdd[0] = amountToAdd;
+
+		addSALTRewards( poolIDs, areLPs, amountsToAdd );
+		}
+
 
 
 	// Transfer a percent (default 10% per day) of the currently held rewards to Staking.sol where users can then claim them.

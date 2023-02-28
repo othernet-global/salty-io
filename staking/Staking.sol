@@ -269,6 +269,8 @@ contract Staking is IStaking, ReentrancyGuard
 	// Can be added from any wallet
 	function addSALTRewards( address[] memory poolIDs, bool[] memory areLPs, uint256[] memory amountsToAdd ) public nonReentrant
 		{
+		require( ( poolIDs.length == areLPs.length )  && ( poolIDs.length == amountsToAdd.length), "Staking: Array length mismatch" );
+
 		address wallet = msg.sender;
 
 		uint256 sum = 0;

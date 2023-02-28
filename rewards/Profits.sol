@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BSL 1.1
 pragma solidity =0.8.17;
 
-import "../openzeppelin/security/ReentrancyGuard.sol";
 import "../Upkeepable.sol";
 import "./RewardsConfig.sol";
 

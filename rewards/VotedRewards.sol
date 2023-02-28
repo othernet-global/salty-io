@@ -4,7 +4,6 @@ pragma solidity =0.8.17;
 import "../Upkeepable.sol";
 import "../staking/Staking.sol";
 import "./RewardsEmitter.sol";
-import "../openzeppelin/security/PullPayment.sol";
 
 
 // Stores SALT and distributes it at upkeep to RewardsEmitter.sol
