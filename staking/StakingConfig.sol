@@ -27,6 +27,9 @@ contract StakingConfig is Ownable2Step
 	// Prevents reward hunting where users could frontrun reward distributions and then immediately withdraw
 	uint256 public depositWithdrawalCooldown = 1 hours;
 
+	// The maximum number of whitelisted pools that can exist simulataneously
+	uint256 public maximumWhitelistedPools = 200;
+
 	// Keeps track of what pools are valid
 	address[] allPools;
 	mapping(address=>bool) poolAdded;													// [poolID]
@@ -57,11 +60,20 @@ contract StakingConfig is Ownable2Step
 		}
 
 
+	function setMaximumWhitelistedPools( uint256 _maximumWhitelistedPools ) public onlyOwner
+		{
+		maximumWhitelistedPools = _maximumWhitelistedPools;
+		}
+
+
 	function whitelist( address poolID ) public onlyOwner
 		{
 		// Don't allow whitelisting the STAKING pool as it will be made valid by default
 		// and not returned in whitelistedPools()
 		require( poolID != address(0), "Cannot whitelist poolID 0" );
+
+		address[] memory existingPools = whitelistedPools();
+		require( existingPools.length < maximumWhitelistedPools, "Maximum number of whitelisted pools already reached" );
 
 		// Make sure the pool hasn't already been added to allPools
 		if ( ! poolAdded[poolID] )
