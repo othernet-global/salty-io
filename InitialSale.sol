@@ -2,11 +2,11 @@
 pragma solidity =0.8.17;
 
 import "./openzeppelin/token/ERC20/ERC20.sol";
-import "./openzeppelin/access/Ownable.sol";
+import "./openzeppelin/access/Ownable2Step.sol";
 import "./openzeppelin/security/ReentrancyGuard.sol";
 
 
-contract InitialSale is Ownable, ReentrancyGuard
+contract InitialSale is Ownable2Step, ReentrancyGuard
     {
     ERC20 usdc;
     ERC20 salt;
