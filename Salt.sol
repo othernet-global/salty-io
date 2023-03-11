@@ -11,11 +11,9 @@ contract Salt is ERC20
 
 
 	constructor()
-		ERC20( "Test Salt", "testSALT" )
+		ERC20( "testSalt", "testSALT" )
 		{
 		_mint( msg.sender, INITIAL_SUPPLY );
-
-		// Send initial supply to managing contracts
         }
 	}
 
