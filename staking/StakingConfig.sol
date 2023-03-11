@@ -10,7 +10,10 @@ contract StakingConfig is Ownable2Step
 	ERC20 public salt;
 
 	// Salty Protocol Owned Liquidity - the address holding the protocol liquidity
+	// Can only be changed after a one week delay
 	address public saltyPOL;
+	address public pendingSaltyPOL;
+	uint256 public pendingSaltyTimestamp;
 
 	// Early Unstake Handler - early unstake fees are sent here and then distributed on upkeep
 	address public earlyUnstake;
@@ -48,9 +51,21 @@ contract StakingConfig is Ownable2Step
 		}
 
 
-	function setSaltyPOL( address _saltyPOL ) public onlyOwner
+	// Time delay change for SaltyPOL as changing this would allow the staked SALT
+	// and SALT/USDC held by Salty.IO to be withdrawn / moved
+	function initChangeSaltyPOL( address _saltyPOL ) public onlyOwner
 		{
-		saltyPOL = _saltyPOL;
+		pendingSaltyPOL = _saltyPOL;
+		pendingSaltyTimestamp = block.timestamp + 7 days;
+		}
+
+
+	function confirmChangeSaltyPOL() public onlyOwner
+		{
+		require( block.timestamp >= pendingSaltyTimestamp );
+		require( pendingSaltyPOL != address(0), "SaltyPOL cannot be the zero address" );
+
+		saltyPOL = pendingSaltyPOL;
 		}
 
 
