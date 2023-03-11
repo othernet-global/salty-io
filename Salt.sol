@@ -11,7 +11,7 @@ contract Salt is ERC20
 
 
 	constructor()
-		ERC20( "Salt", "SALT" )
+		ERC20( "Test Salt", "testSALT" )
 		{
 		_mint( msg.sender, INITIAL_SUPPLY );
 
