@@ -8,7 +8,6 @@ import "./openzeppelin/security/ReentrancyGuard.sol";
 
 contract InitialSale is Ownable2Step, ReentrancyGuard
     {
-    ERC20 usdc;
     ERC20 salt;
 
 	uint256 public endTime;
@@ -21,9 +20,8 @@ contract InitialSale is Ownable2Step, ReentrancyGuard
 	mapping(address => bool) public userClaimed;
 
 
-	constructor( address _usdc, address _salt, uint256 _durationInHours )
+	constructor( address _salt, uint256 _durationInHours )
 		{
-		usdc = ERC20( _usdc );
 		salt = ERC20( _salt );
 
 		endTime = block.timestamp + _durationInHours * 1 hours;
@@ -41,23 +39,24 @@ contract InitialSale is Ownable2Step, ReentrancyGuard
 		}
 
 
-	// After the sale is over, the owner can withdraw the deposited USDC.
-	// The USDC will be paired with 15 million SALT to form the initial SALT/USDC liquidity
-	function withdrawDepositedUSDC() public onlyOwner
+	// After the sale is over, the owner can withdraw the deposited MATIC.
+	// The MATIC will be paired with 15 million SALT to form the initial SALT/MATIC liquidity
+	function withdrawDepositedMATIC() public onlyOwner
 		{
-    	address wallet = msg.sender;
+    	address payable wallet = payable( msg.sender );
 
-        require( block.timestamp >= endTime, "The sale hasn't ended yet" );
+        require( block.timestamp >= endTime, "The sale has not ended yet" );
 
-		// Withdraw the USDC to the owner wallet
-    	uint256 usdcBalance = usdc.balanceOf( address(this) );
-    	usdc.transfer( wallet, usdcBalance );
+		// Withdraw the MATIC to the owner wallet
+    	uint256 maticBalance = address(this).balance;
+
+    	wallet.transfer( maticBalance );
 		}
 
 
 	function allowClaiming() public onlyOwner
 		{
-        require( block.timestamp >= endTime, "The sale hasn't ended yet" );
+        require( block.timestamp >= endTime, "The sale has not ended yet" );
 
 		usersCanClaim = true;
 		}
@@ -66,17 +65,17 @@ contract InitialSale is Ownable2Step, ReentrancyGuard
 
 	// ===== PUBLIC  =====
 
-	// Users can deposit USDC as long as the sale is still active
-    function depositUSDC( uint256 usdcAmount ) public nonReentrant
+	// Users can deposit MATIC as long as the sale is still active
+    function depositMATIC() public payable nonReentrant
     	{
     	address wallet = msg.sender;
+		uint256 depositAmount = msg.value;
 
         require( block.timestamp < endTime, "Sale is no longer active" );
+    	require( depositAmount > 0, "Deposit amount must be more than zero" );
 
-        usdc.transferFrom( wallet, address(this), usdcAmount );
-        userDeposits[wallet] += usdcAmount;
-
-        totalDeposits += usdcAmount;
+        userDeposits[wallet] += depositAmount;
+        totalDeposits += depositAmount;
    		}
 
 
@@ -87,7 +86,7 @@ contract InitialSale is Ownable2Step, ReentrancyGuard
     	address wallet = msg.sender;
 
 		require( usersCanClaim, "Users cannot claim yet" );
-        require( block.timestamp >= endTime, "The sale hasn't ended yet" );
+        require( block.timestamp >= endTime, "The sale has not ended yet" );
         require( ! userClaimed[wallet], "User has already claimed SALT" );
 
 		uint256 claimableSALT = userShareSALT( wallet );
@@ -109,7 +108,7 @@ contract InitialSale is Ownable2Step, ReentrancyGuard
 		}
 
 
-	function userDepositedUSDC( address wallet ) public view returns (uint256)
+	function userDepositedAmount( address wallet ) public view returns (uint256)
 		{
 		return userDeposits[wallet];
 		}
