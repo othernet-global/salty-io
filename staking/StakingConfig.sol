@@ -38,6 +38,8 @@ contract StakingConfig is Ownable2Step
 	mapping(address=>bool) poolAdded;													// [poolID]
 	mapping(address=>uint256) poolWhitelisted;										// [poolID]
 
+	bool public xsaltIsTransferable = true;
+
 
 	constructor( address _salt )
 		{
@@ -48,6 +50,12 @@ contract StakingConfig is Ownable2Step
 	function setSALT( address _salt ) public onlyOwner
 		{
 		salt = ERC20( _salt );
+		}
+
+
+	function setXSALTIsTransferable( bool _transferable ) public onlyOwner
+		{
+		xsaltIsTransferable = _transferable;
 		}
 
 

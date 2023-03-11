@@ -60,7 +60,6 @@ contract Staking is IStaking, ReentrancyGuard
 	mapping(address=>mapping(address=>uint256)) earliestModificationTime; // [wallet][poolID]
 
 
-
 	constructor( address _stakingConfig )
 		{
 		stakingConfig = StakingConfig( _stakingConfig );
@@ -188,6 +187,7 @@ contract Staking is IStaking, ReentrancyGuard
 		{
 		address wallet = msg.sender;
 
+		require( stakingConfig.xsaltIsTransferable(), "xSALT is not currently transferable" );
 		require( destination != address(0), "Staking: Cannot send to address(0)" );
 		require( destination != wallet, "Staking: Cannot send to self" );
 		require( amountToTransfer <= freeXSALT[wallet], "Staking: Cannot transfer more than the xSALT balance" );
