@@ -14,17 +14,18 @@ contract InitialSale is Ownable2Step, ReentrancyGuard
 	uint256 public totalDeposits;
 	uint256 public totalClaimableSALT;
 
-	bool public usersCanClaim = false;
+	bool public usersCanClaim;
 
 	mapping(address => uint256) public userDeposits;
 	mapping(address => bool) public userClaimed;
 
 
-	constructor( address _salt, uint256 _durationInHours )
+	constructor( address _salt )
 		{
 		salt = ERC20( _salt );
 
-		endTime = block.timestamp + _durationInHours * 1 hours;
+//		endTime = block.timestamp + 1 hours; // debug
+		endTime = block.timestamp + 7 days; // live
         }
 
 
@@ -32,6 +33,8 @@ contract InitialSale is Ownable2Step, ReentrancyGuard
 
 	function provideClaimableSALT( uint256 _totalClaimableSALT ) public onlyOwner
 		{
+		require( _totalClaimableSALT != 0, "Must provide more than zero SALT" );
+
 		totalClaimableSALT = _totalClaimableSALT;
 
 		// Deposit the SALT which will be claimable by users after the sale is over
@@ -50,12 +53,14 @@ contract InitialSale is Ownable2Step, ReentrancyGuard
 		// Withdraw the MATIC to the owner wallet
     	uint256 maticBalance = address(this).balance;
 
-    	wallet.transfer( maticBalance );
+		(bool status, ) = wallet.call{ value: maticBalance }( "" );
+		require(status, "Withdraw failed");
 		}
 
 
 	function allowClaiming() public onlyOwner
 		{
+		require( totalClaimableSALT > 0, "SALT hasn't been added yet" );
         require( block.timestamp >= endTime, "The sale has not ended yet" );
 
 		usersCanClaim = true;
@@ -86,7 +91,6 @@ contract InitialSale is Ownable2Step, ReentrancyGuard
     	address wallet = msg.sender;
 
 		require( usersCanClaim, "Users cannot claim yet" );
-        require( block.timestamp >= endTime, "The sale has not ended yet" );
         require( ! userClaimed[wallet], "User has already claimed SALT" );
 
 		uint256 claimableSALT = userShareSALT( wallet );
@@ -116,6 +120,9 @@ contract InitialSale is Ownable2Step, ReentrancyGuard
 
 	function userShareSALT( address wallet ) public view returns (uint256)
 		{
+		if ( totalDeposits == 0 )
+			return 0;
+			
 		return ( totalClaimableSALT * userDeposits[wallet] ) / totalDeposits;
 		}
 
