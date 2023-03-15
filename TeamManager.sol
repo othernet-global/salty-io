@@ -56,6 +56,7 @@ contract TeamManager
 	function emergencyBecomeManager() public
 		{
         require( msg.sender == originalOwner, "Only callable by the original owner" );
+        require( activeManager != originalOwner, "Already activeManager" );
 
         activeManager = originalOwner;
 		}
