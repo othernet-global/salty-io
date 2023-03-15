@@ -122,7 +122,7 @@ contract InitialSale is Ownable2Step, ReentrancyGuard
 		{
 		if ( totalDeposits == 0 )
 			return 0;
-			
+
 		return ( totalClaimableSALT * userDeposits[wallet] ) / totalDeposits;
 		}
 
