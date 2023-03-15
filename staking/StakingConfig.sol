@@ -3,11 +3,16 @@ pragma solidity =0.8.17;
 
 import "../openzeppelin/access/Ownable2Step.sol";
 import "../openzeppelin/token/ERC20/ERC20.sol";
+import "./IStaking.sol";
 
 
-contract StakingConfig is Ownable2Step
+contract StakingConfig is Ownable2Step, IStaking
     {
-	ERC20 public salt;
+	// The maximum number of whitelisted pools that can exist simulataneously
+	uint256 public MAXIMUM_WHITELISTED_POOLS = 200;
+
+
+	ERC20 immutable public salt;
 
 	// Salty Protocol Owned Liquidity - the address holding the protocol liquidity
 	// Can only be changed after a one week delay
@@ -18,9 +23,6 @@ contract StakingConfig is Ownable2Step
 	// Early Unstake Handler - early unstake fees are sent here and then distributed on upkeep
 	address public earlyUnstake;
 
-    // Changeable for debugging purposes to accelerate time
-	uint256 public oneWeek = 5 minutes; // 1 weeks;
-
 	uint256 public minUnstakePercent = 50;
 
 	uint256 public minUnstakeWeeks = 2; // minUnstakePercent returned here
@@ -30,9 +32,6 @@ contract StakingConfig is Ownable2Step
 	// Prevents reward hunting where users could frontrun reward distributions and then immediately withdraw
 	uint256 public depositWithdrawalCooldown = 1 hours;
 
-	// The maximum number of whitelisted pools that can exist simulataneously
-	uint256 public maximumWhitelistedPools = 200;
-
 	// Keeps track of what pools are valid
 	address[] allPools;
 	mapping(address=>bool) poolAdded;													// [poolID]
@@ -41,21 +40,18 @@ contract StakingConfig is Ownable2Step
 	bool public xsaltIsTransferable = true;
 
 
-	constructor( address _salt )
+	constructor( address _salt, address _saltyPOL )
 		{
 		salt = ERC20( _salt );
-		}
-
-
-	function setSALT( address _salt ) public onlyOwner
-		{
-		salt = ERC20( _salt );
+		saltyPOL = _saltyPOL;
 		}
 
 
 	function setXSALTIsTransferable( bool _transferable ) public onlyOwner
 		{
 		xsaltIsTransferable = _transferable;
+
+		emit eSetTransferable( xsaltIsTransferable );
 		}
 
 
@@ -65,6 +61,8 @@ contract StakingConfig is Ownable2Step
 		{
 		pendingSaltyPOL = _saltyPOL;
 		pendingSaltyTimestamp = block.timestamp + 7 days;
+
+		emit eChangePOL( pendingSaltyPOL );
 		}
 
 
@@ -74,18 +72,16 @@ contract StakingConfig is Ownable2Step
 		require( pendingSaltyPOL != address(0), "SaltyPOL cannot be the zero address" );
 
 		saltyPOL = pendingSaltyPOL;
+
+		emit eConfirmPOL();
 		}
 
 
 	function setEarlyUnstake( address _earlyUnstake ) public onlyOwner
 		{
 		earlyUnstake = _earlyUnstake;
-		}
 
-
-	function setMaximumWhitelistedPools( uint256 _maximumWhitelistedPools ) public onlyOwner
-		{
-		maximumWhitelistedPools = _maximumWhitelistedPools;
+		emit eSetEarlyUnstake( earlyUnstake);
 		}
 
 
@@ -96,7 +92,7 @@ contract StakingConfig is Ownable2Step
 		require( poolID != address(0), "Cannot whitelist poolID 0" );
 
 		address[] memory existingPools = whitelistedPools();
-		require( existingPools.length < maximumWhitelistedPools, "Maximum number of whitelisted pools already reached" );
+		require( existingPools.length < MAXIMUM_WHITELISTED_POOLS, "Maximum number of whitelisted pools already reached" );
 
 		// Make sure the pool hasn't already been added to allPools
 		if ( ! poolAdded[poolID] )
@@ -106,36 +102,44 @@ contract StakingConfig is Ownable2Step
 			}
 
 		poolWhitelisted[poolID] = 1;
+
+		emit eWhitelist( poolID );
 		}
 
 
 	function blacklist( address poolID ) public onlyOwner
 		{
 		poolWhitelisted[poolID] = 0;
+
+		emit eBlacklist( poolID );
 		}
 
-
-	function setOneWeek( uint256 _oneWeek ) public onlyOwner
-		{
-		oneWeek = _oneWeek;
-		}
 
 
 	function setUnstakeParams( uint256 _minUnstakeWeeks, uint256 _maxUnstakeWeeks, uint256 _minUnstakePercent ) public onlyOwner
 		{
-		require( _minUnstakeWeeks < _maxUnstakeWeeks, "StakingConfig: minUnstakeWeeks has to be less than maxUnstakeWeeks" );
-
+		require( _minUnstakeWeeks >=2, "minUnstakeWeeks too small" );
+		require( _minUnstakeWeeks <=12, "minUnstakeWeeks too large" );
+		require( _maxUnstakeWeeks >=13, "maxUnstakeWeeks too small" );
+		require( _maxUnstakeWeeks <=52, "maxUnstakeWeeks too large" );
+		require( _minUnstakePercent >=25, "minUnstakePercent too small" );
+		require( _minUnstakePercent <=75, "minUnstakePercent too large" );
 
 		minUnstakeWeeks = _minUnstakeWeeks;
 		maxUnstakeWeeks = _maxUnstakeWeeks;
 
 		minUnstakePercent = _minUnstakePercent;
+
+
+		emit eSetUnstakeParams( minUnstakeWeeks, maxUnstakeWeeks, minUnstakePercent );
 		}
 
 
 	function setDepositWithdrawalCooldown( uint256 _depositWithdrawalCooldown ) public onlyOwner
 		{
 		depositWithdrawalCooldown = _depositWithdrawalCooldown;
+
+		emit eSetCooldown( depositWithdrawalCooldown );
 		}
 
 

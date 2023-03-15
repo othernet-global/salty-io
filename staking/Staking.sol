@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: BSL 1.1
 pragma solidity =0.8.17;
 
-import "../openzeppelin/token/ERC20/ERC20.sol";
+import "../openzeppelin/token/ERC20/IERC20.sol";
+import "../openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import "../openzeppelin/security/ReentrancyGuard.sol";
 import "./StakingConfig.sol";
 import "./IStaking.sol";
@@ -19,14 +20,17 @@ contract Staking is IStaking, ReentrancyGuard
     // that are not tied to a specific pool
     address constant STAKING = address(0);
 
+    // Normally one week - can be modified for debugging
+	uint256 constant ONE_WEEK = 5 minutes; // 1 weeks;
+
     // Status values for Unstakes
-    uint256 constant PENDING = 1;
-    uint256 constant CANCELLED = 2;
-	uint256 constant CLAIMED = 3;
+    uint8 constant PENDING = 1;
+    uint8 constant CANCELLED = 2;
+	uint8 constant CLAIMED = 3;
 
 
-    StakingConfig stakingConfig;
 
+    StakingConfig public stakingConfig;
 
     // The free xSALT balance for each wallet
     // This is xSALT that hasn't been used yet for voting
@@ -38,7 +42,7 @@ contract Staking is IStaking, ReentrancyGuard
 	// Unstakes by unstakeID
     mapping(uint256=>Unstake) public unstakesByID;						// [unstakeID]
 
-	uint256 nextUnstakeID = 0;
+	uint256 public nextUnstakeID;
 
 
     // The total SALT rewards and LP or xSALT deposits for particular pools
@@ -47,17 +51,18 @@ contract Staking is IStaking, ReentrancyGuard
 
 	// The amount a user has deposited for particular pools (either LP or xSALT)
     mapping(address=>
-    	mapping(address=>mapping(bool=>uint256))) userDeposits;				// [wallet][poolID][isLP]
+    	mapping(address=>mapping(bool=>uint256))) public userDeposits;				// [wallet][poolID][isLP]
 
 	// The amount of rewards each user had to borrow when depositing LP or xSALT
 	// The rewards are borrowed and deposited so that the ratio of rewards / deposited stays the same
 	// It allows us to keep track of owed rewards for users over time (similar to how LP tokens work)
     mapping(address=>
-    	mapping(address=>mapping(bool=>uint256))) borrowedRewards;		// [wallet][poolID][isLP]
+    	mapping(address=>mapping(bool=>uint256))) public borrowedRewards;		// [wallet][poolID][isLP]
 
 	// The earliest time at which the user can modify their deposits for a pool (deposit or withdrawal)
 	// defaults to one hour cooldown
-	mapping(address=>mapping(address=>uint256)) earliestModificationTime; // [wallet][poolID]
+    mapping(address=>
+    	mapping(address=>mapping(bool=>uint256))) public earliestModificationTime;	// [wallet][poolID][isLP]
 
 
 	constructor( address _stakingConfig )
@@ -70,18 +75,16 @@ contract Staking is IStaking, ReentrancyGuard
 
 	function stakeSALT( uint256 amountStaked ) external nonReentrant
 		{
-		address wallet = msg.sender;
-
 		// Deposit the SALT
-		stakingConfig.salt().transferFrom( wallet, address(this), amountStaked );
+		stakingConfig.salt().transferFrom( msg.sender, address(this), amountStaked );
 
 		// User now has more free xSALT
-		freeXSALT[wallet] += amountStaked;
+		freeXSALT[msg.sender] += amountStaked;
 
 		// Keep track of the staking - for general staking rewards that are not pool specific
-		_accountForDeposit( wallet, STAKING, false, amountStaked );
+		_accountForDeposit( msg.sender, STAKING, false, amountStaked );
 
-		emit eStake( wallet, amountStaked );
+		emit eStake( msg.sender, amountStaked );
 		}
 
 
@@ -93,8 +96,8 @@ contract Staking is IStaking, ReentrancyGuard
         uint256 maxUnstakeWeeks = stakingConfig.maxUnstakeWeeks();
         uint256 minUnstakePercent = stakingConfig.minUnstakePercent();
 
-		require( numWeeks >= minUnstakeWeeks, "Staking: Unstaking too short a duration" );
-		require( numWeeks <= maxUnstakeWeeks, "Staking: Unstaking too long a duration" );
+		require( numWeeks >= minUnstakeWeeks, "Staking: Unstaking duraiton too short" );
+		require( numWeeks <= maxUnstakeWeeks, "Staking: Unstaking duraiton too long" );
 
 		// Multiply by 1000000 for precision
 		uint256 percent = 1000000 * minUnstakePercent + ( 1000000 * ( 100 - minUnstakePercent ) * ( numWeeks - minUnstakeWeeks ) ) / ( maxUnstakeWeeks - minUnstakeWeeks );
@@ -105,68 +108,64 @@ contract Staking is IStaking, ReentrancyGuard
 
 	function unstake( uint256 amountUnstaked, uint256 numWeeks ) external nonReentrant
 		{
-		address wallet = msg.sender;
-
-		require( amountUnstaked <= freeXSALT[wallet], "Staking: Cannot unstake more than the xSALT balance" );
-		require( wallet != stakingConfig.saltyPOL(), "Staking: Protocol Owned Liquidity cannot unstake" );
+		require( stakingConfig.earlyUnstake() != address(0), "Staking: earlyUnstake has not been set" );
+		require( amountUnstaked <= freeXSALT[msg.sender], "Staking: Cannot unstake more than the xSALT balance" );
+		require( msg.sender != stakingConfig.saltyPOL(), "Staking: Protocol Owned Liquidity cannot unstake" );
 
 		uint256 claimableSALT = calculateUnstake( amountUnstaked, numWeeks );
-		uint256 completionTime = block.timestamp + numWeeks * stakingConfig.oneWeek();
+		uint256 completionTime = block.timestamp + numWeeks * ONE_WEEK;
 
-		Unstake memory u = Unstake( PENDING, wallet, amountUnstaked, claimableSALT, completionTime, nextUnstakeID );
+		Unstake memory u = Unstake( PENDING, msg.sender, amountUnstaked, claimableSALT, completionTime, nextUnstakeID );
 
 		unstakesByID[nextUnstakeID] = u;
-		userUnstakeIDs[wallet].push( nextUnstakeID );
+		userUnstakeIDs[msg.sender].push( nextUnstakeID );
 		nextUnstakeID++;
 
 		// Unstaking immediately reduces the user's balance
-		freeXSALT[wallet] -= amountUnstaked;
+		freeXSALT[msg.sender] -= amountUnstaked;
 
 		// Keep track of the staking - for general staking rewards that are not pool specific
-		_accountForWithdrawal( wallet, STAKING, false, amountUnstaked );
+		_accountForWithdrawal( msg.sender, STAKING, false, amountUnstaked );
 
-		emit eUnstake( wallet, amountUnstaked, numWeeks);
+		emit eUnstake( msg.sender, amountUnstaked, numWeeks);
 		}
 
 
 	// Cancel a PENDING unstake
 	function cancelUnstake( uint256 unstakeID ) external nonReentrant
 		{
-		address wallet = msg.sender;
-
 		Unstake storage u = unstakesByID[unstakeID];
+
 		require( u.status == PENDING, "Staking: Only PENDING unstakes can be cancelled" );
 		require( block.timestamp < u.completionTime, "Staking: Unstakes that have already completed cannot be cancelled" );
-		require( wallet == u.wallet, "Staking: Not the original staker" );
+		require( msg.sender == u.wallet, "Staking: Not the original staker" );
 
 		// User will be able to use the xSALT again
-		freeXSALT[wallet] += u.unstakedXSALT;
+		freeXSALT[msg.sender] += u.unstakedXSALT;
 
 		// Keep track of the staking - for general staking rewards that are not pool specific
-		_accountForDeposit( wallet, STAKING, false, u.unstakedXSALT );
+		_accountForDeposit( msg.sender, STAKING, false, u.unstakedXSALT );
 
 		u.status = CANCELLED;
 
-		emit eCancelUnstake( wallet, unstakeID );
+		emit eCancelUnstake( msg.sender, unstakeID );
 		}
 
 
 	// Recover the SALT from a given completed unstake
 	function recoverSALT( uint256 unstakeID ) external nonReentrant
 		{
-		address wallet = msg.sender;
-
 		Unstake storage u = unstakesByID[unstakeID];
 		require( u.status == PENDING, "Staking: Only PENDING unstakes can be claimed" );
 		require( block.timestamp >= u.completionTime, "Staking: Unstake has not completed yet" );
-		require( wallet == u.wallet, "Staking: Not the original staker" );
+		require( msg.sender == u.wallet, "Staking: Not the original staker" );
 
 		u.status = CLAIMED;
 
 		uint256 claimableSALT = u.claimableSALT;
 		require( claimableSALT <= u.unstakedXSALT, "Staking: Claimable amount has to be less than original stake" );
 
-		stakingConfig.salt().transfer( wallet, claimableSALT );
+		stakingConfig.salt().transfer( msg.sender, claimableSALT );
 
 		// See if the user unstaked early and received only a portion of their original stake
 		uint256 earlyUnstakeFee = u.unstakedXSALT - claimableSALT;
@@ -178,29 +177,27 @@ contract Staking is IStaking, ReentrancyGuard
 			stakingConfig.salt().transfer( stakingConfig.earlyUnstake(), earlyUnstakeFee );
 			}
 
-		emit eRecover( wallet, unstakeID, claimableSALT );
+		emit eRecover( msg.sender, unstakeID, claimableSALT );
 		}
 
 
 	// Transfer xSALT to another wallet
 	function transferXSALT( address destination, uint256 amountToTransfer ) public nonReentrant
 		{
-		address wallet = msg.sender;
-
 		require( stakingConfig.xsaltIsTransferable(), "xSALT is not currently transferable" );
 		require( destination != address(0), "Staking: Cannot send to address(0)" );
-		require( destination != wallet, "Staking: Cannot send to self" );
-		require( amountToTransfer <= freeXSALT[wallet], "Staking: Cannot transfer more than the xSALT balance" );
-		require( wallet != stakingConfig.saltyPOL(), "Staking: Protocol Owned Liquidity cannot transfer xSALT" );
+		require( destination != msg.sender, "Staking: Cannot send to self" );
+		require( amountToTransfer <= freeXSALT[msg.sender], "Staking: Cannot transfer more than the xSALT balance" );
+		require( msg.sender != stakingConfig.saltyPOL(), "Staking: Protocol Owned Liquidity cannot transfer xSALT" );
 
-		freeXSALT[wallet] -= amountToTransfer;
+		freeXSALT[msg.sender] -= amountToTransfer;
 		freeXSALT[destination] += amountToTransfer;
 
 		// Keep track of the staking - for general staking rewards that are not pool specific
-		_accountForWithdrawal( wallet, STAKING, false, amountToTransfer );
+		_accountForWithdrawal( msg.sender, STAKING, false, amountToTransfer );
 		_accountForDeposit( destination, STAKING, false, amountToTransfer );
 
-		emit eTransfer( wallet, destination, amountToTransfer );
+		emit eTransfer( msg.sender, destination, amountToTransfer );
 		}
 
 
@@ -271,13 +268,14 @@ contract Staking is IStaking, ReentrancyGuard
 		{
 		require( ( poolIDs.length == areLPs.length )  && ( poolIDs.length == amountsToAdd.length), "Staking: Array length mismatch" );
 
-		address wallet = msg.sender;
-
 		uint256 sum = 0;
 		for( uint256 i = 0; i < poolIDs.length; i++ )
 			{
 			address poolID = poolIDs[i];
 			require( stakingConfig.isValidPool( poolID ), "Staking: Invalid poolID" );
+
+			if ( poolID == STAKING )
+				require( ! areLPs[i], "Staking pool cannot deposit LP tokens" );
 
 			totalRewards[ poolID ][ areLPs[i] ] += amountsToAdd[i];
 			sum = sum + amountsToAdd[i];
@@ -285,7 +283,7 @@ contract Staking is IStaking, ReentrancyGuard
 
 		// Transfer in the SALT for all the specified rewards
 		if ( sum > 0 )
-			stakingConfig.salt().transferFrom( wallet, address(this), sum );
+			stakingConfig.salt().transferFrom( msg.sender, address(this), sum );
 		}
 
 
@@ -297,29 +295,36 @@ contract Staking is IStaking, ReentrancyGuard
 		require( stakingConfig.isValidPool( poolID ), "Staking: Invalid poolID" );
 		require( amountDeposited != 0, "Staking: Cannot deposit 0" );
 
-		address wallet = msg.sender;
-		require( block.timestamp >= earliestModificationTime[wallet][poolID], "Staking: Must wait for the one hour cooldown to expire" );
+		require( block.timestamp >= earliestModificationTime[msg.sender][poolID][isLP], "Staking: Must wait for the one hour cooldown to expire" );
+
+		// Set the next allowed modification time
+		earliestModificationTime[msg.sender][poolID][isLP] = block.timestamp + stakingConfig.depositWithdrawalCooldown();
 
 		// Transfer the LP or xSALT from the user
 		if ( isLP )
     		{
 			// poolID is the LP token
-			ERC20 erc20 = ERC20( poolID );
-    	    erc20.transferFrom( wallet, address(this), amountDeposited );
+			IERC20 erc20 = IERC20( poolID );
+
+			// Before balance used to check for fee on transfer
+			uint256 beforeBalance = erc20.balanceOf( address(this) );
+
+    	    SafeERC20.safeTransferFrom( erc20, msg.sender, address(this), amountDeposited );
+
+			uint256 afterBalance = erc20.balanceOf( address(this) );
+
+			require( afterBalance == ( beforeBalance + amountDeposited ), "Cannot deposit tokens with a fee on transfer" );
     		}
     	else
     		{
-    		require( amountDeposited <= freeXSALT[wallet], "Staking: Cannot deposit more than the xSALT balance" );
+    		require( amountDeposited <= freeXSALT[msg.sender], "Staking: Cannot deposit more than the xSALT balance" );
 
-    		freeXSALT[wallet] -= amountDeposited;
+    		freeXSALT[msg.sender] -= amountDeposited;
     		}
 
-		_accountForDeposit( wallet, poolID, isLP, amountDeposited );
+		_accountForDeposit( msg.sender, poolID, isLP, amountDeposited );
 
-		// Set the next allowed modification time
-		earliestModificationTime[wallet][poolID] = block.timestamp + stakingConfig.depositWithdrawalCooldown();
-
-        emit eDeposit( wallet, poolID, isLP, amountDeposited );
+        emit eDeposit( msg.sender, poolID, isLP, amountDeposited );
 		}
 
 
@@ -330,30 +335,28 @@ contract Staking is IStaking, ReentrancyGuard
 		require( poolID != STAKING, "Staking: Cannot call on poolID 0" );
 		require( amountWithdrawn != 0, "Staking: Cannot withdraw 0" );
 
-		address wallet = msg.sender;
-
-		require( block.timestamp >= earliestModificationTime[wallet][poolID], "Staking: Must wait for the one hour cooldown to expire" );
-		require( userDeposits[wallet][poolID][isLP] >= amountWithdrawn, "Staking: Only what has been deposited can be withdrawn" );
+		require( block.timestamp >= earliestModificationTime[msg.sender][poolID][isLP], "Staking: Must wait for the one hour cooldown to expire" );
+		require( userDeposits[msg.sender][poolID][isLP] >= amountWithdrawn, "Staking: Only what has been deposited can be withdrawn" );
 		require( totalDeposits[poolID][isLP] != 0, "Staking: Cannot withdraw with totalDeposits equal to zero" );
+
+		// Set the next allowed modification time
+		earliestModificationTime[msg.sender][poolID][isLP] = block.timestamp + stakingConfig.depositWithdrawalCooldown();
 
 		// Withdraw the deposited LP or xSALT
 		if ( isLP )
 			{
-			require( wallet != stakingConfig.saltyPOL(), "Staking: Protocol Owned Liquidity cannot unstake LP" );
+			require( msg.sender != stakingConfig.saltyPOL(), "Staking: Protocol Owned Liquidity cannot unstake LP" );
 
 			// poolID is the LP token
-			ERC20 erc20 = ERC20( poolID );
-			erc20.transfer( wallet, amountWithdrawn );
+			IERC20 erc20 = IERC20( poolID );
+			SafeERC20.safeTransfer( erc20, msg.sender, amountWithdrawn );
     	    }
     	else
-    		freeXSALT[wallet] += amountWithdrawn;
+    		freeXSALT[msg.sender] += amountWithdrawn;
 
-		uint256 actualRewards = _accountForWithdrawal( wallet, poolID, isLP, amountWithdrawn );
+		uint256 actualRewards = _accountForWithdrawal( msg.sender, poolID, isLP, amountWithdrawn );
 
-		// Set the next allowed modification time
-		earliestModificationTime[wallet][poolID] = block.timestamp + stakingConfig.depositWithdrawalCooldown();
-
-   	    emit eWithdrawAndClaim( wallet, poolID, isLP, actualRewards );
+   	    emit eWithdrawAndClaim( msg.sender, poolID, isLP, actualRewards );
 		}
 
 
@@ -371,57 +374,62 @@ contract Staking is IStaking, ReentrancyGuard
 		{
 		require( stakingConfig.isValidPool( poolID ), "Staking: Invalid poolID" );
 
-		address wallet = msg.sender;
-
-		uint256 actualRewards = userRewards( wallet, poolID, isLP );
+		uint256 actualRewards = userRewards( msg.sender, poolID, isLP );
 
 		// Send the actual rewards
-        stakingConfig.salt().transfer( wallet, actualRewards );
+        stakingConfig.salt().transfer( msg.sender, actualRewards );
 
 		// Indicate that the user has borrowed what they were just awarded
-        borrowedRewards[wallet][poolID][isLP] += actualRewards;
+        borrowedRewards[msg.sender][poolID][isLP] += actualRewards;
 
-   	    emit eClaimRewards( wallet, poolID, isLP, actualRewards );
+   	    emit eClaimRewards( msg.sender, poolID, isLP, actualRewards );
 		}
 
 
     function claimAllRewards( address[] memory poolIDs, bool isLP ) external nonReentrant
     	{
-		address wallet = msg.sender;
-
     	uint256 sum = 0;
 		for( uint256 i = 0; i < poolIDs.length; i++ )
 			{
 			address poolID = poolIDs[i];
 			require( stakingConfig.isValidPool( poolID ), "Staking: Invalid poolID" );
 
-			uint256 actualRewards = userRewards( wallet, poolID, isLP );
+			uint256 actualRewards = userRewards( msg.sender, poolID, isLP );
 
 			// Indicate that the user has borrowed what they were just awarded
-			borrowedRewards[wallet][poolID][isLP] += actualRewards;
+			borrowedRewards[msg.sender][poolID][isLP] += actualRewards;
 
 			sum = sum + actualRewards;
 			}
 
 		// Send the actual rewards
-		stakingConfig.salt().transfer( wallet, sum );
+		stakingConfig.salt().transfer( msg.sender, sum );
 
-   	    emit eClaimAllRewards( wallet, sum );
+   	    emit eClaimAllRewards( msg.sender, sum );
     	}
 
 
 	// ===== VIEWS =====
 
+	function unstakesForUser( address wallet, uint256 start, uint256 end ) public view returns (Unstake[] memory)
+		{
+		uint256[] memory unstakeIDs = userUnstakeIDs[wallet];
+
+		Unstake[] memory unstakes = new Unstake[]( end - start + 1 );
+
+		uint256 index;
+		for( uint256 i = start; i <= end; i++ )
+			unstakes[index++] = unstakesByID[ unstakeIDs[i] ];
+
+		return unstakes;
+		}
+
+
 	function unstakesForUser( address wallet ) external view returns (Unstake[] memory)
 		{
 		uint256[] memory unstakeIDs = userUnstakeIDs[wallet];
 
-		Unstake[] memory unstakes = new Unstake[]( unstakeIDs.length );
-
-		for( uint256 i = 0; i < unstakes.length; i++ )
-			unstakes[i] = unstakesByID[ unstakeIDs[i] ];
-
-		return unstakes;
+		return unstakesForUser( wallet, 0, unstakeIDs.length - 1 );
 		}
 
 
@@ -505,8 +513,8 @@ contract Staking is IStaking, ReentrancyGuard
 		}
 
 
-	// Time required to modify the xSALT deposits for the various pools
-	function userCooldowns( address wallet, address[] memory poolIDs ) public view returns (uint256[] memory)
+	// Time required to modify the xSALT and LP deposits for the various pools
+	function userCooldowns( address wallet, address[] memory poolIDs, bool areLPs ) public view returns (uint256[] memory)
 		{
 		uint256[] memory cooldowns = new uint256[]( poolIDs.length );
 
@@ -514,10 +522,10 @@ contract Staking is IStaking, ReentrancyGuard
 			{
 			address poolID = poolIDs[i];
 
-			if ( block.timestamp >= earliestModificationTime[wallet][poolID] )
+			if ( block.timestamp >= earliestModificationTime[wallet][poolID][areLPs] )
 				cooldowns[i] = 0;
 			else
-				cooldowns[i] = earliestModificationTime[wallet][poolID] - block.timestamp;
+				cooldowns[i] = earliestModificationTime[wallet][poolID][areLPs] - block.timestamp;
 			}
 
 		return cooldowns;
