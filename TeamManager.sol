@@ -133,5 +133,19 @@ contract TeamManager
 		{
 		return paymentSplitter;
 		}
+
+
+	function attemptedPromotionsExist() public view returns (bool)
+		{
+		for( uint256 i = 0; i < members.length; i++ )
+			{
+			address member = members[i];
+
+			if ( promotionCompleteTimes[member] != 0 )
+				return true;
+				}
+
+		return false;
+		}
 	}
 
