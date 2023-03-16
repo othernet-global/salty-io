@@ -4,7 +4,7 @@ pragma solidity =0.8.17;
 import "../openzeppelin/token/ERC20/IERC20.sol";
 import "../openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import "../openzeppelin/security/ReentrancyGuard.sol";
-import "./StakingConfig.sol";
+import "./IStakingConfig.sol";
 import "./IStaking.sol";
 
 // Allows staking SALT for xSALT - which is instant
@@ -30,7 +30,7 @@ contract Staking is IStaking, ReentrancyGuard
 
 
 
-    StakingConfig public stakingConfig;
+    IStakingConfig public immutable stakingConfig;
 
     // The free xSALT balance for each wallet
     // This is xSALT that hasn't been used yet for voting
@@ -67,7 +67,7 @@ contract Staking is IStaking, ReentrancyGuard
 
 	constructor( address _stakingConfig )
 		{
-		stakingConfig = StakingConfig( _stakingConfig );
+		stakingConfig = IStakingConfig( _stakingConfig );
 		}
 
 
@@ -165,8 +165,6 @@ contract Staking is IStaking, ReentrancyGuard
 		uint256 claimableSALT = u.claimableSALT;
 		require( claimableSALT <= u.unstakedXSALT, "Staking: Claimable amount has to be less than original stake" );
 
-		stakingConfig.salt().transfer( msg.sender, claimableSALT );
-
 		// See if the user unstaked early and received only a portion of their original stake
 		uint256 earlyUnstakeFee = u.unstakedXSALT - claimableSALT;
 
@@ -176,6 +174,8 @@ contract Staking is IStaking, ReentrancyGuard
 			// Send the earlyUnstakeFee to EarlyUnstake.sol for later distribution on upkeep
 			stakingConfig.salt().transfer( stakingConfig.earlyUnstake(), earlyUnstakeFee );
 			}
+
+		stakingConfig.salt().transfer( msg.sender, claimableSALT );
 
 		emit eRecover( msg.sender, unstakeID, claimableSALT );
 		}
@@ -247,10 +247,6 @@ contract Staking is IStaking, ReentrancyGuard
 		// Reduce the rewards by the amount borrowed
 		uint256 actualRewards = rewardsForAmount - borrowedForAmount;
 
-		// Send the actual rewards corresponding to the withdrawal
-		if ( actualRewards != 0 )
-			stakingConfig.salt().transfer( wallet, actualRewards );
-
 		// Update totals
 		totalRewards[poolID][isLP] -= rewardsForAmount;
 		totalDeposits[poolID][isLP] -= amountWithdrawn;
@@ -258,6 +254,10 @@ contract Staking is IStaking, ReentrancyGuard
 		// Update user deposits and borrowed rewards
 		userDeposits[wallet][poolID][isLP] -= amountWithdrawn;
 		borrowedRewards[wallet][poolID][isLP] -= borrowedForAmount;
+
+		// Send the actual rewards corresponding to the withdrawal
+		if ( actualRewards != 0 )
+			stakingConfig.salt().transfer( wallet, actualRewards );
 
 		return actualRewards;
 		}
@@ -376,11 +376,11 @@ contract Staking is IStaking, ReentrancyGuard
 
 		uint256 actualRewards = userRewards( msg.sender, poolID, isLP );
 
-		// Send the actual rewards
-        stakingConfig.salt().transfer( msg.sender, actualRewards );
-
 		// Indicate that the user has borrowed what they were just awarded
         borrowedRewards[msg.sender][poolID][isLP] += actualRewards;
+
+		// Send the actual rewards
+        stakingConfig.salt().transfer( msg.sender, actualRewards );
 
    	    emit eClaimRewards( msg.sender, poolID, isLP, actualRewards );
 		}

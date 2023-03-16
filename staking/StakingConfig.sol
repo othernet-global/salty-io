@@ -2,7 +2,7 @@
 pragma solidity =0.8.17;
 
 import "../openzeppelin/access/Ownable2Step.sol";
-import "../openzeppelin/token/ERC20/ERC20.sol";
+import "../openzeppelin/token/ERC20/IERC20.sol";
 import "./IStaking.sol";
 
 
@@ -12,7 +12,7 @@ contract StakingConfig is Ownable2Step, IStaking
 	uint256 public MAXIMUM_WHITELISTED_POOLS = 200;
 
 
-	ERC20 immutable public salt;
+	IERC20 immutable public salt;
 
 	// Salty Protocol Owned Liquidity - the address holding the protocol liquidity
 	// Can only be changed after a one week delay
@@ -42,7 +42,7 @@ contract StakingConfig is Ownable2Step, IStaking
 
 	constructor( address _salt, address _saltyPOL )
 		{
-		salt = ERC20( _salt );
+		salt = IERC20( _salt );
 		saltyPOL = _saltyPOL;
 		}
 
