@@ -9,16 +9,12 @@ import "./IStaking.sol";
 contract StakingConfig is Ownable2Step, IStaking
     {
 	// The maximum number of whitelisted pools that can exist simulataneously
-	uint256 public MAXIMUM_WHITELISTED_POOLS = 200;
-
+	uint256 constant public MAXIMUM_WHITELISTED_POOLS = 200;
 
 	IERC20 immutable public salt;
 
-	// Salty DAO - the address holding of the DAO (which holds the protocol liquidity)
-	// Can only be changed after a one week delay
-	address public saltyDAO;
-	address public pendingSaltyDAO;
-	uint256 public pendingDAOTimestamp;
+	// Salty DAO - the address of the Salty.IO DAO (which holds the protocol liquidity)
+	address immutable public saltyDAO;
 
 	// Early Unstake Handler - early unstake fees are sent here and then distributed on upkeep
 	address public earlyUnstake;
@@ -32,37 +28,16 @@ contract StakingConfig is Ownable2Step, IStaking
 	// Prevents reward hunting where users could frontrun reward distributions and then immediately withdraw
 	uint256 public depositWithdrawalCooldown = 1 hours;
 
-	// Keeps track of what pools are valid
+	// Keeps track of what pools are whitelisted
 	address[] allPools;
 	mapping(address=>bool) poolAdded;													// [poolID]
 	mapping(address=>uint256) poolWhitelisted;										// [poolID]
 
 
-	constructor( address _salt, address _saltyPOL )
+	constructor( address _salt, address _saltyDAO )
 		{
 		salt = IERC20( _salt );
-		saltyDAO = _saltyPOL;
-		}
-
-
-	// Init the change of the SaltyDAO
-	function initChangeSaltyPOL( address _saltyDAO ) public onlyOwner
-		{
-		pendingSaltyDAO = _saltyDAO;
-		pendingDAOTimestamp = block.timestamp + 7 days;
-
-		emit eChangeDAO( pendingSaltyDAO );
-		}
-
-
-	function confirmChangeSaltyDAO() public onlyOwner
-		{
-		require( block.timestamp >= pendingDAOTimestamp );
-		require( pendingSaltyDAO != address(0), "SaltyDAO cannot be the zero address" );
-
-		saltyDAO = pendingSaltyDAO;
-
-		emit eConfirmDAO();
+		saltyDAO = _saltyDAO;
 		}
 
 
