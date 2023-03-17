@@ -43,6 +43,7 @@ interface IStaking
 
 
 	// Deposit / Withdrawal
+
     event eDeposit(
         address indexed wallet,
         address indexed poolID,
