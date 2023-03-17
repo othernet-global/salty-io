@@ -181,39 +181,6 @@ contract Staking is IStaking, ReentrancyGuard
 		}
 
 
-	// Transfer xSALT to another wallet
-	function transferXSALT( address destination, uint256 amountToTransfer ) public nonReentrant
-		{
-		require( stakingConfig.xsaltIsTransferable(), "xSALT is not currently transferable" );
-		require( destination != address(0), "Staking: Cannot send to address(0)" );
-		require( destination != msg.sender, "Staking: Cannot send to self" );
-		require( amountToTransfer <= freeXSALT[msg.sender], "Staking: Cannot transfer more than the xSALT balance" );
-		require( msg.sender != stakingConfig.saltyPOL(), "Staking: Protocol Owned Liquidity cannot transfer xSALT" );
-
-		freeXSALT[msg.sender] -= amountToTransfer;
-		freeXSALT[destination] += amountToTransfer;
-
-		// Keep track of the staking - for general staking rewards that are not pool specific
-		_accountForWithdrawal( msg.sender, STAKING, false, amountToTransfer );
-		_accountForDeposit( destination, STAKING, false, amountToTransfer );
-
-		emit eTransfer( msg.sender, destination, amountToTransfer );
-		}
-
-
-	// Transfer xSALT to multiple other wallets
-	function transferMultipleXSALT( address[] memory destinations, uint256[] memory amountsToTransfer ) external
-		{
-		for( uint256 i = 0; i < destinations.length; i++ )
-			{
-			address destination = destinations[i];
-			uint256 amountToTransfer = amountsToTransfer[i];
-
-			transferXSALT( destination, amountToTransfer );
-			}
-		}
-
-
 	// === REWARDS AND DEPOSITS ===
 
 	function _accountForDeposit( address wallet, address poolID, bool isLP, uint256 amountDeposited ) internal
