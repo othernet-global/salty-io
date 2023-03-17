@@ -14,11 +14,11 @@ contract StakingConfig is Ownable2Step, IStaking
 
 	IERC20 immutable public salt;
 
-	// Salty Protocol Owned Liquidity - the address holding the protocol liquidity
+	// Salty DAO - the address holding of the DAO (which holds the protocol liquidity)
 	// Can only be changed after a one week delay
-	address public saltyPOL;
-	address public pendingSaltyPOL;
-	uint256 public pendingSaltyTimestamp;
+	address public saltyDAO;
+	address public pendingSaltyDAO;
+	uint256 public pendingDAOTimestamp;
 
 	// Early Unstake Handler - early unstake fees are sent here and then distributed on upkeep
 	address public earlyUnstake;
@@ -41,29 +41,28 @@ contract StakingConfig is Ownable2Step, IStaking
 	constructor( address _salt, address _saltyPOL )
 		{
 		salt = IERC20( _salt );
-		saltyPOL = _saltyPOL;
+		saltyDAO = _saltyPOL;
 		}
 
 
-	// Time delay change for SaltyPOL as changing this would allow the staked SALT
-	// and SALT/USDC held by Salty.IO to be withdrawn / moved
-	function initChangeSaltyPOL( address _saltyPOL ) public onlyOwner
+	// Init the change of the SaltyDAO
+	function initChangeSaltyPOL( address _saltyDAO ) public onlyOwner
 		{
-		pendingSaltyPOL = _saltyPOL;
-		pendingSaltyTimestamp = block.timestamp + 7 days;
+		pendingSaltyDAO = _saltyDAO;
+		pendingDAOTimestamp = block.timestamp + 7 days;
 
-		emit eChangePOL( pendingSaltyPOL );
+		emit eChangeDAO( pendingSaltyDAO );
 		}
 
 
-	function confirmChangeSaltyPOL() public onlyOwner
+	function confirmChangeSaltyDAO() public onlyOwner
 		{
-		require( block.timestamp >= pendingSaltyTimestamp );
-		require( pendingSaltyPOL != address(0), "SaltyPOL cannot be the zero address" );
+		require( block.timestamp >= pendingDAOTimestamp );
+		require( pendingSaltyDAO != address(0), "SaltyDAO cannot be the zero address" );
 
-		saltyPOL = pendingSaltyPOL;
+		saltyDAO = pendingSaltyDAO;
 
-		emit eConfirmPOL();
+		emit eConfirmDAO();
 		}
 
 

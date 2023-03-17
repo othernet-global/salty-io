@@ -68,14 +68,6 @@ interface IStaking
 
 	// Staking Config
 
-    event eSetTransferable(
-        bool transferable );
-
-    event eChangePOL(
-        address pol );
-
-    event eConfirmPOL();
-
     event eSetEarlyUnstake(
         address earlyUnstake );
 

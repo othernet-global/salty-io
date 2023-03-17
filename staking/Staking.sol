@@ -75,14 +75,14 @@ contract Staking is IStaking, ReentrancyGuard
 
 	function stakeSALT( uint256 amountStaked ) external nonReentrant
 		{
-		// Deposit the SALT
-		stakingConfig.salt().transferFrom( msg.sender, address(this), amountStaked );
-
 		// User now has more free xSALT
 		freeXSALT[msg.sender] += amountStaked;
 
 		// Keep track of the staking - for general staking rewards that are not pool specific
 		_accountForDeposit( msg.sender, STAKING, false, amountStaked );
+
+		// Deposit the SALT
+		stakingConfig.salt().transferFrom( msg.sender, address(this), amountStaked );
 
 		emit eStake( msg.sender, amountStaked );
 		}
@@ -110,7 +110,7 @@ contract Staking is IStaking, ReentrancyGuard
 		{
 		require( stakingConfig.earlyUnstake() != address(0), "Staking: earlyUnstake has not been set" );
 		require( amountUnstaked <= freeXSALT[msg.sender], "Staking: Cannot unstake more than the xSALT balance" );
-		require( msg.sender != stakingConfig.saltyPOL(), "Staking: Protocol Owned Liquidity cannot unstake" );
+		require( msg.sender != stakingConfig.saltyDAO(), "Staking: DAO cannot unstake" );
 
 		uint256 claimableSALT = calculateUnstake( amountUnstaked, numWeeks );
 		uint256 completionTime = block.timestamp + numWeeks * ONE_WEEK;
@@ -312,7 +312,7 @@ contract Staking is IStaking, ReentrancyGuard
 		// Withdraw the deposited LP or xSALT
 		if ( isLP )
 			{
-			require( msg.sender != stakingConfig.saltyPOL(), "Staking: Protocol Owned Liquidity cannot unstake LP" );
+			require( msg.sender != stakingConfig.saltyDAO(), "Staking: DAO cannot unstake LP" );
 
 			// poolID is the LP token
 			IERC20 erc20 = IERC20( poolID );

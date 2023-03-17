@@ -10,22 +10,14 @@ interface IStakingConfig
     function salt() external view returns (IERC20);
 
     function MAXIMUM_WHITELISTED_POOLS() external view returns (uint256);
-    function saltyPOL() external view returns (address);
-    function pendingSaltyPOL() external view returns (address);
-    function pendingSaltyTimestamp() external view returns (uint256);
+    function saltyDAO() external view returns (address);
 
     function earlyUnstake() external view returns (address);
     function minUnstakePercent() external view returns (uint256);
     function minUnstakeWeeks() external view returns (uint256);
     function maxUnstakeWeeks() external view returns (uint256);
-
     function depositWithdrawalCooldown() external view returns (uint256);
-    function xsaltIsTransferable() external view returns (bool);
 
-
-	function setXSALTIsTransferable( bool _transferable ) external;
-	function initChangeSaltyPOL( address _saltyPOL ) external;
-	function confirmChangeSaltyPOL() external;
 	function setEarlyUnstake( address _earlyUnstake ) external;
 	function whitelist( address poolID ) external;
 	function blacklist( address poolID ) external;
