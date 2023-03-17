@@ -168,11 +168,18 @@ contract Staking is IStaking, ReentrancyGuard
 		uint256 earlyUnstakeFee = u.unstakedXSALT - claimableSALT;
 
 		if ( earlyUnstakeFee > 0 )
-		if ( stakingConfig.earlyUnstake() != address(0) )
 			{
-			// Send the earlyUnstakeFee to EarlyUnstake.sol for later distribution on upkeep
-			stakingConfig.salt().transfer( stakingConfig.earlyUnstake(), earlyUnstakeFee );
-			}
+            if ( stakingConfig.earlyUnstake() != address(0) )
+            	{
+                // Send the earlyUnstakeFee to EarlyUnstake.sol for later distribution on upkeep
+                stakingConfig.salt().transfer(stakingConfig.earlyUnstake(), earlyUnstakeFee);
+            	}
+            else
+            	{
+                // Refund the user if the early unstake address is not set
+                claimableSALT += earlyUnstakeFee;
+            	}
+        	}
 
 		stakingConfig.salt().transfer( msg.sender, claimableSALT );
 
