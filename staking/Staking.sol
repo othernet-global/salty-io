@@ -29,7 +29,6 @@ contract Staking is IStaking, ReentrancyGuard
 	uint8 constant CLAIMED = 3;
 
 
-
     IStakingConfig public immutable stakingConfig;
 
     // The free xSALT balance for each wallet
