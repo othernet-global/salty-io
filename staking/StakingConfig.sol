@@ -3,12 +3,13 @@ pragma solidity =0.8.17;
 
 import "../openzeppelin/access/Ownable2Step.sol";
 import "../openzeppelin/token/ERC20/IERC20.sol";
+import "../openzeppelin/utils/structs/EnumerableSet.sol";
 import "./IStaking.sol";
 
 
 contract StakingConfig is Ownable2Step, IStaking
     {
-	// The maximum number of whitelisted pools that can exist simulataneously
+	// The maximum number of whitelisted pools that can exist simultaneously
 	uint256 constant public MAXIMUM_WHITELISTED_POOLS = 100;
 
 	IERC20 immutable public salt;
@@ -28,10 +29,8 @@ contract StakingConfig is Ownable2Step, IStaking
 	// Prevents reward hunting where users could frontrun reward distributions and then immediately withdraw
 	uint256 public depositWithdrawalCooldown = 1 hours;
 
-	// Keeps track of what pools are whitelisted
-	address[] allPools;
-	mapping(address=>bool) poolAdded;													// [poolID]
-	mapping(address=>uint256) poolWhitelisted;										// [poolID]
+	// Keeps track of what pools have been whitelisted
+	EnumerableSet.AddressSet private _whitelist;
 
 
 	constructor( address _salt, address _saltyDAO )
@@ -54,18 +53,9 @@ contract StakingConfig is Ownable2Step, IStaking
 		// Don't allow whitelisting the STAKING pool as it will be made valid by default
 		// and not returned in whitelistedPools()
 		require( poolID != address(0), "Cannot whitelist poolID 0" );
+		require( _whitelist.length() < MAXIMUM_WHITELISTED_POOLS, "Maximum number of whitelisted pools already reached" );
 
-		address[] memory existingPools = whitelistedPools();
-		require( existingPools.length < MAXIMUM_WHITELISTED_POOLS, "Maximum number of whitelisted pools already reached" );
-
-		// Make sure the pool hasn't already been added to allPools
-		if ( ! poolAdded[poolID] )
-			{
-			allPools.push( poolID );
-			poolAdded[poolID] = true;
-			}
-
-		poolWhitelisted[poolID] = 1;
+		_whitelist.add( poolID );
 
 		emit eWhitelist( poolID );
 		}
@@ -73,7 +63,7 @@ contract StakingConfig is Ownable2Step, IStaking
 
 	function blacklist( address poolID ) public onlyOwner
 		{
-		poolWhitelisted[poolID] = 0;
+		_whitelist.remove( poolID );
 
 		emit eBlacklist( poolID );
 		}
@@ -108,33 +98,32 @@ contract StakingConfig is Ownable2Step, IStaking
 
 
 	// ===== VIEWS =====
+
+	function numberOfWhitelistedPools() public view returns (uint256)
+		{
+		return _whitelist.length();
+		}
+
+
+	// This does not include the 0 poolID for generic staked SALT (not deposited to any pool)
+	function whitelistPoolAtIndex( uint256 index ) public view returns (address)
+		{
+		return _whitelist.at( index );
+		}
+
+
 	function isValidPool( address poolID ) public view returns (bool)
 		{
 		if ( poolID == address(0) ) // STAKING?
 			return true;
 
-		return poolWhitelisted[poolID] == 1;
+		return _whitelist.contains( poolID );
 		}
 
 
 	// This does not include the 0 poolID for generic staked SALT (not deposited to any pool)
 	function whitelistedPools() public view returns (address[] memory)
 		{
-		address[] memory valid = new address[](allPools.length);
-
-		uint256 numValid = 0;
-		for( uint256 i = 0; i < allPools.length; i++ )
-			{
-			address poolID = allPools[i];
-
-			if ( isValidPool( poolID ) )
-				valid[ numValid++ ] = poolID;
-			}
-
-		address[] memory valid2 = new address[](numValid);
-		for( uint256 i = 0; i < numValid; i++ )
-			valid2[i] = valid[i];
-
-		return valid2;
+		return _whitelist.values();
 		}
     }
