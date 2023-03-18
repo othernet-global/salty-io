@@ -107,7 +107,6 @@ contract Staking is IStaking, ReentrancyGuard
 
 	function unstake( uint256 amountUnstaked, uint256 numWeeks ) external nonReentrant
 		{
-		require( stakingConfig.earlyUnstake() != address(0), "Staking: earlyUnstake has not been set" );
 		require( amountUnstaked <= freeXSALT[msg.sender], "Staking: Cannot unstake more than the xSALT balance" );
 		require( msg.sender != stakingConfig.saltyDAO(), "Staking: DAO cannot unstake" );
 
