@@ -50,10 +50,11 @@ contract StakingConfig is Ownable2Step, IStaking
 
 	function whitelist( address poolID ) public onlyOwner
 		{
+		require( _whitelist.length() < MAXIMUM_WHITELISTED_POOLS, "Maximum number of whitelisted pools already reached" );
+
 		// Don't allow whitelisting the STAKING pool as it will be made valid by default
 		// and not returned in whitelistedPools()
 		require( poolID != address(0), "Cannot whitelist poolID 0" );
-		require( _whitelist.length() < MAXIMUM_WHITELISTED_POOLS, "Maximum number of whitelisted pools already reached" );
 
 		_whitelist.add( poolID );
 
@@ -67,7 +68,6 @@ contract StakingConfig is Ownable2Step, IStaking
 
 		emit eBlacklist( poolID );
 		}
-
 
 
 	function setUnstakeParams( uint256 _minUnstakeWeeks, uint256 _maxUnstakeWeeks, uint256 _minUnstakePercent ) public onlyOwner
@@ -106,7 +106,7 @@ contract StakingConfig is Ownable2Step, IStaking
 
 
 	// This does not include the 0 poolID for generic staked SALT (not deposited to any pool)
-	function whitelistPoolAtIndex( uint256 index ) public view returns (address)
+	function whitelistedPoolAtIndex( uint256 index ) public view returns (address)
 		{
 		return _whitelist.at( index );
 		}
