@@ -9,7 +9,7 @@ import "./IStaking.sol";
 contract StakingConfig is Ownable2Step, IStaking
     {
 	// The maximum number of whitelisted pools that can exist simulataneously
-	uint256 constant public MAXIMUM_WHITELISTED_POOLS = 200;
+	uint256 constant public MAXIMUM_WHITELISTED_POOLS = 100;
 
 	IERC20 immutable public salt;
 

@@ -43,7 +43,6 @@ interface IStaking
 
 
 	// Deposit / Withdrawal
-
     event eDeposit(
         address indexed wallet,
         address indexed poolID,
@@ -68,7 +67,6 @@ interface IStaking
 
 
 	// Staking Config
-
     event eSetEarlyUnstake(
         address earlyUnstake );
 

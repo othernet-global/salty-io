@@ -7,15 +7,15 @@ import "./IStaking.sol";
 
 interface IStakingConfig
     {
-    function salt() external view returns (IERC20);
-
     function MAXIMUM_WHITELISTED_POOLS() external view returns (uint256);
+
+    function salt() external view returns (IERC20);
     function saltyDAO() external view returns (address);
 
     function earlyUnstake() external view returns (address);
-    function minUnstakePercent() external view returns (uint256);
     function minUnstakeWeeks() external view returns (uint256);
     function maxUnstakeWeeks() external view returns (uint256);
+    function minUnstakePercent() external view returns (uint256);
     function depositWithdrawalCooldown() external view returns (uint256);
 
 	function setEarlyUnstake( address _earlyUnstake ) external;

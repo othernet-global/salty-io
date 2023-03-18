@@ -95,8 +95,8 @@ contract Staking is IStaking, ReentrancyGuard
         uint256 maxUnstakeWeeks = stakingConfig.maxUnstakeWeeks();
         uint256 minUnstakePercent = stakingConfig.minUnstakePercent();
 
-		require( numWeeks >= minUnstakeWeeks, "Staking: Unstaking duraiton too short" );
-		require( numWeeks <= maxUnstakeWeeks, "Staking: Unstaking duraiton too long" );
+		require( numWeeks >= minUnstakeWeeks, "Staking: Unstaking duration too short" );
+		require( numWeeks <= maxUnstakeWeeks, "Staking: Unstaking duration too long" );
 
 		// Multiply by 1000000 for precision
 		uint256 percent = 1000000 * minUnstakePercent + ( 1000000 * ( 100 - minUnstakePercent ) * ( numWeeks - minUnstakeWeeks ) ) / ( maxUnstakeWeeks - minUnstakeWeeks );
