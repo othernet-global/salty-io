@@ -385,15 +385,13 @@ contract Staking is IStaking, ReentrancyGuard
 
 	// ===== VIEWS =====
 
-	function unstakesForUser( address wallet, uint256 start, uint256 end ) public view returns (Unstake[] memory)
-		{
-		uint256[] memory unstakeIDs = userUnstakeIDs[wallet];
-
+	 function unstakesForUser( address wallet, uint256 start, uint256 end ) public view returns (Unstake[] memory)
+  		{
 		Unstake[] memory unstakes = new Unstake[]( end - start + 1 );
 
 		uint256 index;
 		for( uint256 i = start; i <= end; i++ )
-			unstakes[index++] = unstakesByID[ unstakeIDs[i] ];
+			unstakes[index++] = unstakesByID[ userUnstakeIDs[wallet][i]];
 
 		return unstakes;
 		}
