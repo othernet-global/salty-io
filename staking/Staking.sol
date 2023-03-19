@@ -16,6 +16,8 @@ import "./IStaking.sol";
 
 contract Staking is IStaking, ReentrancyGuard
     {
+	using SafeERC20 for IERC20;
+
     // A special poolID which represents staked SALT and allows for general staking rewards
     // that are not tied to a specific pool
     address constant STAKING = address(0);
@@ -281,7 +283,7 @@ contract Staking is IStaking, ReentrancyGuard
 			// Before balance used to check for fee on transfer
 			uint256 beforeBalance = erc20.balanceOf( address(this) );
 
-    	    SafeERC20.safeTransferFrom( erc20, msg.sender, address(this), amountDeposited );
+			erc20.safeTransferFrom(msg.sender, address(this), amountDeposited );
 
 			uint256 afterBalance = erc20.balanceOf( address(this) );
 
@@ -321,7 +323,7 @@ contract Staking is IStaking, ReentrancyGuard
 
 			// poolID is the LP token
 			IERC20 erc20 = IERC20( poolID );
-			SafeERC20.safeTransfer( erc20, msg.sender, amountWithdrawn );
+			erc20.safeTransfer( msg.sender, amountWithdrawn );
     	    }
     	else
     		freeXSALT[msg.sender] += amountWithdrawn;
