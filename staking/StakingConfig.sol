@@ -9,6 +9,9 @@ import "./IStaking.sol";
 
 contract StakingConfig is Ownable2Step, IStaking
     {
+    using EnumerableSet for EnumerableSet.AddressSet;
+
+
 	// The maximum number of whitelisted pools that can exist simultaneously
 	uint256 constant public MAXIMUM_WHITELISTED_POOLS = 100;
 
