@@ -2,7 +2,7 @@
 pragma solidity =0.8.17;
 
 
-import "../openzeppelin/token/ERC20/ERC20.sol";
+import "../openzeppelin/token/ERC20/IERC20.sol";
 import "../staking/StakingConfig.sol";
 import "../Upkeepable.sol";
 import "./RewardsConfig.sol";
@@ -34,7 +34,7 @@ contract EarlyUnstake is Upkeepable
 
 	function performUpkeep() internal override
 		{
-		ERC20 salt = stakingConfig.salt();
+		IERC20 salt = stakingConfig.salt();
 
 		uint256 saltBalance = stakingConfig.salt().balanceOf( address( this ) );
 
