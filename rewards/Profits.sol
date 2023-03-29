@@ -10,33 +10,30 @@ import "./RewardsConfig.sol";
 
 contract Profits is Upkeepable
     {
+    ERC20 salt;
     RewardsConfig rewardsConfig;
 
 
-    constructor( address _rewardsConfig )
+    constructor( address _salt, address _rewardsConfig )
 		{
+		salt = ERC20( _salt );
 		rewardsConfig = RewardsConfig( _rewardsConfig );
 		}
 
 
 	function performUpkeep() internal override
 		{
-		ERC20 usdc = rewardsConfig.usdc();
-
-		uint256 usdcBalance = usdc.balanceOf( address( this ) );
-		if ( usdcBalance == 0 )
+		uint256 upkeepRewards = currentUpkeepRewards();
+		if ( upkeepRewards == 0 )
 			return;
 
-		uint256 upkeepRewards = currentUpkeepRewards();
-
 		// Send some USDC to the original caller of Upkeep.performUpkeep();
-		usdc.transfer( tx.origin, upkeepRewards );
-
+		salt.transfer( tx.origin, upkeepRewards );
 
 		// HACK - send remaining USDC to Salty Dev
-		usdcBalance = usdc.balanceOf( address( this ) );
+		uint256 saltBalance = salt.balanceOf( address( this ) );
 
-		usdc.transfer( 0x73107dA86708c2DAd0D91388fB057EeE3E2581aF, usdcBalance );
+		salt.transfer( 0x73107dA86708c2DAd0D91388fB057EeE3E2581aF, saltBalance );
 
 		// Send the rest to
 //		usdcBalance = usdcBalance - upkeepRewards;
@@ -57,11 +54,9 @@ contract Profits is Upkeepable
 
 	// ===== VIEWS =====
 
-	// The rewards (in USDC) that will be sent to tx.origin for calling Upkeep.performUpkeep()
+	// The rewards (in SALT) that will be sent to tx.origin for calling Upkeep.performUpkeep()
 	function currentUpkeepRewards() public view returns (uint256)
 		{
-		ERC20 usdc = rewardsConfig.usdc();
-
-		return ( usdc.balanceOf( address( this ) ) * rewardsConfig.upkeepPercentTimes1000() ) / ( 100 * 1000 );
+		return ( salt.balanceOf( address( this ) ) * rewardsConfig.upkeepPercentTimes1000() ) / ( 100 * 1000 );
 		}
 	}
