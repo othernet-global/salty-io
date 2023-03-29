@@ -7,8 +7,6 @@ import "../openzeppelin/token/ERC20/ERC20.sol";
 
 contract RewardsConfig is Ownable2Step
     {
-	ERC20 public usdc;
-
 	// The daily target distribution percent per day (of SALT in the emitter contract) for the RewardsEmitter
 	uint256 public rewardsEmitterDailyPercent = 10;
 
@@ -27,9 +25,8 @@ contract RewardsConfig is Ownable2Step
 
 
 
-	constructor( address _usdc )
+	constructor()
 		{
-		usdc = ERC20( _usdc );
 		}
 
 
