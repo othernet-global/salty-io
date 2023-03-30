@@ -19,7 +19,6 @@ contract InitialSale is Ownable2Step, ReentrancyGuard
 	mapping(address => uint256) public userDeposits;
 	mapping(address => bool) public userClaimed;
 
-
 	constructor( address _salt )
 		{
 		salt = ERC20( _salt );
