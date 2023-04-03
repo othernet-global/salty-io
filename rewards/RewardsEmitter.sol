@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity =0.8.17;
+pragma solidity ^0.8.0;
 
 import "../Upkeepable.sol";
 import "../staking/Staking.sol";
 import "../staking/StakingConfig.sol";
+import "../uniswap/core/interfaces/IUniswapV2Pair.sol";
 import "./RewardsConfig.sol";
 
 
@@ -15,7 +16,7 @@ contract RewardsEmitter is Upkeepable
     {
     // The stored SALT rewards by pool/isLP that need to be distributed to Staking.sol
     // Only a percentage of these will be distributed per day
-   	mapping(address=>mapping(bool=>uint256)) pendingRewards;		// [poolID][isLP]
+   	mapping(IUniswapV2Pair=>mapping(bool=>uint256)) pendingRewards;		// [poolID][isLP]
 
 	RewardsConfig rewardsConfig;
 	StakingConfig stakingConfig;
@@ -33,7 +34,7 @@ contract RewardsEmitter is Upkeepable
 
 
 	// Can be added from any wallet
-	function addSALTRewards( address[] memory poolIDs, bool[] memory areLPs, uint256[] memory amountsToAdd ) public nonReentrant
+	function addSALTRewards( IUniswapV2Pair[] memory poolIDs, bool[] memory areLPs, uint256[] memory amountsToAdd ) public nonReentrant
 		{
 		require( ( poolIDs.length == areLPs.length )  && ( poolIDs.length == amountsToAdd.length), "RewardsEmitter: Array length mismatch" );
 
@@ -42,7 +43,7 @@ contract RewardsEmitter is Upkeepable
 		uint256 sum = 0;
 		for( uint256 i = 0; i < poolIDs.length; i++ )
 			{
-			address poolID = poolIDs[i];
+			IUniswapV2Pair poolID = poolIDs[i];
 			require( stakingConfig.isValidPool( poolID ), "RewardsEmitter: Invalid poolID" );
 
 			uint256 amountToAdd = amountsToAdd[i];
@@ -53,14 +54,14 @@ contract RewardsEmitter is Upkeepable
 
 		// Transfer in the SALT for all the specified rewards
 		if ( sum > 0 )
-			stakingConfig.salt().transferFrom( wallet, address(this), sum );
+			require( stakingConfig.salt().transferFrom( wallet, address(this), sum ), "Transfer failed" );
 		}
 
 
 	// Helper function
-	function addSALTRewards( address poolID, bool isLP, uint256 amountToAdd ) public
+	function addSALTRewards( IUniswapV2Pair poolID, bool isLP, uint256 amountToAdd ) public
 		{
-		address[] memory poolIDs = new address[]( 1 );
+		IUniswapV2Pair[] memory poolIDs = new IUniswapV2Pair[]( 1 );
 		bool[] memory areLPs = new bool[]( 1 );
 		uint256[] memory amountsToAdd = new uint256[]( 1 );
 
@@ -81,18 +82,18 @@ contract RewardsEmitter is Upkeepable
 		if ( timeSinceLastUpkeep == 0 )
 			return;
 
-		address[] memory validPools = stakingConfig.whitelistedPools();
+		IUniswapV2Pair[] memory validPools = stakingConfig.whitelistedPools();
 
 		// Construct the arrays for all poolIDs and the true/false isLP
 		// The very last one will be for [0][false] - which specifies generic staked SALT
-		address[] memory poolIDs = new address[]( validPools.length * 2 + 1 );
+		IUniswapV2Pair[] memory poolIDs = new IUniswapV2Pair[]( validPools.length * 2 + 1 );
         bool[] memory areLPs = new bool[]( validPools.length * 2 + 1 );
 
 		// Setup the arrays
 		uint256 index = 0;
         for( uint256 i = 0; i < validPools.length; i++ )
         	{
-        	address poolID = validPools[i];
+        	IUniswapV2Pair poolID = validPools[i];
 
         	poolIDs[index] = poolID;
         	areLPs[index++] = true; // Half have areLPs = true
@@ -112,7 +113,7 @@ contract RewardsEmitter is Upkeepable
         uint256[] memory amountsToAdd = new uint256[]( poolIDs.length );
 		for( uint256 i = 0; i < poolIDs.length; i++ )
 			{
-			address poolID = poolIDs[i];
+			IUniswapV2Pair poolID = poolIDs[i];
 			bool isLP = areLPs[i];
 
 			// Each poolID/isLP will send a percentage of the pending rewards
@@ -127,12 +128,16 @@ contract RewardsEmitter is Upkeepable
 
 		// Send the SALT rewards to Staking.sol so that users can claim it based on the
 		// amount of xSALT or LP they have staked
-		staking.addSALTRewards( poolIDs, areLPs, amountsToAdd );
+		AddedReward[] memory addedRewards = new AddedReward[]( poolIDs.length );
+		for( uint256 i = 0; i < poolIDs.length; i++ )
+			addedRewards[i] = AddedReward( poolIDs[i], areLPs[i], amountsToAdd[i] );
+
+		staking.addSALTRewards( addedRewards );
 		}
 
 
 	// DEBUG
-	function returnPendingRewards( address poolID, bool isLP ) public view returns (uint256)
+	function returnPendingRewards( IUniswapV2Pair poolID, bool isLP ) public view returns (uint256)
 		{
 		return pendingRewards[poolID][isLP];
 		}

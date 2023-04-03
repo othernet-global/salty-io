@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity =0.8.17;
+pragma solidity ^0.8.0;
 
 import "../openzeppelin/access/Ownable2Step.sol";
 import "../openzeppelin/token/ERC20/ERC20.sol";
@@ -8,7 +8,7 @@ import "../openzeppelin/token/ERC20/ERC20.sol";
 contract RewardsConfig is Ownable2Step
     {
 	// The daily target distribution percent per day (of SALT in the emitter contract) for the RewardsEmitter
-	uint256 public rewardsEmitterDailyPercent = 10;
+	uint256 public rewardsEmitterDailyPercent = 5;
 
 	// The share of the stored USDC that is sent to the caller of Upkeep.performUpkeep()
 	uint256 public upkeepPercentTimes1000 = 1 * 1000; // x1000 for precision

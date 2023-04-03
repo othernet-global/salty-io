@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity =0.8.17;
+pragma solidity ^0.8.0;
 
 
 import "../openzeppelin/token/ERC20/IERC20.sol";
@@ -42,9 +42,9 @@ contract EarlyUnstake is Upkeepable
 		uint256 xsaltHoldersAmount = saltBalance - votedRewardsAmount;
 
 		// Send a portion to be distributed to pools proportional to pool votes received
-		salt.transfer( address(votedRewards), votedRewardsAmount );
+		require( salt.transfer( address(votedRewards), votedRewardsAmount ), "Transfer failed" );
 
 		// Send the SALT to the RewardsEmitter for [STAKING][false]
-		rewardsEmitter.addSALTRewards( address(0), false, xsaltHoldersAmount );
+		rewardsEmitter.addSALTRewards( IUniswapV2Pair(address(0)), false, xsaltHoldersAmount );
 		}
 	}

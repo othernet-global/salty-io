@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity =0.8.17;
+pragma solidity ^0.8.0;
 
 import "./openzeppelin/token/ERC20/ERC20.sol";
 import "./openzeppelin/access/Ownable2Step.sol";
@@ -37,7 +37,7 @@ contract InitialSale is Ownable2Step, ReentrancyGuard
 		totalClaimableSALT = _totalClaimableSALT;
 
 		// Deposit the SALT which will be claimable by users after the sale is over
-		salt.transferFrom( msg.sender, address(this), totalClaimableSALT );
+		require( salt.transferFrom( msg.sender, address(this), totalClaimableSALT ), "Transfer failed" );
 		}
 
 
@@ -94,7 +94,7 @@ contract InitialSale is Ownable2Step, ReentrancyGuard
 
 		uint256 claimableSALT = userShareSALT( wallet );
 
-		salt.transfer( wallet, claimableSALT );
+		require( salt.transfer( wallet, claimableSALT ), "Transfer failed" );
 
 		userClaimed[wallet] = true;
    		}

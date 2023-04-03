@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity =0.8.17;
+pragma solidity ^0.8.0;
 
+import "../openzeppelin/token/ERC20/IERC20.sol";
 import "../Upkeepable.sol";
 import "./RewardsConfig.sol";
 
@@ -10,13 +11,13 @@ import "./RewardsConfig.sol";
 
 contract Profits is Upkeepable
     {
-    ERC20 salt;
+    IERC20 salt;
     RewardsConfig rewardsConfig;
 
 
-    constructor( address _salt, address _rewardsConfig )
+    constructor( IERC20 _salt, address _rewardsConfig )
 		{
-		salt = ERC20( _salt );
+		salt = IERC20( _salt );
 		rewardsConfig = RewardsConfig( _rewardsConfig );
 		}
 
@@ -28,12 +29,12 @@ contract Profits is Upkeepable
 			return;
 
 		// Send some USDC to the original caller of Upkeep.performUpkeep();
-		salt.transfer( tx.origin, upkeepRewards );
+		require( salt.transfer( tx.origin, upkeepRewards ), "Transfer failed" );
 
 		// HACK - send remaining USDC to Salty Dev
 		uint256 saltBalance = salt.balanceOf( address( this ) );
 
-		salt.transfer( 0x73107dA86708c2DAd0D91388fB057EeE3E2581aF, saltBalance );
+		require( salt.transfer( 0x73107dA86708c2DAd0D91388fB057EeE3E2581aF, saltBalance ), "Transfer failed" );
 
 		// Send the rest to
 //		usdcBalance = usdcBalance - upkeepRewards;

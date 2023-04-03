@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity =0.8.17;
+pragma solidity ^0.8.0;
 
 import "../Upkeepable.sol";
 import "../staking/Staking.sol";
@@ -29,7 +29,7 @@ contract VotedRewards is Upkeepable
 
 	function performUpkeep() internal override
 		{
-		address[] memory poolIDs = stakingConfig.whitelistedPools();
+		IUniswapV2Pair[] memory poolIDs = stakingConfig.whitelistedPools();
 
 		// Looking at the xSALT deposits (which act as votes) for each pool,
 		// we'll send a proportional amount of rewards to RewardsEmitter.sol for each pool

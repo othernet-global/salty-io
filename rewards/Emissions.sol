@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity =0.8.17;
+pragma solidity ^0.8.0;
 
 import "../Upkeepable.sol";
 import "../staking/StakingConfig.sol";
@@ -43,9 +43,9 @@ contract Emissions is Upkeepable
 		uint256 xsaltHoldersAmount = saltToSend - votedRewardsAmount;
 
 		// Send a portion to be distributed to pools proportional to pool votes received
-		stakingConfig.salt().transfer( address(votedRewards), votedRewardsAmount );
+		require( stakingConfig.salt().transfer( address(votedRewards), votedRewardsAmount ), "Transfer failed" );
 
 		// Send the SALT to the RewardsEmitter for [STAKING][false]
-		rewardsEmitter.addSALTRewards( address(0), false, xsaltHoldersAmount );
+		rewardsEmitter.addSALTRewards( IUniswapV2Pair(address(0)), false, xsaltHoldersAmount );
 		}
 	}

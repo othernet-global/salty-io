@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity =0.8.17;
+pragma solidity ^0.8.0;
 
 // This contract basically creates a line of succession for control over the team membership.
 // It specifies the active OpenZeppelin PaymentSplitter so that funds can be claimed by active team members.
