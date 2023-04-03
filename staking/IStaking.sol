@@ -1,22 +1,18 @@
 // SPDX-License-Identifier: BSL 1.1
+pragma solidity ^0.8.0;
 
-pragma solidity =0.8.17;
+import "../uniswap/core/interfaces/IUniswapV2Pair.sol";
 
+
+struct AddedReward
+	{
+	IUniswapV2Pair poolID;
+	bool isLP;
+	uint256 amountToAdd;
+	}
 
 interface IStaking
 	{
-    struct Unstake
-        {
-        uint8 status;
-
-        address wallet;
-        uint256 unstakedXSALT;
-        uint256 claimableSALT;
-        uint256 completionTime;
-
-        uint256 unstakeID;
-        }
-
 	// Staking / Unstaking
     event eStake(
         address indexed wallet,
@@ -29,12 +25,12 @@ interface IStaking
 
     event eRecover(
         address indexed wallet,
-        uint256 unstakeID,
+        uint256 indexed unstakeID,
         uint256 amount );
 
     event eCancelUnstake(
         address indexed wallet,
-        uint256 unstakeID );
+        uint256 indexed unstakeID );
 
     event eTransfer(
         address indexed wallet,
@@ -45,19 +41,19 @@ interface IStaking
 	// Deposit / Withdrawal
     event eDeposit(
         address indexed wallet,
-        address indexed poolID,
+        IUniswapV2Pair indexed poolID,
         bool isLP,
 		uint256 amount );
 
     event eWithdrawAndClaim(
         address indexed wallet,
-        address indexed poolID,
+        IUniswapV2Pair indexed poolID,
         bool isLP,
 		uint256 amount );
 
     event eClaimRewards(
         address indexed wallet,
-        address indexed poolID,
+        IUniswapV2Pair indexed poolID,
         bool isLP,
 		uint256 amount );
 
@@ -71,10 +67,10 @@ interface IStaking
         address earlyUnstake );
 
     event eWhitelist(
-        address poolID );
+        IUniswapV2Pair indexed poolID );
 
-    event eBlacklist(
-        address poolID );
+    event eUnwhitelist(
+        IUniswapV2Pair indexed poolID );
 
     event eSetUnstakeParams(
         uint256 minUnstakeWeeks,
