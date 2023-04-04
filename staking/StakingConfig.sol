@@ -87,7 +87,7 @@ contract StakingConfig is Ownable2Step, IStaking
 
 		require( _maxUnstakeWeeks >=13, "maxUnstakeWeeks too small" );
 		require( _maxUnstakeWeeks <=52, "maxUnstakeWeeks too large" );
-		
+
 		require( _minUnstakePercent >=25, "minUnstakePercent too small" );
 		require( _minUnstakePercent <=75, "minUnstakePercent too large" );
 
