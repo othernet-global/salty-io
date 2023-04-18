@@ -4,11 +4,11 @@ pragma solidity ^0.8.0;
 import "../Upkeepable.sol";
 import "../staking/Staking.sol";
 import "../staking/StakingConfig.sol";
+import "../staking/SharedRewards.sol";
 import "../uniswap/core/interfaces/IUniswapV2Pair.sol";
 import "./RewardsConfig.sol";
 
-
-// Stores SALT rewards and distributes them at a default rate of 10% per day to Staking.sol
+// Stores SALT rewards and distributes them at a default rate of 5% per day to Staking.sol
 // Once in Staking.sol, the rewards can be claimed by users who have deposited the
 // relevant xSALT or LP (depending on if the rewards were deposited with isLP).
 
@@ -130,7 +130,7 @@ contract RewardsEmitter is Upkeepable
 		// amount of xSALT or LP they have staked
 		AddedReward[] memory addedRewards = new AddedReward[]( poolIDs.length );
 		for( uint256 i = 0; i < poolIDs.length; i++ )
-			addedRewards[i] = AddedReward( poolIDs[i], areLPs[i], amountsToAdd[i] );
+			addedRewards[i] = AddedReward( poolIDs[i], amountsToAdd[i] );
 
 		staking.addSALTRewards( addedRewards );
 		}

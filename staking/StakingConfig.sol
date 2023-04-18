@@ -5,21 +5,34 @@ import "../openzeppelin/access/Ownable2Step.sol";
 import "../openzeppelin/token/ERC20/IERC20.sol";
 import "../openzeppelin/utils/structs/EnumerableSet.sol";
 import "../uniswap/core/interfaces/IUniswapV2Pair.sol";
-import "./IStaking.sol";
 import "./IStakingConfig.sol";
 
-contract StakingConfig is Ownable2Step, IStaking
+contract StakingConfig is Ownable2Step
     {
     using EnumerableSet for EnumerableSet.AddressSet;
+
+    event eSetEarlyUnstake(
+        address earlyUnstake );
+
+    event eWhitelist(
+        IUniswapV2Pair indexed poolID );
+
+    event eUnwhitelist(
+        IUniswapV2Pair indexed poolID );
+
+    event eSetUnstakeParams(
+        uint256 minUnstakeWeeks,
+        uint256 maxUnstakeWeeks,
+        uint256 minUnstakePercent );
+
+    event eSetCooldown(
+        uint256 cooldown );
 
 
 	// The maximum number of whitelisted pools that can exist simultaneously
 	uint256 constant public MAXIMUM_WHITELISTED_POOLS = 100;
 
 	IERC20 immutable public salt;
-
-    // The time period for one week - which can be made shorter for debugging convenience
-	uint256 public oneWeek;
 
 	UnstakeParams public unstakeParams;
 
@@ -31,21 +44,22 @@ contract StakingConfig is Ownable2Step, IStaking
 
 	// Minimum time between deposits or withdrawals for each pool.
 	// Prevents reward hunting where users could frontrun reward distributions and then immediately withdraw
-	uint256 public depositWithdrawalCooldown = 1 hours;
+	uint256 public modificationCooldown = 1 hours;
 
 	// Keeps track of what pools have been whitelisted
 	EnumerableSet.AddressSet private _whitelist;
 
-    // A special poolID which represents staked SALT and allows for general staking rewards
-    // that are not tied to a specific pool
-    IUniswapV2Pair public constant STAKING = IUniswapV2Pair(address(0));
+	// @notice A special poolID that represents staked SALT that is not associated with any particular pool.
+	IUniswapV2Pair public constant STAKED_SALT = IUniswapV2Pair(address(0));
 
 
-	constructor( IERC20 _salt, address _saltyDAO, uint256 _oneWeek )
+	constructor( IERC20 _salt, address _saltyDAO )
 		{
+		require( _salt != IERC20(address(0)), "Salt cannot be address zero" );
+   		require( _saltyDAO != address(0), "SaltyDAO cannot be address zero" );
+
 		salt = IERC20( _salt );
 		saltyDAO = _saltyDAO;
-		oneWeek = _oneWeek;
 
 		unstakeParams = UnstakeParams( 2, 26, 50 );
 		}
@@ -64,9 +78,9 @@ contract StakingConfig is Ownable2Step, IStaking
 		{
 		require( _whitelist.length() < MAXIMUM_WHITELISTED_POOLS, "Maximum number of whitelisted pools already reached" );
 
-		// Don't allow whitelisting the STAKING pool as it will be made valid by default
+		// Don't allow whitelisting the STAKED_SALT pool as it will be made valid by default
 		// and not returned in whitelistedPools()
-		require( poolID != STAKING, "Cannot whitelist poolID 0" );
+		require( poolID != STAKED_SALT, "Cannot whitelist poolID 0" );
 
 		if ( _whitelist.add( address(poolID) ) )
 			emit eWhitelist( poolID );
@@ -97,12 +111,15 @@ contract StakingConfig is Ownable2Step, IStaking
 		}
 
 
-	function setDepositWithdrawalCooldown( uint256 _depositWithdrawalCooldown ) public onlyOwner
+	function setModificationCooldown( uint256 _cooldown ) public onlyOwner
 		{
-		if ( depositWithdrawalCooldown != _depositWithdrawalCooldown )
-			emit eSetCooldown( depositWithdrawalCooldown );
+		require( _cooldown >= ( 15 minutes ), "_modificationCooldown too small" );
+		require( _cooldown <= ( 6 hours ), "_modificationCooldown too large" );
 
-		depositWithdrawalCooldown = _depositWithdrawalCooldown;
+		if ( modificationCooldown != _cooldown )
+			emit eSetCooldown( _cooldown );
+
+		modificationCooldown = _cooldown;
 		}
 
 
@@ -123,22 +140,22 @@ contract StakingConfig is Ownable2Step, IStaking
 
 	function isValidPool( IUniswapV2Pair poolID ) public view returns (bool)
 		{
-		if ( poolID == STAKING )
+		if ( poolID == STAKED_SALT )
 			return true;
 
 		return _whitelist.contains( address(poolID) );
 		}
 
 
-	// This does not include the STAKING poolID for generic staked SALT (not deposited to any pool)
+	// This does not include the STAKED_SALT poolID for generic staked SALT (not deposited to any pool)
 	function whitelistedPools() public view returns (IUniswapV2Pair[] memory)
 		{
-		address[] memory pools0 = _whitelist.values();
+		address[] memory whitelistAddresses = _whitelist.values();
 
-		IUniswapV2Pair[] memory pools = new IUniswapV2Pair[]( pools0.length );
+		IUniswapV2Pair[] memory pools = new IUniswapV2Pair[]( whitelistAddresses.length );
 
 		for( uint256 i = 0; i < pools.length; i++ )
-			pools[i] = IUniswapV2Pair( pools0[i] );
+			pools[i] = IUniswapV2Pair( whitelistAddresses[i] );
 
 		return pools;
 		}

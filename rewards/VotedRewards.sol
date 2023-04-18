@@ -33,7 +33,7 @@ contract VotedRewards is Upkeepable
 
 		// Looking at the xSALT deposits (which act as votes) for each pool,
 		// we'll send a proportional amount of rewards to RewardsEmitter.sol for each pool
-		uint256[] memory votesForPools = staking.totalDepositsForPools( poolIDs, false );
+		uint256[] memory votesForPools = staking.totalSharesForPools( poolIDs );
 
 		// Determine the total pool votes so we can calculate pool percentages
 		uint256 totalPoolVotes = 0;
