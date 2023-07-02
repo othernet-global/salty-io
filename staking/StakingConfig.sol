@@ -1,162 +1,87 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.12;
 
-import "../openzeppelin/access/Ownable2Step.sol";
-import "../openzeppelin/token/ERC20/IERC20.sol";
-import "../openzeppelin/utils/structs/EnumerableSet.sol";
-import "../uniswap/core/interfaces/IUniswapV2Pair.sol";
-import "./IStakingConfig.sol";
+import "../openzeppelin/access/Ownable.sol";
+import "./interfaces/IStakingConfig.sol";
 
-contract StakingConfig is Ownable2Step
+
+// Contract owned by the DAO with parameters modifiable only by the DAO
+contract StakingConfig is IStakingConfig, Ownable
     {
-    using EnumerableSet for EnumerableSet.AddressSet;
+	// The minimum number of weeks for an unstake request.
+	// Range: 2 to 12 with an adjustment of 1
+	uint256 public minUnstakeWeeks = 2;  // minUnstakePercent returned for unstaking this number of weeks
 
-    event eSetEarlyUnstake(
-        address earlyUnstake );
+	// The maximum number of weeks for an unstake request.
+	// Range: 14 to 52 with an adjustment of 2
+	uint256 public maxUnstakeWeeks = 26; // 100% of the original SALT returned for unstaking this number of weeks
 
-    event eWhitelist(
-        IUniswapV2Pair indexed poolID );
+	// The minimum percentage of the original xSALT stake that is claimable when staking the minimum number of weeks.
+	// Range: 25 to 75 with an adjustment of 5
+	uint256 public minUnstakePercent = 50;
 
-    event eUnwhitelist(
-        IUniswapV2Pair indexed poolID );
-
-    event eSetUnstakeParams(
-        uint256 minUnstakeWeeks,
-        uint256 maxUnstakeWeeks,
-        uint256 minUnstakePercent );
-
-    event eSetCooldown(
-        uint256 cooldown );
-
-
-	// The maximum number of whitelisted pools that can exist simultaneously
-	uint256 constant public MAXIMUM_WHITELISTED_POOLS = 100;
-
-	IERC20 immutable public salt;
-
-	UnstakeParams public unstakeParams;
-
-	// Salty DAO - the address of the Salty.IO DAO (which holds the protocol liquidity)
-	address immutable public saltyDAO;
-
-	// Early Unstake Handler - early unstake fees are sent here and then distributed on upkeep
-	address public earlyUnstake;
-
-	// Minimum time between deposits or withdrawals for each pool.
-	// Prevents reward hunting where users could frontrun reward distributions and then immediately withdraw
+	// Minimum time between increasing and decreasing user share in SharedRewards contracts.
+	// Prevents reward hunting where users could frontrun reward distributions and then immediately withdraw.
+	// Range: 15 minutes to 6 hours with an adjustment of 15 minutes
 	uint256 public modificationCooldown = 1 hours;
 
-	// Keeps track of what pools have been whitelisted
-	EnumerableSet.AddressSet private _whitelist;
 
-	// @notice A special poolID that represents staked SALT that is not associated with any particular pool.
-	IUniswapV2Pair public constant STAKED_SALT = IUniswapV2Pair(address(0));
-
-
-	constructor( IERC20 _salt, address _saltyDAO )
-		{
-		require( _salt != IERC20(address(0)), "Salt cannot be address zero" );
-   		require( _saltyDAO != address(0), "SaltyDAO cannot be address zero" );
-
-		salt = IERC20( _salt );
-		saltyDAO = _saltyDAO;
-
-		unstakeParams = UnstakeParams( 2, 26, 50 );
-		}
+	function changeMinUnstakeWeeks(bool increase) public onlyOwner
+        {
+        if (increase)
+            {
+            if (minUnstakeWeeks < 12)
+                minUnstakeWeeks = minUnstakeWeeks + 1;
+            }
+        else
+            {
+            if (minUnstakeWeeks > 2)
+                minUnstakeWeeks = minUnstakeWeeks - 1;
+            }
+        }
 
 
-	function setEarlyUnstake( address _earlyUnstake ) public onlyOwner
-		{
-		if ( earlyUnstake != _earlyUnstake )
-			emit eSetEarlyUnstake( earlyUnstake);
-
-		earlyUnstake = _earlyUnstake;
-		}
-
-
-	function whitelist( IUniswapV2Pair poolID ) public onlyOwner
-		{
-		require( _whitelist.length() < MAXIMUM_WHITELISTED_POOLS, "Maximum number of whitelisted pools already reached" );
-
-		// Don't allow whitelisting the STAKED_SALT pool as it will be made valid by default
-		// and not returned in whitelistedPools()
-		require( poolID != STAKED_SALT, "Cannot whitelist poolID 0" );
-
-		if ( _whitelist.add( address(poolID) ) )
-			emit eWhitelist( poolID );
-		}
+	function changeMaxUnstakeWeeks(bool increase) public onlyOwner
+        {
+        if (increase)
+            {
+            if (maxUnstakeWeeks < 52)
+                maxUnstakeWeeks = maxUnstakeWeeks + 2;
+            }
+        else
+            {
+            if (maxUnstakeWeeks > 14)
+                maxUnstakeWeeks = maxUnstakeWeeks - 2;
+            }
+        }
 
 
-	function unwhitelist( IUniswapV2Pair poolID ) public onlyOwner
-		{
-		if ( _whitelist.remove( address(poolID) ) )
-			emit eUnwhitelist( poolID );
-		}
+	function changeMinUnstakePercent(bool increase) public onlyOwner
+        {
+        if (increase)
+            {
+            if (minUnstakePercent < 75)
+                minUnstakePercent = minUnstakePercent + 5;
+            }
+        else
+            {
+            if (minUnstakePercent > 25)
+                minUnstakePercent = minUnstakePercent - 5;
+            }
+        }
 
 
-	function setUnstakeParams( uint256 _minUnstakeWeeks, uint256 _maxUnstakeWeeks, uint256 _minUnstakePercent ) public onlyOwner
-		{
-		require( _minUnstakeWeeks >=2, "minUnstakeWeeks too small" );
-		require( _minUnstakeWeeks <=12, "minUnstakeWeeks too large" );
-
-		require( _maxUnstakeWeeks >=13, "maxUnstakeWeeks too small" );
-		require( _maxUnstakeWeeks <=52, "maxUnstakeWeeks too large" );
-
-		require( _minUnstakePercent >=25, "minUnstakePercent too small" );
-		require( _minUnstakePercent <=75, "minUnstakePercent too large" );
-
-		unstakeParams = UnstakeParams( _minUnstakeWeeks, _maxUnstakeWeeks, _minUnstakePercent );
-
-		emit eSetUnstakeParams( _minUnstakeWeeks, _maxUnstakeWeeks, _minUnstakePercent );
-		}
-
-
-	function setModificationCooldown( uint256 _cooldown ) public onlyOwner
-		{
-		require( _cooldown >= ( 15 minutes ), "_modificationCooldown too small" );
-		require( _cooldown <= ( 6 hours ), "_modificationCooldown too large" );
-
-		if ( modificationCooldown != _cooldown )
-			emit eSetCooldown( _cooldown );
-
-		modificationCooldown = _cooldown;
-		}
-
-
-	// ===== VIEWS =====
-
-	function numberOfWhitelistedPools() public view returns (uint256)
-		{
-		return _whitelist.length();
-		}
-
-
-	// This does not include the 0 poolID for generic staked SALT (not deposited to any pool)
-	function whitelistedPoolAtIndex( uint256 index ) public view returns (IUniswapV2Pair)
-		{
-		return IUniswapV2Pair( _whitelist.at( index ) );
-		}
-
-
-	function isValidPool( IUniswapV2Pair poolID ) public view returns (bool)
-		{
-		if ( poolID == STAKED_SALT )
-			return true;
-
-		return _whitelist.contains( address(poolID) );
-		}
-
-
-	// This does not include the STAKED_SALT poolID for generic staked SALT (not deposited to any pool)
-	function whitelistedPools() public view returns (IUniswapV2Pair[] memory)
-		{
-		address[] memory whitelistAddresses = _whitelist.values();
-
-		IUniswapV2Pair[] memory pools = new IUniswapV2Pair[]( whitelistAddresses.length );
-
-		for( uint256 i = 0; i < pools.length; i++ )
-			pools[i] = IUniswapV2Pair( whitelistAddresses[i] );
-
-		return pools;
-		}
+	function changeModificationCooldown(bool increase) public onlyOwner
+        {
+        if (increase)
+            {
+            if (modificationCooldown < 6 hours)
+                modificationCooldown = modificationCooldown + 15 minutes;
+            }
+        else
+            {
+            if (modificationCooldown > 15 minutes)
+                modificationCooldown = modificationCooldown - 15 minutes;
+            }
+        }
     }

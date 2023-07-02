@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.12;
 
 import "./openzeppelin/security/ReentrancyGuard.sol";
 
@@ -7,7 +7,7 @@ import "./openzeppelin/security/ReentrancyGuard.sol";
 // Keep track of how long it's been since the last performUpkeep0 call and calls performUpkeep
 abstract contract Upkeepable is ReentrancyGuard
     {
-	uint256 lastUpkeepTime;
+	uint256 public lastUpkeepTime;
 
 
     constructor()
@@ -22,16 +22,15 @@ abstract contract Upkeepable is ReentrancyGuard
 		}
 
 
-	function performUpkeep() internal virtual
+	function _performUpkeep() internal virtual
 		{
-		require( false, "performUpkeep() needs to be overriden" );
+		require( false, "performUpkeep() needs to be overridden" );
 		}
 
 
-	// Called by Upkeep.sol directly
-	function performUpkeep0() public nonReentrant
+	function performUpkeep() public nonReentrant
 		{
-		performUpkeep();
+		_performUpkeep();
 
 		lastUpkeepTime = block.timestamp;
 		}
