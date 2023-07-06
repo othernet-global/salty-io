@@ -83,7 +83,7 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 
 		// Determine the virtualRewards added based on the current ratio of rewards/shares.
 		// This allows shares to be added and the ratio of rewards/shares to remain unchanged (with proportional virtual rewards being added).
-		// The virtual rewards will be deducted later when calcualting the user's owed rewards.
+		// The virtual rewards will be deducted later when calculating the user's owed rewards.
         if ( existingTotalShares != 0 ) // prevent / 0
         	{
 			// Round up in favor of the protocol.
@@ -166,7 +166,6 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 		for( uint256 i = 0; i < poolIDs.length; i++ )
 			{
 			bytes32 poolID = poolIDs[i];
-			require( poolsConfig.isWhitelisted( poolID ), "Invalid pool" );
 
 			uint256 pendingRewards = userPendingReward( msg.sender, poolID );
 
@@ -186,7 +185,7 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
     	}
 
 
-	// Adds SALT rewards for specific pools.
+	// Adds SALT rewards for specific whitelisted pools.
 	// There is some risk of addSALTRewards being front run, but there are multiple mechanisms in place to prevent this from being effective.
 	// 1. There is a cooldown period of default one hour before shares can be modified once deposited.
 	// 2. Staked SALT (required for voting on pools and receiving staking rewards) has a default unstake period of 6 months.
@@ -245,16 +244,18 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 	// Returns the user's pending rewards for a specified pool.
 	function userPendingReward( address wallet, bytes32 poolID ) public view returns (uint256)
 		{
-		// If there are no shares for the pool, there can be no rewards
+		// If there are no shares for the pool, the user can't have any shares either and there can't be any rewards
 		if ( totalShares[poolID] == 0 )
 			return 0;
 
 		UserShareInfo memory user = userPoolInfo[wallet][poolID];
+		if ( user.userShare == 0 )
+			return 0;
 
-		// Determine the share of the rewards for the user based on their deposits
+		// Determine the share of the rewards for the user based on their deposited share
 		uint256 rewardsShare = ( totalRewards[poolID] * user.userShare ) / totalShares[poolID];
 
-		// Reduce by the virtualRewards
+		// Reduce by the virtualRewards - as they were only added to keep the share / rewards ratio the same when the used added their share
 		return rewardsShare - user.virtualRewards;
 		}
 

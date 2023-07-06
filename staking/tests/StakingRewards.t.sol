@@ -144,10 +144,10 @@ contract SharedRewardsTest is Test, Deployment
     // Prepare invalid pool
     bytes32 invalidPool = bytes32(uint256(0xDEAD));
 
-    // Try to claim rewards from invalid pool
+    // Try to claim rewards from an invalid pool
+    // It shouldn't revert, but will not return any rewards
     bytes32[] memory invalidPools = new bytes32[](1);
     invalidPools[0] = invalidPool;
-    vm.expectRevert("Invalid pool");
     stakingRewards.claimAllRewards(invalidPools);
 
     // Verify no rewards were claimed

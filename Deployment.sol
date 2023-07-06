@@ -28,11 +28,11 @@ contract Deployment is Test
     bool public DEBUG = true;
 	address constant public DEPLOYER = 0x73107dA86708c2DAd0D91388fB057EeE3E2581aF;
 
-	IPools public pools = IPools(address(0xBbB5A43F51F951c477080578bB7f98CBcF88131b));
-	IStaking public staking = IStaking(address(0xFff87D41195949f8c6c52CFd0d526D23FfA78175));
+	IPools public pools = IPools(address(0xa6d162aDC6e5E076904199eD14196E1C4c8B3186));
+	IStaking public staking = IStaking(address(0x8D0d85EF7bAb52D7884D15c77d0384eAbbbFa83E));
 
 	IExchangeConfig public exchangeConfig = pools.exchangeConfig();
-	IPoolsConfig public poolsConfig = IPoolsConfig(address(0x4DC9Bf826612fD778719BE892442cb0921608209));
+	IPoolsConfig public poolsConfig = IPoolsConfig(address(0x7184C1D874280736a91C0c9aE291F7E0Bf421F44));
 	IStakingConfig public stakingConfig = staking.stakingConfig();
 
 	ISalt public salt = exchangeConfig.salt();

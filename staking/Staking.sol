@@ -47,7 +47,7 @@ contract Staking is IStaking, StakingRewards
 		userFreeXSalt[msg.sender] += amountToStake;
 
 		// Update the user's share of the rewards for staked SALT
-		// No cooldown as it takes default 6 months to unstake the SALT anyways
+		// No cooldown as it takes default 6 months to unstake the xSALT to receive the full amount staked SALT back
 		_increaseUserShare( msg.sender, STAKED_SALT, amountToStake, false );
 
 		// Transfer the SALT from the user's wallet
@@ -67,19 +67,19 @@ contract Staking is IStaking, StakingRewards
 		uint256 completionTime = block.timestamp + numWeeks * ( 1 weeks );
 
 		Unstake memory u = Unstake( UnstakeState.PENDING, msg.sender, amountUnstaked, claimableSALT, completionTime, nextUnstakeID );
+		unstakeID = nextUnstakeID;
 
-		_unstakesByID[nextUnstakeID] = u;
-		_userUnstakeIDs[msg.sender].push( nextUnstakeID );
+		_unstakesByID[unstakeID] = u;
+		_userUnstakeIDs[msg.sender].push( unstakeID );
 
-		// Unstaking immediately reduces the user's xSALT balance even though there will be a delay to convert it back to SALT
+		// Unstaking immediately reduces the user's xSALT balance even though there will be the specified delay to convert it back to SALT
 		userFreeXSalt[msg.sender] -= amountUnstaked;
 
 		// Reduce the user's share of the rewards for staked SALT
 		_decreaseUserShare( msg.sender, STAKED_SALT, amountUnstaked, false );
 
-		emit eUnstake( nextUnstakeID, msg.sender, amountUnstaked, numWeeks);
+		emit eUnstake( unstakeID, msg.sender, amountUnstaked, numWeeks);
 
-		unstakeID = nextUnstakeID;
 		nextUnstakeID++;
 		}
 
@@ -127,8 +127,8 @@ contract Staking is IStaking, StakingRewards
 			{
 			// Send the earlyUnstakeFee to the SALT contract and burn it
 
-			// This error should never happen (as the user had there SALT staked in this contract)
-			require( salt.balanceOf(address(this)) >= earlyUnstakeFee, "Insufficient SALT balance to burn earlyUnstakeFee");
+			// This error should never happen (as the user had their SALT staked in this contract)
+			require( salt.balanceOf(address(this)) >= earlyUnstakeFee, "Insufficient SALT balance to burn the earlyUnstakeFee");
 
 			salt.safeTransfer( address(exchangeConfig.salt()), earlyUnstakeFee );
             salt.burnTokensInContract();
@@ -157,8 +157,8 @@ contract Staking is IStaking, StakingRewards
    		require( amountToVote <= userFreeXSalt[msg.sender], "Cannot vote with more than the available xSALT balance" );
    		userFreeXSalt[msg.sender] -= amountToVote;
 
-		// Update the user's share of the rewards for the pool
-		// Cooldown activated to prevent reward hunting for pool voting
+		// Update the user's share of the rewards for the pool.
+		// Cooldown is used to prevent reward hunting for pool voting.
    		_increaseUserShare( msg.sender, poolID, amountToVote, true );
 
    		emit eDepositVotes( msg.sender, poolID, amountToVote );
@@ -170,14 +170,13 @@ contract Staking is IStaking, StakingRewards
 		{
 		// Don't allow calling with pool 0
 		require( poolID != STAKED_SALT, "Cannot remove votes from the STAKED_SALT pool" );
-		require( amountRemoved != 0, "Cannot remove zero votes" );
 
 		// Increase the user's available xSALT by the amount they are withdrawing
-		// Note that balance checks will be done within _decreaseUserShare below
+		// Note that user balance checks will be done within _decreaseUserShare below
    		userFreeXSalt[msg.sender] += amountRemoved;
 
-		// Update the user's share of the rewards for the pool and claim any pending rewards
-		// Cooldown activated to prevent reward hunting for pool voting
+		// Update the user's share of the rewards for the pool and claim any pending rewards.
+		// Cooldown is used to prevent reward hunting for pool voting.
 		_decreaseUserShare( msg.sender, poolID, amountRemoved, true );
 
    		emit eRemoveVotes( msg.sender, poolID, amountRemoved );
@@ -194,7 +193,7 @@ contract Staking is IStaking, StakingRewards
         uint256[] memory userUnstakes = _userUnstakeIDs[wallet];
 
         require(userUnstakes.length > end, "Invalid range: end is out of bounds");
-        require(start >= 0 && start < userUnstakes.length, "Invalid range: start is out of bounds");
+        require(start < userUnstakes.length, "Invalid range: start is out of bounds");
 
         Unstake[] memory unstakes = new Unstake[](end - start + 1);
 
