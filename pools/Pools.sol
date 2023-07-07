@@ -82,8 +82,8 @@ contract Pools is IPools, ReentrancyGuard
 		// Determine the current pool reserves
 		(uint256 reserve0, uint256 reserve1) = getPoolReserves( tokenA, tokenB );
 
-		// If existingLiquidity is zero or either reserve is less than dust then consider the pool to be empty and that the added liquidity will become the initial token ratio
-		if ( ( ( reserve0 <= DUST ) || ( reserve1 <= DUST ) ) || ( totalLiquidity[poolID] == 0 ) )
+		// If either reserve is less than dust then consider the pool to be empty and that the added liquidity will become the initial token ratio
+		if ( ( reserve0 <= DUST ) || ( reserve1 <= DUST ) )
 			return ( poolID, flipped, maxAmountA, maxAmountB, Math.sqrt(maxAmountA * maxAmountB) );
 
 		// Add liquidity to the pool proportional to the current existing token reserves in the pool.
