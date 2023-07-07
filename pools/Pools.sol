@@ -140,6 +140,7 @@ contract Pools is IPools, ReentrancyGuard
 			(addedAmountA, addedAmountB) = (addedAmountB, addedAmountA);
 
 		// Transfer the tokens from the sender
+		// User allowance and balance not checked to save gas - safeTransferFrom will revert if either is lacking
 		tokenA.safeTransferFrom( msg.sender, address(this), addedAmountA );
 		tokenB.safeTransferFrom( msg.sender, address(this), addedAmountB );
 
@@ -217,7 +218,7 @@ contract Pools is IPools, ReentrancyGuard
 
 	// Internal swap that calculates amountOut based on token reserves and the specified amountIn and then updates the reserves.
 	// It only adjusts the reserves - it does not adjust deposited user balances or do ERC20 transfers.
-	// Token pair must be a whitelisted pool.
+	// Token pair must be a whitelisted pool (which prevents invalid token addresses)
     function _adjustReservesForSwap( IERC20 tokenIn, IERC20 tokenOut, uint256 amountIn ) internal returns (uint256 amountOut)
     	{
         (bytes32 poolID, bool flipped) = PoolUtils.poolID(tokenIn, tokenOut);
