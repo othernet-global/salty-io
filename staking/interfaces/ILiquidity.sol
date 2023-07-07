@@ -2,10 +2,10 @@
 pragma solidity ^0.8.12;
 
 import "./IStakingRewards.sol";
-
+import "../../openzeppelin/token/ERC20/IERC20.sol";
 
 interface ILiquidity is IStakingRewards
 	{
-	function stake( bytes32 pool, uint256 amountStaked ) external;
-	function unstakeAndClaim( bytes32 pool, uint256 amountUnstaked ) external;
+	function addAndDepositLiquidity( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 deadline, bool bypassZapSwap ) external returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity);
+	function withdrawLiquidityAndClaim( IERC20 tokenA, IERC20 tokenB, uint256 liquidityToWithdraw, uint256 minReclaimedA, uint256 minReclaimedB, uint256 deadline ) external returns (uint256 reclaimedA, uint256 reclaimedB);
 	}

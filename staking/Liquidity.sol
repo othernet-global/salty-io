@@ -6,93 +6,77 @@ import "./interfaces/IStakingConfig.sol";
 import "./StakingRewards.sol";
 import "../interfaces/IExchangeConfig.sol";
 import "./interfaces/ILiquidity.sol";
-import "../../pools/interfaces/IPools.sol";
+import "../pools/interfaces/IPools.sol";
+import "../pools/interfaces/IPoolsConfig.sol";
+import "../pools/PoolUtils.sol";
 
 
-// Allows users to deposit and stake LP to receive a share of the rewards for that pool
-
+// Allows users to deposit and stake liquidity to receive a share of the rewards for that pool
 contract Liquidity is ILiquidity, StakingRewards
     {
-	event eStakeLP(address indexed wallet,bytes32 pool,uint256 amount);
-	event eUnstakeLP(address indexed wallet,bytes32 pool,uint256 amount);
-
 	using SafeERC20 for IERC20;
 
 	IPools public pools;
-	IExchangeConfig public exchangeConfig;
 
 
-	constructor( IPools _pools, IStakingConfig _stakingConfig, IExchangeConfig _exchangeConfig )
-		StakingRewards( _stakingConfig )
+	constructor( IPools _pools, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig )
+		StakingRewards( _exchangeConfig, _poolsConfig, _stakingConfig )
 		{
 		require( address(_pools) != address(0), "_pools cannot be address(0)" );
-		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
 
 		pools = _pools;
-		exchangeConfig = _exchangeConfig;
 		}
 
 
 	// Add a certain amount of liquidity to the specified pool and stake the added liquidity within this contract for future rewards.
 	// Requires that the sending wallet has exchange access and that the pool is whitelisted
-	function addAndDepositLiquidity( IERC20 token0, IERC20 token1, uint256 maxAmount0, uint256 maxAmount1, uint256 minLiquidityReceived, uint256 deadline ) public nonReentrant returns (uint256 addedLiquidity)
+	function addAndDepositLiquidity( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 deadline, bool bypassZapSwap ) public nonReentrant returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
 		{
-		uint256 startingBalance0 = token0.balanceOf( address(this) );
-		uint256 startingBalance1 = token1.balanceOf( address(this) );
+		// Rememebr the initial underlying token balances so we can determine if any of the tokens remain after the liquidity is added
+		uint256 startingBalanceA = tokenA.balanceOf( address(this) );
+		uint256 startingBalanceB = tokenB.balanceOf( address(this) );
 
+		// Transfer the maximum amount of tokens from the user
+		// Any extra underlying tokens after the liquidity is added will be sent back to the user
+		tokenA.safeTransferFrom(msg.sender, address(this), maxAmountA );
+		tokenB.safeTransferFrom(msg.sender, address(this), maxAmountB );
 
+		// Zap in the specified liquidity (with the optional bypassZapSwap which will then just be a strict addLiquidity call)
+		tokenA.approve( address(pools), maxAmountA );
+		tokenB.approve( address(pools), maxAmountB );
+		(addedAmountA, addedAmountB, addedLiquidity) = pools.dualZapInLiquidity( tokenA, tokenB, maxAmountA, maxAmountB, minLiquidityReceived, deadline, bypassZapSwap );
 
+		(bytes32 poolID,) = PoolUtils.poolID( tokenA, tokenB );
 
+		// Update the user's share of the rewards for the pool (where the pool will be confirmed as whitelisted)
+		// Cooldown is specified to prevent reward hunting (quickly depositing and withdrawing liquidity to earn rewards)
+   		_increaseUserShare( msg.sender, poolID, addedLiquidity, true );
 
-		// Check allowances and transfer
-		require( erc20.allowance(msg.sender, address(this)) >= amountStaked, "Insufficient allowance to stake LP" );
-		require( erc20.balanceOf(msg.sender) >= amountStaked, "Insufficient balance to stake LP" );
-		erc20.safeTransferFrom(msg.sender, address(this), amountStaked );
+		// Send any extra of the underlying tokens back to the user
+		uint256 extraBalanceA = startingBalanceA - tokenA.balanceOf( address(this) );
+		uint256 extraBalanceB = startingBalanceB - tokenB.balanceOf( address(this) );
 
-
-		// Don't allow unstaking the STAKED_SALT pool
-		require( poolID != STAKED_SALT, "Cannot stake on the STAKED_SALT pool" );
-
-		// Update the user's share of the rewards for the pool (must be whitelisted)
-   		_increaseUserShare( msg.sender, poolID, amountStaked, true );
-
-		// The Uniswap LP token address is the pool
-		IERC20 erc20 = IERC20( address(poolID) );
-
-		// Make sure there is no fee while transferring the token to this contract
-		uint256 beforeBalance = erc20.balanceOf( address(this) );
-
-
-		uint256 afterBalance = erc20.balanceOf( address(this) );
-		require( afterBalance == ( beforeBalance + amountStaked ), "Cannot stake tokens with a fee on transfer" );
-
-		emit eStakeLP( msg.sender, poolID, amountStaked );
+		if ( extraBalanceA > 0 )
+			tokenA.transfer( msg.sender, extraBalanceA );
+		if ( extraBalanceB > 0 )
+			tokenB.transfer( msg.sender, extraBalanceB );
 		}
 
 
-	// Unstake LP tokens and claim any pending rewards
-	// Does not check that the send has exchange access (in case they were excluded recently)
+	// Withdraw liquidity and claim any pending rewards.
 	// The DAO itself is not allowed to unstake liquidity
-     function withdrawLiquidityAndClaim( IUniswapV2Pair pool, uint256 amountUnstaked ) public nonReentrant
+     function withdrawLiquidityAndClaim( IERC20 tokenA, IERC20 tokenB, uint256 liquidityToWithdraw, uint256 minReclaimedA, uint256 minReclaimedB, uint256 deadline ) public nonReentrant returns (uint256 reclaimedA, uint256 reclaimedB)
 		{
-		// Don't allow unstaking the STAKED_SALT pool
-		require( pool != STAKED_SALT, "Cannot unstake on the STAKED_SALT pool" );
-
 		// Make sure that the DAO isn't trying to remove liquidity
 		require( msg.sender != address(exchangeConfig.dao()), "DAO is not allowed to unstake LP tokens" );
 
-		// Update the user's share of the rewards for the pool
-		// Balance checks are done here
-		_decreaseUserShare( msg.sender, pool, amountUnstaked, true );
+		(bytes32 poolID,) = PoolUtils.poolID( tokenA, tokenB );
 
-		// The pool is an ERC20 token
-		IERC20 erc20 = IERC20( address(pool) );
+		// Update the user's share of the rewards for the specified pool
+		// Note: _decreaseUserShare checks to make sure the user has the specified share
+		_decreaseUserShare( msg.sender, poolID, liquidityToWithdraw, true );
 
-		// Transfer the withdrawn token to the caller
-		// This error should never happen
-		require( erc20.balanceOf(address(this)) >= amountUnstaked, "Insufficient contract balance to withdraw" );
-		erc20.safeTransfer( msg.sender, amountUnstaked );
-
-		emit eUnstakeLP( msg.sender, pool, amountUnstaked );
+		// Remove the amount of liquidity specified by the user
+		(reclaimedA, reclaimedB) = pools.removeLiquidity( tokenA, tokenB, liquidityToWithdraw, minReclaimedA, minReclaimedB, deadline );
 		}
 	}
