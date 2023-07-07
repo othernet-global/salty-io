@@ -186,6 +186,10 @@ library PoolMath
         // It's already been established above that discriminant is positive or zero.
         int256 sqrtDiscriminant = int256( Math.sqrt(uint256(discriminant)) );
 
+		// Prevent negative swap amounts
+		if ( B > sqrtDiscriminant )
+			return 0;
+
         // Only use the positive sqrt of the discriminant from: x = (-B +/- sqrtDiscriminant) / 2A
 		swapAmount = _restorePrecision( ( sqrtDiscriminant - B ) / ( 2 * A ), decimals0 );
     	}
