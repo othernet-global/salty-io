@@ -1415,7 +1415,7 @@ contract TestPools is Test, Deployment
 		vm.stopPrank();
 		}
 
-
+	// A unit test that checks the quote amount out for different token orderings
 	function testQuoteAmountOut() public
 		{
 		// Loops to give the three token chains chances to have different ordering to check flipped functionality
@@ -1424,6 +1424,7 @@ contract TestPools is Test, Deployment
 		}
 
 
+	// A unit test that checks the quote amount in for different token orderings
 	function testQuoteAmountIn() public
 		{
 		// Loops to give the three token chains chances to have different ordering to check flipped functionality
@@ -1432,6 +1433,7 @@ contract TestPools is Test, Deployment
 		}
 
 
+	// A unit test that checks the quote amounts with no reserves
 	function testQuoteAmountsWithNoReserves() public
 		{
         // Define the array of tokens to be used in the swap operation
@@ -1544,7 +1546,7 @@ contract TestPools is Test, Deployment
 		vm.stopPrank();
 		}
 
-
+	// A unit test that checks the zapping functionality
 	function testZapping() public
 		{
 		_checkZapping( 18, 18, 800000000000, 500000000000, 100000000000, 100000000000 );
@@ -1639,7 +1641,7 @@ contract TestPools is Test, Deployment
 		vm.stopPrank();
 		}
 
-
+	// A unit test that checks the zapping functionality with dust amounts
 	function testZappingDust() public
 		{
 		_checkZappingDust( 18, 18, 8000, 2000, 101, 101 );
@@ -1652,6 +1654,7 @@ contract TestPools is Test, Deployment
 		}
 
 
+	// A unit test that checks the addition of dust liquidity
 	function testAddingDustLiquidity() public
 		{
 		pools.addLiquidity( tokens[0], tokens[1], 101, 101, 0, block.timestamp );
