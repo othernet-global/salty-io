@@ -2,6 +2,8 @@
 pragma solidity ^0.8.12;
 
 import "./IStakingConfig.sol";
+import "../../interfaces/IExchangeConfig.sol";
+import "../../pools/interfaces/IPoolsConfig.sol";
 
 
 struct AddedReward
@@ -24,6 +26,8 @@ interface IStakingRewards
 	function addSALTRewards( AddedReward[] calldata addedRewards ) external;
 
 	// Views
+	function exchangeConfig() external returns (IExchangeConfig);
+	function poolsConfig() external returns (IPoolsConfig);
 	function stakingConfig() external returns (IStakingConfig);
 	function totalSharesForPools( bytes32[] calldata pools ) external view returns (uint256[] calldata shares);
 	function totalRewardsForPools( bytes32[] calldata pools ) external view returns (uint256[] calldata rewards);

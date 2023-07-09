@@ -118,13 +118,11 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 			require( block.timestamp >= user.cooldownExpiration, "Must wait for the cooldown to expire" );
 
 		// Determine the share of the rewards for the amountToDecrease (will include previously added virtual rewards)
-		require( totalShares[poolID] != 0, "Total shares cannot be zero" );
 		uint256 rewardsForAmount = ( totalRewards[poolID] * amountToDecrease ) / totalShares[poolID];
 
 		// For the amountToDecrease determine the proportion of virtualRewards (proportional to all virtualRewards for the user)
 		// Round up in favor of the protocol
 		uint256 virtualRewardsToRemove = Math.ceilDiv( user.virtualRewards * amountToDecrease, user.userShare );
-		require( virtualRewardsToRemove <= user.virtualRewards, "Virtual rewards to remove cannot exceed the current virtual rewards" );
 
 		// Update totals
 		totalRewards[poolID] -= rewardsForAmount;

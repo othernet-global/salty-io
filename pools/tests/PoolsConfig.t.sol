@@ -61,13 +61,13 @@ contract PoolsConfigTest is Deployment
 
 
 	// A unit test that tests the whitelist function with an invalid input
-	function testWhitelistIncalidPool() public {
+	function testWhitelistInvalidPool() public {
 	vm.startPrank( DEPLOYER );
 
 	(bytes32 poolID,) = PoolUtils.poolID(token1, token1);
     assertFalse(poolsConfig.isWhitelisted(poolID), "New pool should not be valid yet");
 
-	vm.expectRevert( "token0 and token1 cannot be the same token" );
+	vm.expectRevert( "tokenA and tokenB cannot be the same token" );
     poolsConfig.whitelistPool(token1, token1);
 
     assertFalse(poolsConfig.isWhitelisted(poolID), "New pool should still not be valid");

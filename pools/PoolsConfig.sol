@@ -10,15 +10,15 @@ import "./PoolUtils.sol";
 // Contract owned by the DAO and only modifiable by the DAO
 contract PoolsConfig is IPoolsConfig, Ownable
     {
-    event eWhitelistPool(IERC20 indexed token0, IERC20 indexed token1, bytes32 indexed poolID);
-    event eUnwhitelistPool(IERC20 indexed token0, IERC20 indexed token1, bytes32 indexed poolID);
+    event eWhitelistPool(IERC20 indexed tokenA, IERC20 indexed tokenB, bytes32 indexed poolID);
+    event eUnwhitelistPool(IERC20 indexed tokenA, IERC20 indexed tokenB, bytes32 indexed poolID);
 	event eMaximumWhitelistedPoolsChanged(uint256 newValue);
 
 	struct TokenPair
 		{
-		// Note that these will be ordered as specified in whitelistPool() - rather than ordered such that address(token0) < address(token1) as standard in Pools.sol
-		IERC20 token0;
-		IERC20 token1;
+		// Note that these will be ordered as specified in whitelistPool() - rather than ordered such that address(tokenA) < address(tokenB) as with the reserves in Pools.sol
+		IERC20 tokenA;
+		IERC20 tokenB;
 		}
 
     using EnumerableSet for EnumerableSet.Bytes32Set;
@@ -41,26 +41,26 @@ contract PoolsConfig is IPoolsConfig, Ownable
 
 
 	// Whitelist a given pair of tokens
-	function whitelistPool( IERC20 token0, IERC20 token1 ) public onlyOwner
+	function whitelistPool( IERC20 tokenA, IERC20 tokenB ) public onlyOwner
 		{
 		require( _whitelist.length() < maximumWhitelistedPools, "Maximum number of whitelisted pools already reached" );
-		require(token0 != token1, "token0 and token1 cannot be the same token");
+		require(tokenA != tokenB, "tokenA and tokenB cannot be the same token");
 
-		(bytes32 poolID, ) = PoolUtils.poolID(token0, token1);
+		(bytes32 poolID, ) = PoolUtils.poolID(tokenA, tokenB);
 
-		underlyingPoolTokens[poolID] = TokenPair(token0, token1);
+		underlyingPoolTokens[poolID] = TokenPair(tokenA, tokenB);
 
 		if ( _whitelist.add(poolID) )
-			emit eWhitelistPool(token0, token1, poolID);
+			emit eWhitelistPool(tokenA, tokenB, poolID);
 		}
 
 
-	function unwhitelistPool( IERC20 token0, IERC20 token1 ) public onlyOwner
+	function unwhitelistPool( IERC20 tokenA, IERC20 tokenB ) public onlyOwner
 		{
-		(bytes32 poolID, ) = PoolUtils.poolID(token0,token1);
+		(bytes32 poolID, ) = PoolUtils.poolID(tokenA,tokenB);
 
 		if ( _whitelist.remove(poolID) )
-			emit eUnwhitelistPool(token0, token1, poolID);
+			emit eUnwhitelistPool(tokenA, tokenB, poolID);
 		}
 
 
@@ -119,11 +119,11 @@ contract PoolsConfig is IPoolsConfig, Ownable
 		}
 
 
-	function underlyingTokenPair( bytes32 poolID ) public view returns (IERC20 token0, IERC20 token1)
+	function underlyingTokenPair( bytes32 poolID ) public view returns (IERC20 tokenA, IERC20 tokenB)
 		{
 		TokenPair memory pair = underlyingPoolTokens[poolID];
-		require(address(pair.token0) != address(0) && address(pair.token1) != address(0), "This poolID does not exist");
+		require(address(pair.tokenA) != address(0) && address(pair.tokenB) != address(0), "This poolID does not exist");
 
-		return (pair.token0, pair.token1);
+		return (pair.tokenA, pair.tokenB);
 		}
     }

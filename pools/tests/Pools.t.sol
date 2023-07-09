@@ -1595,6 +1595,7 @@ contract TestPools is Test, Deployment
 			{
 			(,, uint256 addedLiquidity) = pools.dualZapInLiquidity( token0, token1, zapAmount0, zapAmount1, 0, block.timestamp, false );
 
+//			console.log( "addedLiquidity: ", addedLiquidity);
 //			console.log( "token0: ", token0.balanceOf(alice ));
 //			console.log( "token1: ", token1.balanceOf(alice ));
 
@@ -1644,13 +1645,23 @@ contract TestPools is Test, Deployment
 	// A unit test that checks the zapping functionality with dust amounts
 	function testZappingDust() public
 		{
-		_checkZappingDust( 18, 18, 8000, 2000, 101, 101 );
+		_checkZappingDust( 18, 18,  101 * 10**12,  99 * 10**12, 400*10**12, 200*10**12 );
+
+		// z1 and z2 less than dust
+		_checkZappingDust( 18, 18, 2000 ether, 2000 ether, 200 *10**6, 99 *10**6 );
 
 		// This should check the minimum quantity to zap of .000101
 		_checkZappingDust( 18, 18, 8000 * 10**6, 2000 * 10**18, 101 * 10 ** 6, 101 * 10 ** 12 );
 
 		// This should check the minimum quantity to zap of .000101
 		_checkZappingDust( 18, 18, 800000 ether, 200000 ether, 101 * 10 ** 6, 101 * 10 ** 12 );
+
+		// z1/z2 = r1/r2
+		_checkZappingDust( 18, 18, 1000, 2000, 200, 400 );
+
+		// smaller decimals
+		_checkZappingDust( 6, 6, 1000, 2000, 200, 500 );
+		_checkZappingDust( 5, 5, 1000, 2000, 200, 500 );
 		}
 
 
@@ -1662,5 +1673,38 @@ contract TestPools is Test, Deployment
 		vm.expectRevert( "The amount of tokenA to add is too small" );
 		pools.addLiquidity( tokens[0], tokens[1], 99, 101, 0, block.timestamp );
 		}
+
+
+// A unit test that tests that minLiquidityReceived, minReclaimedA and minReclaimedB cause correct reversions if they are not satisfied on an addLiquidity or removeLiquidity call.
+function testMinLiquidityAndReclaimedAmounts() public {
+    vm.startPrank(DEPLOYER);
+
+    // Define tokens for the test
+    TestERC20 token0 = tokens[0];
+    TestERC20 token1 = tokens[1];
+
+    // Define maxAmount0 and maxAmount1
+    uint256 maxAmount0 = 1000 ether;
+    uint256 maxAmount1 = 1000 ether;
+
+    // Define an excessive minLiquidityReceived
+    uint256 excessiveMinLiquidityReceived = 2000 ether;
+
+    // Test that adding liquidity fails when minLiquidityReceived is excessive
+    vm.expectRevert("Too little liquidity received");
+    pools.addLiquidity(token0, token1, maxAmount0, maxAmount1, excessiveMinLiquidityReceived, block.timestamp);
+
+    // Get the current user's liquidity before removing liquidity
+    uint256 liquidityBefore = pools.getUserLiquidity(DEPLOYER, token0, token1);
+
+    // Define an excessive minReclaimedA and minReclaimedB
+    uint256 excessiveMinReclaimedA = 1500 ether;
+    uint256 excessiveMinReclaimedB = 1500 ether;
+
+    // Test that removing liquidity fails when minReclaimedA and minReclaimedB are excessive
+    vm.expectRevert("Insufficient underlying tokens returned");
+    pools.removeLiquidity(token0, token1, liquidityBefore, excessiveMinReclaimedA, excessiveMinReclaimedB, block.timestamp);
+}
+
     }
 

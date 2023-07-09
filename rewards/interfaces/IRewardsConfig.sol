@@ -8,6 +8,7 @@ interface IRewardsConfig
 	function changeXSaltHoldersPercent(bool increase) external; // onlyOwner
 	function changeRewardsEmitterDailyPercent(bool increase) external; // onlyOwner
 
+	// Views
     function emissionsWeeklyPercentTimes1000() external view returns (uint256);
     function emissionsXSaltHoldersPercent() external view returns (uint256);
     function rewardsEmitterDailyPercentTimes1000() external view returns (uint256);
