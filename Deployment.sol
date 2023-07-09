@@ -8,6 +8,7 @@ import "./interfaces/IExchangeConfig.sol";
 import "./stable/USDS.sol";
 import "./staking/interfaces/IStakingConfig.sol";
 import "./staking/interfaces/IStaking.sol";
+import "./staking/interfaces/ILiquidity.sol";
 //import "./openzeppelin/token/ERC20/IERC20.sol";
 //import "./stable/tests/IForcedPriceFeed.sol";
 //import "./dao/interfaces/IDAOConfig.sol";
@@ -16,7 +17,6 @@ import "./staking/interfaces/IStaking.sol";
 //import "./rewards//RewardsEmitter.sol";
 //import "./stable/interfaces/IStableConfig.sol";
 //import "./staking/Staking.sol";
-//import "./staking/Liquidity.sol";
 //import "./interfaces/IUpkeepable.sol";
 //import "./Salt.sol";
 
@@ -28,11 +28,12 @@ contract Deployment is Test
     bool public DEBUG = true;
 	address constant public DEPLOYER = 0x73107dA86708c2DAd0D91388fB057EeE3E2581aF;
 
-	IPools public pools = IPools(address(0x6D0885F7703A3a595e0C0BfF6da47D5908A6E801));
-	IStaking public staking = IStaking(address(0x986E5bBa52149b16E36d97C093c0f522CE3F64C0));
+	IPools public pools = IPools(address(0x6DFdF432708b15863e5d06FFB2048F067fA94006));
+	IStaking public staking = IStaking(address(0xe2AFf1499488e452a737A4Bf05142ACc49a30897));
+	ILiquidity public liquidity = ILiquidity(address(0x6C44f281c3d8C97791482Ef9547FBbca053a7E40));
 
-	IExchangeConfig public exchangeConfig = pools.exchangeConfig();
-	IPoolsConfig public poolsConfig = IPoolsConfig(address(0xcD66701cFE77506ADcE17734664D5d7A8f81E8E7));
+	IExchangeConfig public exchangeConfig = staking.exchangeConfig();
+	IPoolsConfig public poolsConfig = staking.poolsConfig();
 	IStakingConfig public stakingConfig = staking.stakingConfig();
 
 	ISalt public salt = exchangeConfig.salt();
@@ -40,6 +41,9 @@ contract Deployment is Test
     IERC20 public weth = exchangeConfig.weth();
     IERC20 public usdc = exchangeConfig.usdc();
     USDS public usds = USDS(address(exchangeConfig.usds()));
+
+
+	IAccessManager public accessManager = exchangeConfig.accessManager();
 
 
 //	IPoolsConfig = IStakingConfig
@@ -50,7 +54,6 @@ contract Deployment is Test
 //	IAAA public aaa = exchangeConfig.aaa();
 //	ILiquidator public liquidator = exchangeConfig.liquidator();
 //	IPOL_Optimizer public optimizer = exchangeConfig.optimizer();
-	IAccessManager public accessManager = exchangeConfig.accessManager();
 //
 //	IDAOConfig public daoConfig = dao.daoConfig();
 //	IRewardsConfig public rewardsConfig = dao.rewardsConfig();
