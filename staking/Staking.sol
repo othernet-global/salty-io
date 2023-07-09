@@ -46,7 +46,7 @@ contract Staking is IStaking, StakingRewards
 		// The SALT will be converted instantly to xSALT
 		userFreeXSalt[msg.sender] += amountToStake;
 
-		// Update the user's share of the rewards for staked SALT
+		// Increase the user's staking share so that they will receive more future SALT rewards
 		// No cooldown as it takes default 6 months to unstake the xSALT to receive the full amount staked SALT back
 		_increaseUserShare( msg.sender, STAKED_SALT, amountToStake, false );
 
@@ -75,7 +75,9 @@ contract Staking is IStaking, StakingRewards
 		// Unstaking immediately reduces the user's xSALT balance even though there will be the specified delay to convert it back to SALT
 		userFreeXSalt[msg.sender] -= amountUnstaked;
 
-		// Reduce the user's share of the rewards for staked SALT
+		// Decrease the user's staking share so that they will receive less future SALT rewards
+		// This call will send any pending SALT rewards to msg.sender as well.
+		// Note: _decreaseUserShare checks to make sure that the user has the specified staking share balance.
 		_decreaseUserShare( msg.sender, STAKED_SALT, amountUnstaked, false );
 
 		emit eUnstake( unstakeID, msg.sender, amountUnstaked, numWeeks);
