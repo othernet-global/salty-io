@@ -77,6 +77,15 @@ contract TestDeployment is Deployment
 
         assertEq( getContract(address(pools), "exchangeConfig()"), address(exchangeConfig), "Incorrect pools.exchangeConfig" );
 
+        assertEq( getContract(address(staking), "exchangeConfig()"), address(exchangeConfig), "Incorrect staking.exchangeConfig" );
+        assertEq( getContract(address(staking), "poolsConfig()"), address(poolsConfig), "Incorrect staking.poolsConfig" );
+        assertEq( getContract(address(staking), "stakingConfig()"), address(stakingConfig), "Incorrect staking.stakingConfig" );
+
+        assertEq( getContract(address(liquidity), "pools()"), address(pools), "Incorrect liquidity.pools" );
+        assertEq( getContract(address(liquidity), "exchangeConfig()"), address(exchangeConfig), "Incorrect liquidity.exchangeConfig" );
+        assertEq( getContract(address(liquidity), "poolsConfig()"), address(poolsConfig), "Incorrect liquidity.poolsConfig" );
+        assertEq( getContract(address(liquidity), "stakingConfig()"), address(stakingConfig), "Incorrect liquidity.stakingConfig" );
+
 //		assertEq( getContract(address(dao), "stakingConfig()"), address(stakingConfig), "Incorrect dao.stakingConfig" );
 //		assertEq( getContract(address(dao), "daoConfig()"), address(daoConfig), "Incorrect dao.daoConfig" );
 //        assertEq( getContract(address(dao), "exchangeConfig()"), address(exchangeConfig), "Incorrect dao.exchangeConfig" );
@@ -133,16 +142,6 @@ contract TestDeployment is Deployment
 //
 //        assertEq( getContract(address(usds), "collateral()"), address(collateral), "Incorrect usds.collateral" );
 //
-//
-        assertEq( getContract(address(staking), "exchangeConfig()"), address(exchangeConfig), "Incorrect staking.exchangeConfig" );
-        assertEq( getContract(address(staking), "poolsConfig()"), address(poolsConfig), "Incorrect staking.poolsConfig" );
-        assertEq( getContract(address(staking), "stakingConfig()"), address(stakingConfig), "Incorrect staking.stakingConfig" );
-
-//        assertEq( getContract(address(liquidity), "stakingConfig()"), address(stakingConfig), "Incorrect liquidity.stakingConfig" );
-//        assertEq( getContract(address(liquidity), "exchangeConfig()"), address(exchangeConfig), "Incorrect liquidity.exchangeConfig" );
-
-//
-//        assertEq( getContract(address(stakingConfig), "salt()"), address(salt), "Incorrect stakingConfig.exchangeConfig" );
 //
 //        assertEq( getContract(address(aaa), "liquidityRewardsEmitter()"), address(liquidityRewardsEmitter), "Incorrect aaa.liquidityRewardsEmitter" );
 //        assertEq( getContract(address(aaa), "stakingRewardsEmitter()"), address(stakingRewardsEmitter), "Incorrect aaa.stakingRewardsEmitter" );
