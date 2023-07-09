@@ -68,7 +68,7 @@ contract Pools is IPools, ReentrancyGuard
 
 	// Given two tokens and their maximum amounts for added liquidity, determine which amounts to actually add so that the added token ratio is the same as the existing reserve token ratio.
 	// The amounts returned are in reserve token order rather than in call token order
-	function _determineAmountsToAdd( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived ) internal view returns(bytes32 poolID, bool flipped, uint256 addedAmount0, uint256 addedAmount1, uint256 addedLiquidity)
+	function _determineAmountsToAdd( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB ) internal view returns(bytes32 poolID, bool flipped, uint256 addedAmount0, uint256 addedAmount1, uint256 addedLiquidity)
 		{
 		// Ensure that tokenA/B and maxAmountA/B are ordered in reserve token order: such that address(tokenA) < address(tokenB)
 		(poolID, flipped) = PoolUtils.poolID(tokenA, tokenB);
@@ -106,7 +106,6 @@ contract Pools is IPools, ReentrancyGuard
 		// Determine the amount of liquidity that will be given to the user to reflect their share of the total liquidity.
 		// Rounded down in favor of the protocol
 		addedLiquidity = (addedAmount0 * totalLiquidity[poolID]) / reserve0;
-		require( addedLiquidity >= minLiquidityReceived, "Too little liquidity received" );
 		}
 
 
@@ -122,7 +121,10 @@ contract Pools is IPools, ReentrancyGuard
 		bool flipped;
 
 		// Note that addedAmountA and addedAmountB here are in reserve token order and may be flipped from the call token order specified in the arguments.
-		(poolID, flipped, addedAmountA, addedAmountB, addedLiquidity) = _determineAmountsToAdd( tokenA, tokenB, maxAmountA, maxAmountB, minLiquidityReceived );
+		(poolID, flipped, addedAmountA, addedAmountB, addedLiquidity) = _determineAmountsToAdd( tokenA, tokenB, maxAmountA, maxAmountB );
+
+		// Make sure the minimum liquidity has been added
+		require( addedLiquidity >= minLiquidityReceived, "Too little liquidity received" );
 
 		// Update the reserves
 		poolInfo[poolID].reserve0 += addedAmountA;
@@ -306,10 +308,13 @@ contract Pools is IPools, ReentrancyGuard
 		uint8 decimalsB = ERC20(address(tokenB)).decimals();
 
 		// Determine how much of either token needs to be swapped to give them a ratio equivalent to the reserves
-		(swapAmountA, swapAmountB) = PoolMath.determineZapSwapAmount(reserveA, reserveB, zapAmountA, zapAmountB, decimalsA, decimalsB );
+		// Placed in intermediate variable due to Foundry coverage glitch: https://github.com/foundry-rs/foundry/issues/4305
+		(uint256 swapAmountA2, uint256 swapAmountB2) = PoolMath.determineZapSwapAmount(reserveA, reserveB, zapAmountA, zapAmountB, decimalsA, decimalsB );
 
-		require( swapAmountA <= zapAmountA, "swapAmount cannot exceed zapAmount" );
-		require( swapAmountB <= zapAmountB, "swapAmount cannot exceed zapAmount" );
+		require( swapAmountA2 <= zapAmountA, "swapAmount cannot exceed zapAmount" );
+		require( swapAmountB2 <= zapAmountB, "swapAmount cannot exceed zapAmount" );
+
+		return (swapAmountA2, swapAmountB2);
 		}
 
 
