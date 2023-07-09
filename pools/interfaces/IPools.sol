@@ -17,7 +17,6 @@ interface IPools
 	function dualZapInLiquidity(IERC20 tokenA, IERC20 tokenB, uint256 zapAmountA, uint256 zapAmountB, uint256 minLiquidityReceived, uint256 deadline, bool bypassSwap ) external returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity);
 
 	// Views
-	function exchangeConfig() external view returns (IExchangeConfig);
 	function poolInfo(bytes32 poolID) external view returns (uint256 reserve0, uint256 reserve1, uint256 lastSwapTimestamp);
 	function totalLiquidity(bytes32 poolID) external view returns (uint256);
 
