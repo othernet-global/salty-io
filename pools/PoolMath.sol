@@ -180,7 +180,7 @@ library PoolMath
 
         // Discriminant needs to be positive to have a real solution to the swapAmount
         if ( discriminant < 0 )
-        	return 0;
+        	return 0; // should never happen - but will default to zapless addLiquidity if it does
 
         // Compute the square root of the discriminant.
         // It's already been established above that discriminant is positive or zero.
@@ -188,7 +188,7 @@ library PoolMath
 
 		// Prevent negative swap amounts
 		if ( B > sqrtDiscriminant )
-			return 0;
+			return 0; // should never happen - but will default to zapless addLiquidity if it does
 
         // Only use the positive sqrt of the discriminant from: x = (-B +/- sqrtDiscriminant) / 2A
 		swapAmount = _restorePrecision( ( sqrtDiscriminant - B ) / ( 2 * A ), decimals0 );
@@ -198,11 +198,11 @@ library PoolMath
     // Determine which token is in excess and how much of it needs to be swapped by calling _zapSwapAmount above
     function determineZapSwapAmount( uint256 reserve0, uint256 reserve1, uint256 zapAmount0, uint256 zapAmount1, uint8 decimals0, uint8 decimals1 ) internal pure returns (uint256 swapAmount0, uint256 swapAmount1 )
     	{
-    	// z0 / z1 exceeds the ratio of r0 / r1? - meaning too much z0
+    	// zapAmount0 / zapAmount1 exceeds the ratio of reserve0 / reserve1? - meaning too much zapAmount0
 		if ( zapAmount0 * reserve1 > reserve0 * zapAmount1 )
 			return (_zapSwapAmount( reserve0, reserve1, zapAmount0, zapAmount1, decimals0, decimals1 ), 0);
 
-    	// z0 / z1 is less than the ratio of r0 / r1? - meaning too much z1
+    	// zapAmount0 / zapAmount1 is less than the ratio of reserve0 / reserve1? - meaning too much zapAmount1
 		if ( zapAmount0 * reserve1 < reserve0 * zapAmount1 )
 			return (0, _zapSwapAmount( reserve1, reserve0, zapAmount1, zapAmount0, decimals1, decimals0 ));
 
