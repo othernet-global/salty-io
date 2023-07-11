@@ -9,11 +9,11 @@ import "./stable/USDS.sol";
 import "./staking/interfaces/IStakingConfig.sol";
 import "./staking/interfaces/IStaking.sol";
 import "./staking/interfaces/ILiquidity.sol";
+import "./rewards/interfaces/IRewardsEmitter.sol";
+import "./rewards/interfaces/IEmissions.sol";
 //import "./openzeppelin/token/ERC20/IERC20.sol";
 //import "./stable/tests/IForcedPriceFeed.sol";
 //import "./dao/interfaces/IDAOConfig.sol";
-//import "./rewards/interfaces/IRewardsConfig.sol";
-//import "./rewards/interfaces/IEmissions.sol";
 //import "./rewards//RewardsEmitter.sol";
 //import "./stable/interfaces/IStableConfig.sol";
 //import "./staking/Staking.sol";
@@ -28,13 +28,23 @@ contract Deployment is Test
     bool public DEBUG = true;
 	address constant public DEPLOYER = 0x73107dA86708c2DAd0D91388fB057EeE3E2581aF;
 
-	IPools public pools = IPools(address(0x6DFdF432708b15863e5d06FFB2048F067fA94006));
-	IStaking public staking = IStaking(address(0xe2AFf1499488e452a737A4Bf05142ACc49a30897));
-	ILiquidity public liquidity = ILiquidity(address(0x6C44f281c3d8C97791482Ef9547FBbca053a7E40));
+	IPools public pools = IPools(address(0xAf30553D3aBd9A33094797C11D5E901a9F06a81E));
+	IStaking public staking = IStaking(address(0xF8d347B2f0a27FDB73486c1298fFe17C3f631301));
+	ILiquidity public liquidity = ILiquidity(address(0x5012e7E85073dFE447D846C7Cd856c7d219086F4));
+	ICollateral public collateral = ICollateral(address(0x0));
 
 	IExchangeConfig public exchangeConfig = staking.exchangeConfig();
 	IPoolsConfig public poolsConfig = staking.poolsConfig();
 	IStakingConfig public stakingConfig = staking.stakingConfig();
+//	IStableConfig public stableConfig = collateral.stableConfig();
+	IRewardsConfig public rewardsConfig = IRewardsConfig(address(0x52C689c75D561ec7eFAcD3D374900289A06A4c79));
+
+	IRewardsEmitter public stakingRewardsEmitter = IRewardsEmitter(address(0x5b166406a043516CD741F6D017968AD47Fc13145));
+	IRewardsEmitter public liquidityRewardsEmitter = IRewardsEmitter(address(0x495C4FfF0Aa5C1e927923d038c9eec8E8299C39d));
+//	IRewardsEmitter public collateralRewardsEmitter = IRewardsEmitter(aaa.collateralRewardsEmitterAddress());
+
+	IEmissions public emissions = IEmissions(address(0x73a3F7266a1C763Fa2B40f06C9c6B260C239d733));
+//	IPriceFeed public priceFeed = stableConfig.priceFeed();
 
 	ISalt public salt = exchangeConfig.salt();
     IERC20 public wbtc = exchangeConfig.wbtc();
@@ -46,8 +56,6 @@ contract Deployment is Test
 	IAccessManager public accessManager = exchangeConfig.accessManager();
 
 
-//	IPoolsConfig = IStakingConfig
-//	IEmissions public emissions = IEmissions(address(0x72B5fDd1284B10Ff526a9Ebc6eF6904A0Ee097EC));
 //
 //
 //	IDAO public dao = exchangeConfig.dao();
@@ -56,18 +64,9 @@ contract Deployment is Test
 //	IPOL_Optimizer public optimizer = exchangeConfig.optimizer();
 //
 //	IDAOConfig public daoConfig = dao.daoConfig();
-//	IRewardsConfig public rewardsConfig = dao.rewardsConfig();
-//	IStableConfig public stableConfig = dao.stableConfig();
-//
-//	ILiquidity public liquidity = ILiquidity(address(dao.liquidity()));
-//	IRewardsEmitter public liquidityRewardsEmitter = dao.liquidityRewardsEmitter();
-//	IRewardsEmitter public stakingRewardsEmitter = emissions.stakingRewardsEmitter();
-//	IRewardsEmitter public collateralRewardsEmitter = IRewardsEmitter(aaa.collateralRewardsEmitterAddress());
-//
-//	ICollateral public collateral = liquidator.collateral();
 //
 //
-//	IPriceFeed public priceFeed = stableConfig.priceFeed();
+//
 //    IUniswapV2Pair public collateralLP = IUniswapV2Pair( factory.getPair( address(wbtc), address(weth) ));
 
 	// A special pool that represents staked SALT that is not associated with any particular pool.
