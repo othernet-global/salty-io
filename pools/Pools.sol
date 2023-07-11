@@ -109,6 +109,20 @@ contract Pools is IPools, ReentrancyGuard
 		}
 
 
+    // Transfer an ERC20 token from the sender to this contract, but revert if the token has a fee on transfer
+    function _transferFromUserNoFeeOnTransfer( IERC20 token, uint256 amount ) internal
+    	{
+		// Make sure there is no fee while transferring the token to this contract
+		uint256 beforeBalance = token.balanceOf( address(this) );
+
+		// User allowance and balance not checked to save gas - safeTransferFrom will revert if either is lacking
+		token.safeTransferFrom(msg.sender, address(this), amount );
+
+		uint256 afterBalance = token.balanceOf( address(this) );
+		require( afterBalance == ( beforeBalance + amount ), "Cannot deposit tokens with a fee on transfer" );
+    	}
+
+
 	// Add liquidity for the specified trading pair (must be whitelisted)
 	function addLiquidity( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 deadline ) public nonReentrant ensureNotExpired(deadline) returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
 		{
@@ -142,9 +156,8 @@ contract Pools is IPools, ReentrancyGuard
 			(addedAmountA, addedAmountB) = (addedAmountB, addedAmountA);
 
 		// Transfer the tokens from the sender
-		// User allowance and balance not checked to save gas - safeTransferFrom will revert if either is lacking
-		tokenA.safeTransferFrom( msg.sender, address(this), addedAmountA );
-		tokenB.safeTransferFrom( msg.sender, address(this), addedAmountB );
+		_transferFromUserNoFeeOnTransfer( tokenA, addedAmountA );
+		_transferFromUserNoFeeOnTransfer( tokenB, addedAmountB );
 
 		emit eLiquidityAdded(msg.sender, poolID, addedLiquidity);
 		}
@@ -197,7 +210,7 @@ contract Pools is IPools, ReentrancyGuard
 		_userDeposits[msg.sender][token] += amount;
 
 		// Transfer the tokens from the sender
-		token.safeTransferFrom( msg.sender, address(this), amount );
+		_transferFromUserNoFeeOnTransfer( token, amount );
 
 		emit eTokensDeposited(msg.sender, token, amount);
 		}
@@ -290,7 +303,7 @@ contract Pools is IPools, ReentrancyGuard
 	function depositSwapWithdraw(IERC20 tokenIn, IERC20 tokenOut, uint256 amountIn, uint256 minAmountOut, uint256 deadline) public nonReentrant ensureNotExpired(deadline) returns (uint256 amountOut)
 		{
 		// Transfer tokenIn from the sender
-		tokenIn.safeTransferFrom( msg.sender, address(this), amountIn );
+		_transferFromUserNoFeeOnTransfer( tokenIn, amountIn );
 
 		amountOut = _adjustReservesForSwap( tokenIn, tokenOut, amountIn );
 
@@ -348,8 +361,8 @@ contract Pools is IPools, ReentrancyGuard
 
 		emit eZapInLiquidity(msg.sender, tokenA, tokenB, zapAmountA, zapAmountB );
 
-		// Assuming bypassSwap was false, the ratio of both tokens should now be the same as the ratio of the current reserves (within precision)
-		// Otherwise it will just be a normal liquidity add
+		// Assuming bypassSwap was false, the ratio of both tokens should now be the same as the ratio of the current reserves (within precision).
+		// Otherwise it will just be this normal addLiquidity call.
 		return addLiquidity(tokenA, tokenB, zapAmountA, zapAmountB, minLiquidityReceived, deadline );
 		}
 
