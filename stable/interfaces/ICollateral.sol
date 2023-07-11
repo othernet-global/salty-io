@@ -1,59 +1,33 @@
 // SPDX-License-Identifier: BSL 1.1
 pragma solidity ^0.8.12;
 
-
-struct CollateralPosition
-	{
-	uint256 positionID;
-	address wallet;
-	uint256 lpCollateralAmount;
-	uint256 usdsBorrowedAmount;
-	bool liquidated;
-	}
+import "./IStableConfig.sol";
+import "../../pools/interfaces/IPools.sol";
+import "../../staking/interfaces/ILiquidity.sol";
 
 
 interface ICollateral
 	{
-	event eDepositCollateral(
-		address indexed wallet,
-		uint256 amount );
-
-	event eWithdrawCollateral(
-		address indexed wallet,
-		uint256 amount );
-
-	 event eBorrow(
-		address indexed wallet,
-		uint256 amount );
-
-	event eRepay(
-		address indexed wallet,
-		uint256 amount );
-
-	event eLiquidatePosition(
-		uint256 indexed positionID,
-		address indexed wallet,
-		address indexed liquidator,
-		uint256 collateralAmount );
+	event eDepositCollateral(address indexed wallet, uint256 addedAmountWBTC, uint256 addedAmountWETH, uint256 amount);
+	event eWithdrawCollateral(address indexed wallet, uint256 amount, uint256 reclaimedWBTC, uint256 reclaimedWETH);
+	event eBorrow(address indexed wallet, uint256 amount);
+	event eRepay(address indexed wallet, uint256 amount);
+	event eLiquidatePosition(address indexed wallet, address indexed liquidator, uint256 collateralAmount);
 
 
-	function depositCollateral( uint256 amountDeposited ) external;
-	function withdrawCollateralAndClaim( uint256 amountWithdrawn ) external;
+	function depositCollateralAndIncreaseShare( uint256 maxAmountWBTC, uint256 maxAmountWETH, uint256 minLiquidityReceived, uint256 deadline, bool bypassZapping ) external returns (uint256 addedAmountWBTC, uint256 addedAmountWETH, uint256 addedLiquidity);
+	function withdrawCollateralAndClaim( uint256 collateralToWithdraw, uint256 minReclaimedWBTC, uint256 minReclaimedWETH, uint256 deadline ) external returns (uint256 reclaimedWBTC, uint256 reclaimedWETH);
 	function borrowUSDS( uint256 amountBorrowed ) external;
 	function repayUSDS( uint256 amountRepaid ) external;
-	function liquidatePosition( uint256 positionID ) external;
+	function liquidateUser( address wallet ) external;
 
-	function userHasPosition( address wallet ) external view returns (bool);
-	function userPosition( address wallet ) external view returns (CollateralPosition calldata);
-	function maxWithdrawableLP( address wallet ) external view returns (uint256);
+	// Views
+	function maxWithdrawableCollateral( address wallet ) external view returns (uint256);
 	function maxBorrowableUSDS( address wallet ) external view returns (uint256);
-	function positionIsOpen( uint256 positionID ) external view returns (bool);
-	function numberOfOpenPositions() external view returns (uint256);
-	function findLiquidatablePositions( uint256 startIndex, uint256 endIndex ) external view returns (uint256[] calldata);
-	function findLiquidatablePositions() external view returns (uint256[] calldata);
-
+	function numberOfUsersWithBorrowedUSDS() external view returns (uint256);
+	function canUserCanBeLiquidated( address wallet ) external view returns (bool);
+	function findLiquidatableUsers( uint256 startIndex, uint256 endIndex ) external view returns (address[] calldata);
+	function findLiquidatablePositions() external view returns (address[] calldata);
 	function underlyingTokenValueInUSD( uint256 amountBTC, uint256 amountETH ) external view returns (uint256);
-	function collateralValue( uint256 collateralAmount ) external view returns (uint256);
 	function userCollateralValueInUSD( address wallet ) external view returns (uint256);
-	function totalCollateralValueInUSD() external view returns (uint256);
 	}
