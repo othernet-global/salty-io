@@ -16,9 +16,6 @@ contract SharedRewardsTest is Test, Deployment
 	{
     bytes32[] public poolIDs;
 
-    IERC20 public token1;
-    IERC20 public token2;
-
     address public constant alice = address(0x1111);
     address public constant bob = address(0x2222);
     address public constant charlie = address(0x3333);
@@ -35,8 +32,8 @@ contract SharedRewardsTest is Test, Deployment
 
     function setUp() public
     	{
-    	token1 = new TestERC20( 18 );
-		token2 = new TestERC20( 18 );
+    	IERC20 token1 = new TestERC20( 18 );
+		IERC20 token2 = new TestERC20( 18 );
 
 		vm.startPrank(DEPLOYER);
 		poolsConfig.whitelistPool(token1, token2);

@@ -9,7 +9,7 @@ import "../Liquidity.sol";
 
 contract LiquidityTest is Test, Deployment
 	{
-    bytes32[] public _pools;
+    bytes32[] public poolIDs;
     bytes32 public pool1;
     bytes32 public pool2;
 
@@ -41,9 +41,9 @@ contract LiquidityTest is Test, Deployment
         (pool1,) = PoolUtils.poolID(token1, token2);
         (pool2,) = PoolUtils.poolID(token2, token3);
 
-        _pools = new bytes32[](2);
-        _pools[0] = pool1;
-        _pools[1] = pool2;
+        poolIDs = new bytes32[](2);
+        poolIDs[0] = pool1;
+        poolIDs[1] = pool2;
 
         // Whitelist the _pools
 		vm.startPrank( DEPLOYER );
@@ -128,10 +128,10 @@ contract LiquidityTest is Test, Deployment
 		assertEq( addedAmountB, addedAmount2, "Tokens were not deposited into the pool as expected" );
 
 		// Check that the user's share of the pool has increased appropriately
-		assertEq(liquidity.userShareInfoForPool(alice, _pools[0]).userShare, addedLiquidity, "Alice's share did not increase as expected" );
+		assertEq(liquidity.userShareInfoForPool(alice, poolIDs[0]).userShare, addedLiquidity, "Alice's share did not increase as expected" );
 
 		// Check that the total shares for the pool has increased appropriately
-		assertEq(totalSharesForPool(_pools[0]), addedLiquidity, "Total pool stake did not increase as expected" );
+		assertEq(totalSharesForPool(poolIDs[0]), addedLiquidity, "Total pool stake did not increase as expected" );
 
 		// Check that the contract balance has increased by the amount of the added tokens
 		assertEq( token1.balanceOf( address(pools)), addedAmount1, "Tokens were not deposited into the pool as expected" );
@@ -202,7 +202,7 @@ contract LiquidityTest is Test, Deployment
 		// Alice attempts to withdraw more than she deposited
 		vm.expectRevert("Cannot decrease more than existing user share" );
 		liquidity.withdrawLiquidityAndClaim(token1, token2, addedLiquidity + 1, 0, 0, block.timestamp);
-		assertEq(liquidity.userShareInfoForPool(alice, _pools[1]).userShare, addedLiquidity, "User's share should not change after failed unstake attempt");
+		assertEq(liquidity.userShareInfoForPool(alice, poolIDs[1]).userShare, addedLiquidity, "User's share should not change after failed unstake attempt");
 	}
 
 
@@ -281,7 +281,7 @@ contract LiquidityTest is Test, Deployment
 
 		// Alice claims
 		vm.prank(alice);
-		liquidity.claimAllRewards(_pools);
+		liquidity.claimAllRewards(poolIDs);
 		check1( 50 ether, 10 ether, 0 ether, 0 ether, 5 ether, 0 ether );
 		check2( 75 ether, 10 ether, 0 ether, 75 ether, 0 ether, 0 ether );
 		rewards[0] = AddedReward(pool2, 30 ether);
@@ -314,7 +314,7 @@ contract LiquidityTest is Test, Deployment
 
 		// Bob claims
 		vm.prank(bob);
-		liquidity.claimAllRewards(_pools);
+		liquidity.claimAllRewards(poolIDs);
 		check1( 40 ether, 10 ether, 40 ether, 100 ether, 0 ether, 80 ether );
 		check2( 60 ether, 40 ether, 80 ether, 90 ether, 30 ether, 0 ether );
 		rewards[0] = AddedReward(pool2, 90 ether);
@@ -325,7 +325,7 @@ contract LiquidityTest is Test, Deployment
 
 		// Charlie claims
 		vm.prank(charlie);
-		liquidity.claimAllRewards(_pools);
+		liquidity.claimAllRewards(poolIDs);
 		check1( 40 ether, 10 ether, 40 ether, 140 ether, 10 ether, 0 ether );
 		check2( 60 ether, 40 ether, 200 ether, 90 ether, 30 ether, 120 ether );
 		rewards[0] = AddedReward(pool2, 180 ether);

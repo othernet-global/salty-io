@@ -12,10 +12,6 @@ contract StakingTest is Test, Deployment
 	{
     bytes32[] public poolIDs;
 
-    IERC20 public token1;
-    IERC20 public token2;
-    IERC20 public token3;
-
     address public constant alice = address(0x1111);
     address public constant bob = address(0x2222);
     address public constant charlie = address(0x3333);
@@ -35,9 +31,9 @@ contract StakingTest is Test, Deployment
 
     function setUp() public
     	{
-    	token1 = new TestERC20( 18 );
-		token2 = new TestERC20( 18 );
-		token3 = new TestERC20( 18 );
+    	IERC20 token1 = new TestERC20( 18 );
+		IERC20 token2 = new TestERC20( 18 );
+		IERC20 token3 = new TestERC20( 18 );
 
         poolIDs = new bytes32[](3);
         poolIDs[0] = STAKED_SALT;
