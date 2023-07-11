@@ -21,7 +21,7 @@ contract Salt is ISalt, ERC20
 
 
 	// SALT tokens will need to be sent here before they are burned.
-	// Normally there will be no SALT balance on this contract.
+	// Normally there will be no SALT balance on this contract - only SALT to burn will be sent here.
     function burnTokensInContract() public returns (uint256)
     	{
     	uint256 balance = balanceOf( address(this) );
