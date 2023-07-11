@@ -97,35 +97,28 @@ contract TestDeployment is Deployment
 //        assertEq( getContract(address(dao), "liquidityRewardsEmitter()"), address(liquidityRewardsEmitter), "Incorrect dao.liquidityRewardsEmitter" );
 //        assertEq( getContract(address(dao), "factory()"), address(factory), "Incorrect dao.factory" );
 //
-//		assertEq( getContract(address(emissions), "stakingConfig()"), address(stakingConfig), "Incorrect emissions.stakingConfig" );
-//        assertEq( getContract(address(emissions), "rewardsConfig()"), address(rewardsConfig), "Incorrect emissions.rewardsConfig" );
-//        assertEq( getContract(address(emissions), "staking()"), address(staking), "Incorrect emissions.staking" );
-//        assertEq( getContract(address(emissions), "stakingRewardsEmitter()"), address(stakingRewardsEmitter), "Incorrect emissions.stakingRewardsEmitter" );
-//        assertEq( getContract(address(emissions), "liquidityRewardsEmitter()"), address(liquidityRewardsEmitter), "Incorrect emissions.liquidityRewardsEmitter" );
-//
-//		assertEq( getContract(address(stakingRewardsEmitter), "rewardsConfig()"), address(rewardsConfig), "Incorrect stakingRewardsEmitter.rewardsConfig" );
-//        assertEq( getContract(address(stakingRewardsEmitter), "stakingConfig()"), address(stakingConfig), "Incorrect stakingRewardsEmitter.stakingConfig" );
-//        assertEq( getContract(address(stakingRewardsEmitter), "sharedRewards()"), address(staking), "Incorrect stakingRewardsEmitter.sharedRewards" );
-//
-//        assertEq( getContract(address(liquidityRewardsEmitter), "rewardsConfig()"), address(rewardsConfig), "Incorrect liquidityRewardsEmitter.rewardsConfig" );
-//        assertEq( getContract(address(liquidityRewardsEmitter), "stakingConfig()"), address(stakingConfig), "Incorrect liquidityRewardsEmitter.stakingConfig" );
-//        assertEq( getContract(address(liquidityRewardsEmitter), "sharedRewards()"), address(liquidity), "Incorrect liquidityRewardsEmitter.sharedRewards" );
+
+		assertEq( getContract(address(stakingRewardsEmitter), "stakingRewards()"), address(staking), "Incorrect stakingRewardsEmitter.stakingRewards" );
+        assertEq( getContract(address(stakingRewardsEmitter), "poolsConfig()"), address(poolsConfig), "Incorrect stakingRewardsEmitter.poolsConfig" );
+        assertEq( getContract(address(stakingRewardsEmitter), "stakingConfig()"), address(stakingConfig), "Incorrect stakingRewardsEmitter.stakingConfig" );
+		assertEq( getContract(address(stakingRewardsEmitter), "rewardsConfig()"), address(rewardsConfig), "Incorrect stakingRewardsEmitter.rewardsConfig" );
+
+		assertEq( getContract(address(liquidityRewardsEmitter), "stakingRewards()"), address(liquidity), "Incorrect liquidityRewardsEmitter.stakingRewards" );
+        assertEq( getContract(address(liquidityRewardsEmitter), "poolsConfig()"), address(poolsConfig), "Incorrect liquidityRewardsEmitter.poolsConfig" );
+        assertEq( getContract(address(liquidityRewardsEmitter), "stakingConfig()"), address(stakingConfig), "Incorrect liquidityRewardsEmitter.stakingConfig" );
+		assertEq( getContract(address(liquidityRewardsEmitter), "rewardsConfig()"), address(rewardsConfig), "Incorrect liquidityRewardsEmitter.rewardsConfig" );
 //
 //        assertEq( getContract(address(collateralRewardsEmitter), "rewardsConfig()"), address(rewardsConfig), "Incorrect collateralRewardsEmitter.rewardsConfig" );
 //        assertEq( getContract(address(collateralRewardsEmitter), "stakingConfig()"), address(stakingConfig), "Incorrect collateralRewardsEmitter.stakingConfig" );
 //        assertEq( getContract(address(collateralRewardsEmitter), "sharedRewards()"), address(collateral), "Incorrect collateralRewardsEmitter.sharedRewards" );
-//
-//		assertEq( getContract(address(collateral), "collateralLP()"), address(collateralLP), "Incorrect collateral.collateralLP" );
-//        assertEq( getContract(address(collateral), "stableConfig()"), address(stableConfig), "Incorrect collateral.stableConfig" );
-//        assertEq( getContract(address(collateral), "stakingConfig()"), address(stakingConfig), "Incorrect collateral.stakingConfig" );
-//        assertEq( getContract(address(collateral), "exchangeConfig()"), address(exchangeConfig), "Incorrect collateral.exchangeConfig" );
-//
-//		assertEq( getContract(address(liquidator), "collateralLP()"), address(collateralLP), "Incorrect liquidator.collateralLP" );
-//        assertEq( getContract(address(liquidator), "router()"), address(router), "Incorrect liquidator.router" );
-//        assertEq( getContract(address(liquidator), "collateral()"), address(collateral), "Incorrect liquidator.collateral" );
-//        assertEq( getContract(address(liquidator), "stableConfig()"), address(stableConfig), "Incorrect liquidator.stableConfig" );
-//        assertEq( getContract(address(liquidator), "exchangeConfig()"), address(exchangeConfig), "Incorrect liquidator.exchangeConfig" );
-//
+
+        assertEq( getContract(address(emissions), "staking()"), address(staking), "Incorrect emissions.staking" );
+        assertEq( getContract(address(emissions), "stakingRewardsEmitter()"), address(stakingRewardsEmitter), "Incorrect emissions.stakingRewardsEmitter" );
+        assertEq( getContract(address(emissions), "liquidityRewardsEmitter()"), address(liquidityRewardsEmitter), "Incorrect emissions.liquidityRewardsEmitter" );
+		assertEq( getContract(address(emissions), "stakingConfig()"), address(stakingConfig), "Incorrect emissions.stakingConfig" );
+		assertEq( getContract(address(emissions), "poolsConfig()"), address(poolsConfig), "Incorrect emissions.poolsConfig" );
+        assertEq( getContract(address(emissions), "rewardsConfig()"), address(rewardsConfig), "Incorrect emissions.rewardsConfig" );
+
 //        if ( DEBUG )
 //        	assertTrue( functionExists( address(priceFeed), "forcedPriceBTCWith18Decimals()" ), "For DEBUG: The PriceFeed should be a ForcedPriceFeed" );
 //        else
@@ -137,6 +130,18 @@ contract TestDeployment is Deployment
 //        	assertEq( getContract( address(priceFeed), "UNISWAP_V3_BTC_ETH()" ), address(0x4585FE77225b41b697C938B018E2Ac67Ac5a20c0), "Incorrect BTC/ETH Uniswap v3 Pool" );
 //        	assertEq( getContract( address(priceFeed), "UNISWAP_V3_USDC_ETH()" ), address(0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640), "Incorrect ETH/USDC Uniswap v3 Pool" );
 //        	}
+
+//
+//		assertEq( getContract(address(collateral), "collateralLP()"), address(collateralLP), "Incorrect collateral.collateralLP" );
+//        assertEq( getContract(address(collateral), "stableConfig()"), address(stableConfig), "Incorrect collateral.stableConfig" );
+//        assertEq( getContract(address(collateral), "stakingConfig()"), address(stakingConfig), "Incorrect collateral.stakingConfig" );
+//        assertEq( getContract(address(collateral), "exchangeConfig()"), address(exchangeConfig), "Incorrect collateral.exchangeConfig" );
+//
+//		assertEq( getContract(address(liquidator), "collateralLP()"), address(collateralLP), "Incorrect liquidator.collateralLP" );
+//        assertEq( getContract(address(liquidator), "router()"), address(router), "Incorrect liquidator.router" );
+//        assertEq( getContract(address(liquidator), "collateral()"), address(collateral), "Incorrect liquidator.collateral" );
+//        assertEq( getContract(address(liquidator), "stableConfig()"), address(stableConfig), "Incorrect liquidator.stableConfig" );
+//        assertEq( getContract(address(liquidator), "exchangeConfig()"), address(exchangeConfig), "Incorrect liquidator.exchangeConfig" );
 //
 //        assertEq( getContract(address(stableConfig), "priceFeed()"), address(priceFeed), "Incorrect stableConfig.priceFeed" );
 //
