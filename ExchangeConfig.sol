@@ -12,7 +12,7 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 	IERC20 public wbtc;
 	IERC20 public weth;
 	IERC20 public usdc;
-	IERC20 public usds;
+	IUSDS public usds;
 
 	// The Salty.IO DAO
 	// The DAO can only be set once
@@ -20,10 +20,6 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 
 	// Automatic Atomic Arbitrage
 	IAAA public aaa;
-
-	// @dev Interface for the liquidator that is responsible for converting BTC/ETH LP collateral into USDS
-	// This is here rather than in StableConfig.sol as it is required in walletHasAccess()
-	ILiquidator public liquidator;
 
 	// The optimizer is sent WETH and forms Protocol Owned Liquidity on performUpkeep().
 	// Whichever liquidity offers highest yield at the time of upkeep is the one that is formed.
@@ -36,7 +32,7 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 	IAccessManager public accessManager;
 
 
-	constructor( ISalt _salt, IERC20 _wbtc, IERC20 _weth, IERC20 _usdc, IERC20 _usds )
+	constructor( ISalt _salt, IERC20 _wbtc, IERC20 _weth, IERC20 _usdc, IUSDS _usds )
 		{
 		require( address(_salt) != address(0), "_salt cannot be address(0)" );
 		require( address(_wbtc) != address(0), "_wbtc cannot be address(0)" );
@@ -69,16 +65,6 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 		}
 
 
-	// @dev Sets the address of the `ILiquidator` contract that is responsible for converting BTC/ETH LP collateral into USDS.
-	// @param _liquidator The address of the new liquidator.
-	function setLiquidator( ILiquidator _liquidator ) public onlyOwner
-		{
-		require( address(_liquidator) != address(0), "Cannot specify a null liquidator" );
-
-		liquidator = _liquidator;
-		}
-
-
 	function setAccessManager( IAccessManager _accessManager ) public onlyOwner
 		{
 		require( address(_accessManager) != address(0), "_accessManager cannot be address(0)" );
@@ -100,8 +86,6 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 		{
 		// These protocol components will need access to the exchange contracts
 		if ( wallet == address(dao) )
-			return true;
-		if ( wallet == address(liquidator) )
 			return true;
 		if ( wallet == address(optimizer) )
 			return true;

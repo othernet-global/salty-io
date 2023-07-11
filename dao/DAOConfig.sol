@@ -62,12 +62,12 @@
 //        if (increase)
 //        	{
 //            if (bootstrappingRewards < 500000 * 1 ether)
-//                bootstrappingRewards = bootstrappingRewards + 50000 * 1 ether;
+//                bootstrappingRewards += 50000 * 1 ether;
 //            }
 //       	 else
 //       	 	{
 //            if (bootstrappingRewards > 50000 * 1 ether)
-//                bootstrappingRewards = bootstrappingRewards - 50000 * 1 ether;
+//                bootstrappingRewards -= 50000 * 1 ether;
 //	        }
 //    	}
 //
@@ -77,12 +77,12 @@
 //		if (increase)
 //			{
 //			if (percentPolRewardsBurned < 75)
-//				percentPolRewardsBurned = percentPolRewardsBurned + 5;
+//				percentPolRewardsBurned += 5;
 //			}
 //		else
 //			{
 //			if (percentPolRewardsBurned > 25)
-//				percentPolRewardsBurned = percentPolRewardsBurned - 5;
+//				percentPolRewardsBurned -= 5;
 //			}
 //		}
 //
@@ -92,12 +92,12 @@
 //		if (increase)
 //			{
 //			if (baseBallotQuorumPercentSupplyTimes1000 < 5 * 1000)
-//				baseBallotQuorumPercentSupplyTimes1000 = baseBallotQuorumPercentSupplyTimes1000 + 250;
+//				baseBallotQuorumPercentSupplyTimes1000 += 250;
 //			}
 //		else
 //			{
 //			if (baseBallotQuorumPercentSupplyTimes1000 > 1 * 1000)
-//				baseBallotQuorumPercentSupplyTimes1000 = baseBallotQuorumPercentSupplyTimes1000 - 250;
+//				baseBallotQuorumPercentSupplyTimes1000 -= 250;
 //			}
 //		}
 //
@@ -106,12 +106,12 @@
 //        if (increase)
 //        	{
 //            if (ballotDuration < 14 days)
-//                ballotDuration = ballotDuration + 1 days;
+//                ballotDuration += 1 days;
 //        	}
 //        else
 //        	{
 //            if (ballotDuration > 3 days)
-//                ballotDuration = ballotDuration - 1 days;
+//                ballotDuration -= 1 days;
 //        	}
 //    	}
 //
@@ -121,12 +121,12 @@
 //        if (increase)
 //        	{
 //            if (baseProposalCost < 2000 ether)
-//                baseProposalCost = baseProposalCost + 100 ether;
+//                baseProposalCost += 100 ether;
 //        	}
 //        else
 //        	{
 //            if (baseProposalCost > 100 ether)
-//                baseProposalCost = baseProposalCost - 100 ether;
+//                baseProposalCost -= 100 ether;
 //    	    }
 //	    }
 //
@@ -136,12 +136,12 @@
 //		if (increase)
 //			{
 //			if (maxPendingTokensForWhitelisting < 12)
-//				maxPendingTokensForWhitelisting = maxPendingTokensForWhitelisting + 1;
+//				maxPendingTokensForWhitelisting += 1;
 //			}
 //		else
 //			{
 //			if (maxPendingTokensForWhitelisting > 3)
-//				maxPendingTokensForWhitelisting = maxPendingTokensForWhitelisting - 1;
+//				maxPendingTokensForWhitelisting -= 1;
 //			}
 //		}
 //
@@ -151,12 +151,12 @@
 //        if (increase)
 //            {
 //            if (upkeepRewardPercentTimes1000 < 10 * 1000)
-//                upkeepRewardPercentTimes1000 = upkeepRewardPercentTimes1000 + 500;
+//                upkeepRewardPercentTimes1000 += 500;
 //            }
 //        else
 //            {
 //            if (upkeepRewardPercentTimes1000 > 1000)
-//                upkeepRewardPercentTimes1000 = upkeepRewardPercentTimes1000 - 500;
+//                upkeepRewardPercentTimes1000 -= 500;
 //            }
 //        }
 //    }

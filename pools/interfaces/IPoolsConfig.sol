@@ -12,7 +12,6 @@ interface IPoolsConfig
 
 	// Views
     function maximumWhitelistedPools() external view returns (uint256);
-
 	function numberOfWhitelistedPools() external view returns (uint256);
 	function whitelistedPoolAtIndex( uint256 index ) external view returns (bytes32);
 	function isWhitelisted( bytes32 poolID ) external view returns (bool);

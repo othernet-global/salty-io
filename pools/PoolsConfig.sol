@@ -69,12 +69,12 @@ contract PoolsConfig is IPoolsConfig, Ownable
         if (increase)
             {
             if (maximumWhitelistedPools < 100)
-                maximumWhitelistedPools = maximumWhitelistedPools + 10;
+                maximumWhitelistedPools += 10;
             }
         else
             {
             if (maximumWhitelistedPools > 20)
-                maximumWhitelistedPools = maximumWhitelistedPools - 10;
+                maximumWhitelistedPools -= 10;
             }
 
         emit eMaximumWhitelistedPoolsChanged(maximumWhitelistedPools);
