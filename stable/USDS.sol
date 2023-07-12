@@ -93,7 +93,7 @@ contract USDS is ERC20, IUSDS, Upkeepable
 		uint256 amountOut = amountToSwap * tokenPrice / 10**18; // prices have 18 decimals
 		uint256 minimumOut = amountOut * ( 100 * 1000 - maximumLiquidationSlippagePercentTimes1000 ) / 100;
 
-		// Check that the required amountOut will be returned
+		// Check that the required amountOut will be returned before trying to swap (to avoid the revert on failure)
 		IERC20[] memory tokens = new IERC20[](2);
 		tokens[0] = token;
 		tokens[1] = this;
@@ -102,7 +102,7 @@ contract USDS is ERC20, IUSDS, Upkeepable
 		if ( quoteOut < minimumOut )
 			return; // we'll try swapping again later
 
-		// Already established the minimumOut will be met so don't specify in swap
+		// Already established the minimumOut will be met so don't specify minAmountOut
 		pools.depositSwapWithdraw( token, this, amountToSwap, 0, block.timestamp );
 		}
 
@@ -116,7 +116,7 @@ contract USDS is ERC20, IUSDS, Upkeepable
 		if ( usdsThatShouldBeBurned == 0 )
 			return;
 
-		// See if there is enough USDS in this contract to burn
+		// See if there is enough USDS in this contract to burn - if so, just burn that
 		uint256 usdsBalance = balanceOf( address(this) );
 
 		if ( usdsBalance >= usdsThatShouldBeBurned )
@@ -127,10 +127,11 @@ contract USDS is ERC20, IUSDS, Upkeepable
 			return;
 			}
 
+		// Cached for efficiency
 		uint256 percentSwapToUSDS = stableConfig.percentSwapToUSDS();
 		uint256 maximumLiquidationSlippagePercentTimes1000 = stableConfig.maximumLiquidationSlippagePercentTimes1000();
 
-		// Determine the minimum amountOuts using the current prices of BTC and ETH
+		// Prices will be used to determine minimum amountOuts
 		IPriceFeed priceFeed = stableConfig.priceFeed();
 		uint256 btcPrice = priceFeed.getPriceBTC();
         uint256 ethPrice = priceFeed.getPriceETH();
@@ -139,7 +140,7 @@ contract USDS is ERC20, IUSDS, Upkeepable
 		_swapPercentOfTokenForUSDS( wbtc, btcPrice, percentSwapToUSDS, maximumLiquidationSlippagePercentTimes1000 );
 		_swapPercentOfTokenForUSDS( weth, ethPrice, percentSwapToUSDS, maximumLiquidationSlippagePercentTimes1000 );
 
-		// Burn the USDS that we've just swapped for
+		// See how much USDS we have now
 		usdsBalance = balanceOf( address(this) );
 
 		// Enough USDS now to burn?
@@ -151,7 +152,7 @@ contract USDS is ERC20, IUSDS, Upkeepable
 			return;
 			}
 
-		// Just burn the balance and update usdsThatShouldBeBurned
+		// Not enough USDS to burn - just burn the current balance and update usdsThatShouldBeBurned
 		_burn( address(this), usdsBalance );
 		usdsThatShouldBeBurned -= usdsBalance;
 		}
