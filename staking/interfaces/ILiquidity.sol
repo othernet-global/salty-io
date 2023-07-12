@@ -4,6 +4,7 @@ pragma solidity ^0.8.12;
 import "./IStakingRewards.sol";
 import "../../openzeppelin/token/ERC20/IERC20.sol";
 
+
 interface ILiquidity is IStakingRewards
 	{
 	function addLiquidityAndIncreaseShare( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 deadline, bool bypassZapping ) external returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity);
