@@ -26,10 +26,8 @@ interface IStakingRewards
 	function addSALTRewards( AddedReward[] calldata addedRewards ) external;
 
 	// Views
-	function exchangeConfig() external returns (IExchangeConfig);
-	function poolsConfig() external returns (IPoolsConfig);
-	function stakingConfig() external returns (IStakingConfig);
 	function totalSharesForPools( bytes32[] calldata pools ) external view returns (uint256[] calldata shares);
+	function totalSharesForPool( bytes32 poolID ) external view returns (uint256);
 	function totalRewardsForPools( bytes32[] calldata pools ) external view returns (uint256[] calldata rewards);
 	function userPendingReward( address wallet, bytes32 pool ) external view returns (uint256);
 	function userRewardsForPools( address wallet, bytes32[] calldata pools ) external view returns (uint256[] calldata rewards);

@@ -13,9 +13,4 @@ interface IDAO is IProposals
 	function finalizeBallot( uint256 ballotID ) external;
 	function sufficientBootstrappingRewardsExistForWhitelisting() external view returns (bool);
 	function countryIsExcluded( string calldata country ) external view returns (bool);
-
-	function rewardsConfig() external view returns (IRewardsConfig);
-	function stableConfig() external view returns (IStableConfig);
-	function liquidity() external view returns (ILiquidity);
-	function liquidityRewardsEmitter() external view returns (IRewardsEmitter);
 	}

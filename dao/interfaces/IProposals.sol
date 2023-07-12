@@ -47,8 +47,5 @@ interface IProposals
 	function numberOfOpenBallotsForTokenWhitelisting() external view returns (uint256);
 	function tokenWhitelistingBallotWithTheMostVotes() external view returns (uint256);
 
-	function daoConfig() external view returns (IDAOConfig);
-	function stakingConfig() external view returns (IStakingConfig);
-	function staking() external view returns (IStakingRewards);
 	function tokenHasBeenWhitelisted( address token ) external returns (bool);
 	}
