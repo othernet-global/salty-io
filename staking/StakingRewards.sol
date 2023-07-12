@@ -19,7 +19,7 @@ import "../pools/interfaces/IPoolsConfig.sol";
 // 1. Staking.sol: the amount of SALT staked (staked to the STAKED_SALT pool)
 //						 and the amount of xSALT staked (voting) for whitelisted pools
 // 2. Liquidity.sol: the amount of LP tokens deposited and staked to specific pools
-// 3. Collateral.sol: the amount of BTC/ETH LP staked as stablecoin collateral
+// 3. Collateral.sol: the amount of WBTC/WETH liquidity deposited as stablecoin collateral
 
 contract StakingRewards is IStakingRewards, ReentrancyGuard
     {
@@ -226,6 +226,16 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 
 		for( uint256 i = 0; i < shares.length; i++ )
 			shares[i] = totalShares[ poolIDs[i] ];
+		}
+
+
+	// Convenience functino of above
+	function totalSharesForPool( bytes32 poolID ) public view returns (uint256)
+		{
+		bytes32[] memory _pools = new bytes32[](1);
+		_pools[0] = poolID;
+
+		return totalSharesForPools(_pools)[0];
 		}
 
 
