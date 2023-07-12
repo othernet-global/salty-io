@@ -2,14 +2,17 @@
 pragma solidity ^0.8.12;
 
 import "../Upkeepable.sol";
-import "./interfaces/IEmissions.sol";
+import "../staking/interfaces/IStaking.sol";
+import "../rewards/interfaces/IRewardsEmitter.sol";
+import "../interfaces/ISalt.sol";
+import "../interfaces/IExchangeConfig.sol";
 
 
 // Responsible for storing the SALT emissions at launch and then distributing them over time.
 // The emissions are gradually distributed to the stakingRewardsEmitter and liquidityRewardsEmitter on performUpkeep.
 // Default rate of emissions is 0.50% of the remaining SALT balance per week (interpolated based on the time elapsed since the last performUpkeep call).
 
-contract Emissions is Upkeepable, IEmissions
+contract Emissions is Upkeepable
     {
 	IStaking public staking;
 	IRewardsEmitter public stakingRewardsEmitter;

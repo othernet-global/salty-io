@@ -7,60 +7,6 @@ import "../Deployment.sol";
 
 contract TestDeployment is Deployment
 	{
-	function functionExists( address _contract, string memory _functionName ) public returns (bool)
-		{
-		bytes4 FUNC_SELECTOR = bytes4(keccak256( bytes(_functionName) ));
-
-		bool success;
-		bytes memory data = abi.encodeWithSelector(FUNC_SELECTOR );
-
-		uint256 remainingGas = gasleft();
-
-		assembly {
-			success := call(
-				remainingGas,            // gas remaining
-				_contract,         // destination address
-				0,              // no ether
-				add(data, 32),  // input buffer (starts after the first 32 bytes in the `data` array)
-				mload(data),    // input length (loaded from the first 32 bytes in the `data` array)
-				0,              // output buffer
-				0               // output length
-			)
-		}
-
-		return success;
-	}
-
-
-	function getContract( address _contract, string memory _functionName ) public returns (address result) {
-		bytes4 FUNC_SELECTOR = bytes4(keccak256( bytes(_functionName) ));
-
-		bytes memory data = abi.encodeWithSelector(FUNC_SELECTOR );
-
-		uint256 remainingGas = gasleft();
-
-		bool success;
-		bytes memory output = new bytes(32);  // Initialize an output buffer
-
-		assembly {
-			success := call(
-				remainingGas,            // gas remaining
-				_contract,               // destination address
-				0,                       // no ether
-				add(data, 32),           // input buffer (starts after the first 32 bytes in the `data` array)
-				mload(data),             // input length (loaded from the first 32 bytes in the `data` array)
-				add(output, 32),         // output buffer
-				32                       // output length is 32 bytes because address is 20 bytes
-			)
-		}
-
-		require(success, "External call failed");
-
-		// Cast bytes to address
-		result = abi.decode(output, (address));
-	}
-
-
 	// Tests that the contract address variables within the various contracts are correct
     function testDeployment() public
     	{
