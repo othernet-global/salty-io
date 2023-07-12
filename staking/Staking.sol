@@ -41,7 +41,7 @@ contract Staking is IStaking, StakingRewards
 
 
 	// Stake a given amount of SALT and immediately receive the same amount of xSALT
-	function stakeSALT( uint256 amountToStake ) external nonReentrant
+	function stakeSALT( uint256 amountToStake ) public nonReentrant
 		{
 		// The SALT will be converted instantly to xSALT
 		userFreeXSalt[msg.sender] += amountToStake;
@@ -58,7 +58,7 @@ contract Staking is IStaking, StakingRewards
 
 
 	// Unstake a given amount of xSALT over a certain duration.
-	function unstake( uint256 amountUnstaked, uint256 numWeeks ) external nonReentrant returns (uint256 unstakeID)
+	function unstake( uint256 amountUnstaked, uint256 numWeeks ) public nonReentrant returns (uint256 unstakeID)
 		{
 		require( msg.sender != address(exchangeConfig.dao()), "DAO cannot unstake" );
 		require( amountUnstaked <= userFreeXSalt[msg.sender], "Cannot unstake more than the xSALT balance" );
@@ -87,7 +87,7 @@ contract Staking is IStaking, StakingRewards
 
 
 	// Cancel a pending unstake.
-	function cancelUnstake( uint256 unstakeID ) external nonReentrant
+	function cancelUnstake( uint256 unstakeID ) public nonReentrant
 		{
 		Unstake storage u = _unstakesByID[unstakeID];
 
@@ -108,7 +108,7 @@ contract Staking is IStaking, StakingRewards
 
 
 	// Recover claimable SALT from a completed unstake
-	function recoverSALT( uint256 unstakeID ) external nonReentrant
+	function recoverSALT( uint256 unstakeID ) public nonReentrant
 		{
 		Unstake storage u = _unstakesByID[unstakeID];
 		require( u.status == UnstakeState.PENDING, "Only PENDING unstakes can be claimed" );
@@ -132,7 +132,7 @@ contract Staking is IStaking, StakingRewards
 			// This error should never happen (as the user had their SALT staked in this contract)
 			require( salt.balanceOf(address(this)) >= earlyUnstakeFee, "Insufficient SALT balance to burn the earlyUnstakeFee");
 
-			salt.safeTransfer( address(exchangeConfig.salt()), earlyUnstakeFee );
+			salt.safeTransfer( address(salt), earlyUnstakeFee );
             salt.burnTokensInContract();
             }
 
