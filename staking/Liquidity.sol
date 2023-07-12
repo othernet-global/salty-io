@@ -35,7 +35,7 @@ contract Liquidity is ILiquidity, StakingRewards
 	// Requires that the sending wallet has exchange access and that the pool is whitelisted (both checked in _increaseUserShare).
 	function addLiquidityAndIncreaseShare( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 deadline, bool bypassZapping ) public nonReentrant returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
 		{
-		// Remember the initial underlying token balances so we can later determine if any of the user's tokens are later unused for adding liquidity and should be sent back.
+		// Remember the initial underlying token balances of this contract so we can later determine if any of the user's tokens are later unused for adding liquidity and should be sent back.
 		uint256 startingBalanceA = tokenA.balanceOf( address(this) );
 		uint256 startingBalanceB = tokenB.balanceOf( address(this) );
 
@@ -44,7 +44,7 @@ contract Liquidity is ILiquidity, StakingRewards
 		tokenB.safeTransferFrom(msg.sender, address(this), maxAmountB );
 
 		// Zap in the specified liquidity (passing the specified bypassZapping as well).
-		// The added liquidity will be owned by this contract.
+		// The added liquidity will be owned by this contract. (external call)
 		tokenA.approve( address(pools), maxAmountA );
 		tokenB.approve( address(pools), maxAmountB );
 		(addedAmountA, addedAmountB, addedLiquidity) = pools.dualZapInLiquidity( tokenA, tokenB, maxAmountA, maxAmountB, minLiquidityReceived, deadline, bypassZapping );
@@ -59,7 +59,7 @@ contract Liquidity is ILiquidity, StakingRewards
 			_increaseUserShare( msg.sender, poolID, addedLiquidity, true );
 			}
 
-		// If any of the user's tokens were not used, then send them back
+		// If any of the user's tokens were not used for in the dualZapInLiquidity, then send them back
 		uint256 unusedTokensA = tokenA.balanceOf( address(this) ) - startingBalanceA;
 		if ( unusedTokensA > 0 )
 			tokenA.safeTransfer( msg.sender, unusedTokensA );
@@ -85,7 +85,8 @@ contract Liquidity is ILiquidity, StakingRewards
 		// Note: _decreaseUserShare checks to make sure that the user has the specified liquidity share.
 		_decreaseUserShare( msg.sender, poolID, liquidityToWithdraw, true );
 
-		// Remove the amount of liquidity specified by the user
+		// Remove the amount of liquidity specified by the user.
+		// The liquidity in the pool is currently owned by this contract. (external call)
 		(reclaimedA, reclaimedB) = pools.removeLiquidity( tokenA, tokenB, liquidityToWithdraw, minReclaimedA, minReclaimedB, deadline );
 
 		// Transfer the reclaimed tokens to the user
