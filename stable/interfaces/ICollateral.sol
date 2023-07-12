@@ -1,10 +1,6 @@
 // SPDX-License-Identifier: BSL 1.1
 pragma solidity ^0.8.12;
 
-import "./IStableConfig.sol";
-import "../../pools/interfaces/IPools.sol";
-import "../../staking/interfaces/ILiquidity.sol";
-
 
 interface ICollateral
 	{

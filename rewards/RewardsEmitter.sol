@@ -3,6 +3,10 @@ pragma solidity ^0.8.12;
 
 import "../Upkeepable.sol";
 import "../openzeppelin/token/ERC20/utils/SafeERC20.sol";
+import "../pools/interfaces/IPoolsConfig.sol";
+import "../staking/interfaces/IStakingConfig.sol";
+import "../rewards/interfaces/IRewardsConfig.sol";
+import "../interfaces/IExchangeConfig.sol";
 import "./interfaces/IRewardsEmitter.sol";
 import "../interfaces/ISalt.sol";
 

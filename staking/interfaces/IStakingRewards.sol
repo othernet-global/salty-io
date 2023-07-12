@@ -1,10 +1,6 @@
 // SPDX-License-Identifier: BSL 1.1
 pragma solidity ^0.8.12;
 
-import "./IStakingConfig.sol";
-import "../../interfaces/IExchangeConfig.sol";
-import "../../pools/interfaces/IPoolsConfig.sol";
-
 
 struct AddedReward
 	{

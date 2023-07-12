@@ -5,6 +5,7 @@ import "../openzeppelin/security/ReentrancyGuard.sol";
 import "../openzeppelin/token/ERC20/ERC20.sol";
 import "./interfaces/IPools.sol";
 import "../openzeppelin/utils/math/Math.sol";
+import "../interfaces/IExchangeConfig.sol";
 import "./interfaces/IPoolsConfig.sol";
 import "./PoolUtils.sol";
 import "./PoolMath.sol";

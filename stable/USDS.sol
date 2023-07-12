@@ -3,6 +3,7 @@ pragma solidity ^0.8.12;
 
 import "../openzeppelin/token/ERC20/ERC20.sol";
 import "../stable/interfaces/ICollateral.sol";
+import "../stable/interfaces/IStableConfig.sol";
 import "./interfaces/IUSDS.sol";
 import "../Upkeepable.sol";
 import "../pools/PoolUtils.sol";
@@ -87,7 +88,7 @@ contract USDS is ERC20, IUSDS, Upkeepable
 	function _swapPercentOfTokenForUSDS( IERC20 token, uint256 tokenPrice, uint256 percentSwapToUSDS, uint256 maximumLiquidationSlippagePercentTimes1000 ) internal
 		{
 		uint256 balance = token.balanceOf( address(this) );
-		uint256 amountToSwap = balance * percentSwapToUSDS / 100;
+		uint256 amountToSwap = (balance * percentSwapToUSDS) / 100;
 
 		// Determine the minimum expected USDS
 		uint256 amountOut = amountToSwap * tokenPrice / 10**18; // prices have 18 decimals

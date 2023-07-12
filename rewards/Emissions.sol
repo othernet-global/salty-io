@@ -3,6 +3,7 @@ pragma solidity ^0.8.12;
 
 import "../Upkeepable.sol";
 import "../staking/interfaces/IStaking.sol";
+import "../pools/interfaces/IPoolsConfig.sol";
 import "../rewards/interfaces/IRewardsEmitter.sol";
 import "../interfaces/ISalt.sol";
 import "../interfaces/IExchangeConfig.sol";

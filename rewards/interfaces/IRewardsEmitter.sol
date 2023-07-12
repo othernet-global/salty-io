@@ -2,10 +2,6 @@
 pragma solidity ^0.8.12;
 
 import "../../staking/interfaces/IStakingRewards.sol";
-import "../../staking/interfaces/IStakingConfig.sol";
-import "../../pools/interfaces/IPoolsConfig.sol";
-import "../../interfaces/IExchangeConfig.sol";
-import "./IRewardsConfig.sol";
 
 
 interface IRewardsEmitter
