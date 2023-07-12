@@ -31,12 +31,12 @@ contract StakingConfig is IStakingConfig, Ownable
         if (increase)
             {
             if (minUnstakeWeeks < 12)
-                minUnstakeWeeks = minUnstakeWeeks + 1;
+                minUnstakeWeeks += 1;
             }
         else
             {
             if (minUnstakeWeeks > 2)
-                minUnstakeWeeks = minUnstakeWeeks - 1;
+                minUnstakeWeeks -= 1;
             }
         }
 
@@ -46,12 +46,12 @@ contract StakingConfig is IStakingConfig, Ownable
         if (increase)
             {
             if (maxUnstakeWeeks < 52)
-                maxUnstakeWeeks = maxUnstakeWeeks + 2;
+                maxUnstakeWeeks += 2;
             }
         else
             {
             if (maxUnstakeWeeks > 14)
-                maxUnstakeWeeks = maxUnstakeWeeks - 2;
+                maxUnstakeWeeks -= 2;
             }
         }
 
@@ -61,12 +61,12 @@ contract StakingConfig is IStakingConfig, Ownable
         if (increase)
             {
             if (minUnstakePercent < 75)
-                minUnstakePercent = minUnstakePercent + 5;
+                minUnstakePercent += 5;
             }
         else
             {
             if (minUnstakePercent > 25)
-                minUnstakePercent = minUnstakePercent - 5;
+                minUnstakePercent -= 5;
             }
         }
 
@@ -76,12 +76,12 @@ contract StakingConfig is IStakingConfig, Ownable
         if (increase)
             {
             if (modificationCooldown < 6 hours)
-                modificationCooldown = modificationCooldown + 15 minutes;
+                modificationCooldown += 15 minutes;
             }
         else
             {
             if (modificationCooldown > 15 minutes)
-                modificationCooldown = modificationCooldown - 15 minutes;
+                modificationCooldown -= 15 minutes;
             }
         }
     }
