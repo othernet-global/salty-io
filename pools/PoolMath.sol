@@ -5,102 +5,102 @@ import "../openzeppelin/utils/math/Math.sol";
 
 /*
 	=== DERIVATION ===
-
 	// User will zap z0 of token0 and z1 of token1 into the pool
-	// Initial reserves: r0 and r1
-	// Assuming z0 in excess
+    // Initial reserves: r0 and r1
+    // Assuming z0 in excess
 
-	// Initial k
-	k = r0 * r1
+    // Initial k
+    k = r0 * r1
 
-	// Swap s0 of token0 for s1 of token1
-	s1 = r1 - k / (r0 + s0)
+    // Swap s0 of token0 for s1 of token1
+    s1 = r1 - k / (r0 + s0)
 
-	// Substituting k
-	s1 = r1 - r0 * r1 / (r0 + s0)
+    // Substituting k
+    s1 = r1 - r0 * r1 / (r0 + s0)
 
-	// Updated reserves ratio after swap
-	(r0 + s0) / ( r1 - s1)
+    // Updated reserves ratio after swap
+    (r0 + s0) / ( r1 - s1)
 
-	// Adjusted addLiquidity zap amounts after the swap
-	a0 = z0 - s0
-	a1 = z1 + s1
+    // Adjusted addLiquidity zap amounts after the swap
+    a0 = z0 - s0
+    a1 = z1 + s1
 
-	// Adjusted addLiquidity amounts need the token ratio of the current reserves
-	a0 / a1 = (r0 + s0) / ( r1 - s1)
+    // Adjusted addLiquidity amounts need to have the token ratio of the current reserves
+    a0 / a1 = (r0 + s0) / ( r1 - s1)
 
-	// Substitute in a0 and a1
-	(z0 - s0) / ( z1 + s1) = (r0 + s0) / ( r1 - s1)
+    // Substitute in a0 and a1 from above
+    (z0 - s0) / ( z1 + s1) = (r0 + s0) / ( r1 - s1)
 
-	// Substitute
-	x = s0         y = s1
-	a = r0         b = r1
-	c = z0         d = z1
+    // Substitute
+    x = s0         y = s1
+    a = r0         b = r1
+    c = z0         d = z1
 
-	(c-x)/(d+y) = (a+x)/(b-y)
+    (c-x)/(d+y) = (a+x)/(b-y)
 
-	// From s1 = r1 - r0 * r1 / (r0 + s0)
-	y = b - ab/(a+x)
+    // From s1 = r1 - r0 * r1 / (r0 + s0)
+    y = b - ab/(a+x)
 
-	// Solve for x
-	(c-x)/(d+y) = (a+x)/(b-y)
+    // Solve for x
+    (c-x)/(d+y) = (a+x)/(b-y)
 
-	// Cross multiply
-	(c-x)(b-y) = (a+x)(d+y)
+    // Cross multiply
+    (c-x)(b-y) = (a+x)(d+y)
 
-	// Multiply binomials on both sides
-	bc - cy - bx + xy = ad + ay + dx + xy
+    // Multiply binomials on both sides
+    bc - cy - bx + xy = ad + ay + dx + xy
 
-	// Cancel xy both sides
-	bc - cy - bx = ad + ay + dx
+    // Cancel xy both sides
+    bc - cy - bx = ad + ay + dx
 
-	// Multiply both sides by -1
-	- bc + cy + bx = - ad - ay - dx
+    // Multiply both sides by -1
+    - bc + cy + bx = - ad - ay - dx
 
-	// Gather x and y on the left
-	bx + dx + ay + cy = bc - ad
+    // Gather x and y on the left
+    bx + dx + ay + cy = bc - ad
 
-	// Factor x and y
-	x(b+d) + y(a+c) = bc - ad
+    // Factor x and y
+    x(b+d) + y(a+c) = bc - ad
 
-	// Substitute y = b - ab/(a+x)
-	x(b+d) + b(a+c) - ab(a+c)/(a+x) = bc - ad
+    // Substitute y = b - ab/(a+x)
+    x(b+d) + b(a+c) - ab(a+c)/(a+x) = bc - ad
 
-	// Multiply by (a+x)
-	x(b+d)(a+x) + b(a+c)(a+x) - ab(a+c) = (bc - ad)(a+x)
+    // Multiply by (a+x)
+    x(b+d)(a+x) + b(a+c)(a+x) - ab(a+c) = (bc - ad)(a+x)
 
-	// Multiply all binomials
-	x(ab+bx+ad+dx) + b(aa+ax+ac+cx) - aab - abc = abc+bcx-aad-adx
+    // Multiply all binomials
+    x(ab+bx+ad+dx) + b(aa+ax+ac+cx) - aab - abc = abc+bcx-aad-adx
 
-	// Distribute x and b
-	abx+bxx+adx+dxx + aab+abx+abc+bcx - aab - abc = abc+bcx-aad-adx
+    // Distribute x and b
+    abx+bxx+adx+dxx + aab+abx+abc+bcx - aab - abc = abc+bcx-aad-adx
 
-	// Cancel abc, bcx, aab
-	abx + bxx + adx + dxx + abx - ac = abc - aad - adx
+    // Cancel abc (on left), bcx, aab
+    abx + bxx + adx + dxx + abx = abc - aad - adx
 
-	// Gather x on the left
-	bxx + dxx + abx + abx + adx + adx = abc + ac - aad
+    // Gather x on the left
+    bxx + dxx + abx + abx + adx + adx = abc - aad
 
-	// Factor xx and x
-	xx(b+d) + x(2ab + 2ad) = abc + ac - aad
+    // Factor xx and x
+    xx(b+d) + x(2ab + 2ad) = abc - aad
 
-	// Quadratic equation: xxA + xB + C = 0
-	xx(b+d) + x(2ab + 2ad) + (aad-abc-ac) = 0
+    // Quadratic equation
+    xx(b+d) + x(2ab + 2ad) + (aad-abc) = 0
 
-	A = b + d
-	B = 2a(b+d)
-	C = a(ad - bc - c)
+    xxA + xB + C = 0
 
-	// Substitute back
-	a = r0         b = r1
-	c = z0         d = z1
+    A = b + d
+    B = 2a(b+d)
+    C = a(ad - bc)
 
-	A = r1 + z1
-	B = 2r0(r1 + z1)
-	C = r0(r0z1 - r1z0 - z0)
+    // Substitute back
+    a = r0         b = r1
+    c = z0         d = z1
 
-	// Positive variant only
-	x = [-B + sqrt(B^2 - 4AC)] / 2A
+    A = r1 + z1
+    B = 2r0(r1 + z1)
+    C = r0(r0z1 - r1z0)
+
+    x = [-B + sqrt(B^2 - 4AC)] / 2A
 */
 
 library PoolMath
@@ -174,7 +174,7 @@ library PoolMath
         // Components of the above quadratic formula: x = [-B + sqrt(B^2 - 4AC)] / 2A
 		int256 A = r1 + z1;
         int256 B = 2 * r0 * ( r1 + z1 );
-        int256 C = r0 * ( r0 * z1 - r1 * z0 - z0 );
+        int256 C = r0 * ( r0 * z1 - r1 * z0 );
 
         int256 discriminant = B * B - 4 * A * C;
 
