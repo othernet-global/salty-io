@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: BSL 1.1
 pragma solidity ^0.8.12;
 
+import "../../staking/interfaces/IStakingRewards.sol";
 
-interface ICollateral
+
+interface ICollateral is IStakingRewards
 	{
 	event eDepositCollateral(address indexed wallet, uint256 addedAmountWBTC, uint256 addedAmountWETH, uint256 amount);
 	event eWithdrawCollateral(address indexed wallet, uint256 amount, uint256 reclaimedWBTC, uint256 reclaimedWETH);
@@ -18,6 +20,8 @@ interface ICollateral
 	function liquidateUser( address wallet ) external;
 
 	// Views
+	function usersBorrowedUSDS( address wallet ) external view returns (uint256);
+
 	function maxWithdrawableCollateral( address wallet ) external view returns (uint256);
 	function maxBorrowableUSDS( address wallet ) external view returns (uint256);
 	function numberOfUsersWithBorrowedUSDS() external view returns (uint256);
@@ -25,5 +29,6 @@ interface ICollateral
 	function findLiquidatableUsers( uint256 startIndex, uint256 endIndex ) external view returns (address[] calldata);
 	function findLiquidatablePositions() external view returns (address[] calldata);
 	function underlyingTokenValueInUSD( uint256 amountBTC, uint256 amountETH ) external view returns (uint256);
+	function collateralValue( uint256 collateralAmount ) external view returns (uint256);
 	function userCollateralValueInUSD( address wallet ) external view returns (uint256);
 	}

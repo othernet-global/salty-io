@@ -69,7 +69,8 @@ contract Collateral is Liquidity, ICollateral
 
 
 	// Deposit WBTC/WETH liqudity as collateral and increase the caller's collateral share for future rewards.
-    function depositCollateralAndIncreaseShare( uint256 maxAmountWBTC, uint256 maxAmountWETH, uint256 minLiquidityReceived, uint256 deadline, bool bypassZapping ) public nonReentrant returns (uint256 addedAmountWBTC, uint256 addedAmountWETH, uint256 addedLiquidity)
+	// The called function addLiquidityAndIncreaseShare is nonReentrant
+    function depositCollateralAndIncreaseShare( uint256 maxAmountWBTC, uint256 maxAmountWETH, uint256 minLiquidityReceived, uint256 deadline, bool bypassZapping ) public returns (uint256 addedAmountWBTC, uint256 addedAmountWETH, uint256 addedLiquidity)
 		{
 		// Have the user deposit the specified WBTC/WETH liquidity and increase their collateral share
 		(addedAmountWBTC, addedAmountWETH, addedLiquidity) = addLiquidityAndIncreaseShare( wbtc, weth, maxAmountWBTC, maxAmountWETH, minLiquidityReceived, deadline, bypassZapping );
@@ -79,7 +80,8 @@ contract Collateral is Liquidity, ICollateral
 
 
 	// Withdraw WBTC/WETH collateral and claim any pending rewards.
-     function withdrawCollateralAndClaim( uint256 collateralToWithdraw, uint256 minReclaimedWBTC, uint256 minReclaimedWETH, uint256 deadline ) public nonReentrant returns (uint256 reclaimedWBTC, uint256 reclaimedWETH)
+	// The called function withdrawLiquidityAndClaim is nonReentrant
+    function withdrawCollateralAndClaim( uint256 collateralToWithdraw, uint256 minReclaimedWBTC, uint256 minReclaimedWETH, uint256 deadline ) public returns (uint256 reclaimedWBTC, uint256 reclaimedWETH)
 		{
 		// Make sure that the user has collateral and if they have borrowed USDS that collateralToWithdraw doesn't bring their collateralRatio below allowable levels.
 		require( userShareInfoForPool( msg.sender, collateralPoolID ).userShare > 0, "User does not have any collateral" );
@@ -325,15 +327,10 @@ contract Collateral is Liquidity, ICollateral
 		}
 
 
-	// The current market value of the user's collateral in USD
-	// Returns the value with 18 decimals
-	function userCollateralValueInUSD( address wallet ) public view returns (uint256)
+	function collateralValue( uint256 collateralAmount ) public view returns (uint256)
 		{
-		// Determine how much collateral share the user currently has
-		uint256 userCollateralAmount = userShareInfoForPool( wallet, collateralPoolID ).userShare;
-
-		// If the user doesn't have any collateral then the value of their collateral is zero
-		if ( userCollateralAmount == 0 )
+		// If thethere is no collateral then the value of their collateral is zero
+		if ( collateralAmount == 0 )
 			return 0;
 
 		uint256 totalCollateralShares = totalSharesForPool( collateralPoolID );
@@ -341,6 +338,17 @@ contract Collateral is Liquidity, ICollateral
 		(uint256 reservesWBTC, uint256 reservesWETH) = pools.getPoolReserves(wbtc, weth);
 		uint256 totalCollateralValue = underlyingTokenValueInUSD( reservesWBTC, reservesWETH );
 
-		return userCollateralAmount * totalCollateralValue / totalCollateralShares;
+		return collateralAmount * totalCollateralValue / totalCollateralShares;
+		}
+
+
+	// The current market value of the user's collateral in USD
+	// Returns the value with 18 decimals
+	function userCollateralValueInUSD( address wallet ) public view returns (uint256)
+		{
+		// Determine how much collateral share the user currently has
+		uint256 userCollateralAmount = userShareInfoForPool( wallet, collateralPoolID ).userShare;
+
+		return collateralValue( userCollateralAmount );
 		}
 	}

@@ -28,7 +28,7 @@ contract Deployment is Test
     bool public DEBUG = true;
 	address constant public DEPLOYER = 0x73107dA86708c2DAd0D91388fB057EeE3E2581aF;
 
-	IPools public pools = IPools(address(0xb69148b4E8ca6e7AB7C6DD6BbC9246951e6ef17c));
+	IPools public pools = IPools(address(0xCa25013E99AB4EaE641B339757713f2ac52C8bd5));
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(pools), "exchangeConfig()" ));
 
 	ISalt public salt = exchangeConfig.salt();
@@ -37,11 +37,11 @@ contract Deployment is Test
     IERC20 public usdc = exchangeConfig.usdc();
     USDS public usds = USDS(address(exchangeConfig.usds()));
 
-	IStaking public staking = IStaking(address(0x8f9E3bFde74aB5c38D72959C31E725713a550773));
-	ILiquidity public liquidity = ILiquidity(address(0x2fA3c84e8929fFA330502F4922a586010E2c165C));
+	IStaking public staking = IStaking(address(0x3F0753BEE7f026f3Ca3AeF75f43EBfF9D5a80c4e));
+	ILiquidity public liquidity = ILiquidity(address(0xA3d5911A397340008ABe85c7fE2193f2638010b6));
 	ICollateral public collateral = ICollateral(getContract(address(usds), "collateral()" ));
 
-	Emissions public emissions = Emissions(address(0x19033Bc67cEe1901D060B06bB63C22a02AA04470));
+	Emissions public emissions = Emissions(address(0x4b4bE91eD7407f0f264180C904cBD9D677a0AC3E));
 
 
 
