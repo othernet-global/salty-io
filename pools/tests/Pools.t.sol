@@ -1453,13 +1453,13 @@ contract TestPools is Test, Deployment
 		{
 		if ( x > y )
 			{
-			uint256 decimalReduction = uint256(PoolMath._reducePrecision( x - y, decimals + 4) );
+			uint256 decimalReduction = uint256(PoolMath._reducePrecision( x - y, decimals + 3) );
 			return decimalReduction == 0;
 			}
 
 		if ( x < y )
 			{
-			uint256 decimalReduction = uint256(PoolMath._reducePrecision( y -x, decimals + 4) );
+			uint256 decimalReduction = uint256(PoolMath._reducePrecision( y -x, decimals + 3) );
 			return decimalReduction == 0;
 			}
 
