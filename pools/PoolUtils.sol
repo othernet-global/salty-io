@@ -19,22 +19,4 @@ library PoolUtils
 
         return (keccak256(abi.encodePacked(address(tokenA), address(tokenB))), false);
     	}
-
-
-    // Returns true if the percentage difference between A/B and C/D is less than or equal to maxPercentDifferenceTimes1000
-    function checkRatiosAreSimilar(uint256 A, uint256 B, uint256 C, uint256 D, uint256 maxPercentDifferenceTimes1000 ) internal pure returns (bool)
-    	{
-    	// Zero denominators aren't meaningful
-    	if ( ( B==0 ) || ( D==0 ) )
-    		return false;
-
-		uint256 ratio1 = A * D;
-		uint256 ratio2 = B * C;
-
-		// Make sure the larger of the ratios isn't outside the specified limit
-		if ( ratio1 > ratio2 )
-			return ( ratio1 <= ratio2 * (100000 + maxPercentDifferenceTimes1000) / 100000);
-
-		return ( ratio2 <= ratio1 * (100000 + maxPercentDifferenceTimes1000) / 100000);
-        }
 	}
