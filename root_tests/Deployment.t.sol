@@ -88,9 +88,9 @@ contract TestDeployment is Deployment
 //        assertEq( getContract(address(liquidator), "collateral()"), address(collateral), "Incorrect liquidator.collateral" );
 //        assertEq( getContract(address(liquidator), "stableConfig()"), address(stableConfig), "Incorrect liquidator.stableConfig" );
 //        assertEq( getContract(address(liquidator), "exchangeConfig()"), address(exchangeConfig), "Incorrect liquidator.exchangeConfig" );
-//
-//        assertEq( getContract(address(stableConfig), "priceFeed()"), address(priceFeed), "Incorrect stableConfig.priceFeed" );
-//
+
+        assertEq( getContract(address(stableConfig), "priceFeed()"), address(priceFeed), "Incorrect stableConfig.priceFeed" );
+
 //        assertEq( getContract(address(usds), "collateral()"), address(collateral), "Incorrect usds.collateral" );
 //
 //
