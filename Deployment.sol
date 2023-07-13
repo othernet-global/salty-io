@@ -28,29 +28,34 @@ contract Deployment is Test
     bool public DEBUG = true;
 	address constant public DEPLOYER = 0x73107dA86708c2DAd0D91388fB057EeE3E2581aF;
 
-	IPools public pools = IPools(address(0xAf30553D3aBd9A33094797C11D5E901a9F06a81E));
-	IStaking public staking = IStaking(address(0xF8d347B2f0a27FDB73486c1298fFe17C3f631301));
-	ILiquidity public liquidity = ILiquidity(address(0x5012e7E85073dFE447D846C7Cd856c7d219086F4));
-	ICollateral public collateral = ICollateral(address(0x0));
-
-	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(staking), "exchangeConfig()" ));
-	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(staking), "poolsConfig()" ));
-	IStakingConfig public stakingConfig = IStakingConfig(getContract(address(staking), "stakingConfig()" ));
-//	IStableConfig public stableConfig = collateral.stableConfig();
-	IRewardsConfig public rewardsConfig = IRewardsConfig(address(0x52C689c75D561ec7eFAcD3D374900289A06A4c79));
-
-	IRewardsEmitter public stakingRewardsEmitter = IRewardsEmitter(address(0x5b166406a043516CD741F6D017968AD47Fc13145));
-	IRewardsEmitter public liquidityRewardsEmitter = IRewardsEmitter(address(0x495C4FfF0Aa5C1e927923d038c9eec8E8299C39d));
-//	IRewardsEmitter public collateralRewardsEmitter = IRewardsEmitter(aaa.collateralRewardsEmitterAddress());
-
-	Emissions public emissions = Emissions(address(0x73a3F7266a1C763Fa2B40f06C9c6B260C239d733));
-//	IPriceFeed public priceFeed = stableConfig.priceFeed();
+	IPools public pools = IPools(address(0xb69148b4E8ca6e7AB7C6DD6BbC9246951e6ef17c));
+	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(pools), "exchangeConfig()" ));
 
 	ISalt public salt = exchangeConfig.salt();
     IERC20 public wbtc = exchangeConfig.wbtc();
     IERC20 public weth = exchangeConfig.weth();
     IERC20 public usdc = exchangeConfig.usdc();
     USDS public usds = USDS(address(exchangeConfig.usds()));
+
+	IStaking public staking = IStaking(address(0x8f9E3bFde74aB5c38D72959C31E725713a550773));
+	ILiquidity public liquidity = ILiquidity(address(0x2fA3c84e8929fFA330502F4922a586010E2c165C));
+	ICollateral public collateral = ICollateral(getContract(address(usds), "collateral()" ));
+
+	Emissions public emissions = Emissions(address(0x19033Bc67cEe1901D060B06bB63C22a02AA04470));
+
+
+
+	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(staking), "poolsConfig()" ));
+	IStakingConfig public stakingConfig = IStakingConfig(getContract(address(staking), "stakingConfig()" ));
+	IStableConfig public stableConfig = IStableConfig(getContract(address(usds), "stableConfig()" ));
+	IRewardsConfig public rewardsConfig = IRewardsConfig(getContract(address(emissions), "rewardsConfig()" ));
+
+	IRewardsEmitter public stakingRewardsEmitter = IRewardsEmitter(getContract(address(emissions), "stakingRewardsEmitter()" ));
+	IRewardsEmitter public liquidityRewardsEmitter = IRewardsEmitter(getContract(address(emissions), "liquidityRewardsEmitter()" ));
+//	IRewardsEmitter public collateralRewardsEmitter = IRewardsEmitter(aaa.collateralRewardsEmitterAddress());
+
+	IPriceFeed public priceFeed = stableConfig.priceFeed();
+
 
 
 	IAccessManager public accessManager = exchangeConfig.accessManager();

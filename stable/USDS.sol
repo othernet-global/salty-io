@@ -12,14 +12,17 @@ import "../pools/interfaces/IPools.sol";
 
 // USDS can be borrowed by users who have deposited WBTC/WETH liquidity as collateral via Collateral.sol
 // The default initial collateralization ratio of collateral / borrowed USDS is 200%.
-// The minimum default collateral ratio is 110%, below which positions can be liquidated by any user.
+// The minimum default collateral ratio is 110% - below which positions can be liquidated by any user.
 
-// If WBTC/WETH collateral is liquidated the WBTC and WETH tokens are sent to this contract and swapped for USDS which is then burned (essentially "undoing" the user's original collateral deposit and USDS borrow).
+// If WBTC/WETH collateral is liquidated the reclaimed WBTC and WETH tokens are sent to this contract and swapped for USDS which is then burned (essentially "undoing" the user's original collateral deposit and USDS borrow).
 contract USDS is ERC20, IUSDS, Upkeepable
     {
     IStableConfig public stableConfig;
     IERC20 public wbtc;
     IERC20 public weth;
+
+    uint256 public wbtcDecimals;
+    uint256 public wethDecimals;
 
     ICollateral public collateral;
     IPools public pools;
@@ -40,6 +43,9 @@ contract USDS is ERC20, IUSDS, Upkeepable
 		stableConfig = _stableConfig;
 		wbtc = _wbtc;
 		weth = _weth;
+
+		wbtcDecimals = ERC20(address(wbtc)).decimals();
+		wethDecimals = ERC20(address(weth)).decimals();
         }
 
 
@@ -60,6 +66,10 @@ contract USDS is ERC20, IUSDS, Upkeepable
 		require( address(pools) == address(0), "setPools can only be called once" );
 
 		pools = _pools;
+
+		// Approve WTBC and WETH for pools so that it can later be swapped
+		wbtc.approve( address(pools), type(uint256).max );
+		weth.approve( address(pools), type(uint256).max );
 		}
 
 
@@ -67,7 +77,7 @@ contract USDS is ERC20, IUSDS, Upkeepable
 	function mintTo( address wallet, uint256 amount ) public
 		{
 		require( msg.sender == address(collateral), "Can only mint from the Collateral contract" );
-		require( address(wallet) != address(0), "cannot mint to address(0)" );
+		require( address(wallet) != address(0), "Cannot mint to address(0)" );
 
 		_mint( wallet, amount );
 		}
@@ -83,16 +93,20 @@ contract USDS is ERC20, IUSDS, Upkeepable
 		}
 
 
-	// Swap a percentage of the given token (defined in stableConfig.percentSwapToUSDS) for USDS
-	// Make sure that the swap has less slippage (in comparison to the price feed) than specified in stableConfig.maximumLiquidationSlippagePercentTimes1000
-	function _swapPercentOfTokenForUSDS( IERC20 token, uint256 tokenPrice, uint256 percentSwapToUSDS, uint256 maximumLiquidationSlippagePercentTimes1000 ) internal
+	// Swap a percentage of the given token for USDS
+	// Make sure that the swap has less slippage (in comparison to the PriceFeed price) than specified in stableConfig
+	function _swapPercentOfTokenForUSDS( IERC20 token, uint256 tokenDecimals, uint256 priceFeedTokenPrice, uint256 percentSwapToUSDS, uint256 maximumLiquidationSlippagePercentTimes1000 ) internal
 		{
 		uint256 balance = token.balanceOf( address(this) );
 		uint256 amountToSwap = (balance * percentSwapToUSDS) / 100;
 
-		// Determine the minimum expected USDS
-		uint256 amountOut = amountToSwap * tokenPrice / 10**18; // prices have 18 decimals
-		uint256 minimumOut = amountOut * ( 100 * 1000 - maximumLiquidationSlippagePercentTimes1000 ) / 100;
+		if ( amountToSwap == 0 )
+			return;
+
+		// Determine the minimum expected USDS based on the PriceFeed price
+		// USDS has 18 decimals and PriceFeed report prices in 18 decimals so divide by tokenDecimals
+		uint256 amountOutBasedOnPriceFeed = amountToSwap * priceFeedTokenPrice / 10**tokenDecimals;
+		uint256 minimumOut = amountOutBasedOnPriceFeed * ( 100 * 1000 - maximumLiquidationSlippagePercentTimes1000 ) / (100*1000);
 
 		// Check that the required amountOut will be returned before trying to swap (to avoid the revert on failure)
 		IERC20[] memory tokens = new IERC20[](2);
@@ -100,6 +114,7 @@ contract USDS is ERC20, IUSDS, Upkeepable
 		tokens[1] = this;
 
 		uint256 quoteOut = pools.quoteAmountOut( tokens, amountToSwap );
+
 		if ( quoteOut < minimumOut )
 			return; // we'll try swapping again later
 
@@ -111,7 +126,7 @@ contract USDS is ERC20, IUSDS, Upkeepable
 	// Check to see if there is usdsThatShouldBeBurned and if so burn USDS stored in this contract (which was sent here when users repaid their borrowed USDS in Collateral.sol).
 	// Additionally, any WBTC/WETH sent here when user collateral was liquidated can be swapped for USDS which is then burned as well.
 	// As the minimum collateral ratio defaults to 110% any excess WBTC/WETH that is not swapped for USDS will remain in this contract - in the case
-    // that future liquidated positions are undercollateralized during times of high market volatility and the WBTC/WETH is needed to purchase more USDS to burn.
+    // that future liquidated positions are undercollateralized during times of high market volatility and WBTC/WETH is needed to purchase more USDS to burn.
 	function _performUpkeep() internal override
 		{
 		if ( usdsThatShouldBeBurned == 0 )
@@ -138,8 +153,8 @@ contract USDS is ERC20, IUSDS, Upkeepable
         uint256 ethPrice = priceFeed.getPriceETH();
 
 		// Swap a percent of the WBTC and WETH in the contract for USDS
-		_swapPercentOfTokenForUSDS( wbtc, btcPrice, percentSwapToUSDS, maximumLiquidationSlippagePercentTimes1000 );
-		_swapPercentOfTokenForUSDS( weth, ethPrice, percentSwapToUSDS, maximumLiquidationSlippagePercentTimes1000 );
+		_swapPercentOfTokenForUSDS( wbtc, wbtcDecimals, btcPrice, percentSwapToUSDS, maximumLiquidationSlippagePercentTimes1000 );
+		_swapPercentOfTokenForUSDS( weth, wethDecimals, ethPrice, percentSwapToUSDS, maximumLiquidationSlippagePercentTimes1000 );
 
 		// See how much USDS we have now
 		usdsBalance = balanceOf( address(this) );

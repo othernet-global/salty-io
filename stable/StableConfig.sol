@@ -149,7 +149,7 @@ contract StableConfig is IStableConfig, Ownable
             }
         else
             {
-            if (initialCollateralRatioPercent > 500)
+            if (maximumLiquidationSlippagePercentTimes1000 > 500)
                 maximumLiquidationSlippagePercentTimes1000 -= 500;
             }
         }
