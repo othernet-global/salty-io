@@ -31,7 +31,7 @@ contract Staking is IStaking, StakingRewards
 
 	// Mapping of unstake IDs to their corresponding Unstake data.
     mapping(uint256=>Unstake) private _unstakesByID;
-	uint256 private _nextUnstakeID;
+	uint256 public nextUnstakeID;
 
 
 	constructor( IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig )
@@ -66,8 +66,8 @@ contract Staking is IStaking, StakingRewards
 		uint256 claimableSALT = calculateUnstake( amountUnstaked, numWeeks );
 		uint256 completionTime = block.timestamp + numWeeks * ( 1 weeks );
 
-		Unstake memory u = Unstake( UnstakeState.PENDING, msg.sender, amountUnstaked, claimableSALT, completionTime, _nextUnstakeID );
-		unstakeID = _nextUnstakeID;
+		Unstake memory u = Unstake( UnstakeState.PENDING, msg.sender, amountUnstaked, claimableSALT, completionTime );
+		unstakeID = nextUnstakeID++;
 
 		_unstakesByID[unstakeID] = u;
 		_userUnstakeIDs[msg.sender].push( unstakeID );
@@ -81,8 +81,6 @@ contract Staking is IStaking, StakingRewards
 		_decreaseUserShare( msg.sender, STAKED_SALT, amountUnstaked, false );
 
 		emit eUnstake( unstakeID, msg.sender, amountUnstaked, numWeeks);
-
-		_nextUnstakeID++;
 		}
 
 

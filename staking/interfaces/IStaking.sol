@@ -19,8 +19,6 @@ enum UnstakeState { NONE, PENDING, CANCELLED, CLAIMED }
 	uint256 unstakedXSALT;		// the amount of xSALT that was unstaked
 	uint256 claimableSALT;		// claimable SALT at completion time
 	uint256 completionTime;		// the timestamp when the unstake completes
-
-	uint256 unstakeID;				// the unique ID for the unstake
 	}
 
 
@@ -34,9 +32,10 @@ interface IStaking is IStakingRewards
 	function removeVotesAndClaim( bytes32 pool, uint256 amountRemoved ) external;
 
 	// Views
+	function userFreeXSalt( address wallet ) external view returns (uint256);
+
 	function unstakesForUser( address wallet, uint256 start, uint256 end ) external view returns (Unstake[] memory);
 	function unstakesForUser( address wallet ) external view returns (Unstake[] memory);
-	function userFreeXSalt( address wallet ) external view returns (uint256);
 	function userUnstakeIDs( address user ) external view returns (uint256[] memory);
 	function unstakeByID(uint256 id) external view returns (Unstake memory);
 	function calculateUnstake( uint256 unstakedXSALT, uint256 numWeeks ) external view returns (uint256);

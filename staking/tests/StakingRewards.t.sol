@@ -73,8 +73,7 @@ contract SharedRewardsTest is Test, Deployment
 	vm.stopPrank();
 
 	// Check Alice's user share after increasing
-	UserShareInfo memory aliceInfo = stakingRewards.userShareInfoForPool(alice, poolIDs[0]);
-	assertEq(aliceInfo.userShare, 5 ether, "Alice's share should have increased" );
+	assertEq(stakingRewards.userShareForPool(alice, poolIDs[0]), 5 ether, "Alice's share should have increased" );
 
 	// Alice tries to decrease her share by 6 ether, should fail due to exceeding user share
 	vm.expectRevert("Cannot decrease more than existing user share");
@@ -95,8 +94,7 @@ contract SharedRewardsTest is Test, Deployment
 	stakingRewards.externalDecreaseUserShare(alice, poolIDs[0], 4 ether, true);
 
 	// Check Alice's user share after decreasing
-	aliceInfo = stakingRewards.userShareInfoForPool(alice, poolIDs[0]);
-	assertEq(aliceInfo.userShare, 1 ether, "Alice's share should have decreased");
+	assertEq(stakingRewards.userShareForPool(alice, poolIDs[0]), 1 ether, "Alice's share should have decreased");
 	}
 
 
@@ -377,14 +375,21 @@ contract SharedRewardsTest is Test, Deployment
         assertEq(cooldownsAfterWarp[0], halfCooldown, "Cooldown for pool 0 after warp incorrect");
         assertEq(cooldownsAfterWarp[1], halfCooldown, "Cooldown for pool 1 after warp incorrect");
 
+		vm.prank(DEPLOYER);
+		vm.expectRevert( "Must wait for the cooldown to expire" );
+        stakingRewards.externalIncreaseUserShare(alice, poolIDs[0], 10 ether, true);
+
         // Warp time forward to the end of the cooldown
         vm.warp(block.timestamp + halfCooldown);
+
+		vm.prank(DEPLOYER);
+        stakingRewards.externalIncreaseUserShare(alice, poolIDs[0], 10 ether, true);
 
         // Get the final cooldowns for Alice in both pools
         uint256[] memory cooldownsFinal = stakingRewards.userCooldowns(alice, poolIDs);
 
         // Check if the final cooldowns are 0, indicating that the cooldown has expired
-        assertEq(cooldownsFinal[0], 0, "Final cooldown for pool 0 incorrect");
+        assertEq(cooldownsFinal[0], expectedCooldown, "Final cooldown for pool 0 incorrect");
         assertEq(cooldownsFinal[1], 0, "Final cooldown for pool 1 incorrect");
     }
 
@@ -603,19 +608,16 @@ contract SharedRewardsTest is Test, Deployment
     assertEq(poolTotalRewards, 90 ether, "Incorrect total rewards for pool");
 
     // Check Alice's state
-    UserShareInfo memory aliceShareInfo = stakingRewards.userShareInfoForPool(alice,poolIDs[0]);
-    assertEq(aliceShareInfo.userShare, 10 ether, "Incorrect share for Alice");
-    assertEq(aliceShareInfo.virtualRewards, 0, "Incorrect virtual rewards for Alice");
+    assertEq(stakingRewards.userShareForPool(alice,poolIDs[0]), 10 ether, "Incorrect share for Alice");
+//    assertEq(aliceShareInfo.virtualRewards, 0, "Incorrect virtual rewards for Alice");
 
     // Check Bob's state
-    UserShareInfo memory bobShareInfo = stakingRewards.userShareInfoForPool(bob,poolIDs[0]);
-    assertEq(bobShareInfo.userShare, 10 ether, "Incorrect share for Bob");
-    assertEq(bobShareInfo.virtualRewards, 5 ether, "Incorrect virtual rewards for Bob");
+    assertEq(stakingRewards.userShareForPool(bob,poolIDs[0]), 10 ether, "Incorrect share for Bob");
+//    assertEq(bobShareInfo.virtualRewards, 5 ether, "Incorrect virtual rewards for Bob");
 
     // Check Charlie's state
-    UserShareInfo memory charlieShareInfo = stakingRewards.userShareInfoForPool(charlie,poolIDs[0]);
-    assertEq(charlieShareInfo.userShare, 40 ether, "Incorrect share for Charlie");
-    assertEq(charlieShareInfo.virtualRewards, 60 ether, "Incorrect virtual rewards for Charlie");
+    assertEq(stakingRewards.userShareForPool(charlie,poolIDs[0]), 40 ether, "Incorrect share for Charlie");
+//    assertEq(charlieShareInfo.virtualRewards, 60 ether, "Incorrect virtual rewards for Charlie");
 
     // Check pending rewards
 	assertEq( stakingRewards.userPendingReward(alice, poolIDs[0]), 15 ether, "Incorrect pending reward for alice" );

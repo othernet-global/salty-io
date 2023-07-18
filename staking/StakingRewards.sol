@@ -39,7 +39,7 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
     IPoolsConfig public immutable poolsConfig;
 
 	// A nested mapping that stores the UserShareInfo data for each user and each poolID.
-	mapping(address=>mapping(bytes32=>UserShareInfo)) public userPoolInfo;
+	mapping(address=>mapping(bytes32=>UserShareInfo)) private _userShareInfo;
 
     // A mapping that stores the total SALT rewards for each poolID.
     mapping(bytes32=>uint256) public totalRewards;
@@ -74,7 +74,7 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 		require( amountToIncrease != 0, "Cannot increase zero share" );
 		require( exchangeConfig.walletHasAccess(msg.sender), "Sending wallet does not have exchange access" );
 
-		UserShareInfo storage user = userPoolInfo[wallet][poolID];
+		UserShareInfo storage user = _userShareInfo[wallet][poolID];
 
 		if ( useCooldown )
 			require( block.timestamp >= user.cooldownExpiration, "Must wait for the cooldown to expire" );
@@ -112,7 +112,7 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 		{
 		require( amountToDecrease != 0, "Cannot decrease zero share" );
 
-		UserShareInfo storage user = userPoolInfo[wallet][poolID];
+		UserShareInfo storage user = _userShareInfo[wallet][poolID];
 		require( amountToDecrease <= user.userShare, "Cannot decrease more than existing user share" );
 
 		if ( useCooldown )
@@ -159,7 +159,7 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 	// The claimed rewards are added to the user's virtual rewards balance - so that they can't be claimed again later.
      function claimAllRewards( bytes32[] memory poolIDs ) public nonReentrant
     	{
-		mapping(bytes32=>UserShareInfo) storage userInfo = userPoolInfo[msg.sender];
+		mapping(bytes32=>UserShareInfo) storage userInfo = _userShareInfo[msg.sender];
 
     	uint256 sum = 0;
 		for( uint256 i = 0; i < poolIDs.length; i++ )
@@ -257,7 +257,7 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 		if ( totalShares[poolID] == 0 )
 			return 0;
 
-		UserShareInfo memory user = userPoolInfo[wallet][poolID];
+		UserShareInfo memory user = _userShareInfo[wallet][poolID];
 		if ( user.userShare == 0 )
 			return 0;
 
@@ -284,10 +284,17 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 		{
 		shares = new uint256[]( poolIDs.length );
 
-		mapping(bytes32=>UserShareInfo) storage userInfo = userPoolInfo[wallet];
+		mapping(bytes32=>UserShareInfo) storage userInfo = _userShareInfo[wallet];
 
 		for( uint256 i = 0; i < shares.length; i++ )
 			shares[i] = userInfo[ poolIDs[i] ].userShare;
+		}
+
+
+	// Get the user's shares for a specified pool.
+	function userShareForPool( address wallet, bytes32 poolID ) public view returns (uint256)
+		{
+		return _userShareInfo[wallet][poolID].userShare;
 		}
 
 
@@ -296,7 +303,7 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 		{
 		cooldowns = new uint256[]( poolIDs.length );
 
-		mapping(bytes32=>UserShareInfo) storage userInfo = userPoolInfo[wallet];
+		mapping(bytes32=>UserShareInfo) storage userInfo = _userShareInfo[wallet];
 
 		for( uint256 i = 0; i < cooldowns.length; i++ )
 			{
@@ -307,12 +314,5 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 			else
 				cooldowns[i] = cooldownExpiration - block.timestamp;
 			}
-		}
-
-
-	// Return a user's UserShareInfo for a given pool
-	function userShareInfoForPool( address wallet, bytes32 poolID ) public view returns (UserShareInfo memory)
-		{
-		return userPoolInfo[wallet][poolID];
 		}
 	}
