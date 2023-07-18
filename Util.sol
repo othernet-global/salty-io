@@ -7,33 +7,9 @@ import "./pools/interfaces/IPools.sol";
 import "./pools/interfaces/IPoolsConfig.sol";
 
 
+// Convenience functions called from the UI
 contract Util
     {
-	function functionExists( address _contract, string memory _functionName ) public returns (bool)
-		{
-		bytes4 FUNC_SELECTOR = bytes4(keccak256( bytes(_functionName) ));
-
-		bool success;
-		bytes memory data = abi.encodeWithSelector(FUNC_SELECTOR );
-
-		uint256 remainingGas = gasleft();
-
-		assembly {
-			success := call(
-				remainingGas,            // gas remaining
-				_contract,         // destination address
-				0,              // no ether
-				add(data, 32),  // input buffer (starts after the first 32 bytes in the `data` array)
-				mload(data),    // input length (loaded from the first 32 bytes in the `data` array)
-				0,              // output buffer
-				0               // output length
-			)
-		}
-
-		return success;
-	}
-
-
 	function tokenNames( address[] memory tokens ) public view returns (string[] memory)
 		{
 		string[] memory names = new string[]( tokens.length );
