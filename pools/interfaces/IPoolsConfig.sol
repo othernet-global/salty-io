@@ -17,4 +17,5 @@ interface IPoolsConfig
 	function isWhitelisted( bytes32 poolID ) external view returns (bool);
 	function whitelistedPools() external view returns (bytes32[] calldata);
 	function underlyingTokenPair( bytes32 poolID ) external view returns (IERC20 tokenA, IERC20 tokenB);
+	function tokenHasBeenWhitelisted( IERC20 token, IERC20 wbtc, IERC20 weth ) external view returns (bool);
 	}

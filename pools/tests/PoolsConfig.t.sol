@@ -48,6 +48,32 @@ contract PoolsConfigTest is Deployment
 	}
 
 
+	// A unit test that tests maximumWhitelistedPools
+	function testMaximumWhitelistedPools() public {
+	uint256 numWhitelistedPools = poolsConfig.numberOfWhitelistedPools();
+
+	vm.startPrank( DEPLOYER );
+
+	uint256 numToAdd = poolsConfig.maximumWhitelistedPools() - numWhitelistedPools;
+	for( uint256 i = 0; i < numToAdd; i++ )
+		{
+		IERC20 tokenA = new TestERC20(18);
+		IERC20 tokenB = new TestERC20(18);
+
+        poolsConfig.whitelistPool(tokenA, tokenB);
+		}
+
+	(bytes32 poolID,) = PoolUtils.poolID(token1, token3);
+    assertFalse(poolsConfig.isWhitelisted(poolID), "New pool should not be valid yet");
+
+	vm.expectRevert( "Maximum number of whitelisted pools already reached" );
+    poolsConfig.whitelistPool(token1, token3);
+    assertEq( poolsConfig.numberOfWhitelistedPools(), poolsConfig.maximumWhitelistedPools());
+    }
+
+
+
+
 	// A unit test that tests the whitelist function with valid input and confirms if the pool is added to the whitelist.
 	function testWhitelistValidPool() public {
 	vm.startPrank( DEPLOYER );
@@ -102,7 +128,6 @@ contract PoolsConfigTest is Deployment
 	vm.startPrank( DEPLOYER );
 
     // Whitelist another pool
-	(bytes32 poolID,) = PoolUtils.poolID(token1, token3);
     poolsConfig.whitelistPool(token1, token3);
 
     // Test the numberOfWhitelistedPools function
@@ -111,7 +136,6 @@ contract PoolsConfigTest is Deployment
     assertEq(expectedNumberOfWhitelistedPools, actualNumberOfWhitelistedPools);
 
 	// Whitelist the same pool in reverse
-	(poolID,) = PoolUtils.poolID(token3, token1);
     poolsConfig.whitelistPool(token3, token1);
 
     actualNumberOfWhitelistedPools = poolsConfig.numberOfWhitelistedPools();
@@ -120,7 +144,6 @@ contract PoolsConfigTest is Deployment
     // Whitelist another pool
     IERC20 token4 = new TestERC20(18);
 
-	(poolID,) = PoolUtils.poolID(token3, token4);
     poolsConfig.whitelistPool(token3, token4);
 
     expectedNumberOfWhitelistedPools = originalNumWhitelisted + 4;
@@ -181,6 +204,9 @@ contract PoolsConfigTest is Deployment
 
     // Verify whitelisted pools
 	(bytes32 pool1,) = PoolUtils.poolID(token1, token2);
+	(bytes32 pool1b,) = PoolUtils.poolID(token2, token1);
+	assertEq( pool1, pool1b );
+
 	(bytes32 pool2,) = PoolUtils.poolID(token2, token3);
 	(bytes32 extraPool,) = PoolUtils.poolID(token1, token3);
 
@@ -192,16 +218,18 @@ contract PoolsConfigTest is Deployment
     }
 
 
-	// A unit test that tests the functino of underlyingTokenPair
+	// A unit test that tests the function of underlyingTokenPair
 	function testUnderlyingTokenPair() public {
 	vm.startPrank( DEPLOYER );
 
 	// Whitelist a new pool
 	poolsConfig.whitelistPool(token1, token3);
 
-    // Verify whitelisted pools
+    // Verify already whitelisted pools
 	(bytes32 pool1,) = PoolUtils.poolID(token1, token2);
 	(bytes32 pool2,) = PoolUtils.poolID(token2, token3);
+
+	// And the newly whitelisted pool
 	(bytes32 extraPool,) = PoolUtils.poolID(token1, token3);
 
 	(IERC20 tokenA, IERC20 tokenB) = poolsConfig.underlyingTokenPair(pool1);

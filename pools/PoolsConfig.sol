@@ -126,4 +126,18 @@ contract PoolsConfig is IPoolsConfig, Ownable
 
 		return (pair.tokenA, pair.tokenB);
 		}
-    }
+
+
+	// Returns true if the token has been whitelisted (meaning it has been pooled with either WBTC and WETH)
+	function tokenHasBeenWhitelisted( IERC20 token, IERC20 wbtc, IERC20 weth ) public view returns (bool)
+		{
+		// See if the token has been whitelisted with either WBTC or WETH, as all whitelisted tokens are pooled with both WBTC and WETH
+		(bytes32 poolID1,) = PoolUtils.poolID( token, wbtc );
+		(bytes32 poolID2,) = PoolUtils.poolID( token, weth );
+
+		if ( isWhitelisted(poolID1) || isWhitelisted(poolID2) )
+			return true;
+
+		return false;
+		}
+	}

@@ -608,7 +608,8 @@ contract TestPools is Test, Deployment
         vm.expectRevert("Insufficient balance to withdraw specified amount");
         pools.withdraw(token, depositAmount + 1);
 
-        pools.withdraw(token, depositAmount);
+        pools.withdraw(token, depositAmount/2);
+        pools.withdraw(token, depositAmount/2);
 
         // Test failure when trying to withdraw without having any remaining tokens
         vm.expectRevert("Insufficient balance to withdraw specified amount");
@@ -787,7 +788,7 @@ contract TestPools is Test, Deployment
     	IERC20 token0 = tokens[5];
     	IERC20 token1 = tokens[6];
 
-    	// User liquidity is sqrt(amount0 * amount1) and 1000 ether of each token were initially deposited
+    	// User liquidity is sqrt(amount0 * amount1) and 500 ether of each token were initially deposited
     	uint256 userLiquidity = pools.getUserLiquidity(address(DEPLOYER), token0, token1);
     	assertEq(userLiquidity, 500 ether, "User liquidity mismatch");
 
@@ -841,6 +842,9 @@ contract TestPools is Test, Deployment
 
         bytes32 poolID;
         bool flipped;
+
+        (poolID, flipped) = PoolUtils.poolID(IERC20(address(0x111)), IERC20(address(0x222)));
+        assertFalse(flipped, "Expected PoolUtils.poolID to return flipped as false");
 
         (poolID, flipped) = PoolUtils.poolID(IERC20(address(0x222)), IERC20(address(0x111)));
         assertTrue(flipped, "Expected PoolUtils.poolID to return flipped as true");
@@ -1104,6 +1108,8 @@ contract TestPools is Test, Deployment
        	IERC20 token1 = new TestERC20( 18 );
 		poolsConfig.whitelistPool(token0, token1);
 
+		(bytes32 poolID,) = PoolUtils.poolID(token0, token1);
+
 		// alice, bob and charlie initially have 1000 of each token
     	token0.transfer(alice, 1000 ether);
 		token0.transfer(bob, 1000 ether);
@@ -1140,40 +1146,83 @@ contract TestPools is Test, Deployment
 		pools.addLiquidity( token0, token1, 100 ether, 50 ether, 0, block.timestamp );
 
 		uint256 aliceLiquidity = pools.getUserLiquidity( alice, token0, token1 );
+		uint256 bobLiquidity = pools.getUserLiquidity( bob, token0, token1 );
+		uint256 charlieLiquidity = pools.getUserLiquidity( charlie, token0, token1 );
+				
 		vm.prank(alice);
 		pools.removeLiquidity( token0, token1, aliceLiquidity / 2, 0, 0, block.timestamp );
-
+		aliceLiquidity = pools.getUserLiquidity( alice, token0, token1 );
+		bobLiquidity = pools.getUserLiquidity( bob, token0, token1 );
+		charlieLiquidity = pools.getUserLiquidity( charlie, token0, token1 );
+		assertEq( pools.totalLiquidity(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
+		
 		vm.prank(bob);
 		pools.addLiquidity( token0, token1, 600 ether, 300 ether, 0, block.timestamp );
+		aliceLiquidity = pools.getUserLiquidity( alice, token0, token1 );
+		bobLiquidity = pools.getUserLiquidity( bob, token0, token1 );
+		charlieLiquidity = pools.getUserLiquidity( charlie, token0, token1 );
+		assertEq( pools.totalLiquidity(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
 
 		vm.prank(charlie);
 		pools.addLiquidity( token0, token1, 100 ether, 50 ether, 0, block.timestamp );
+		aliceLiquidity = pools.getUserLiquidity( alice, token0, token1 );
+		bobLiquidity = pools.getUserLiquidity( bob, token0, token1 );
+		charlieLiquidity = pools.getUserLiquidity( charlie, token0, token1 );
+		assertEq( pools.totalLiquidity(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
 
-		uint256 bobLiquidity = pools.getUserLiquidity( bob, token0, token1 );
+		bobLiquidity = pools.getUserLiquidity( bob, token0, token1 );
 		vm.prank(bob);
 		pools.removeLiquidity( token0, token1, bobLiquidity, 0, 0, block.timestamp );
+		aliceLiquidity = pools.getUserLiquidity( alice, token0, token1 );
+		bobLiquidity = pools.getUserLiquidity( bob, token0, token1 );
+		charlieLiquidity = pools.getUserLiquidity( charlie, token0, token1 );
+		assertEq( pools.totalLiquidity(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
 
 		vm.prank(alice);
 		pools.addLiquidity( token0, token1, 100 ether, 100 ether, 0, block.timestamp );
+		aliceLiquidity = pools.getUserLiquidity( alice, token0, token1 );
+		bobLiquidity = pools.getUserLiquidity( bob, token0, token1 );
+		charlieLiquidity = pools.getUserLiquidity( charlie, token0, token1 );
+		assertEq( pools.totalLiquidity(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
 
 		vm.prank(bob);
 		pools.addLiquidity( token0, token1, 100 ether, 100 ether, 0, block.timestamp );
+		aliceLiquidity = pools.getUserLiquidity( alice, token0, token1 );
+		bobLiquidity = pools.getUserLiquidity( bob, token0, token1 );
+		charlieLiquidity = pools.getUserLiquidity( charlie, token0, token1 );
+		assertEq( pools.totalLiquidity(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
 
 		vm.prank(charlie);
 		pools.addLiquidity( token0, token1, 100 ether, 50 ether, 0, block.timestamp );
+		aliceLiquidity = pools.getUserLiquidity( alice, token0, token1 );
+		bobLiquidity = pools.getUserLiquidity( bob, token0, token1 );
+		charlieLiquidity = pools.getUserLiquidity( charlie, token0, token1 );
+		assertEq( pools.totalLiquidity(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
 
 		// Remove all liquidity
 		aliceLiquidity = pools.getUserLiquidity( alice, token0, token1 );
 		vm.prank(alice);
 		pools.removeLiquidity( token0, token1, aliceLiquidity, 0, 0, block.timestamp );
+		aliceLiquidity = pools.getUserLiquidity( alice, token0, token1 );
+		bobLiquidity = pools.getUserLiquidity( bob, token0, token1 );
+		charlieLiquidity = pools.getUserLiquidity( charlie, token0, token1 );
+		assertEq( pools.totalLiquidity(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
 
 		bobLiquidity = pools.getUserLiquidity( bob, token0, token1 );
 		vm.prank(bob);
 		pools.removeLiquidity( token0, token1, bobLiquidity, 0, 0, block.timestamp );
+		aliceLiquidity = pools.getUserLiquidity( alice, token0, token1 );
+		bobLiquidity = pools.getUserLiquidity( bob, token0, token1 );
+		charlieLiquidity = pools.getUserLiquidity( charlie, token0, token1 );
+		assertEq( pools.totalLiquidity(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
 
-		uint256 charlieLiquidity = pools.getUserLiquidity( charlie, token0, token1 );
+		charlieLiquidity = pools.getUserLiquidity( charlie, token0, token1 );
 		vm.prank(charlie);
 		pools.removeLiquidity( token0, token1, charlieLiquidity, 0, 0, block.timestamp );
+		aliceLiquidity = pools.getUserLiquidity( alice, token0, token1 );
+		bobLiquidity = pools.getUserLiquidity( bob, token0, token1 );
+		charlieLiquidity = pools.getUserLiquidity( charlie, token0, token1 );
+		assertEq( pools.totalLiquidity(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
 
 		// As there were no swaps the pulled liquidity should result in the original balances
 		assertEq( token0.balanceOf(alice), 1000 ether );
