@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: BSL 1.1
 pragma solidity ^0.8.12;
 
-import "./IDAOConfig.sol";
-import "../../staking/interfaces/IStakingConfig.sol";
-import "../../staking/interfaces/IStakingRewards.sol";
+import "../../openzeppelin/token/ERC20/IERC20.sol";
 
 
 enum Vote { INCREASE, DECREASE, NO_CHANGE, YES, NO }
-
 enum BallotType { PARAMETER, WHITELIST_TOKEN, UNWHITELIST_TOKEN, SEND_SALT, CALL_CONTRACT, INCLUDE_COUNTRY, EXCLUDE_COUNTRY, SET_CONTRACT, SET_WEBSITE_URL, CONFIRM_SET_CONTRACT, CONFIRM_SET_WEBSITE_URL }
+
+struct UserVote
+	{
+	Vote vote;
+	uint256 votingPower;				// Voting power at the time the vote was cast
+	}
 
 struct Ballot
 	{
@@ -29,23 +32,32 @@ struct Ballot
 
 interface IProposals
 	{
-	function proposeParameterBallot( string memory ballotName, uint256 parameterType ) external;
-	function proposeTokenWhitelisting( string memory ballotName, address token, string memory tokenIconURL, string calldata tokenDescription ) external;
-	function proposeTokenUnwhitelisting( string memory ballotName, address token, string memory tokenIconURL, string calldata tokenDescription ) external;
-	function proposeSendSALT( string memory ballotName, address wallet, uint256 amount ) external;
-	function proposeCallContract( string memory ballotName, address contractAddress, uint256 number ) external;
-	function proposeCountryInclusion( string memory ballotName, string calldata country ) external;
-	function proposeCountryExclusion( string memory ballotName, string calldata country ) external;
-	function proposeSetContractAddress( string memory ballotName, address newAddress ) external;
-	function proposeWebsiteUpdate( string memory ballotName, string memory newWebsiteURL ) external;
+	function createConfirmationProposal( string calldata ballotName, BallotType ballotType, address address1, string memory string1 ) external;
+	function markBallotAsFinalized( uint256 ballotID ) external;
 
+	function proposeParameterBallot( uint256 parameterType ) external;
+	function proposeTokenWhitelisting( IERC20 token, string calldata tokenIconURL, string calldata tokenDescription ) external;
+	function proposeTokenUnwhitelisting( IERC20 token, string calldata tokenIconURL, string calldata tokenDescription ) external;
+	function proposeSendSALT( address wallet, uint256 amount ) external;
+	function proposeCallContract( address contractAddress, uint256 number ) external;
+	function proposeCountryInclusion( string calldata country ) external;
+	function proposeCountryExclusion( string calldata country ) external;
+	function proposeSetContractAddress( string calldata contractName, address newAddress ) external;
+	function proposeWebsiteUpdate( string calldata newWebsiteURL ) external;
 	function castVote( uint256 ballotID, Vote vote ) external;
-	function ballotForID( uint256 ballotID ) external view returns (Ballot memory);
+
+	// Views
+	function nextBallotID() external returns (uint256);
+	function openBallotsByName( string calldata name ) external returns (uint256);
+	function lastUserVoteForBallot( uint256 ballotID, address user ) external view returns (UserVote memory);
+	function votesCastForBallot( uint256 ballotID, Vote vote ) external view returns (uint256);
+
+	function ballotForID( uint256 ballotID ) external view returns (Ballot calldata);
 	function requiredQuorumForBallotType( BallotType ballotType ) external view returns (uint256);
 	function totalVotesCastForBallot( uint256 ballotID ) external view returns (uint256);
+	function ballotIsApproved( uint256 ballotID ) external view returns (bool);
+	function winningParameterVote( uint256 ballotID ) external view returns (Vote);
 	function canFinalizeBallot( uint256 ballotID ) external view returns (bool);
 	function numberOfOpenBallotsForTokenWhitelisting() external view returns (uint256);
 	function tokenWhitelistingBallotWithTheMostVotes() external view returns (uint256);
-
-	function tokenHasBeenWhitelisted( address token ) external returns (bool);
 	}

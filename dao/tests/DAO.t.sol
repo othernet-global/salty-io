@@ -7,25 +7,13 @@
 //import "../../Deployment.sol";
 //
 //
-//contract TestDAO is DAO, Test, Deployment
+//contract TestDAO is DAO, Test
 //	{
-//	IStakingConfig public _stakingConfig = IStakingConfig(address(new StakingConfig(IERC20(address(new Salt())))));
-//
-//	IAccessManager public accessManager = IAccessManager(new TestAccessManager());
-//	IDAOConfig public _daoConfig = new DAOConfig();
-//    Staking public _staking = new Staking(_stakingConfig,_exchangeConfig);
-//	IPOL_Optimizer public constant polOptimizer = IPOL_Optimizer(address(0x8888));
-//
-//	IRewardsConfig public _rewardsConfig = new RewardsConfig();
-//	IStableConfig public _stableConfig = new StableConfig(IPriceFeed(address(_forcedPriceFeed)));
-//	Liquidity public _liquidity = new Liquidity(_stakingConfig,_exchangeConfig);
-//	RewardsEmitter public _liquidityRewardsEmitter = new RewardsEmitter(_rewardsConfig, _stakingConfig, _liquidity );
-//
-//	IUniswapV2Pair public _collateralLP = IUniswapV2Pair( _factory.getPair( address(_wbtc), address(_weth) ));
-//
 //	// User wallets for testing
 //    address public constant alice = address(0x1111);
 //    address public constant bob = address(0x2222);
+//
+//	Deployment public deployment = new Deployment();
 //
 //
 //	constructor()
@@ -119,8 +107,8 @@
 //
 //        _performUpkeep();  // No reverts expected with zero balances
 //
-//        assertEq(_liquidity.userShareInfoForPool(address(this), pools[0]).userShare, 0, "Staked balance in pool 0 should be zero");
-//        assertEq(_liquidity.userShareInfoForPool(address(this), pools[1]).userShare, 0, "Staked balance in pool 1 should be zero");
+//        assertEq(_liquidity.userShareForPool(address(this), pools[0]).userShare, 0, "Staked balance in pool 0 should be zero");
+//        assertEq(_liquidity.userShareForPool(address(this), pools[1]).userShare, 0, "Staked balance in pool 1 should be zero");
 //
 //        // Send some of the fake LP to this contract
 //        vm.startPrank( DEV_WALLET );
@@ -133,8 +121,8 @@
 //
 //        _performUpkeep();  // No reverts expected with non-zero balances
 //
-//        assertEq(_liquidity.userShareInfoForPool(address(this), pools[0]).userShare, 1000 ether, "Staked balance in pool 0 should be 1000 ether");
-//        assertEq(_liquidity.userShareInfoForPool(address(this), pools[1]).userShare, 2000 ether, "Staked balance in pool 1 should be 2000 ether");
+//        assertEq(_liquidity.userShareForPool(address(this), pools[0]).userShare, 1000 ether, "Staked balance in pool 0 should be 1000 ether");
+//        assertEq(_liquidity.userShareForPool(address(this), pools[1]).userShare, 2000 ether, "Staked balance in pool 1 should be 2000 ether");
 //    }
 //
 //
@@ -306,5 +294,7 @@
 //	// A unit test to verify the ability to create and manipulate ballots, with special attention given to the creation of different ballot types and updating vote counts.
 //	// A unit test to examine the contract with different users to simulate a real-world situation, including testing voting from multiple addresses and verifying accurate summing of vote counts.
 //	// A unit test to attempt various attacks on the contract, including testing if a user can vote more than once on a ballot, vote without sufficient balance, or manipulate the result of a vote, assessing the contract's security robustness.
+// // A unit test which checks that you can still see ballots after they are finalized
+// // A unit test that checks that finalized token whitelisting proposals are removed from the open token whitelisting proposals list
 //    }
 //
