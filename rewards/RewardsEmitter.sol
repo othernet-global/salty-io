@@ -23,10 +23,6 @@ contract RewardsEmitter is Upkeepable, IRewardsEmitter
     {
 	using SafeERC20 for ISalt;
 
-    // The stored SALT rewards by poolID that need to be distributed to the specified StakingRewards.sol contract.
-    // Only a percentage of these will be distributed per day (interpolated to a default of 1% per day).
-   	mapping(bytes32=>uint256) public pendingRewards;
-
 	IStakingRewards public stakingRewards;
 
 	IPoolsConfig public poolsConfig;
@@ -34,6 +30,10 @@ contract RewardsEmitter is Upkeepable, IRewardsEmitter
 	IRewardsConfig public rewardsConfig;
 
 	ISalt public salt;
+
+    // The stored SALT rewards by poolID that need to be distributed to the specified StakingRewards.sol contract.
+    // Only a percentage of these will be distributed per day (interpolated to a default of 1% per day).
+   	mapping(bytes32=>uint256) public pendingRewards;
 
 
     constructor( IStakingRewards _stakingRewards, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IRewardsConfig _rewardsConfig )

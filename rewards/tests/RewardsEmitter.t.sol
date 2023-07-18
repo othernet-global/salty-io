@@ -491,8 +491,8 @@ contract TestRewardsEmitter is Test, Deployment
         Upkeepable(address(liquidityRewardsEmitter)).performUpkeep();
 		uint256 rewards1 = pendingLiquidityRewardsForPool(poolIDs[0]);
 
-		console.log( " (rewards0 - 1000 ether): ",  1000 ether - rewards0 );
-		console.log( " (rewards1 - rewards0): ",  rewards0 - rewards1 );
+//		console.log( " (rewards0 - 1000 ether): ",  1000 ether - rewards0 );
+//		console.log( " (rewards1 - rewards0): ",  rewards0 - rewards1 );
 
 		assertTrue( (rewards0 - rewards1) > (1000 ether - rewards0), "Distributed rewards should have increased" );
 

@@ -3,6 +3,7 @@ pragma solidity ^0.8.12;
 
 import "../Upkeepable.sol";
 import "../staking/interfaces/IStaking.sol";
+import "../staking/interfaces/IStakingConfig.sol";
 import "../pools/interfaces/IPoolsConfig.sol";
 import "../rewards/interfaces/IRewardsEmitter.sol";
 import "../interfaces/ISalt.sol";
@@ -16,9 +17,8 @@ import "../interfaces/IExchangeConfig.sol";
 contract Emissions is Upkeepable
     {
 	IStaking public staking;
-	IRewardsEmitter public stakingRewardsEmitter;
-	IRewardsEmitter public liquidityRewardsEmitter;
 
+	IExchangeConfig public exchangeConfig;
 	IStakingConfig public stakingConfig;
 	IPoolsConfig public poolsConfig;
 	IRewardsConfig public rewardsConfig;
@@ -29,11 +29,9 @@ contract Emissions is Upkeepable
 	bytes32 public constant STAKED_SALT = bytes32(uint256(0));
 
 
-    constructor( IStaking _staking, IRewardsEmitter _stakingRewardsEmitter, IRewardsEmitter _liquidityRewardsEmitter, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IRewardsConfig _rewardsConfig )
+    constructor( IStaking _staking, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IRewardsConfig _rewardsConfig )
 		{
 		require( address(_staking) != address(0), "_staking cannot be address(0)" );
-		require( address(_stakingRewardsEmitter) != address(0), "_stakingRewardsEmitter cannot be address(0)" );
-		require( address(_liquidityRewardsEmitter) != address(0), "_liquidityRewardsEmitter cannot be address(0)" );
 
 		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
 		require( address(_poolsConfig) != address(0), "_poolsConfig cannot be address(0)" );
@@ -41,17 +39,14 @@ contract Emissions is Upkeepable
 		require( address(_rewardsConfig) != address(0), "_rewardsConfig cannot be address(0)" );
 
 		staking = _staking;
-		stakingRewardsEmitter = _stakingRewardsEmitter;
-		liquidityRewardsEmitter = _liquidityRewardsEmitter;
 
+		exchangeConfig = _exchangeConfig;
 		stakingConfig = _stakingConfig;
 		poolsConfig = _poolsConfig;
 		rewardsConfig = _rewardsConfig;
 
-		// Approve SALT so rewards can be added to the rewardEmitters from this contract
+		// Cached for efficiency
 		salt = _exchangeConfig.salt();
-		salt.approve( address(stakingRewardsEmitter), type(uint256).max );
-		salt.approve( address(liquidityRewardsEmitter), type(uint256).max );
 		}
 
 
@@ -73,15 +68,21 @@ contract Emissions is Upkeepable
 			return;
 
 		// Send the specified amountToSend SALT proportional to the votes received by each pool
+		uint256 totalRewards;
+
 		AddedReward[] memory addedRewards = new AddedReward[]( votesForPools.length );
 		for( uint256 i = 0; i < addedRewards.length; i++ )
 			{
 			uint256 rewardsForPool = ( amountToSend * votesForPools[i] ) / totalPoolVotes;
+			totalRewards += rewardsForPool;
 
 			addedRewards[i] = AddedReward( pools[i], rewardsForPool );
 			}
 
 		// Send the SALT rewards to the LiquidityRewardsEmitter for the liquidity providers
+		IRewardsEmitter liquidityRewardsEmitter = exchangeConfig.liquidityRewardsEmitter();
+		salt.approve( address(liquidityRewardsEmitter), totalRewards );
+
 		liquidityRewardsEmitter.addSALTRewards( addedRewards );
 		}
 
@@ -113,6 +114,9 @@ contract Emissions is Upkeepable
 		// Send SALT rewards to the stakingRewardsEmitter
 		AddedReward[] memory addedRewards = new AddedReward[](1);
 		addedRewards[0] = AddedReward( STAKED_SALT, xsaltHoldersAmount );
+
+		IRewardsEmitter stakingRewardsEmitter = exchangeConfig.stakingRewardsEmitter();
+		salt.approve( address(stakingRewardsEmitter), xsaltHoldersAmount );
 		stakingRewardsEmitter.addSALTRewards( addedRewards );
 
 		// Send the remaining SALT rewards to the liquidity providers (proportional to the votes received by each pool)

@@ -25,7 +25,7 @@ contract TestEmissions is Test, Deployment
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 			{
 			vm.prank(DEPLOYER);
-			emissions = new Emissions(staking, stakingRewardsEmitter, liquidityRewardsEmitter, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig );
+			emissions = new Emissions(staking, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig );
 			}
 
     	vm.startPrank( DEPLOYER );
@@ -79,13 +79,6 @@ contract TestEmissions is Test, Deployment
 
 		return stakingRewardsEmitter.pendingRewardsForPools( pools )[0];
 		}
-
-
-	// A unit test to ensure that the constructor correctly approves the maximum amount of SALT tokens for the stakingRewardsEmitter and liquidityRewardsEmitter.
-	function testConstructorApprovals() public {
-    assertEq(salt.allowance(address(emissions), address(stakingRewardsEmitter)), type(uint256).max);
-    assertEq(salt.allowance(address(emissions), address(liquidityRewardsEmitter)), type(uint256).max);
-    }
 
 
 	// A unit test to check the performUpkeepForLiquidityHolderEmissions function when there are multiple whitelisted pools with different shares. Verify that the amount of SALT tokens sent to each RewardsEmitter is proportional to the votes received by each pool.
