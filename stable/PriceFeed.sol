@@ -21,6 +21,7 @@ contract PriceFeed is IPriceFeed
 	// If this restriction needs to be changed then a whole new PriceFeed should be used and StableConfig.setPriceFeed() used
 	uint256 public constant MINIMUM_PERCENT_DIFF_FOR_CHAINLINK_ONLY_PRICE_TIMES_1000 = 3000;
 
+	// https://docs.chain.link/data-feeds/price-feeds/addresses
 	address public CHAINLINK_BTC_USD;
     address public CHAINLINK_ETH_USD;
 

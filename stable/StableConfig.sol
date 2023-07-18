@@ -8,7 +8,7 @@ import "./interfaces/IStableConfig.sol";
 // Contract owned by the DAO with parameters modifiable only by the DAO
 contract StableConfig is IStableConfig, Ownable
     {
-	// @dev Interface for the price feed that provides prices for both BTC and ETH
+	// Interface for the price feed that provides prices for both BTC and ETH
 	IPriceFeed public priceFeed;
 
 	// The reward (in collateraLP) that a user receives for instigating the liquidation process - as a percentage
@@ -37,24 +37,21 @@ contract StableConfig is IStableConfig, Ownable
 	uint256 public minimumCollateralRatioPercent = 110;
 
 	// The maximum allowable slippage when converting WBTC or WETH to USDS after liquidation
-	// Range: .50% to 5% with an adjust of .50%
+	// Range: .50% to 5% with an adjustment of .50%
 	uint256 public maximumLiquidationSlippagePercentTimes1000 = 1 * 1000;
 
 	// In USDS.performUpkeep, the percent of WBTC or WETH that is swapped for USDS (which is then burned)
-	// Range: 1 to 10%
+	// Range: 1 to 10% with an adjustment of 1%
 	uint256 public percentSwapToUSDS = 5;
 
 
-	// @dev Constructs the StableConfig contract with the specified price feed.
-	// @param _priceFeed The price feed that provides prices for both BTC and ETH.
 	constructor( IPriceFeed _priceFeed )
 		{
 		setPriceFeed( _priceFeed );
 		}
 
 
-	// @dev Sets the price feed that provides prices for both BTC and ETH.
-	// @param _priceFeed The address of the new price feed contract.
+	// Sets the price feed that provides prices for both BTC and ETH.
 	function setPriceFeed( IPriceFeed _priceFeed ) public onlyOwner
 		{
 		require( address(_priceFeed) != address(0), "Cannot specify a null PriceFeed" );

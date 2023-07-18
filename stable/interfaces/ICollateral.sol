@@ -20,15 +20,17 @@ interface ICollateral is IStakingRewards
 	function liquidateUser( address wallet ) external;
 
 	// Views
-	function usersBorrowedUSDS( address wallet ) external view returns (uint256);
+	function usdsBorrowedByUsers( address wallet ) external view returns (uint256);
 
 	function maxWithdrawableCollateral( address wallet ) external view returns (uint256);
 	function maxBorrowableUSDS( address wallet ) external view returns (uint256);
 	function numberOfUsersWithBorrowedUSDS() external view returns (uint256);
 	function canUserCanBeLiquidated( address wallet ) external view returns (bool);
 	function findLiquidatableUsers( uint256 startIndex, uint256 endIndex ) external view returns (address[] calldata);
-	function findLiquidatablePositions() external view returns (address[] calldata);
+	function findLiquidatableUsers() external view returns (address[] calldata);
+
 	function underlyingTokenValueInUSD( uint256 amountBTC, uint256 amountETH ) external view returns (uint256);
-	function collateralValue( uint256 collateralAmount ) external view returns (uint256);
+	function collateralValueInUSD( uint256 collateralAmount ) external view returns (uint256);
+	function totalCollateralValueInUSD() external view returns (uint256);
 	function userCollateralValueInUSD( address wallet ) external view returns (uint256);
 	}

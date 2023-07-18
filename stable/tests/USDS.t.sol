@@ -4,6 +4,7 @@ pragma solidity ^0.8.12;
 import "forge-std/Test.sol";
 import "../USDS.sol";
 import "../../Deployment.sol";
+import "./IForcedPriceFeed.sol";
 
 
 contract USDSTest is Test, Deployment
@@ -469,8 +470,11 @@ contract USDSTest is Test, Deployment
     		IPriceFeed priceFeed = stableConfig.priceFeed();
 
     		// Skew the BTC price so that the swap fails
-    		uint256 btcPrice = priceFeed.getPriceBTC() - priceFeed.getPriceBTC() * 2 / 100;
-            uint256 ethPrice = priceFeed.getPriceETH() - priceFeed.getPriceETH() * 2 / 100;
+    		uint256 btcPrice0 = priceFeed.getPriceBTC();
+			uint256 ethPrice0 = priceFeed.getPriceETH();
+
+    		uint256 btcPrice = btcPrice0 - btcPrice0 * 11 / 1000;
+            uint256 ethPrice = ethPrice0 - ethPrice0 * 11 / 1000;
 
             // Set up USDS.usdsToBurn
             vm.prank(address(collateral));
@@ -506,6 +510,19 @@ contract USDSTest is Test, Deployment
             usds.performUpkeep();
 
             assertEq( initialTotalSupply, usds.totalSupply(), "USDS should not have been burned on performUpkeep()" );
+
+
+            // Align the prices to reduce slippage below 1%
+    		btcPrice = btcPrice0 - btcPrice0 * 7 / 1000;
+            ethPrice = ethPrice0 - ethPrice0 * 7 / 1000;
+
+			vm.startPrank(DEPLOYER);
+            IForcedPriceFeed(address(priceFeed)).setBTCPrice( btcPrice );
+            IForcedPriceFeed(address(priceFeed)).setETHPrice( ethPrice );
+            vm.stopPrank();
+
+            usds.performUpkeep();
+            assertTrue( initialTotalSupply != usds.totalSupply(), "USDS should have been burned" );
         }
 
 
@@ -553,8 +570,10 @@ contract USDSTest is Test, Deployment
         uint256 initialTotalSupply = usds.totalSupply();
         usds.performUpkeep();
 
-		// Check that 5% of the WBTC and WETH in the contract was converted to USDS
+		// Check that 5% (percentSwapToUSDS) of the WBTC and WETH in the contract was converted to USDS
         uint256 usdsBurned = initialTotalSupply - usds.totalSupply();
+
+        // Convert to 18 decimals (wbtcDeposit has 8 decimals and wethDeposit has 18 decimals)
 		uint256 shouldHaveBurned = ( wbtcDeposit * 5 / 100 ) * btcPrice / 10**8 + ( wethDeposit * 5 / 100 ) * ethPrice / 10**18;
 
 		// Check usdsBurned is correct within .10%
@@ -681,7 +700,6 @@ contract USDSTest is Test, Deployment
 
 
 	//	A unit test that passes a random address to setPools. This test should validate that only the correct address can set the pools.
-	// A unit test that passes a random address to setPools. This test should validate that only the correct address can set the pools.
     function testSetPoolsOnlyOwner() public {
         address firstAddress = address(0x5555);
         address secondAddress = address(0x6666);

@@ -21,9 +21,6 @@ contract USDS is ERC20, IUSDS, Upkeepable
     IERC20 public wbtc;
     IERC20 public weth;
 
-    uint256 public wbtcDecimals;
-    uint256 public wethDecimals;
-
     ICollateral public collateral;
     IPools public pools;
 
@@ -31,6 +28,9 @@ contract USDS is ERC20, IUSDS, Upkeepable
 	// Because liquidated collateral no longer exists the borrowed USDS needs to be burned as well in order to
 	// "undo" the collateralized position and return state back to where it was before the user deposited collateral and borrowed USDS.
 	uint256 public usdsThatShouldBeBurned;
+
+    uint256 public wbtcDecimals;
+    uint256 public wethDecimals;
 
 
 	constructor( IStableConfig _stableConfig, IERC20 _wbtc, IERC20 _weth )
@@ -106,7 +106,7 @@ contract USDS is ERC20, IUSDS, Upkeepable
 		// Determine the minimum expected USDS based on the PriceFeed price
 		// USDS has 18 decimals and PriceFeed report prices in 18 decimals so divide by tokenDecimals
 		uint256 amountOutBasedOnPriceFeed = amountToSwap * priceFeedTokenPrice / 10**tokenDecimals;
-		uint256 minimumOut = amountOutBasedOnPriceFeed * ( 100 * 1000 - maximumLiquidationSlippagePercentTimes1000 ) / (100*1000);
+		uint256 minimumOut = ( amountOutBasedOnPriceFeed * ( 100 * 1000 - maximumLiquidationSlippagePercentTimes1000 ) ) / (100*1000);
 
 		// Check that the required amountOut will be returned before trying to swap (to avoid the revert on failure)
 		IERC20[] memory tokens = new IERC20[](2);
