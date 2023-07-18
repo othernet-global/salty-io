@@ -3,6 +3,7 @@ pragma solidity ^0.8.12;
 
 import "./openzeppelin/access/Ownable.sol";
 import "./interfaces/IExchangeConfig.sol";
+import "./rewards/interfaces/IRewardsEmitter.sol";
 
 
 // Contract owned by the DAO with parameters modifiable only by the DAO
@@ -21,9 +22,11 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 	// Automatic Atomic Arbitrage
 	IAAA public aaa;
 
-	// The optimizer is sent WETH and forms Protocol Owned Liquidity on performUpkeep().
-	// Whichever liquidity offers highest yield at the time of upkeep is the one that is formed.
-	IPOL_Optimizer public optimizer;
+	// The rewards emitters
+	IRewardsEmitter public stakingRewardsEmitter;
+	IRewardsEmitter public liquidityRewardsEmitter;
+	IRewardsEmitter public collateralRewardsEmitter;
+
 
 	// The contract that determines where or not a given wallet is given access to the exchange.
 	// Defaults to a simple AccessManager in which a user has access if their country is not only the DAO-controlled list of excluded countries.
@@ -73,11 +76,27 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 		}
 
 
-	function setOptimizer( IPOL_Optimizer _optimizer ) public onlyOwner
+	function setStakingRewardsEmitter( IRewardsEmitter _rewardsEmitter ) public onlyOwner
 		{
-		require( address(_optimizer) != address(0), "_optimizer cannot be address(0)" );
+		require( address(_rewardsEmitter) != address(0), "_rewardsEmitter cannot be address(0)" );
 
-		optimizer = _optimizer;
+		stakingRewardsEmitter = _rewardsEmitter;
+		}
+
+
+	function setLiquidityRewardsEmitter( IRewardsEmitter _rewardsEmitter ) public onlyOwner
+		{
+		require( address(_rewardsEmitter) != address(0), "_rewardsEmitter cannot be address(0)" );
+
+		liquidityRewardsEmitter = _rewardsEmitter;
+		}
+
+
+	function setCollateralRewardsEmitter( IRewardsEmitter _rewardsEmitter ) public onlyOwner
+		{
+		require( address(_rewardsEmitter) != address(0), "_rewardsEmitter cannot be address(0)" );
+
+		collateralRewardsEmitter = _rewardsEmitter;
 		}
 
 
@@ -86,8 +105,6 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 		{
 		// These protocol components will need access to the exchange contracts
 		if ( wallet == address(dao) )
-			return true;
-		if ( wallet == address(optimizer) )
 			return true;
 		if ( wallet == address(aaa) )
 			return true;
