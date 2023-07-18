@@ -9,9 +9,6 @@
 //
 //contract AAA is IAAA
 //    {
-//    IRewardsEmitter public liquidityRewardsEmitter;
-//    IRewardsEmitter public stakingRewardsEmitter;
-//    IRewardsEmitter public collateralRewardsEmitter;
 //    IPOL_Optimizer public optimizer;
 //
 //
