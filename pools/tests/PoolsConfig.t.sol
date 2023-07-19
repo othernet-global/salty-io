@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: BSL 1.1
 pragma solidity ^0.8.12;
 
+import "forge-std/Test.sol";
 import "../../Deployment.sol";
 import "../../root_tests/TestERC20.sol";
 import "../PoolsConfig.sol";
 import "../PoolUtils.sol";
 
 
-contract PoolsConfigTest is Deployment
+contract PoolsConfigTest is Deployment, Test
 	{
 	IERC20 public token1 = new TestERC20(18);
 	IERC20 public token2 = new TestERC20(18);
@@ -22,7 +23,7 @@ contract PoolsConfigTest is Deployment
 		// Otherwise, what is tested is the actual deployed contract on the blockchain (as specified in Deployment.sol)
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 			{
-			vm.prank(DEPLOYER);
+			vm.prank(address(dao));
 			poolsConfig = new PoolsConfig();
 			}
 		}
@@ -30,7 +31,7 @@ contract PoolsConfigTest is Deployment
 
     function setUp() public
     	{
-    	vm.startPrank( DEPLOYER );
+    	vm.startPrank( address(dao) );
 
 		originalNumWhitelisted = poolsConfig.numberOfWhitelistedPools();
 
@@ -52,7 +53,7 @@ contract PoolsConfigTest is Deployment
 	function testMaximumWhitelistedPools() public {
 	uint256 numWhitelistedPools = poolsConfig.numberOfWhitelistedPools();
 
-	vm.startPrank( DEPLOYER );
+	vm.startPrank( address(dao) );
 
 	uint256 numToAdd = poolsConfig.maximumWhitelistedPools() - numWhitelistedPools;
 	for( uint256 i = 0; i < numToAdd; i++ )
@@ -76,7 +77,7 @@ contract PoolsConfigTest is Deployment
 
 	// A unit test that tests the whitelist function with valid input and confirms if the pool is added to the whitelist.
 	function testWhitelistValidPool() public {
-	vm.startPrank( DEPLOYER );
+	vm.startPrank( address(dao) );
 
 	(bytes32 poolID,) = PoolUtils.poolID(token1, token3);
     assertFalse(poolsConfig.isWhitelisted(poolID), "New pool should not be valid yet");
@@ -88,7 +89,7 @@ contract PoolsConfigTest is Deployment
 
 	// A unit test that tests the whitelist function with an invalid input
 	function testWhitelistInvalidPool() public {
-	vm.startPrank( DEPLOYER );
+	vm.startPrank( address(dao) );
 
 	(bytes32 poolID,) = PoolUtils.poolID(token1, token1);
     assertFalse(poolsConfig.isWhitelisted(poolID), "New pool should not be valid yet");
@@ -102,7 +103,7 @@ contract PoolsConfigTest is Deployment
 
 	// A unit test that tests the unwhitelist function with valid input and ensures the pool is removed from the whitelist.
 	function testUnwhitelistValidPool() public {
-	vm.startPrank( DEPLOYER );
+	vm.startPrank( address(dao) );
 
     // Whitelist another pool for testing unwhitelist
 	(bytes32 poolID,) = PoolUtils.poolID(token1, token3);
@@ -125,7 +126,7 @@ contract PoolsConfigTest is Deployment
 
     // A unit test that tests the numberOfWhitelistedPools function and confirms if it returns the correct number of whitelisted pools.
 	function testNumberOfWhitelistedPools() public {
-	vm.startPrank( DEPLOYER );
+	vm.startPrank( address(dao) );
 
     // Whitelist another pool
     poolsConfig.whitelistPool(token1, token3);
@@ -154,7 +155,7 @@ contract PoolsConfigTest is Deployment
 
     // A unit test that tests the whitelistedPoolAtIndex function and verifies if it returns the correct pool at the given index.
     function testWhitelistedPoolAtIndex() public {
-	vm.startPrank( DEPLOYER );
+	vm.startPrank( address(dao) );
 
     bytes32 poolAtIndex0 = poolsConfig.whitelistedPoolAtIndex(originalNumWhitelisted + 0);
     (bytes32 expectedIndex0,) = PoolUtils.poolID(token1, token2);
@@ -168,7 +169,7 @@ contract PoolsConfigTest is Deployment
 
     // A unit test that tests the isWhitelisted function with valid and invalid pools and confirms if it returns the correct boolean value for each case.
 	function testIsValidPool() public {
-		vm.startPrank( DEPLOYER );
+		vm.startPrank( address(dao) );
 
         // Whitelist a new pool
     	poolsConfig.whitelistPool(token1, token3);
@@ -189,7 +190,7 @@ contract PoolsConfigTest is Deployment
 
 	// A unit test that tests the whitelistedPools function and ensures if it returns the correct list of whitelisted pools.
 	function testWhitelistedPools() public {
-	vm.startPrank( DEPLOYER );
+	vm.startPrank( address(dao) );
 
     // Check initial state
     uint256 initialPoolCount = poolsConfig.numberOfWhitelistedPools();
@@ -220,7 +221,7 @@ contract PoolsConfigTest is Deployment
 
 	// A unit test that tests the function of underlyingTokenPair
 	function testUnderlyingTokenPair() public {
-	vm.startPrank( DEPLOYER );
+	vm.startPrank( address(dao) );
 
 	// Whitelist a new pool
 	poolsConfig.whitelistPool(token1, token3);

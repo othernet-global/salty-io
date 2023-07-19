@@ -43,9 +43,12 @@ contract TestRewardsEmitter is Test, Deployment
         poolIDs[1] = pool2;
 
         // Whitelist
-        vm.startPrank(DEPLOYER);
+        vm.startPrank(address(dao));
         poolsConfig.whitelistPool(token1, token2);
         poolsConfig.whitelistPool(token2, token3);
+        vm.stopPrank();
+
+        vm.startPrank(DEPLOYER);
         salt.transfer(address(this), 100000 ether);
         salt.approve(address(liquidityRewardsEmitter), type(uint256).max);
         vm.stopPrank();
@@ -102,7 +105,7 @@ contract TestRewardsEmitter is Test, Deployment
 		vm.stopPrank();
 
 		// Increase rewardsEmitterDailyPercent to 2.5% for testing
-		vm.startPrank(DEPLOYER);
+		vm.startPrank(address(dao));
 		for ( uint256 i = 0; i < 6; i++ )
 			rewardsConfig.changeRewardsEmitterDailyPercent(true);
 		vm.stopPrank();
@@ -455,7 +458,7 @@ contract TestRewardsEmitter is Test, Deployment
     function testChangeRewardsEmitterDailyPercent() public
     {
         // Lower the daily percent to 1%
-        vm.startPrank(DEPLOYER);
+        vm.startPrank(address(dao));
         for( uint256 i = 0; i < 6; i++ )
 	        rewardsConfig.changeRewardsEmitterDailyPercent(false);
         vm.stopPrank();
@@ -479,7 +482,7 @@ contract TestRewardsEmitter is Test, Deployment
         uint256 oldDailyPercent = rewardsConfig.rewardsEmitterDailyPercentTimes1000();
 
         // Change daily rewards percent
-        vm.startPrank(DEPLOYER);
+        vm.startPrank(address(dao));
         for( uint256 i = 0; i < 6; i++ )
 	        rewardsConfig.changeRewardsEmitterDailyPercent(true);
         vm.stopPrank();

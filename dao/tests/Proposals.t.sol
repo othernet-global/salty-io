@@ -56,6 +56,11 @@ contract TestProposals is Test, Deployment
 			usds.setCollateral( collateral );
 
 			proposals = new Proposals( staking, exchangeConfig, poolsConfig, stakingConfig, daoConfig );
+
+			// Transfer ownership of the config files to the DAO
+			Ownable(address(exchangeConfig)).transferOwnership( address(dao) );
+			Ownable(address(poolsConfig)).transferOwnership( address(dao) );
+
 			vm.stopPrank();
 			}
 
@@ -105,7 +110,7 @@ contract TestProposals is Test, Deployment
         assertEq(proposals.openBallotsByName(ballotName), 0);
 
         // Call proposeParameterBallot
-        proposals.proposeParameterBallot(1);
+        proposals.proposeParameterBallot(1, "description" );
 
         // Check that the next ballot ID has been incremented
         assertEq(proposals.nextBallotID(), initialNextBallotId + 1);
@@ -124,7 +129,7 @@ contract TestProposals is Test, Deployment
         assertEq(ballot.address1, address(0));
         assertEq(ballot.number1, 1);
         assertEq(ballot.string1, "");
-        assertEq(ballot.string2, "");
+        assertEq(ballot.description, "description");
         assertEq(ballot.ballotMinimumEndTime, block.timestamp + daoConfig.ballotDuration());
     }
 
@@ -135,17 +140,17 @@ contract TestProposals is Test, Deployment
         vm.startPrank(DEPLOYER);
 
         // Proposing a ParameterBallot for the first time
-        proposals.proposeParameterBallot(1);
+        proposals.proposeParameterBallot(1, "description" );
 
         // Trying to propose the same ballot name again should fail
         vm.expectRevert("Cannot create a proposal similar to a ballot that is still open" );
-        proposals.proposeParameterBallot(1);
+        proposals.proposeParameterBallot(1, "description" );
         vm.stopPrank();
 
 		// Make sure another user can't recreate the same ballot either
 		vm.prank(alice);
         vm.expectRevert("Cannot create a proposal similar to a ballot that is still open" );
-        proposals.proposeParameterBallot(1);
+        proposals.proposeParameterBallot(1, "description" );
 
 		vm.prank(alice);
     	staking.stakeSALT( 1000000 ether ); // Default minimum quorum is 1 million
@@ -170,7 +175,7 @@ contract TestProposals is Test, Deployment
 
         // Trying to propose for the already open (but finalized) ballot should succeed
         vm.prank( DEPLOYER );
-        proposals.proposeParameterBallot(1);
+        proposals.proposeParameterBallot(1, "description" );
     }
 
 
@@ -191,11 +196,11 @@ contract TestProposals is Test, Deployment
         vm.warp(block.timestamp + 10 days); // warp forward in time
         vm.prank(bob);
         vm.expectRevert( "ERC20: transfer amount exceeds balance" );
-        proposals.proposeCountryInclusion(countryName1);
+        proposals.proposeCountryInclusion(countryName1, "description" );
 
         // Propose country inclusion
         vm.prank(alice);
-        proposals.proposeCountryInclusion(countryName1);
+        proposals.proposeCountryInclusion(countryName1, "description" );
         uint256 inclusionProposalId = proposals.openBallotsByName(inclusionBallotName);
         assertEq( inclusionProposalId, 1 );
 
@@ -211,7 +216,7 @@ contract TestProposals is Test, Deployment
 
         // Propose country exclusion
         vm.prank(alice);
-        proposals.proposeCountryExclusion(countryName2);
+        proposals.proposeCountryExclusion(countryName2, "description" );
         uint256 exclusionProposalId = proposals.openBallotsByName(exclusionBallotName);
 
         // Check proposal details
@@ -236,11 +241,11 @@ contract TestProposals is Test, Deployment
         // Try to set an invalid address and expect a revert
         address newAddress = address(0);
         vm.expectRevert("Proposed address cannot be address(0)");
-        proposals.proposeSetContractAddress( "contractName", newAddress);
+        proposals.proposeSetContractAddress( "contractName", newAddress, "description" );
 
         // Use a valid address
         newAddress = address(0x1111111111111111111111111111111111111112);
-        proposals.proposeSetContractAddress("contractName", newAddress);
+        proposals.proposeSetContractAddress("contractName", newAddress, "description" );
 
         // Check if a new proposal is created
         uint256 newProposalCount = proposals.nextBallotID() - 1;
@@ -266,7 +271,7 @@ contract TestProposals is Test, Deployment
 
         // Create a ballot with the new website URL
         string memory newWebsiteURL = "https://www.newwebsite.com";
-        proposals.proposeWebsiteUpdate(newWebsiteURL);
+        proposals.proposeWebsiteUpdate(newWebsiteURL, "description" );
 
         // Verify the proposals.nextBallotID() has been incremented
         uint256 postNextBallotID = proposals.nextBallotID();
@@ -303,7 +308,7 @@ contract TestProposals is Test, Deployment
         assertEq(proposals.openBallotsByName(ballotName), 0, "Ballot ID should be 0 before proposal");
 
         // Make the proposal
-        proposals.proposeCallContract(contractAddress, number);
+        proposals.proposeCallContract(contractAddress, number, "description" );
 
         // Check the proposal was made
         uint256 ballotID = proposals.openBallotsByName(ballotName);
@@ -323,7 +328,7 @@ contract TestProposals is Test, Deployment
         string memory ballotName = "parameter:2";
 
         vm.startPrank(DEPLOYER);
-		proposals.proposeParameterBallot(2);
+		proposals.proposeParameterBallot(2, "description" );
 
         uint256 ballotID = proposals.openBallotsByName(ballotName);
         assertEq(proposals.ballotForID(ballotID).ballotIsLive, true);
@@ -343,7 +348,7 @@ contract TestProposals is Test, Deployment
         string memory ballotName = "parameter:2";
 
         vm.prank(DEPLOYER);
-		proposals.proposeParameterBallot(2);
+		proposals.proposeParameterBallot(2, "description" );
 		uint256 ballotID = proposals.openBallotsByName(ballotName);
 
         Vote userVote = Vote.YES;
@@ -399,7 +404,7 @@ contract TestProposals is Test, Deployment
 		uint256 initialStake = 10000000 ether;
 
         vm.startPrank(alice);
-        proposals.proposeParameterBallot(2);
+        proposals.proposeParameterBallot(2, "description" );
         uint256 ballotID = proposals.openBallotsByName(ballotName);
 
 		// Early ballot, no quorum
@@ -506,7 +511,7 @@ contract TestProposals is Test, Deployment
         string memory ballotName = "parameter:2";
 
 		vm.startPrank(alice);
-        proposals.proposeParameterBallot(2);
+        proposals.proposeParameterBallot(2, "description" );
 
 		uint256 ballotID = proposals.openBallotsByName(ballotName);
 		staking.stakeSALT( 1000 ether );
@@ -535,18 +540,20 @@ contract TestProposals is Test, Deployment
 	// A unit test that verifies the numberOfOpenBallotsForTokenWhitelisting function and the tokenWhitelistingBallotWithTheMostVotes function. This should include situations where there are multiple open ballots for token whitelisting, and should correctly identify the ballot with the most votes.
 	function testTokenWhitelistingBallots() public {
 
-        vm.startPrank(alice);
-
 		IERC20 wbtc = exchangeConfig.wbtc();
 		IERC20 weth = exchangeConfig.weth();
 
 //		console.log( "tokenHasBeenWhitelisted(): ", proposals.tokenHasBeenWhitelisted(wbtc) );
 
+		vm.prank(address(dao));
+		poolsConfig.whitelistPool( wbtc, weth );
+
+        vm.startPrank(alice);
         vm.expectRevert( "The token has already been whitelisted" );
         proposals.proposeTokenWhitelisting( wbtc, "https://tokenIconURL", "This is a test token");
 		vm.stopPrank();
 
-		vm.prank( DEPLOYER );
+		vm.prank(address(dao));
 		poolsConfig.unwhitelistPool(wbtc, weth );
 
         // Prepare a new whitelisting ballot
@@ -609,25 +616,25 @@ contract TestProposals is Test, Deployment
 	// A unit test that verifies the proposeSendSALT function, checking if the proposal can be created, and ensuring that they can't send more than 5% of the existing balance.
 	function testProposeSendSALT() public {
 
-		uint256 contractInitialSaltBalance = 1000000 ether;
+		uint256 daoInitialSaltBalance = 1000000 ether;
 
 		vm.startPrank( DEPLOYER );
-		salt.transfer( address(proposals), contractInitialSaltBalance );
+		salt.transfer( address(dao), daoInitialSaltBalance );
 		vm.stopPrank();
 
 		vm.startPrank( alice );
 
 
         // Test proposing to send an amount exceeding the limit
-        uint256 excessiveAmount = contractInitialSaltBalance / 19; // > 5% of the initial balance
+        uint256 excessiveAmount = daoInitialSaltBalance / 19; // > 5% of the initial balance
 
         vm.expectRevert("Cannot send more than 5% of the existing balance");
-        proposals.proposeSendSALT(bob, excessiveAmount);
+        proposals.proposeSendSALT(bob, excessiveAmount, "description" );
 
 
         // Test proposing to send an amount within the limit (less than 5% of the balance)
-        uint256 validAmount = contractInitialSaltBalance / 21; // <5% of the initial balance
-        proposals.proposeSendSALT( bob, validAmount);
+        uint256 validAmount = daoInitialSaltBalance / 21; // <5% of the initial balance
+        proposals.proposeSendSALT( bob, validAmount, "description" );
 
         uint256 validBallotId = 1;
         Ballot memory validBallot = proposals.ballotForID(validBallotId);
@@ -637,7 +644,7 @@ contract TestProposals is Test, Deployment
 
         // Test only one sendSALT proposal being able to be pending at a time
         vm.expectRevert( "Cannot create a proposal similar to a ballot that is still open" );
-        proposals.proposeSendSALT( DEPLOYER, validAmount);
+        proposals.proposeSendSALT( DEPLOYER, validAmount, "description" );
     }
 
 
@@ -673,6 +680,15 @@ contract TestProposals is Test, Deployment
 		IERC20 weth = exchangeConfig.weth();
 		IERC20 usdc = exchangeConfig.usdc();
 
+		vm.startPrank(address(dao));
+		poolsConfig.whitelistPool( wbtc, weth );
+		poolsConfig.whitelistPool( wbtc, usdc );
+		poolsConfig.whitelistPool( wbtc, salt );
+		poolsConfig.whitelistPool( wbtc, usds );
+		vm.stopPrank();
+
+		vm.startPrank(DEPLOYER);
+
         vm.expectRevert("Cannot unwhitelist WBTC");
         proposals.proposeTokenUnwhitelisting(wbtc, "test", "test");
 
@@ -702,12 +718,16 @@ contract TestProposals is Test, Deployment
 
 		IERC20 wbtc = exchangeConfig.wbtc();
 		IERC20 weth = exchangeConfig.weth();
+		vm.stopPrank();
 
         // Whitelist the token (which will be paired with WBTC and WETH)
+        vm.prank(address(dao));
 		poolsConfig.whitelistPool( newToken, wbtc );
+        vm.prank(address(dao));
 		poolsConfig.whitelistPool( newToken, weth );
 
         // Unwhitelist the token and expect no revert
+		vm.startPrank( DEPLOYER );
         proposals.proposeTokenUnwhitelisting(newToken, "test", "test");
 
         // Get the ballot id
@@ -727,7 +747,7 @@ contract TestProposals is Test, Deployment
     	staking.stakeSALT(100000 ether);
 
     	// Create a proposal
-    	proposals.proposeCallContract(randomAddress, 1000);
+    	proposals.proposeCallContract(randomAddress, 1000, "description" );
 
     	uint256 ballotID = 1;
     	assertEq(proposals.ballotForID(ballotID).ballotIsLive, true, "Ballot should be live after proposal");
@@ -762,7 +782,7 @@ contract TestProposals is Test, Deployment
 	function testParameterBallotVoting() public {
         // Test proposeParameterBallot function
         vm.startPrank(DEPLOYER);
-        proposals.proposeParameterBallot(14);
+        proposals.proposeParameterBallot(14, "description" );
         vm.stopPrank();
 
         uint256 ballotID = 1;
@@ -814,7 +834,7 @@ contract TestProposals is Test, Deployment
 	function testApprovalBallotVoting() public {
         // Test proposeParameterBallot function
         vm.startPrank(DEPLOYER);
-        proposals.proposeCountryInclusion( "USA");
+        proposals.proposeCountryInclusion( "USA", "description" );
         vm.stopPrank();
 
         uint256 ballotID = 1;
@@ -874,7 +894,7 @@ contract TestProposals is Test, Deployment
         vm.startPrank( alice );
 
         // Alice proposes a parameter ballot
-        proposals.proposeParameterBallot(20);
+        proposals.proposeParameterBallot(20, "description" );
         uint256 ballotID = 1;
 
         // Alice casts a vote on the newly created ballot
@@ -899,7 +919,7 @@ contract TestProposals is Test, Deployment
 	function testIncorrectParameterVote() public {
         // Test proposeParameterBallot function
         vm.startPrank(DEPLOYER);
-        proposals.proposeParameterBallot(16);
+        proposals.proposeParameterBallot(16, "description" );
         vm.stopPrank();
 
         uint256 ballotID = 1;
@@ -921,7 +941,7 @@ contract TestProposals is Test, Deployment
 	function testIncorrectApprovalVote() public {
         // Test proposeParameterBallot function
         vm.startPrank(DEPLOYER);
-        proposals.proposeCountryInclusion("USA");
+        proposals.proposeCountryInclusion("USA", "description" );
         vm.stopPrank();
 
         uint256 ballotID = 1;
@@ -944,8 +964,13 @@ contract TestProposals is Test, Deployment
 	function testWhitelistingAlreadyWhitelisted() public {
 
 		IERC20 wbtc = exchangeConfig.wbtc();
+		IERC20 weth = exchangeConfig.weth();
+
+		vm.prank(address(dao));
+		poolsConfig.whitelistPool( wbtc, weth );
 
         vm.expectRevert( "The token has already been whitelisted" );
+		vm.prank(DEPLOYER);
         proposals.proposeTokenWhitelisting( wbtc, "https://tokenIconURL", "This is a test token");
 		}
 
@@ -954,10 +979,10 @@ contract TestProposals is Test, Deployment
 	function testDuplicateApprovalBallot() public {
 		// Test proposeParameterBallot function
 		vm.startPrank(DEPLOYER);
-		proposals.proposeCountryInclusion("USA");
+		proposals.proposeCountryInclusion("USA", "description" );
 
 		vm.expectRevert( "Cannot create a proposal similar to a ballot that is still open" );
-		proposals.proposeCountryInclusion("USA");
+		proposals.proposeCountryInclusion("USA", "description" );
 		vm.stopPrank();
 
 	}
@@ -966,10 +991,10 @@ contract TestProposals is Test, Deployment
 	function testDuplicateParameterBallot() public {
 		// Test proposeParameterBallot function
 		vm.startPrank(DEPLOYER);
-		proposals.proposeParameterBallot(17);
+		proposals.proposeParameterBallot(17, "description" );
 
 		vm.expectRevert( "Cannot create a proposal similar to a ballot that is still open" );
-		proposals.proposeParameterBallot(17);
+		proposals.proposeParameterBallot(17, "description" );
 		vm.stopPrank();
 
 	}
@@ -982,7 +1007,7 @@ contract TestProposals is Test, Deployment
         staking.stakeSALT(1000 ether);
 
         // Alice proposes a new ballot
-        proposals.proposeParameterBallot(1);
+        proposals.proposeParameterBallot(1, "description" );
         uint256 ballotID = proposals.openBallotsByName("parameter:1");
 
         // Alice casts a vote
@@ -1006,7 +1031,7 @@ contract TestProposals is Test, Deployment
         // Try to set an invalid address and expect a revert
         address newAddress = address(0);
         vm.expectRevert("Proposed address cannot be address(0)");
-        proposals.proposeSetContractAddress("contractName", newAddress);
+        proposals.proposeSetContractAddress("contractName", newAddress, "description" );
 
         vm.stopPrank();
     }
@@ -1023,7 +1048,7 @@ contract TestProposals is Test, Deployment
 
         // Try to propose sending SALT to address(0) and expect a revert
         vm.expectRevert("Cannot send SALT to address(0)");
-        proposals.proposeSendSALT(address(0), amount);
+        proposals.proposeSendSALT(address(0), amount, "description" );
     }
 
 
@@ -1036,7 +1061,7 @@ contract TestProposals is Test, Deployment
 
         // Expect a revert due to the website URL being empty
         vm.expectRevert("Website URL cannot be empty");
-        proposals.proposeWebsiteUpdate(newWebsiteURL);
+        proposals.proposeWebsiteUpdate(newWebsiteURL, "description" );
     }
     }
 

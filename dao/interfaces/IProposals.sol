@@ -23,7 +23,7 @@ struct Ballot
 	address address1;
 	uint256 number1;
 	string string1;
-	string string2;
+	string description;
 
 	// The earliest timestamp at which a ballot can end. Can be open longer if the quorum has not yet been reached for instance.
 	uint256 ballotMinimumEndTime;
@@ -35,15 +35,16 @@ interface IProposals
 	function createConfirmationProposal( string calldata ballotName, BallotType ballotType, address address1, string memory string1 ) external;
 	function markBallotAsFinalized( uint256 ballotID ) external;
 
-	function proposeParameterBallot( uint256 parameterType ) external;
-	function proposeTokenWhitelisting( IERC20 token, string calldata tokenIconURL, string calldata tokenDescription ) external;
-	function proposeTokenUnwhitelisting( IERC20 token, string calldata tokenIconURL, string calldata tokenDescription ) external;
-	function proposeSendSALT( address wallet, uint256 amount ) external;
-	function proposeCallContract( address contractAddress, uint256 number ) external;
-	function proposeCountryInclusion( string calldata country ) external;
-	function proposeCountryExclusion( string calldata country ) external;
-	function proposeSetContractAddress( string calldata contractName, address newAddress ) external;
-	function proposeWebsiteUpdate( string calldata newWebsiteURL ) external;
+	function proposeParameterBallot( uint256 parameterType, string calldata description ) external;
+	function proposeTokenWhitelisting( IERC20 token, string calldata tokenIconURL, string calldata description ) external;
+	function proposeTokenUnwhitelisting( IERC20 token, string calldata tokenIconURL, string calldata description ) external;
+	function proposeSendSALT( address wallet, uint256 amount, string calldata description ) external;
+	function proposeCallContract( address contractAddress, uint256 number, string calldata description ) external;
+	function proposeCountryInclusion( string calldata country, string calldata description ) external;
+	function proposeCountryExclusion( string calldata country, string calldata description ) external;
+	function proposeSetContractAddress( string calldata contractName, address newAddress, string calldata description ) external;
+	function proposeWebsiteUpdate( string calldata newWebsiteURL, string calldata description ) external;
+
 	function castVote( uint256 ballotID, Vote vote ) external;
 
 	// Views

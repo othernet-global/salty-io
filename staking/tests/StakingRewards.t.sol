@@ -35,8 +35,10 @@ contract SharedRewardsTest is Test, Deployment
     	IERC20 token1 = new TestERC20( 18 );
 		IERC20 token2 = new TestERC20( 18 );
 
-		vm.startPrank(DEPLOYER);
+		vm.prank(address(dao));
 		poolsConfig.whitelistPool(token1, token2);
+
+		vm.startPrank(DEPLOYER);
 		salt.transfer( address(this), salt.balanceOf(DEPLOYER));
 		vm.stopPrank();
 

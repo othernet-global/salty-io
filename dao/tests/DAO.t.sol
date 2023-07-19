@@ -1,300 +1,669 @@
-//// SPDX-License-Identifier: BSL 1.1
-//pragma solidity ^0.8.12;
-//
-//import "forge-std/Test.sol";
-//import "../Proposals.sol";
-//import "../DAO.sol";
-//import "../../Deployment.sol";
-//
-//
-//contract TestDAO is DAO, Test
-//	{
-//	// User wallets for testing
-//    address public constant alice = address(0x1111);
-//    address public constant bob = address(0x2222);
-//
-//	Deployment public deployment = new Deployment();
-//
-//
-//	constructor()
-//    DAO( _stakingConfig, _daoConfig, _exchangeConfig, _staking, _rewardsConfig, _stableConfig, _liquidity, _liquidityRewardsEmitter, _factory )
-//		{
-//		vm.startPrank( DEV_WALLET );
-//		_exchangeConfig.setAccessManager(accessManager);
-//		_exchangeConfig.setOptimizer(polOptimizer);
-//		_exchangeConfig.setDAO(this);
-//
-//		// setCollateral can only be called on USDS one time
-//		// call it with this address as the Collateral so that usds.mintTo() can be called
-//		_usds.setCollateral( ICollateral(address(this)) );
-//		vm.stopPrank();
-//
-//		// Mint some USDS to the DEV_WALLET and alice
-//		vm.startPrank( address(this) );
-//		_usds.mintTo( DEV_WALLET, 2000000 ether );
-//		_usds.mintTo( alice, 1000000 ether );
-//		vm.stopPrank();
-//
-//		stakingConfig.salt().transfer( alice, 10000000 ether );
-//		stakingConfig.salt().transfer( DEV_WALLET, 90000000 ether );
-//		}
-//
-//
-//    function setUp() public
-//    	{
-//    	vm.startPrank( DEV_WALLET );
-//    	_usds.approve( address(this), type(uint256).max );
-//    	stakingConfig.salt().approve( address(_staking), type(uint256).max );
-//    	vm.stopPrank();
-//
-//    	vm.startPrank( alice );
-//    	_usds.approve( address(this), type(uint256).max );
-//    	stakingConfig.salt().approve( address(_staking), type(uint256).max );
-//    	vm.stopPrank();
-//    	}
-//
-//
-//	// A unit test to check the constructor for different valid inputs such as _stakingConfig, _daoConfig, _exchangeConfig, _staking, _usds, _rewardsConfig, _stableConfig, _liquidity, _liquidityRewardsEmitter, _factory, _wbtc, and _weth, as well as to verify default values set during initialization like websiteURL and excludedCountries. Ensure that the contract fails to deploy when any of these inputs are the zero address.
-//	function testConstructor() public {
-//        // Create addresses that will act as zero addresses
-//        address zeroAddress = address(0);
-//
-//        // Check constructor fails when _rewardsConfig is the zero address
-//        vm.expectRevert("_rewardsConfig cannot be address(0)");
-//        new DAO( _stakingConfig, _daoConfig, _exchangeConfig, _staking, IRewardsConfig(zeroAddress), _stableConfig, _liquidity, _liquidityRewardsEmitter, _factory );
-//
-//        // Check constructor fails when _stableConfig is the zero address
-//        vm.expectRevert("_stableConfig cannot be address(0)");
-//        new DAO( _stakingConfig, _daoConfig, _exchangeConfig, _staking, _rewardsConfig, IStableConfig(zeroAddress), _liquidity, _liquidityRewardsEmitter, _factory );
-//
-//        // Check constructor fails when _liquidity is the zero address
-//        vm.expectRevert("_liquidity cannot be address(0)");
-//        new DAO( _stakingConfig, _daoConfig, _exchangeConfig, _staking, _rewardsConfig, _stableConfig, ILiquidity(zeroAddress), _liquidityRewardsEmitter, _factory );
-//
-//        // Check constructor fails when _liquidityRewardsEmitter is the zero address
-//        vm.expectRevert("_liquidityRewardsEmitter cannot be address(0)");
-//        new DAO( _stakingConfig, _daoConfig, _exchangeConfig, _staking, _rewardsConfig, _stableConfig, _liquidity, IRewardsEmitter(zeroAddress), _factory );
-//
-//        // Check constructor fails when _factory is the zero address
-//        vm.expectRevert("_factory cannot be address(0)");
-//        new DAO( _stakingConfig, _daoConfig, _exchangeConfig, _staking, _rewardsConfig, _stableConfig, _liquidity, _liquidityRewardsEmitter, IUniswapV2Factory(zeroAddress) );
-//
-//        // Initialize contract
-//        DAO dao = new DAO( _stakingConfig, _daoConfig, _exchangeConfig, _staking, _rewardsConfig, _stableConfig, _liquidity, _liquidityRewardsEmitter, _factory );
-//
-//        // Check that websiteURL and excludedCountries are set to default values
-//        assertEq( dao.websiteURL(), "" );
-//        assertEq( dao.excludedCountries("TestCountry"), false );
-//    }
-//
-//
-//	// A unit test to verify the _performUpkeep function with different arrays of pools, confirming the correct staking of LP tokens into the liquidity contract in scenarios of both zero and non-zero LP token balances.
-//	function testPerformUpkeep() public {
-//        // Mock pools
-//        vm.startPrank( DEV_WALLET );
-//
-//        IUniswapV2Pair[] memory pools = new IUniswapV2Pair[](2);
-//        pools[0] = IUniswapV2Pair(address(new TestERC20( 18 )));
-//        pools[1] = IUniswapV2Pair(address(new TestERC20( 18 )));
-//        vm.stopPrank();
-//
-//        stakingConfig.whitelist(pools[0]);
-//        stakingConfig.whitelist(pools[1]);
-//
-//        // Contract should start with zero balance for the mock pools
-//        assertEq(IERC20(address(pools[0])).balanceOf(address(this)), 0, "Initial pool 0 balance should be zero");
-//        assertEq(IERC20(address(pools[1])).balanceOf(address(this)), 0, "Initial pool 1 balance should be zero");
-//
-//        _performUpkeep();  // No reverts expected with zero balances
-//
-//        assertEq(_liquidity.userShareForPool(address(this), pools[0]).userShare, 0, "Staked balance in pool 0 should be zero");
-//        assertEq(_liquidity.userShareForPool(address(this), pools[1]).userShare, 0, "Staked balance in pool 1 should be zero");
-//
-//        // Send some of the fake LP to this contract
-//        vm.startPrank( DEV_WALLET );
-//        IERC20(address(pools[0])).transfer( address(this), 1000 ether );
-//        IERC20(address(pools[1])).transfer( address(this), 2000 ether );
-//        vm.stopPrank();
-//
-//        assertEq(pools[0].balanceOf(address(this)), 1000 ether, "Pool 0 balance should be 1000 ether");
-//        assertEq(pools[1].balanceOf(address(this)), 2000 ether, "Pool 1 balance should be 2000 ether");
-//
-//        _performUpkeep();  // No reverts expected with non-zero balances
-//
-//        assertEq(_liquidity.userShareForPool(address(this), pools[0]).userShare, 1000 ether, "Staked balance in pool 0 should be 1000 ether");
-//        assertEq(_liquidity.userShareForPool(address(this), pools[1]).userShare, 2000 ether, "Staked balance in pool 1 should be 2000 ether");
-//    }
-//
-//
-//
-//	// A unit test to assess the _finalizeParameterBallot, _finalizeApprovalBallot, and finalizeBallot functions
-//	function testFinalizeBallots() public {
-//        // Setup: create various ballots and votes
-//        string memory paramBallotName = "bootstrappingRewards";
-//        string memory approvalBallotName = "TestApproval";
-//
-//        vm.startPrank(alice);
-//        this.proposeParameterBallot(paramBallotName);
-//        uint256 paramBallotId = openBallotsByName[paramBallotName];
-//        assertEq(ballotForID(paramBallotId).ballotIsLive, true, "Parameter Ballot not correctly created");
-//        _staking.stakeSALT( 5000000 ether );
-//        this.castVote(paramBallotId, Vote.INCREASE);
-//        vm.stopPrank();
-//
-//		this.proposeCountryInclusion( approvalBallotName, "USA" );
-//        uint256 approvalBallotId = openBallotsByName[approvalBallotName];
-//        assertEq(ballotForID(approvalBallotId).ballotIsLive, true, "Approval Ballot not correctly created");
-//        this.castVote(approvalBallotId, Vote.YES);
-//
-//        // Increase block time to finalize ballots
-//        vm.warp(block.timestamp + 10 days + 1);
-//
-//        // Test Parameter Ballot finalization
-//        this.finalizeBallot(paramBallotId);
-//        assertEq(ballotForID(paramBallotId).ballotIsLive, false, "Parameter Ballot not correctly finalized");
-//
-//        // Test Approval Ballot finalization
-//        this.finalizeBallot(approvalBallotId);
-//        assertEq(ballotForID(approvalBallotId).ballotIsLive, false, "Approval Ballot not correctly finalized");
-//    }
-//
-//
-//	// A unit test to examine the _executeSetContract function with different contract types like priceFeed, liquidator, AAA, optimizer, accessManager, and to independently test setLiquidator and setAAA functions, ensuring the appropriate contracts are set correctly in the configuration.
-//	function testSetContractFunctions() public {
-//        // Instantiate mock contracts
-//        ILiquidator mockLiquidator = ILiquidator(address(0x12345));
-//        IAAA mockAAA = IAAA(address(0x123456));
-//        IPOL_Optimizer mockOptimizer = IPOL_Optimizer(address(0x123457));
-//        IPriceFeed mockPriceFeed = IPriceFeed(address(0x123458));
-//        IAccessManager mockAccessManager = IAccessManager(address(0x123459));
-//
-//		// Create the ballots
-//        vm.startPrank(DEV_WALLET);
-//        this.proposeSetContractAddress("setContract:liquidator", address(mockLiquidator));
-//        this.proposeSetContractAddress("setContract:AAA", address(mockAAA));
-//		this.proposeSetContractAddress("setContract:optimizer", address(mockOptimizer));
-//		this.proposeSetContractAddress("setContract:priceFeed", address(mockPriceFeed));
-//		this.proposeSetContractAddress("setContract:accessManager", address(mockAccessManager));
-//
-//        // Test _executeSetContract function
-//        _executeSetContract(ballots[openBallotsByName["setContract:liquidator"]]);
-//        assertEq(address(_exchangeConfig.liquidator()), address(mockLiquidator));
-//
-//        _executeSetContract(ballots[openBallotsByName["setContract:AAA"]]);
-//        assertEq(address(_exchangeConfig.aaa()), address(mockAAA));
-//
-//        _executeSetContract(ballots[openBallotsByName["setContract:optimizer"]]);
-//        assertEq(address(_exchangeConfig.optimizer()), address(mockOptimizer));
-//
-//        _executeSetContract(ballots[openBallotsByName["setContract:accessManager"]]);
-//        assertEq(address(_exchangeConfig.accessManager()), address(mockAccessManager));
-//		vm.stopPrank();
-//
-//        _executeSetContract(ballots[openBallotsByName["setContract:priceFeed"]]);
-//        assertEq(address(_stableConfig.priceFeed()), address(mockPriceFeed));
-//
-//        // Test setLiquidator function
-//        ILiquidator anotherMockLiquidator = ILiquidator(address(0x123123123));
-//        vm.startPrank(DEV_WALLET);
-//        exchangeConfig.setLiquidator(anotherMockLiquidator);
-//        assertEq(address(_exchangeConfig.liquidator()), address(anotherMockLiquidator));
-//        vm.stopPrank();
-//
-//        // Test setAAA function
-//        IAAA anotherMockAAA = IAAA(address(0x234234234));
-//        vm.startPrank(DEV_WALLET);
-//        exchangeConfig.setAAA(anotherMockAAA);
-//        assertEq(address(_exchangeConfig.aaa()), address(anotherMockAAA));
-//        vm.stopPrank();
-//    }
-//
-//
-////	// A unit test to validate the functionality of _executeSetWebsiteURL and _executeApproval function by testing various ballotType values such as UNWHITELIST_TOKEN, SEND_SALT, CALL_CONTRACT, INCLUDE_COUNTRY, EXCLUDE_COUNTRY, SET_CONTRACT, SET_WEBSITE_URL, CONFIRM_SET_CONTRACT, and CONFIRM_SET_WEBSITE_URL. Ensure that the websiteURL is set to the correct URL and the appropriate actions are executed based on the ballotType.
-////	function testExecuteSetWebsiteURLAndExecuteApproval() public {
-////
-////		string memory website0 = this.websiteURL();
-////
-////		vm.startPrank( DEV_WALLET );
-////
-////        string memory website = "https://example.com";
-////        string memory ballotName = "setWebsite";
-////        this.proposeWebsiteUpdate( ballotName, website);
-////
-////		uint256 ballotID = openBallotsByName[ ballotName ];
-////        vm.warp(block.timestamp + 1 weeks);
-////        vm.stopPrank();
-////
-////        vm.startPrank(alice);
-////        _staking.stakeSALT( 5000000 ether );
-////        this.castVote(ballotID, Vote.YES);
-////        vm.stopPrank();
-////
-////		// This should create the "setWebsite_confirm" ballot
-////        this.finalizeBallot(ballotID);
-////		uint256 ballotID2 = openBallotsByName[ "setWebsite_confirm" ];
-////		assertTrue( ballotID2 != 0, "The confirm ballot doesn't exist" );
-////
-////        assertEq(this.websiteURL(), website0, "Website should not have changed");
-////
-////        vm.startPrank(alice);
-////        this.castVote(ballotID2, Vote.YES);
-////        vm.stopPrank();
-////
-////        vm.warp(block.timestamp + 1 weeks);
-////        this.finalizeBallot(ballotID2);
-////
-////        assertEq(this.websiteURL(), website, "Website should have changed");
-////
-////
-////        // === UNWHITELIST
-//////        _stakingConfig.whitelist( _factory.createPair(address(_wbtc)
-////        ballotName = "approveUnwhitelistToken";
-////		vm.startPrank( DEV_WALLET );
-////		this.proposeTokenUnwhitelisting( "testUnwhitelist", address(_wbtc), "url", "description" );
-////		ballotID = openBallotsByName[ "testUnwhitelist" ];
-////        vm.warp(block.timestamp + 1 weeks);
-////        vm.stopPrank();
-////
-////        vm.startPrank(alice);
-////        this.castVote(ballotID, Vote.YES);
-////        vm.stopPrank();
-////
-////		// This should create the "setWebsite_confirm" ballot
-////        this.finalizeBallot(ballotID);
-////
-//////        assertEq(_stakingConfig.isValidPool(_collateralLP), website0, "Website should not have changed");
-////
-//////        vm.startPrank(alice);
-//////        this.vote(ballotID, Proposals.Vote.YES);
-//////        vm.stopPrank();
-//////
-//////        vm.warp(block.timestamp + 2 weeks);
-//////        this.finalizeBallot(ballotID);
-//////
-//////        ballotName = "approveSendSalt";
-//////        ballotID = this.createProposal(ballotName, Proposals.BallotType.SEND_SALT, alice, 1 ether, "", "", 0);
-//////        vm.warp(block.timestamp + 1 weeks);
-//////
-//////        vm.startPrank(alice);
-//////        this.vote(ballotID, Proposals.Vote.YES);
-//////        vm.stopPrank();
-//////
-//////        vm.warp(block.timestamp + 2 weeks);
-//////        this.finalizeBallot(ballotID);
-//////
-//////        // Continue in similar way for each BallotType
-////    }
-////
-////
-//
-//	// A unit test to evaluate the _finalizeTokenWhitelisting function and the sufficientBootstrappingRewardsExistForWhitelisting function by assessing scenarios where the "yes" votes exceed the "no" votes and the contract has enough bootstrapping rewards, as well as cases where the contract lacks sufficient bootstrapping rewards or the "no" votes surpass the "yes" votes. This test also includes testing different SALT balances, ensuring the correct indication of sufficient bootstrapping rewards for whitelisting and the appropriate actions in each scenario.
-//	// A unit test to confirm the functionality of the countryIsExcluded function with different country values, including both excluded and non-excluded countries, ensuring correct indication of a country's exclusion status.
-//	// A unit test to verify the _executeParameterIncrease and _executeParameterDecrease functions, ensuring they function as expected with different parameters.
-//	// A unit test to check the _markBallotAsFinalized function with different ballot ids, ensuring it functions correctly.
-//	// A unit test to verify the ability to create and manipulate ballots, with special attention given to the creation of different ballot types and updating vote counts.
-//	// A unit test to examine the contract with different users to simulate a real-world situation, including testing voting from multiple addresses and verifying accurate summing of vote counts.
-//	// A unit test to attempt various attacks on the contract, including testing if a user can vote more than once on a ballot, vote without sufficient balance, or manipulate the result of a vote, assessing the contract's security robustness.
-// // A unit test which checks that you can still see ballots after they are finalized
-// // A unit test that checks that finalized token whitelisting proposals are removed from the open token whitelisting proposals list
-//    }
-//
+// SPDX-License-Identifier: BSL 1.1
+pragma solidity ^0.8.12;
+
+import "forge-std/Test.sol";
+import "../Proposals.sol";
+import "../../Deployment.sol";
+import "../../root_tests/TestERC20.sol";
+import "../../ExchangeConfig.sol";
+import "../../pools/Pools.sol";
+import "../../staking/Liquidity.sol";
+import "../../staking/Staking.sol";
+import "../../stable/Collateral.sol";
+import "../../rewards/RewardsEmitter.sol";
+import "../../stable/tests/IForcedPriceFeed.sol";
+import "../../pools/PoolsConfig.sol";
+import "../DAO.sol";
+import "./TestCallReceiver.sol";
+import "../../root_tests/TestAccessManager.sol";
+
+
+contract TestDAO is Test, Deployment
+	{
+	// User wallets for testing
+    address public constant alice = address(0x1111);
+    address public constant bob = address(0x2222);
+
+
+	constructor()
+		{
+		// If $COVERAGE=yes, create an instance of the contract so that coverage testing can work
+		// Otherwise, what is tested is the actual deployed contract on the blockchain (as specified in Deployment.sol)
+		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
+			{
+			vm.startPrank(DEPLOYER);
+
+			poolsConfig = new PoolsConfig();
+
+			// Because USDS already set the Collateral on deployment and it can only be done once, we have to recreate USDS as well
+			// That cascades into recreating multiple other contracts as well.
+			usds = new USDS( stableConfig, wbtc, weth );
+
+			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, usds );
+			pools = new Pools( exchangeConfig );
+
+			staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
+			liquidity = new Liquidity( pools, exchangeConfig, poolsConfig, stakingConfig );
+			collateral = new Collateral(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig);
+
+			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig );
+			liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig );
+
+			emissions = new Emissions( staking, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig );
+
+			proposals = new Proposals( staking, exchangeConfig, poolsConfig, stakingConfig, daoConfig );
+
+			address oldDAO = address(dao);
+			dao = new DAO( proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, liquidity, liquidityRewardsEmitter );
+
+			exchangeConfig.setDAO( dao );
+			exchangeConfig.setAccessManager( accessManager );
+			usds.setPools( pools );
+			usds.setCollateral( collateral );
+
+			// Transfer ownership of the config files to the DAO
+			Ownable(address(exchangeConfig)).transferOwnership( address(dao) );
+			Ownable(address(poolsConfig)).transferOwnership( address(dao) );
+			vm.stopPrank();
+
+			vm.startPrank(address(oldDAO));
+			Ownable(address(stakingConfig)).transferOwnership( address(dao) );
+			Ownable(address(rewardsConfig)).transferOwnership( address(dao) );
+			Ownable(address(stableConfig)).transferOwnership( address(dao) );
+			Ownable(address(daoConfig)).transferOwnership( address(dao) );
+			vm.stopPrank();
+			}
+
+		// Mint some USDS to the DEPLOYER and alice
+		vm.startPrank( address(collateral) );
+		usds.mintTo( DEPLOYER, 2000000 ether );
+		usds.mintTo( alice, 1000000 ether );
+		vm.stopPrank();
+
+		vm.startPrank( DEPLOYER );
+		salt.transfer( alice, 10000000 ether );
+		salt.transfer( DEPLOYER, 90000000 ether );
+		vm.stopPrank();
+		}
+
+
+    function setUp() public
+    	{
+    	vm.startPrank( DEPLOYER );
+    	usds.approve( address(dao), type(uint256).max );
+    	salt.approve( address(staking), type(uint256).max );
+    	usds.approve( address(proposals), type(uint256).max );
+    	vm.stopPrank();
+
+    	vm.startPrank( alice );
+    	usds.approve( address(dao), type(uint256).max );
+    	salt.approve( address(staking), type(uint256).max );
+    	usds.approve( address(proposals), type(uint256).max );
+    	vm.stopPrank();
+    	}
+
+	function _parameterValue( Parameters.ParameterTypes parameter ) internal view returns (uint256)
+		{
+		if ( parameter == Parameters.ParameterTypes.maximumWhitelistedPools )
+			return poolsConfig.maximumWhitelistedPools();
+
+		else if ( parameter == Parameters.ParameterTypes.minUnstakeWeeks )
+			return stakingConfig.minUnstakeWeeks();
+		else if ( parameter == Parameters.ParameterTypes.maxUnstakeWeeks )
+			return stakingConfig.maxUnstakeWeeks();
+		else if ( parameter == Parameters.ParameterTypes.minUnstakePercent )
+			return stakingConfig.minUnstakePercent();
+		else if ( parameter == Parameters.ParameterTypes.modificationCooldown )
+			return stakingConfig.modificationCooldown();
+
+		else if ( parameter == Parameters.ParameterTypes.rewardsEmitterDailyPercentTimes1000 )
+			return rewardsConfig.rewardsEmitterDailyPercentTimes1000();
+		else if ( parameter == Parameters.ParameterTypes.emissionsWeeklyPercentTimes1000 )
+			return rewardsConfig.emissionsWeeklyPercentTimes1000();
+		else if ( parameter == Parameters.ParameterTypes.emissionsXSaltHoldersPercent )
+			return rewardsConfig.emissionsXSaltHoldersPercent();
+
+		else if ( parameter == Parameters.ParameterTypes.rewardPercentForCallingLiquidation )
+			return stableConfig.rewardPercentForCallingLiquidation();
+		else if ( parameter == Parameters.ParameterTypes.maxRewardValueForCallingLiquidation )
+			return stableConfig.maxRewardValueForCallingLiquidation();
+		else if ( parameter == Parameters.ParameterTypes.minimumCollateralValueForBorrowing )
+			return stableConfig.minimumCollateralValueForBorrowing();
+		else if ( parameter == Parameters.ParameterTypes.initialCollateralRatioPercent )
+			return stableConfig.initialCollateralRatioPercent();
+		else if ( parameter == Parameters.ParameterTypes.minimumCollateralRatioPercent )
+			return stableConfig.minimumCollateralRatioPercent();
+		else if ( parameter == Parameters.ParameterTypes.maximumLiquidationSlippagePercentTimes1000 )
+			return stableConfig.maximumLiquidationSlippagePercentTimes1000();
+		else if ( parameter == Parameters.ParameterTypes.percentSwapToUSDS )
+			return stableConfig.percentSwapToUSDS();
+
+		else if ( parameter == Parameters.ParameterTypes.bootstrappingRewards )
+			return daoConfig.bootstrappingRewards();
+		else if ( parameter == Parameters.ParameterTypes.percentPolRewardsBurned )
+			return daoConfig.percentPolRewardsBurned();
+		else if ( parameter == Parameters.ParameterTypes.baseBallotQuorumPercentTimes1000 )
+			return daoConfig.baseBallotQuorumPercentTimes1000();
+		else if ( parameter == Parameters.ParameterTypes.ballotDuration )
+			return daoConfig.ballotDuration();
+		else if ( parameter == Parameters.ParameterTypes.baseProposalCost )
+			return daoConfig.baseProposalCost();
+		else if ( parameter == Parameters.ParameterTypes.maxPendingTokensForWhitelisting )
+			return daoConfig.maxPendingTokensForWhitelisting();
+		else if ( parameter == Parameters.ParameterTypes.upkeepRewardPercentTimes1000 )
+			return daoConfig.upkeepRewardPercentTimes1000();
+
+		require(false, "Invalid ParameterType" );
+		return 0;
+		}
+
+
+	function _checkFinalizeIncreaseParameterBallot( uint256 parameterNum  ) internal {
+
+		uint256 ballotID = parameterNum + 1;
+		uint256 originalValue = _parameterValue( Parameters.ParameterTypes( parameterNum ) );
+
+        proposals.proposeParameterBallot(parameterNum, "description" );
+        assertEq(proposals.ballotForID(ballotID).ballotIsLive, true, "Parameter Ballot not correctly created");
+
+        proposals.castVote(ballotID, Vote.INCREASE);
+
+        // Increase block time to finalize the ballot
+        vm.warp(block.timestamp + 11 days );
+
+        // Test Parameter Ballot finalization
+        dao.finalizeBallot(ballotID);
+        assertEq(proposals.ballotForID(ballotID).ballotIsLive, false, "Parameter Ballot not correctly finalized");
+
+		uint256 newValue = _parameterValue( Parameters.ParameterTypes( parameterNum ) );
+
+		if ( parameterNum != 8 )
+			assert( newValue > originalValue );
+    }
+
+
+	function _checkFinalizeNoChangeParameterBallot( uint256 parameterNum  ) internal {
+
+		uint256 ballotID = parameterNum + 1;
+		uint256 originalValue = _parameterValue( Parameters.ParameterTypes( parameterNum ) );
+
+        proposals.proposeParameterBallot(parameterNum, "description" );
+        assertEq(proposals.ballotForID(ballotID).ballotIsLive, true, "Parameter Ballot not correctly created");
+
+        proposals.castVote(ballotID, Vote.NO_CHANGE);
+
+        // Increase block time to finalize the ballot
+        vm.warp(block.timestamp + 11 days );
+
+        // Test Parameter Ballot finalization
+        dao.finalizeBallot(ballotID);
+        assertEq(proposals.ballotForID(ballotID).ballotIsLive, false, "Parameter Ballot not correctly finalized");
+
+		uint256 newValue = _parameterValue( Parameters.ParameterTypes( parameterNum ) );
+
+		assert( newValue == originalValue );
+    }
+
+
+	function _checkFinalizeDecreaseParameterBallot( uint256 parameterNum  ) internal {
+
+		uint256 ballotID = parameterNum + 1;
+		uint256 originalValue = _parameterValue( Parameters.ParameterTypes( parameterNum ) );
+
+        proposals.proposeParameterBallot(parameterNum, "description" );
+        assertEq(proposals.ballotForID(ballotID).ballotIsLive, true, "Parameter Ballot not correctly created");
+
+        proposals.castVote(ballotID, Vote.DECREASE);
+
+        // Increase block time to finalize the ballot
+        vm.warp(block.timestamp + 11 days );
+
+        // Test Parameter Ballot finalization
+        dao.finalizeBallot(ballotID);
+        assertEq(proposals.ballotForID(ballotID).ballotIsLive, false, "Parameter Ballot not correctly finalized");
+
+		uint256 newValue = _parameterValue( Parameters.ParameterTypes( parameterNum ) );
+		if ( parameterNum != 1 )
+		if ( parameterNum != 8 )
+		if ( parameterNum != 12 )
+			assert( newValue < originalValue );
+    }
+
+
+	// A unit test to test all parameters and that a successful INCREASE vote has the expected effects
+    function testFinalizeIncreaseParameterBallots() public
+    	{
+        vm.startPrank(alice);
+        staking.stakeSALT( 5000000 ether );
+
+    	for( uint256 i = 0; i < 22; i++ )
+	 		_checkFinalizeIncreaseParameterBallot( i );
+    	}
+
+
+	// A unit test to test all parameters and that a successful DECREASE vote has the expected effects
+    function testFinalizeDecreaseParameterBallots() public
+    	{
+        vm.startPrank(alice);
+        staking.stakeSALT( 5000000 ether );
+
+    	for( uint256 i = 0; i < 22; i++ )
+	 		_checkFinalizeDecreaseParameterBallot( i );
+    	}
+
+
+	// A unit test to test all parameters and that a successful NO_CHANGE vote has the expected effects
+    function testFinalizeNoChangeParameterBallots() public
+    	{
+        vm.startPrank(alice);
+        staking.stakeSALT( 5000000 ether );
+
+    	for( uint256 i = 0; i < 22; i++ )
+	 		_checkFinalizeNoChangeParameterBallot( i );
+    	}
+
+
+	function _voteForAndFinalizeBallot( uint256 ballotID, Vote vote ) internal
+		{
+        assertEq(proposals.ballotForID(ballotID).ballotIsLive, true, "Ballot not correctly created");
+
+        proposals.castVote(ballotID, vote);
+
+        // Increase block time to finalize the ballot
+        vm.warp(block.timestamp + 11 days );
+
+        // Test Parameter Ballot finalization
+        dao.finalizeBallot(ballotID);
+        assertEq(proposals.ballotForID(ballotID).ballotIsLive, false, "Ballot not correctly finalized");
+		}
+
+
+	// A unit test to test that finalizing an approved whitelist token ballot has the desired effect
+    function testWhitelistTokenApproved() public
+    	{
+        vm.startPrank(alice);
+        staking.stakeSALT( 1000000 ether );
+
+       	IERC20 token = new TestERC20(18);
+		salt.transfer( address(dao), 1000000 ether );
+
+        proposals.proposeTokenWhitelisting( token, "", "" );
+		_voteForAndFinalizeBallot(1, Vote.YES);
+
+		// Check for the effects of the vote
+		assertTrue( poolsConfig.tokenHasBeenWhitelisted(token, wbtc, weth), "Token not whitelisted" );
+    	}
+
+
+	// A unit test to test that finalizing a denied whitelist token ballot has the desired effect
+    function testWhitelistTokenDenied() public
+    	{
+        vm.startPrank(alice);
+        staking.stakeSALT( 1000000 ether );
+
+       	IERC20 token = new TestERC20(18);
+		salt.transfer( address(dao), 1000000 ether );
+
+        proposals.proposeTokenWhitelisting( token, "", "description"  );
+		_voteForAndFinalizeBallot(1, Vote.NO);
+
+		// Check for the effects of the vote
+		assertFalse( poolsConfig.tokenHasBeenWhitelisted(token, wbtc, weth), "Token should not be whitelisted" );
+    	}
+
+
+	// A unit test to test that finalizing an approved send SALT ballot has the desired effect
+    function testSendSaltApproved() public
+    	{
+        vm.startPrank(alice);
+        staking.stakeSALT( 1000000 ether );
+
+		salt.transfer( address(dao), 1000000 ether );
+
+        proposals.proposeSendSALT( bob, 123 ether, "description" );
+		_voteForAndFinalizeBallot(1, Vote.YES);
+
+		// Check for the effects of the vote
+		assertEq( salt.balanceOf( bob ), 123 ether, "Bob didn't receive SALT" );
+    	}
+
+
+	// A unit test to test that finalizing a denied send SALT ballot has the desired effect
+    function testSendSaltDenied() public
+    	{
+        vm.startPrank(alice);
+        staking.stakeSALT( 1000000 ether );
+
+		salt.transfer( address(dao), 1000000 ether );
+
+        proposals.proposeSendSALT( bob, 123 ether, "description" );
+		_voteForAndFinalizeBallot(1, Vote.NO);
+
+		// Check for the effects of the vote
+		assertEq( salt.balanceOf( bob ), 0, "Bob shouldn't receive SALT" );
+    	}
+
+
+	// A unit test to test that finalizing an approved call contract ballot has the desired effect
+    function testCallContractApproved() public
+    	{
+        vm.startPrank(alice);
+        staking.stakeSALT( 1000000 ether );
+
+		TestCallReceiver testReceiver = new TestCallReceiver();
+
+        proposals.proposeCallContract( address(testReceiver), 123, "description" );
+		_voteForAndFinalizeBallot(1, Vote.YES);
+
+		// Check for the effects of the vote
+		assertEq( testReceiver.value(), 123, "Receiver didn't receive the call" );
+    	}
+
+
+	// A unit test to test that finalizing a denied call contract ballot has the desired effect
+    function testCallContractDenied() public
+    	{
+        vm.startPrank(alice);
+        staking.stakeSALT( 1000000 ether );
+
+		TestCallReceiver testReceiver = new TestCallReceiver();
+
+        proposals.proposeCallContract( address(testReceiver), 123, "description" );
+		_voteForAndFinalizeBallot(1, Vote.NO);
+
+		// Check for the effects of the vote
+		assertTrue( testReceiver.value() != 123, "Receiver shouldn't receive the call" );
+    	}
+
+
+	// A unit test to test that finalizing an approved include country ballot has the desired effect
+    function testIncludeCountryApproved() public
+    	{
+        vm.startPrank(alice);
+        staking.stakeSALT( 1000000 ether );
+
+        proposals.proposeCountryExclusion( "US", "description" );
+		_voteForAndFinalizeBallot(1, Vote.YES);
+
+		assertTrue( dao.countryIsExcluded( "US" ), "US should be excluded" );
+
+        proposals.proposeCountryInclusion( "US", "description" );
+		_voteForAndFinalizeBallot(2, Vote.YES);
+
+		assertFalse( dao.countryIsExcluded( "US" ), "US shouldn't be excluded" );
+    	}
+
+
+	// A unit test to test that finalizing a denied include country ballot has the desired effect
+    function testIncludeCountryDenied() public
+    	{
+        vm.startPrank(alice);
+        staking.stakeSALT( 1000000 ether );
+
+        proposals.proposeCountryExclusion( "US", "description" );
+		_voteForAndFinalizeBallot(1, Vote.YES);
+
+		assertTrue( dao.countryIsExcluded( "US" ), "US should be excluded" );
+
+        proposals.proposeCountryInclusion( "US", "description" );
+		_voteForAndFinalizeBallot(2, Vote.NO);
+
+		assertTrue( dao.countryIsExcluded( "US" ), "US should be excluded" );
+    	}
+
+
+	// A unit test to test that finalizing an approved exclude country ballot has the desired effect
+    function testExcludeCountryApproved() public
+    	{
+        vm.startPrank(alice);
+        staking.stakeSALT( 1000000 ether );
+
+        proposals.proposeCountryExclusion( "US", "description" );
+		_voteForAndFinalizeBallot(1, Vote.YES);
+
+		assertTrue( dao.countryIsExcluded( "US" ), "US should be excluded" );
+    	}
+
+
+	// A unit test to test that finalizing a denied exclude country ballot has the desired effect
+    function testExcludeCountryDenied() public
+    	{
+        vm.startPrank(alice);
+        staking.stakeSALT( 1000000 ether );
+
+        proposals.proposeCountryExclusion( "US", "description" );
+		_voteForAndFinalizeBallot(1, Vote.NO);
+
+		assertFalse( dao.countryIsExcluded( "US" ), "US shouldn't be excluded" );
+    	}
+
+
+	function _contractForName( string memory contractName ) internal view returns (address)
+		{
+		bytes32 nameHash = keccak256(bytes(contractName));
+
+		if ( nameHash == keccak256(bytes("AAA" )))
+			return address(exchangeConfig.aaa());
+		if ( nameHash == keccak256(bytes("priceFeed" )))
+			return address(stableConfig.priceFeed());
+		if ( nameHash == keccak256(bytes("accessManager" )))
+			return address(exchangeConfig.accessManager());
+		if ( nameHash == keccak256(bytes("stakingRewardsEmitter" )))
+			return address(exchangeConfig.stakingRewardsEmitter());
+		if ( nameHash == keccak256(bytes("liquidityRewardsEmitter" )))
+			return address(exchangeConfig.liquidityRewardsEmitter());
+		if ( nameHash == keccak256(bytes("collateralRewardsEmitter" )))
+			return address(exchangeConfig.collateralRewardsEmitter());
+
+		return address(0);
+		}
+
+
+    function _checkSetContractApproved( uint256 ballotID, string memory contractName, address newAddress) internal
+    	{
+        vm.startPrank(alice);
+        staking.stakeSALT( 1000000 ether );
+
+        proposals.proposeSetContractAddress( contractName, newAddress, "description" );
+		_voteForAndFinalizeBallot(ballotID, Vote.YES);
+
+		// Above finalization should create a confirmation ballot
+		_voteForAndFinalizeBallot(ballotID + 1, Vote.YES);
+
+		assertEq( _contractForName(contractName), newAddress, "Contract address should have changed" );
+		vm.stopPrank();
+    	}
+
+
+	// A unit test to test that finalizing an approved setContract ballot works with all possible contract options
+	function testSetContractApproved() public
+		{
+		_checkSetContractApproved( 1, "AAA", address(0x1231230 ) );
+		_checkSetContractApproved( 3, "priceFeed", address(0x1231231 ) );
+		_checkSetContractApproved( 5, "accessManager", address( new TestAccessManager(dao) ) );
+		_checkSetContractApproved( 7, "stakingRewardsEmitter", address(0x1231233 ) );
+		_checkSetContractApproved( 9, "liquidityRewardsEmitter", address(0x1231234 ) );
+		_checkSetContractApproved( 11, "collateralRewardsEmitter", address(0x1231235 ) );
+		}
+
+
+    function _checkSetContractDenied1( uint256 ballotID, string memory contractName, address newAddress) internal
+    	{
+        vm.startPrank(alice);
+        staking.stakeSALT( 1000000 ether );
+
+        proposals.proposeSetContractAddress( contractName, newAddress, "description" );
+		_voteForAndFinalizeBallot(ballotID, Vote.NO);
+
+		assertFalse( _contractForName(contractName) == newAddress, "Contract address should not have changed" );
+		vm.stopPrank();
+    	}
+
+
+	// A unit test to test that  with all possible contract options, finalizing a setContract ballot has no effect when the initial ballot fails
+	function testSetContractDenied1() public
+		{
+		_checkSetContractDenied1( 1, "AAA", address(0x1231230 ) );
+		_checkSetContractDenied1( 2, "priceFeed", address(0x1231231 ) );
+		_checkSetContractDenied1( 3, "accessManager", address( new TestAccessManager(dao) ) );
+		_checkSetContractDenied1( 4, "stakingRewardsEmitter", address(0x1231233 ) );
+		_checkSetContractDenied1( 5, "liquidityRewardsEmitter", address(0x1231234 ) );
+		_checkSetContractDenied1( 6, "collateralRewardsEmitter", address(0x1231235 ) );
+		}
+
+
+    function _checkSetContractDenied2( uint256 ballotID, string memory contractName, address newAddress) internal
+    	{
+        vm.startPrank(alice);
+        staking.stakeSALT( 1000000 ether );
+
+        proposals.proposeSetContractAddress( contractName, newAddress, "description" );
+		_voteForAndFinalizeBallot(ballotID, Vote.YES);
+
+		// Above finalization should create a confirmation ballot
+		_voteForAndFinalizeBallot(ballotID + 1, Vote.NO);
+
+		assertFalse( _contractForName(contractName) == newAddress, "Contract address should not have changed" );
+		vm.stopPrank();
+    	}
+
+
+	// A unit test to test that  with all possible contract options, finalizing a setContract ballot has no effect when the confirm ballot fails
+	function testSetContractDenied2() public
+		{
+		_checkSetContractDenied2( 1, "AAA", address(0x1231230 ) );
+		_checkSetContractDenied2( 3, "priceFeed", address(0x1231231 ) );
+		_checkSetContractDenied2( 5, "accessManager", address( new TestAccessManager(dao) ) );
+		_checkSetContractDenied2( 7, "stakingRewardsEmitter", address(0x1231233 ) );
+		_checkSetContractDenied2( 9, "liquidityRewardsEmitter", address(0x1231234 ) );
+		_checkSetContractDenied2( 11, "collateralRewardsEmitter", address(0x1231235 ) );
+		}
+
+
+	// A unit test to test that finalizing an approved websiteUpdate ballot has the desired effect
+    function testSetWebsiteApproved() internal
+    	{
+        vm.startPrank(alice);
+        staking.stakeSALT( 1000000 ether );
+
+        proposals.proposeWebsiteUpdate( "websiteURL",  "description" );
+		_voteForAndFinalizeBallot(1, Vote.YES);
+
+		// Above finalization should create a confirmation ballot
+		_voteForAndFinalizeBallot(2, Vote.YES);
+
+		assertEq( dao.websiteURL(), "websiteURL", "Website URL should have changed" );
+		vm.stopPrank();
+    	}
+
+
+	// A unit test to test that finalizing a websiteUpdate ballot in which the initial ballot fails has no effect
+    function testSetWebsiteDenied1() internal
+    	{
+        vm.startPrank(alice);
+        staking.stakeSALT( 1000000 ether );
+
+        proposals.proposeWebsiteUpdate( "websiteURL",  "description" );
+		_voteForAndFinalizeBallot(1, Vote.NO);
+
+		assertEq( dao.websiteURL(), "", "Website URL should not have changed" );
+		vm.stopPrank();
+    	}
+
+
+	// A unit test to test that finalizing a websiteUpdate ballot in which the confirmation ballot fails has no effect
+    function testSetWebsiteDenied2() internal
+    	{
+        vm.startPrank(alice);
+        staking.stakeSALT( 1000000 ether );
+
+        proposals.proposeWebsiteUpdate( "websiteURL",  "description" );
+		_voteForAndFinalizeBallot(1, Vote.YES);
+
+		// Above finalization should create a confirmation ballot
+		_voteForAndFinalizeBallot(2, Vote.NO);
+
+		assertEq( dao.websiteURL(), "", "Website URL should not have changed" );
+		vm.stopPrank();
+    	}
+
+
+	// A unit test to check the constructor of the contract.
+	function testDAOConstructor() public {
+
+        vm.startPrank(DEPLOYER);
+        DAO testDAO = new DAO(proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, liquidity, liquidityRewardsEmitter);
+
+        assertEq(address(testDAO.proposals()), address(proposals), "Proposals contract address mismatch");
+        assertEq(address(testDAO.exchangeConfig()), address(exchangeConfig), "ExchangeConfig contract address mismatch");
+        assertEq(address(testDAO.poolsConfig()), address(poolsConfig), "PoolsConfig contract address mismatch");
+        assertEq(address(testDAO.stakingConfig()), address(stakingConfig), "StakingConfig contract address mismatch");
+        assertEq(address(testDAO.rewardsConfig()), address(rewardsConfig), "RewardsConfig contract address mismatch");
+        assertEq(address(testDAO.stableConfig()), address(stableConfig), "StableConfig contract address mismatch");
+        assertEq(address(testDAO.daoConfig()), address(daoConfig), "DAOConfig contract address mismatch");
+        assertEq(address(testDAO.liquidity()), address(liquidity), "Liquidity contract address mismatch");
+        assertEq(address(testDAO.liquidityRewardsEmitter()), address(liquidityRewardsEmitter), "LiquidityRewardsEmitter contract address mismatch");
+
+        vm.stopPrank();
+    }
+
+
+	// A unit test to validate the finalizeBallot function with ballots that should not yet be finalizable.
+	function testFinalizeBallotWithNotFinalizableBallots() public {
+        vm.startPrank(alice);
+        staking.stakeSALT(5 ether);
+
+        // Propose a parameter ballot
+        proposals.proposeParameterBallot(0, "description");
+
+        // Get the ballot ID
+        uint256 ballotID = 1;
+
+        // Assert that the ballot is live
+        assertEq(proposals.ballotForID(ballotID).ballotIsLive, true, "Parameter Ballot not correctly created");
+
+        // Cast a vote
+        proposals.castVote(ballotID, Vote.INCREASE);
+
+        // Try to finalize the ballot immediately (should not be possible, hence expecting a revert)
+        vm.expectRevert("The ballot is not yet able to be finalized");
+        dao.finalizeBallot(ballotID);
+
+        vm.warp( block.timestamp + 11 days );
+
+		// No quorum yet
+        vm.expectRevert("The ballot is not yet able to be finalized");
+        dao.finalizeBallot(ballotID);
+
+		// Should work
+        staking.stakeSALT(5000000 ether);
+        proposals.castVote(ballotID, Vote.INCREASE);
+
+        dao.finalizeBallot(ballotID);
+        }
+
+
+	// A unit test which checks that you can still see ballots after they are finalized
+	function testFinalizedBallotsStillVisible() public {
+        vm.startPrank(alice);
+        staking.stakeSALT(5000000 ether);
+
+        // Propose a parameter ballot
+        proposals.proposeParameterBallot(0, "description");
+
+        // Get the ballot ID
+        uint256 ballotID = 1;
+        vm.warp( block.timestamp + 11 days );
+
+	    proposals.castVote(ballotID, Vote.INCREASE);
+
+        dao.finalizeBallot(ballotID);
+
+        Ballot memory ballot = proposals.ballotForID(ballotID);
+        assertEq( ballot.ballotID, ballotID );
+        }
+
+
+	// A unit test to test performUpkeep works correctly
+    }
+

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSL 1.1
 pragma solidity ^0.8.12;
 
+import "forge-std/Test.sol";
 import "../rewards/interfaces/IRewardsConfig.sol";
 import "../stable/interfaces/IStableConfig.sol";
 import "../staking/interfaces/ILiquidity.sol";
@@ -19,16 +20,16 @@ import "./Parameters.sol";
 // Allows users to propose and vote on various governance actions such as changing parameters, whitelisting/unwhitelisting tokens, sending tokens, calling other contracts, and updating the website.
 // It handles proposing ballots, tracking votes, enforcing voting requirements, and executing approved proposals.
 // It also stores SALT in the contract for later use and WETH for forming Protocol Owned Liquidity of either SALT/WBTC, SALT/WETH or SALT/USDS.
-contract DAO is IDAO, Upkeepable, Parameters
+contract DAO is IDAO, Upkeepable, Parameters, Test
     {
 	using SafeERC20 for IERC20;
 
 	IExchangeConfig public exchangeConfig;
 	IPoolsConfig public poolsConfig;
 	IStakingConfig public stakingConfig;
-	IDAOConfig public daoConfig;
 	IRewardsConfig public rewardsConfig;
 	IStableConfig public stableConfig;
+	IDAOConfig public daoConfig;
 	ILiquidity public liquidity;
 	IRewardsEmitter public liquidityRewardsEmitter;
 
@@ -42,15 +43,15 @@ contract DAO is IDAO, Upkeepable, Parameters
 	IProposals public proposals;
 
 
-    constructor( IProposals _proposals, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IDAOConfig _daoConfig, IRewardsConfig _rewardsConfig, IStableConfig _stableConfig, ILiquidity _liquidity, IRewardsEmitter _liquidityRewardsEmitter )
+    constructor( IProposals _proposals, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IRewardsConfig _rewardsConfig, IStableConfig _stableConfig, IDAOConfig _daoConfig, ILiquidity _liquidity, IRewardsEmitter _liquidityRewardsEmitter )
 		{
 		require( address(_proposals) != address(0), "_proposals cannot be address(0)" );
 		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
 		require( address(_poolsConfig) != address(0), "_poolsConfig cannot be address(0)" );
 		require( address(_stakingConfig) != address(0), "_stakingConfig cannot be address(0)" );
-		require( address(_daoConfig) != address(0), "_daoConfig cannot be address(0)" );
 		require( address(_rewardsConfig) != address(0), "_rewardsConfig cannot be address(0)" );
 		require( address(_stableConfig) != address(0), "_stableConfig cannot be address(0)" );
+		require( address(_daoConfig) != address(0), "_daoConfig cannot be address(0)" );
 		require( address(_liquidity) != address(0), "_liquidity cannot be address(0)" );
 		require( address(_liquidityRewardsEmitter) != address(0), "_liquidityRewardsEmitter cannot be address(0)" );
 
@@ -58,9 +59,9 @@ contract DAO is IDAO, Upkeepable, Parameters
 		exchangeConfig = _exchangeConfig;
 		poolsConfig = _poolsConfig;
 		stakingConfig = _stakingConfig;
-		daoConfig = _daoConfig;
 		rewardsConfig = _rewardsConfig;
 		stableConfig = _stableConfig;
+		daoConfig = _daoConfig;
         liquidity = _liquidity;
         liquidityRewardsEmitter = _liquidityRewardsEmitter;
 
@@ -79,7 +80,6 @@ contract DAO is IDAO, Upkeepable, Parameters
 
 	// The caller of performUpkeep receives a share of the DAO Protocol Owned Liquidity profits that are claimed during the upkeep and also
 	// receives any WETH (swapped to SALT) that was sent by the AAA on its performUpkeep.
-
 	function _performUpkeep() internal override
 		{
 		}
@@ -103,19 +103,20 @@ contract DAO is IDAO, Upkeepable, Parameters
 
 	function _executeSetContract( Ballot memory ballot ) internal
 		{
+		console.log( "EXECUTE SET CONTRACT: ", ballot.ballotName );
 		bytes32 nameHash = keccak256(bytes( ballot.ballotName ) );
 
-		if ( nameHash == keccak256(bytes( "setContract:priceFeed" )) )
+		if ( nameHash == keccak256(bytes( "setContract:priceFeed_confirm" )) )
 			stableConfig.setPriceFeed( IPriceFeed(ballot.address1) );
-		else if ( nameHash == keccak256(bytes( "setContract:AAA" )) )
+		else if ( nameHash == keccak256(bytes( "setContract:AAA_confirm" )) )
 			exchangeConfig.setAAA( IAAA(ballot.address1) );
-		else if ( nameHash == keccak256(bytes( "setContract:accessManager" )) )
+		else if ( nameHash == keccak256(bytes( "setContract:accessManager_confirm" )) )
 			exchangeConfig.setAccessManager( IAccessManager(ballot.address1) );
-		else if ( nameHash == keccak256(bytes( "setContract:stakingRewardsEmitter" )) )
+		else if ( nameHash == keccak256(bytes( "setContract:stakingRewardsEmitter_confirm" )) )
 			exchangeConfig.setStakingRewardsEmitter( IRewardsEmitter(ballot.address1) );
-		else if ( nameHash == keccak256(bytes( "setContract:liquidityRewardsEmitter" )) )
+		else if ( nameHash == keccak256(bytes( "setContract:liquidityRewardsEmitter_confirm" )) )
 			exchangeConfig.setLiquidityRewardsEmitter( IRewardsEmitter(ballot.address1) );
-		else if ( nameHash == keccak256(bytes( "setContract:collateralRewardsEmitter" )) )
+		else if ( nameHash == keccak256(bytes( "setContract:collateralRewardsEmitter_confirm" )) )
 			exchangeConfig.setCollateralRewardsEmitter( IRewardsEmitter(ballot.address1) );
 		}
 
@@ -128,6 +129,7 @@ contract DAO is IDAO, Upkeepable, Parameters
 
 	function _executeApproval( Ballot memory ballot ) internal
 		{
+		console.log( "_executeApproval: ", uint256(ballot.ballotType) );
 		if ( ballot.ballotType == BallotType.UNWHITELIST_TOKEN )
 			{
 			// All tokens are paired with both WBTC and WETH so unwhitelist those pools

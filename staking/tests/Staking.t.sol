@@ -41,12 +41,13 @@ contract StakingTest is Test, Deployment
         (poolIDs[2],) = PoolUtils.poolID(token2, token3);
 
         // Whitelist lp
-		vm.startPrank( DEPLOYER );
+		vm.startPrank( address(dao) );
         poolsConfig.whitelistPool(token1, token2);
         poolsConfig.whitelistPool(token2, token3);
-
-		salt.transfer( address(this), 100000 ether );
 		vm.stopPrank();
+
+		vm.prank(DEPLOYER);
+		salt.transfer( address(this), 100000 ether );
 
         // This contract approves max to staking so that SALT rewards can be added
         salt.approve(address(staking), type(uint256).max);

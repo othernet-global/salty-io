@@ -54,7 +54,7 @@ contract Parameters
 			poolsConfig.changeMaximumWhitelistedPools( increase );
 
 		// StakingConfig
-		if ( parameterType == ParameterTypes.minUnstakeWeeks )
+		else if ( parameterType == ParameterTypes.minUnstakeWeeks )
 			stakingConfig.changeMinUnstakeWeeks(increase);
 		else if ( parameterType == ParameterTypes.maxUnstakeWeeks )
 			stakingConfig.changeMaxUnstakeWeeks(increase);

@@ -29,18 +29,21 @@ contract TestEmissions is Test, Deployment
 			}
 
     	vm.startPrank( DEPLOYER );
-
     	IERC20 token1 = new TestERC20( 18 );
 		IERC20 token2 = new TestERC20( 18 );
 		IERC20 token3 = new TestERC20( 18 );
 
         (pool1,) = PoolUtils.poolID(token1, token2);
         (pool2,) = PoolUtils.poolID(token2, token3);
+		vm.stopPrank();
 
 		// Whitelist pools
+    	vm.startPrank( address(dao) );
 		poolsConfig.whitelistPool(token1, token2);
 		poolsConfig.whitelistPool(token2, token3);
+		vm.stopPrank();
 
+    	vm.startPrank( DEPLOYER );
 		// Add SALT to the contract (for the emissions)
 		salt.transfer(address(this), 1000 ether);
 
@@ -56,7 +59,7 @@ contract TestEmissions is Test, Deployment
 		salt.approve( address(staking), type(uint256).max );
 
 		// Increase emissionsWeeklyPercent to 1% weekly for testing (.50% default + 2x 0.25% increment)
-    	vm.startPrank( DEPLOYER );
+    	vm.startPrank( address(dao) );
 		rewardsConfig.changeEmissionsWeeklyPercent(true);
         rewardsConfig.changeEmissionsWeeklyPercent(true);
         vm.stopPrank();
@@ -244,7 +247,7 @@ contract TestEmissions is Test, Deployment
 //		console.log( "SALT BALANCE: ", salt.balanceOf( address(emissions) ) );
 
 		// 1 % weekly and 75% for xSaltHolders
-		vm.startPrank( DEPLOYER );
+		vm.startPrank( address(dao) );
 		for( uint256 i = 0; i < 5; i++ )
 			rewardsConfig.changeXSaltHoldersPercent(true);
 		vm.stopPrank();
@@ -361,9 +364,10 @@ contract TestEmissions is Test, Deployment
 			IERC20 tokenA = new TestERC20( 18 );
 			IERC20 tokenB = new TestERC20( 18 );
 			(bytes32 newPool,) = PoolUtils.poolID(tokenA, tokenB);
+			vm.stopPrank();
 
+			vm.prank(address(dao));
 			poolsConfig.whitelistPool(tokenA, tokenB);
-            vm.stopPrank();
 
        	 // Let's stake some SALT for Alice and Bob in a few random pools (remember, pool[0] cannot receive votes)
 			vm.prank(alice);

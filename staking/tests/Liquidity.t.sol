@@ -44,13 +44,14 @@ contract LiquidityTest is Test, Deployment
         poolIDs[1] = pool2;
 
         // Whitelist the _pools
-		vm.startPrank( DEPLOYER );
+		vm.startPrank( address(dao) );
         poolsConfig.whitelistPool(token1, token2);
         poolsConfig.whitelistPool(token2, token3);
+        vm.stopPrank();
 
+		vm.prank(DEPLOYER);
 		salt.transfer( address(this), 100000 ether );
 
-        vm.stopPrank();
 
         salt.approve(address(liquidity), type(uint256).max);
 

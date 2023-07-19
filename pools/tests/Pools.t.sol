@@ -27,7 +27,6 @@ contract TestPools is Test, Deployment
 			}
 
 		vm.startPrank( DEPLOYER );
-
 		for( uint256 i = 0; i < 10; i++ )
 			{
 			tokens[i] = new TestERC20( 18 );
@@ -35,14 +34,23 @@ contract TestPools is Test, Deployment
 
         	tokens[i].transfer(address(this), 100000 ether );
 			}
+		vm.stopPrank();
 
 		for( uint256 i = 0; i < 9; i++ )
 			{
+			vm.prank(address(dao));
 			poolsConfig.whitelistPool( tokens[i], tokens[i + 1] );
+
+			vm.prank(DEPLOYER);
 			pools.addLiquidity( tokens[i], tokens[i + 1], 500 ether, 500 ether, 0, block.timestamp );
 			}
 
+		vm.prank(address(dao));
 		poolsConfig.whitelistPool( tokens[5], tokens[7] );
+		vm.prank(address(dao));
+		poolsConfig.whitelistPool( tokens[0], tokens[9] );
+
+		vm.startPrank( DEPLOYER );
 		pools.addLiquidity( tokens[5], tokens[7], 1000 ether, 1000 ether, 0, block.timestamp );
 
 		pools.deposit( tokens[5], 1000 ether );
@@ -50,9 +58,7 @@ contract TestPools is Test, Deployment
 		pools.deposit( tokens[7], 1000 ether );
 		pools.deposit( tokens[8], 1000 ether );
 
-		poolsConfig.whitelistPool( tokens[0], tokens[9] );
 		pools.addLiquidity( tokens[0], tokens[9], 1000000000 ether, 2000000000 ether, 0, block.timestamp );
-
 		vm.stopPrank();
 
 		for( uint256 i = 0; i < 10; i++ )
@@ -243,12 +249,13 @@ contract TestPools is Test, Deployment
 	// A unit test that handles scenarios related to exceeding pool reserve ratio, updating reserves, and adjusting user's token balance though deposits and withdrawals.
 	function testReserveAndBalanceManagement() public
     	{
-		vm.startPrank(DEPLOYER);
-
     	(uint256 token5PoolReserve, uint256 token7PoolReserve) = pools.getPoolReserves(tokens[5], tokens[7]);
 
     	// Scenario: Add liquidity and update pool reserves
+    	vm.prank( address(dao));
     	poolsConfig.whitelistPool(tokens[5], tokens[7] );
+
+		vm.startPrank(DEPLOYER);
     	pools.addLiquidity(tokens[5], tokens[7], 1 ether, 1 ether, 0, block.timestamp + 1 minutes);
 
     	(uint256 token5PoolReserves2, uint256 token7PoolReserves2) = pools.getPoolReserves(tokens[5], tokens[7]);
@@ -284,9 +291,14 @@ contract TestPools is Test, Deployment
 		IERC20 token2 = new TestERC20(6);
 
 			{
+			vm.stopPrank();
+
+			vm.startPrank(address(dao));
 			poolsConfig.whitelistPool(token0, token1);
 			poolsConfig.whitelistPool(token1, token2);
+			vm.stopPrank();
 
+			vm.startPrank(DEPLOYER);
 			token0.approve( address(pools), type(uint256).max );
 			token1.approve( address(pools), type(uint256).max );
 			token2.approve( address(pools), type(uint256).max );
@@ -369,12 +381,14 @@ contract TestPools is Test, Deployment
 		token.transfer( address(DEPLOYER), amountIn - 1 );
 		vm.stopPrank();
 
-  		vm.startPrank(DEPLOYER);
 
+  		vm.startPrank(address(dao));
         IERC20 tokenIn = token;
         IERC20 tokenOut = tokens[1];
         poolsConfig.whitelistPool(tokenIn, tokenOut);
+		vm.stopPrank();
 
+  		vm.startPrank(DEPLOYER);
         uint256 minAmountOut = 1 ether;
 
 		// Insufficient allowance?
@@ -451,8 +465,12 @@ contract TestPools is Test, Deployment
 
         // Test with token that has not been deposited
         IERC20 undepositedToken = new TestERC20( 18 );
+        vm.stopPrank();
+
+        vm.prank(address(dao));
         poolsConfig.whitelistPool(tokens[0], undepositedToken);
 
+   		vm.startPrank(DEPLOYER);
         assertEq(0, pools.getUserDeposit(address(DEPLOYER), undepositedToken));
         assertEq(0, pools.getUserLiquidity(address(DEPLOYER), tokens[0], undepositedToken));
         (poolID,) = PoolUtils.poolID(tokens[0], undepositedToken);
@@ -484,13 +502,17 @@ contract TestPools is Test, Deployment
 	// A unit test that ensures addLiquidity fails under various conditions and validates its correct initialization and operation under valid conditions.
 	function testAddLiquidity() public
     {
-   		vm.startPrank(DEPLOYER);
-
+        vm.startPrank(DEPLOYER);
         IERC20 tokenA = new TestERC20( 18 );
         IERC20 tokenB = new TestERC20( 18 );
+		vm.stopPrank();
+
+		vm.prank(address(dao));
 		poolsConfig.whitelistPool(tokenA, tokenB);
 
-        // Check that adding liquidity with the same token fails
+        vm.startPrank(DEPLOYER);
+
+		// Check that adding liquidity with the same token fails
         vm.expectRevert("Cannot add liquidity for duplicate tokens");
         pools.addLiquidity(tokenA, tokenA, 10 ether, 10 ether, 0, block.timestamp + 100);
 
@@ -538,11 +560,14 @@ contract TestPools is Test, Deployment
 	function _testRemoveLiquidity() public
     {
    		vm.startPrank(DEPLOYER);
-
         IERC20 token0 = new TestERC20(18);
         IERC20 token1 = new TestERC20(6);
+		vm.stopPrank();
 
+		vm.prank(address(dao));
 		poolsConfig.whitelistPool(token0, token1);
+
+   		vm.startPrank(DEPLOYER);
         token0.approve(address(pools), type(uint256).max);
         token1.approve(address(pools), type(uint256).max);
 
@@ -707,10 +732,14 @@ contract TestPools is Test, Deployment
     	tokensThree[0].approve(address(pools), type(uint256).max);
 		tokensThree[1].approve(address(pools), type(uint256).max);
 		tokensThree[2].approve(address(pools), type(uint256).max);
+		vm.stopPrank();
 
+		vm.startPrank(address(dao));
 		poolsConfig.whitelistPool(tokensThree[0], tokensThree[1]);
 		poolsConfig.whitelistPool(tokensThree[1], tokensThree[2]);
+		vm.stopPrank();
 
+   		vm.startPrank(DEPLOYER);
         pools.addLiquidity( tokensThree[0], tokensThree[1], 1000 ether, 500 ether, 0, deadline );
         pools.addLiquidity( tokensThree[0], tokensThree[1], 1000 ether, 500 ether, 0, deadline );
         pools.addLiquidity( tokensThree[1], tokensThree[2], 500 ether, 500 ether, 0, deadline );
@@ -723,9 +752,14 @@ contract TestPools is Test, Deployment
         tokensThree[0] = new TestERC20( 18 );
         tokensThree[1] = new TestERC20( 18 );
         tokensThree[2] = new TestERC20( 18 );
+		vm.stopPrank();
 
+		vm.startPrank(address(dao));
 		poolsConfig.whitelistPool(tokensThree[0], tokensThree[1]);
 		poolsConfig.whitelistPool(tokensThree[1], tokensThree[2]);
+		vm.stopPrank();
+
+   		vm.startPrank(DEPLOYER);
 
 		// Approve and create fresh liquidity for the 2 two token swaps
     	tokensThree[0].approve(address(pools), type(uint256).max);
@@ -757,11 +791,15 @@ contract TestPools is Test, Deployment
         tokensThree[0] = new TestERC20( 18 );
         tokensThree[1] = new TestERC20( 18 );
         tokensThree[2] = new TestERC20( 18 );
+		vm.stopPrank();
 
+		vm.startPrank(address(dao));
 		poolsConfig.whitelistPool(tokensThree[0], tokensThree[1]);
 		poolsConfig.whitelistPool(tokensThree[1], tokensThree[2]);
+		vm.stopPrank();
 
 		// Approve and create fresh liquidity for the 2 two token swaps
+		vm.startPrank(DEPLOYER);
     	tokensThree[0].approve(address(pools), type(uint256).max);
 		tokensThree[1].approve(address(pools), type(uint256).max);
 		tokensThree[2].approve(address(pools), type(uint256).max);
@@ -909,8 +947,12 @@ contract TestPools is Test, Deployment
 
        	IERC20 token0 = new TestERC20( 18 );
        	IERC20 token1 = new TestERC20( 18 );
+       	vm.stopPrank();
+
+       	vm.prank(address(dao));
        	poolsConfig.whitelistPool(token0, token1);
 
+   		vm.startPrank(DEPLOYER);
     	token0.transfer(alice, 1000 ether);
 		token0.transfer(bob, 1000 ether);
     	token1.transfer(alice, 1000 ether);
@@ -977,8 +1019,12 @@ contract TestPools is Test, Deployment
 
        	IERC20 token0 = new TestERC20( 18 );
        	IERC20 token1 = new TestERC20( 18 );
+       	vm.stopPrank();
+
+		vm.prank(address(dao));
        	poolsConfig.whitelistPool(token0, token1);
 
+   		vm.startPrank(DEPLOYER);
     	token0.transfer(alice, 1000 ether);
 		token0.transfer(bob, 1000 ether);
 		token0.transfer(charlie, 1000 ether);
@@ -1106,8 +1152,12 @@ contract TestPools is Test, Deployment
 
        	IERC20 token0 = new TestERC20( 18 );
        	IERC20 token1 = new TestERC20( 18 );
+       	vm.stopPrank();
+
+		vm.prank(address(dao));
 		poolsConfig.whitelistPool(token0, token1);
 
+   		vm.startPrank(DEPLOYER);
 		(bytes32 poolID,) = PoolUtils.poolID(token0, token1);
 
 		// alice, bob and charlie initially have 1000 of each token
@@ -1267,7 +1317,7 @@ contract TestPools is Test, Deployment
 		token1.approve(address(pools),type(uint256).max);
 		vm.stopPrank();
 
-		vm.prank(DEPLOYER);
+		vm.prank(address(dao));
 		poolsConfig.whitelistPool(token0, token1);
 
 		// Add the initial liquidity
@@ -1364,10 +1414,14 @@ contract TestPools is Test, Deployment
 		chain[0].approve(address(pools),type(uint256).max);
 		chain[1].approve(address(pools),type(uint256).max);
 		chain[2].approve(address(pools),type(uint256).max);
+		vm.stopPrank();
 
+		vm.startPrank(address(dao));
 		poolsConfig.whitelistPool(chain[0], chain[1]);
 		poolsConfig.whitelistPool(chain[1], chain[2]);
+		vm.stopPrank();
 
+		vm.startPrank(DEPLOYER);
 		pools.addLiquidity( chain[0], chain[1], a, b, 0, block.timestamp );
 		pools.addLiquidity( chain[1], chain[2], c, d, 0, block.timestamp );
 
@@ -1410,10 +1464,14 @@ contract TestPools is Test, Deployment
 		chain[0].approve(address(pools),type(uint256).max);
 		chain[1].approve(address(pools),type(uint256).max);
 		chain[2].approve(address(pools),type(uint256).max);
+		vm.stopPrank();
 
+   		vm.startPrank(address(dao));
 		poolsConfig.whitelistPool(chain[0], chain[1]);
 		poolsConfig.whitelistPool(chain[1], chain[2]);
+		vm.stopPrank();
 
+   		vm.startPrank(DEPLOYER);
 		pools.addLiquidity( chain[0], chain[1], 1000 ether, 500 ether, 0, block.timestamp );
 		pools.addLiquidity( chain[1], chain[2], 200 ether, 2000 ether, 0, block.timestamp );
 
@@ -1442,10 +1500,14 @@ contract TestPools is Test, Deployment
 		chain[0].approve(address(pools),type(uint256).max);
 		chain[1].approve(address(pools),type(uint256).max);
 		chain[2].approve(address(pools),type(uint256).max);
+		vm.stopPrank();
 
+		vm.startPrank(address(dao));
 		poolsConfig.whitelistPool(chain[0], chain[1]);
 		poolsConfig.whitelistPool(chain[1], chain[2]);
+		vm.stopPrank();
 
+   		vm.startPrank(DEPLOYER);
 		pools.addLiquidity( chain[0], chain[1], 1000 ether, 500 ether, 0, block.timestamp );
 		pools.addLiquidity( chain[1], chain[2], 200 ether, 2000 ether, 0, block.timestamp );
 
@@ -1519,14 +1581,17 @@ contract TestPools is Test, Deployment
 	function _checkZapping( uint8 decimals0, uint8 decimals1, uint256 initialLiquidity0, uint256 initialLiquidity1, uint256 zapAmount0, uint256 zapAmount1 ) internal
 		{
 		vm.startPrank(DEPLOYER);
-
         IERC20 token0 = new TestERC20(decimals0);
         IERC20 token1 = new TestERC20(decimals1);
 
 		token0.approve(address(pools),type(uint256).max);
 		token1.approve(address(pools),type(uint256).max);
+		vm.stopPrank();
 
+		vm.prank(address(dao));
 		poolsConfig.whitelistPool(token0, token1);
+
+		vm.startPrank(DEPLOYER);
 		pools.addLiquidity( token0, token1, initialLiquidity0 * 10 ** decimals0, initialLiquidity1 * 10 ** decimals1, 0, block.timestamp );
 
 		token0.transfer(alice,zapAmount0 * 10 ** decimals0);
@@ -1621,8 +1686,12 @@ contract TestPools is Test, Deployment
 
 		token0.approve(address(pools),type(uint256).max);
 		token1.approve(address(pools),type(uint256).max);
+		vm.stopPrank();
 
+		vm.prank(address(dao));
 		poolsConfig.whitelistPool(token0, token1);
+		vm.startPrank(DEPLOYER);
+
 		pools.addLiquidity( token0, token1, initialLiquidity0, initialLiquidity1, 0, block.timestamp );
 
 		token0.transfer(alice,zapAmount0);

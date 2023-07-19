@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 import "../Deployment.sol";
 
 
-contract TestDeployment is Deployment
+contract TestDeployment is Deployment, Test
 	{
 	function functionExists( address _contract, string memory _functionName ) public returns (bool)
 		{

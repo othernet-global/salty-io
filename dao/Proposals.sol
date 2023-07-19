@@ -114,14 +114,14 @@ contract Proposals is IProposals, ReentrancyGuard
 		}
 
 
-	function proposeParameterBallot( uint256 parameterType ) public nonReentrant
+	function proposeParameterBallot( uint256 parameterType, string memory description ) public nonReentrant
 		{
 		string memory ballotName = string.concat("parameter:", Strings.toString(parameterType) );
-		_possiblyCreateProposal( ballotName, BallotType.PARAMETER, address(0), parameterType, "", "", 1 * daoConfig.baseProposalCost() );
+		_possiblyCreateProposal( ballotName, BallotType.PARAMETER, address(0), parameterType, "", description, 1 * daoConfig.baseProposalCost() );
 		}
 
 
-	function proposeTokenWhitelisting( IERC20 token, string memory tokenIconURL, string memory tokenDescription ) public nonReentrant
+	function proposeTokenWhitelisting( IERC20 token, string memory tokenIconURL, string memory description ) public nonReentrant
 		{
 		require( address(token) != address(0), "token cannot be address(0)" );
 
@@ -131,12 +131,12 @@ contract Proposals is IProposals, ReentrancyGuard
 
 		string memory ballotName = string.concat("whitelist:", Strings.toHexString(address(token)) );
 
-		uint256 ballotID = _possiblyCreateProposal( ballotName, BallotType.WHITELIST_TOKEN, address(token), 0, tokenIconURL, tokenDescription, 2 * daoConfig.baseProposalCost() );
+		uint256 ballotID = _possiblyCreateProposal( ballotName, BallotType.WHITELIST_TOKEN, address(token), 0, tokenIconURL, description, 2 * daoConfig.baseProposalCost() );
 		_openBallotsForTokenWhitelisting.add( ballotID );
 		}
 
 
-	function proposeTokenUnwhitelisting( IERC20 token, string memory tokenIconURL, string memory tokenDescription ) public nonReentrant
+	function proposeTokenUnwhitelisting( IERC20 token, string memory tokenIconURL, string memory description ) public nonReentrant
 		{
 		require( poolsConfig.tokenHasBeenWhitelisted(token, exchangeConfig.wbtc(), exchangeConfig.weth()), "Can only unwhitelist a whitelisted token" );
 		require( address(token) != address(exchangeConfig.wbtc()), "Cannot unwhitelist WBTC" );
@@ -146,64 +146,64 @@ contract Proposals is IProposals, ReentrancyGuard
 		require( address(token) != address(exchangeConfig.salt()), "Cannot unwhitelist SALT" );
 
 		string memory ballotName = string.concat("unwhitelist:", Strings.toHexString(address(token)) );
-		_possiblyCreateProposal( ballotName, BallotType.UNWHITELIST_TOKEN, address(token), 0, tokenIconURL, tokenDescription, 2 * daoConfig.baseProposalCost() );
+		_possiblyCreateProposal( ballotName, BallotType.UNWHITELIST_TOKEN, address(token), 0, tokenIconURL, description, 2 * daoConfig.baseProposalCost() );
 		}
 
 
 	// Proposes sending a specified amount of SALT to a wallet or contract.
-	// Only one sendSALT Ballot can be open at a time and the sending limit is 5% of the current SALT balance.
-	function proposeSendSALT( address wallet, uint256 amount ) public nonReentrant
+	// Only one sendSALT Ballot can be open at a time and the sending limit is 5% of the current SALT balance of the DAO.
+	function proposeSendSALT( address wallet, uint256 amount, string memory description ) public nonReentrant
 		{
 		require( wallet != address(0), "Cannot send SALT to address(0)" );
 
 		// Limit to 5% of current balance
-		uint256 balance = exchangeConfig.salt().balanceOf( address(this) );
+		uint256 balance = exchangeConfig.salt().balanceOf( address(exchangeConfig.dao()) );
 		uint256 maxSendable = balance * 5 / 100;
 		require( amount < maxSendable, "Cannot send more than 5% of the existing balance" );
 
 		// This ballotName is not unique for the send and enforces the restriction of one sendSALT ballot at a time
 		string memory ballotName = "sendSALT";
-		_possiblyCreateProposal( ballotName, BallotType.SEND_SALT, wallet, amount, "", "", 3 * daoConfig.baseProposalCost() );
+		_possiblyCreateProposal( ballotName, BallotType.SEND_SALT, wallet, amount, "", description, 3 * daoConfig.baseProposalCost() );
 		}
 
 
 	// Proposes calling the callFromDAO(uint256) method on an arbitrary contract.
-	function proposeCallContract( address contractAddress, uint256 number ) public nonReentrant
+	function proposeCallContract( address contractAddress, uint256 number, string memory description ) public nonReentrant
 		{
 		string memory ballotName = string.concat("callContract:", Strings.toHexString(address(contractAddress)) );
-		_possiblyCreateProposal( ballotName, BallotType.CALL_CONTRACT, contractAddress, number, "", "", 3 * daoConfig.baseProposalCost() );
+		_possiblyCreateProposal( ballotName, BallotType.CALL_CONTRACT, contractAddress, number, description, "", 3 * daoConfig.baseProposalCost() );
 		}
 
 
-	function proposeCountryInclusion( string memory country ) public nonReentrant
+	function proposeCountryInclusion( string memory country, string memory description ) public nonReentrant
 		{
 		string memory ballotName = string.concat("include:", country );
-		_possiblyCreateProposal( ballotName, BallotType.INCLUDE_COUNTRY, address(0), 0, country, "", 5 * daoConfig.baseProposalCost() );
+		_possiblyCreateProposal( ballotName, BallotType.INCLUDE_COUNTRY, address(0), 0, country, description, 5 * daoConfig.baseProposalCost() );
 		}
 
 
-	function proposeCountryExclusion( string memory country ) public nonReentrant
+	function proposeCountryExclusion( string memory country, string memory description ) public nonReentrant
 		{
 		string memory ballotName = string.concat("exclude:", country );
-		_possiblyCreateProposal( ballotName, BallotType.EXCLUDE_COUNTRY, address(0), 0, country, "", 5 * daoConfig.baseProposalCost() );
+		_possiblyCreateProposal( ballotName, BallotType.EXCLUDE_COUNTRY, address(0), 0, country, description, 5 * daoConfig.baseProposalCost() );
 		}
 
 
-	function proposeSetContractAddress( string memory contractName, address newAddress ) public nonReentrant
+	function proposeSetContractAddress( string memory contractName, address newAddress, string memory description ) public nonReentrant
 		{
 		require( newAddress != address(0), "Proposed address cannot be address(0)" );
 
 		string memory ballotName = string.concat("setContract:", contractName );
-		_possiblyCreateProposal( ballotName, BallotType.SET_CONTRACT, newAddress, 0, "", "", 10 * daoConfig.baseProposalCost() );
+		_possiblyCreateProposal( ballotName, BallotType.SET_CONTRACT, newAddress, 0, "", description, 10 * daoConfig.baseProposalCost() );
 		}
 
 
-	function proposeWebsiteUpdate( string memory newWebsiteURL ) public nonReentrant
+	function proposeWebsiteUpdate( string memory newWebsiteURL, string memory description ) public nonReentrant
 		{
 		require( keccak256(abi.encodePacked(newWebsiteURL)) != keccak256(abi.encodePacked("")), "Website URL cannot be empty" );
 
 		string memory ballotName = string.concat("setURL:", newWebsiteURL );
-		_possiblyCreateProposal( ballotName, BallotType.SET_WEBSITE_URL, address(0), 0, newWebsiteURL, "", 10 * daoConfig.baseProposalCost() );
+		_possiblyCreateProposal( ballotName, BallotType.SET_WEBSITE_URL, address(0), 0, newWebsiteURL, description, 10 * daoConfig.baseProposalCost() );
 		}
 
 
@@ -285,7 +285,7 @@ contract Proposals is IProposals, ReentrancyGuard
 		uint256 minimumQuorum = totalSupply * 1 / 100;
 
 		if ( requiredQuorum < minimumQuorum )
-			requiredQuorum =minimumQuorum;
+			requiredQuorum = minimumQuorum;
 		}
 
 
