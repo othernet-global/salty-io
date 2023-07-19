@@ -1060,7 +1060,7 @@ contract TestProposals is Test, Deployment
         string memory newWebsiteURL = "";
 
         // Expect a revert due to the website URL being empty
-        vm.expectRevert("Website URL cannot be empty");
+        vm.expectRevert("newWebsiteURL cannot be empty");
         proposals.proposeWebsiteUpdate(newWebsiteURL, "description" );
     }
     }
