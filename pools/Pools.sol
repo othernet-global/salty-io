@@ -13,11 +13,10 @@ import "./PoolMath.sol";
 
 contract Pools is IPools, ReentrancyGuard
 	{
-	struct PoolInfo
+	struct PoolReserves
 		{
 		uint256 reserve0;					// The token reserves such that address(token0) < address(token1)
 		uint256 reserve1;
-		uint256 lastSwapTimestamp;	// The timestamp of the last swap for the token pair
 		}
 
 	event eLiquidityAdded(address indexed user, bytes32 indexed poolID, uint256 addedLiquidity);
@@ -33,6 +32,7 @@ contract Pools is IPools, ReentrancyGuard
 
 
 	IExchangeConfig public immutable exchangeConfig;
+	IDAO public dao;
 
 	// Token balances less than dust are treated as if they don't exist at all.
 	// With the 18 decimals that are used for most tokens, DUST has a value of 0.0000000000000001
@@ -40,7 +40,7 @@ contract Pools is IPools, ReentrancyGuard
 	uint256 constant public DUST = 100;
 
 	// Keeps track of the token reserves and lastSwapTimestamp by poolID
-	mapping(bytes32=>PoolInfo) public poolInfo;
+	mapping(bytes32=>PoolReserves) private _poolReserves;
 
 	// The total liquidity for each poolID
 	mapping(bytes32=>uint256) public totalLiquidity;
@@ -52,11 +52,21 @@ contract Pools is IPools, ReentrancyGuard
 	mapping(address=>mapping(bytes32=>uint256)) private _userLiquidity;
 
 
+
 	constructor( IExchangeConfig _exchangeConfig )
 		{
 		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
 
 		exchangeConfig = _exchangeConfig;
+		}
+
+
+	function setDAO( IDAO _dao ) public
+		{
+		require( address(dao) == address(0), "setDAO can only be called once" );
+		require( address(_dao) != address(0), "_dao cannot be address(0)" );
+
+		dao = _dao;
 		}
 
 
@@ -142,15 +152,12 @@ contract Pools is IPools, ReentrancyGuard
 		require( addedLiquidity >= minLiquidityReceived, "Too little liquidity received" );
 
 		// Update the reserves
-		poolInfo[poolID].reserve0 += addedAmountA;
-		poolInfo[poolID].reserve1 += addedAmountB;
+		_poolReserves[poolID].reserve0 += addedAmountA;
+		_poolReserves[poolID].reserve1 += addedAmountB;
 
 		// Update the liquidity totals for the user and protocol
 		_userLiquidity[msg.sender][poolID] += addedLiquidity;
 		totalLiquidity[poolID] += addedLiquidity;
-
-		// Update the last swap timestamp for the pool
-		poolInfo[poolID].lastSwapTimestamp = block.timestamp;
 
 		// Flip back to call token order so the amounts make sense to the caller?
 		if ( flipped )
@@ -171,7 +178,7 @@ contract Pools is IPools, ReentrancyGuard
 
 		(bytes32 poolID, bool flipped) = PoolUtils.poolID(tokenA, tokenB);
 
-		PoolInfo storage _poolInfo = poolInfo[poolID];
+		PoolReserves storage _poolInfo = _poolReserves[poolID];
 
 		uint256 _totalLiquidity = totalLiquidity[poolID];
 		require( _userLiquidity[msg.sender][poolID] >= liquidityToRemove, "Cannot remove more liquidity than the current balance" );
@@ -239,7 +246,7 @@ contract Pools is IPools, ReentrancyGuard
     	{
         (bytes32 poolID, bool flipped) = PoolUtils.poolID(tokenIn, tokenOut);
 
-        PoolInfo storage _poolInfo = poolInfo[poolID];
+        PoolReserves storage _poolInfo = _poolReserves[poolID];
 
         uint256 reserve0 = _poolInfo.reserve0;
         uint256 reserve1 = _poolInfo.reserve1;
@@ -265,7 +272,7 @@ contract Pools is IPools, ReentrancyGuard
         // Update poolInfo
 		_poolInfo.reserve0 = reserve0;
 		_poolInfo.reserve1 = reserve1;
-        _poolInfo.lastSwapTimestamp = block.timestamp;
+//        _poolInfo.lastSwapTimestamp = block.timestamp;
     	}
 
 
@@ -297,6 +304,48 @@ contract Pools is IPools, ReentrancyGuard
 
 		// Deposit the final tokenOut into the users account
 		userDeposits[tokenOut] += amountOut;
+		}
+
+
+    // Arbitrage one to token to itself along a circular path.
+    // Does not require any deposited tokens to make the call, but requires that the resulting amountOut is greater than amountIn.
+    // Essentially the caller virtually "borrows" amountIn of the token and virtually "repays" it at the end of the swap chain.
+    // The extra amountOut (compared to amountIn) is the arbitrage profit.
+	function arbitrage( IERC20[] calldata tokens, uint256 initialAmountIn, uint256 deadline ) public nonReentrant ensureNotExpired(deadline) returns (uint256 arbitrageProfit)
+		{
+		IERC20 tokenIn = tokens[0];
+
+		require( address(tokenIn) == address(tokens[tokens.length-1]), "Arbitrage must start and end with the same token" );
+		require( tokens.length >= 4, "Must swap at least four tokens" );
+
+		IERC20 tokenOut;
+		uint256 amountIn = initialAmountIn;
+		uint256 amountOut;
+		for( uint256 i = 1; i < tokens.length; i++ )
+			{
+			tokenOut = tokens[i];
+
+			amountOut = _adjustReservesForSwap( tokenIn, tokenOut, amountIn );
+
+			tokenIn = tokenOut;
+			amountIn = amountOut;
+			}
+
+		require( amountOut > initialAmountIn, "With arbitrage, resulting amountOut must be greater than initialAmountIn" );
+
+		// Determine the arbitrage profit
+		uint256 totalArbitrageProfit = amountOut - initialAmountIn;
+
+		// Arbitrage profit is split between the caller and the DAO.
+		// This is fixed at a 2/3 : 1/3 split rather than adjustable by the DAO in order to prevent additional external contract lookups and save gas.
+		// 1/3 of the profit from both external users and the AAA.sol automatic atomic arbitrage contract is sent to the DAO via this mechanism.
+		uint256 daoShareOfProfit = totalArbitrageProfit / 3;
+
+		// Arbitrage profit for the caller
+		arbitrageProfit = totalArbitrageProfit - daoShareOfProfit;
+
+		_userDeposits[address(dao)][tokenOut] += daoShareOfProfit;
+		_userDeposits[msg.sender][tokenOut] += arbitrageProfit;
 		}
 
 
@@ -375,9 +424,9 @@ contract Pools is IPools, ReentrancyGuard
 	function getPoolReserves(IERC20 tokenA, IERC20 tokenB) public view returns (uint256 reserveA, uint256 reserveB)
 		{
 		(bytes32 poolID, bool flipped) = PoolUtils.poolID(tokenA, tokenB);
-		PoolInfo memory _poolInfo = poolInfo[poolID];
-		reserveA = _poolInfo.reserve0;
-		reserveB = _poolInfo.reserve1;
+		PoolReserves memory reserves = _poolReserves[poolID];
+		reserveA = reserves.reserve0;
+		reserveB = reserves.reserve1;
 
 		// Return the reserves in the order that they were requested
 		if (flipped)

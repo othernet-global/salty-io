@@ -24,6 +24,8 @@ contract TestPools is Test, Deployment
 			{
 			vm.prank(DEPLOYER);
 			pools = new Pools(exchangeConfig);
+
+			pools.setDAO(dao);
 			}
 
 		vm.startPrank( DEPLOYER );
@@ -33,6 +35,7 @@ contract TestPools is Test, Deployment
         	tokens[i].approve( address(pools), type(uint256).max );
 
         	tokens[i].transfer(address(this), 100000 ether );
+        	tokens[i].transfer(address(dao), 100000 ether );
 			}
 		vm.stopPrank();
 
@@ -69,6 +72,15 @@ contract TestPools is Test, Deployment
 			pools.deposit( tokens[i], 1000 ether );
 			pools.addLiquidity( tokens[i], tokens[i + 1], 500 ether, 500 ether, 0, block.timestamp );
         	}
+
+
+		vm.startPrank(address(dao));
+		tokens[5].approve(address(pools), type(uint256).max );
+		pools.deposit(tokens[5], 1 ether);
+		vm.stopPrank();
+
+		tokens[5].approve(address(pools), type(uint256).max );
+		pools.deposit(tokens[5], 1 ether);
 		}
 
 
@@ -127,6 +139,22 @@ contract TestPools is Test, Deployment
 		console.log( "arbIn: ", 1 ether );
 		console.log( "arbOut: ", amountOut );
 		}
+
+
+	function testGasSwapAndArbitrage() public
+		{
+		pools.depositSwapWithdraw(tokens[6], tokens[7], 10 ether, 5 ether, block.timestamp );
+
+		IERC20[] memory arb = new IERC20[](4);
+		arb[0] = tokens[5];
+		arb[1] = tokens[7];
+		arb[2] = tokens[6];
+		arb[3] = tokens[5];
+
+		uint256 arbitrageProfit = pools.arbitrage(arb, 1 ether, block.timestamp );
+		console.log( "arbitrageProfit: ", arbitrageProfit );
+		}
+
 
 
 	// A unit test that ensures adding/removing liquidity fails when token0 and token1 are identical.
@@ -688,10 +716,6 @@ contract TestPools is Test, Deployment
         pools.swap(twoTokens, 500 ether, 1 ether, block.timestamp + 60);
         assertEq(pools.getUserDeposit(address(DEPLOYER), tokens[5]), 500 ether);
 
-        (bytes32 poolID,) = PoolUtils.poolID(twoTokens[0], twoTokens[1]);
-		(, , uint256 lastSwapTimestamp) = pools.poolInfo(poolID);
-		assertEq( lastSwapTimestamp, block.timestamp );
-
 		vm.warp( block.timestamp + 1 hours );
 
         // Deposit of tokenOut from setup was 1000 ether - 333.3333 ether more is expected from the trade
@@ -703,14 +727,6 @@ contract TestPools is Test, Deployment
         // Test valid swap with three tokens
         pools.swap(threeTokens, 500 ether, 1 ether, block.timestamp + 60);
         assertEq(pools.getUserDeposit(address(DEPLOYER), tokens[7]), 1142.857142857142857144 ether);
-
-        (poolID,) = PoolUtils.poolID(threeTokens[0], threeTokens[1]);
-		(, , lastSwapTimestamp) = pools.poolInfo(poolID);
-		assertEq( lastSwapTimestamp, block.timestamp );
-
-        (poolID,) = PoolUtils.poolID(threeTokens[1], threeTokens[2]);
-		(, , lastSwapTimestamp) = pools.poolInfo(poolID);
-		assertEq( lastSwapTimestamp, block.timestamp );
     }
 
 

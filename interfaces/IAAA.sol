@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: BSL 1.1
 pragma solidity ^0.8.12;
 
+import "../openzeppelin/token/ERC20/IERC20.sol";
+
 
 interface IAAA
 	{
-	function collateralRewardsEmitterAddress() external view returns (address);
-
-	function attemptArbitrage( address tokenIn, address tokenOut, uint256 amountIn, address to ) external;
+	function depositOwnedWETH() external;
+	function transferAssetsIfReplaced() external;
+	function attemptArbitrage( address swapper, IERC20[] memory swapPath, uint256 amountIn ) external;
 	}
