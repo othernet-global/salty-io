@@ -47,9 +47,8 @@ contract TestDeployment is Deployment, Test
         assertEq( getContract(address(exchangeConfig), "usdc()"), address(usdc), "Incorrect exchangeConfig.usdc" );
         assertEq( getContract(address(exchangeConfig), "usds()"), address(usds), "Incorrect exchangeConfig.usds" );
         assertEq( getContract(address(exchangeConfig), "accessManager()"), address(accessManager), "Incorrect exchangeConfig.accessManager" );
+        assertEq( getContract(address(exchangeConfig), "dao()"), address(dao), "Incorrect exchangeConfig.dao" );
 //        assertEq( getContract(address(exchangeConfig), "aaa()"), address(aaa), "Incorrect exchangeConfig.aaa" );
-//        assertEq( getContract(address(exchangeConfig), "dao()"), address(dao), "Incorrect exchangeConfig.dao" );
-//        assertEq( getContract(address(exchangeConfig), "optimizer()"), address(optimizer), "Incorrect exchangeConfig.optimizer" );
 
         assertEq( getContract(address(pools), "exchangeConfig()"), address(exchangeConfig), "Incorrect pools.exchangeConfig" );
 
@@ -92,16 +91,28 @@ contract TestDeployment is Deployment, Test
 		assertEq( getContract(address(emissions), "poolsConfig()"), address(poolsConfig), "Incorrect emissions.poolsConfig" );
         assertEq( getContract(address(emissions), "rewardsConfig()"), address(rewardsConfig), "Incorrect emissions.rewardsConfig" );
 
-//		assertEq( getContract(address(dao), "stakingConfig()"), address(stakingConfig), "Incorrect dao.stakingConfig" );
-//		assertEq( getContract(address(dao), "daoConfig()"), address(daoConfig), "Incorrect dao.daoConfig" );
-//        assertEq( getContract(address(dao), "exchangeConfig()"), address(exchangeConfig), "Incorrect dao.exchangeConfig" );
-//        assertEq( getContract(address(dao), "staking()"), address(staking), "Incorrect dao.staking" );
-//        assertEq( getContract(address(dao), "rewardsConfig()"), address(rewardsConfig), "Incorrect dao.rewardsConfig" );
-//        assertEq( getContract(address(dao), "stableConfig()"), address(stableConfig), "Incorrect dao.stableConfig" );
-//        assertEq( getContract(address(dao), "liquidity()"), address(liquidity), "Incorrect dao.liquidity" );
-//        assertEq( getContract(address(dao), "stableConfig()"), address(stableConfig), "Incorrect dao.stableConfig" );
-//        assertEq( getContract(address(dao), "factory()"), address(factory), "Incorrect dao.factory" );
-//
+		assertEq( getContract(address(dao), "proposals()"), address(proposals), "Incorrect dao.proposals" );
+        assertEq( getContract(address(dao), "exchangeConfig()"), address(exchangeConfig), "Incorrect dao.exchangeConfig" );
+        assertEq( getContract(address(dao), "poolsConfig()"), address(poolsConfig), "Incorrect dao.poolsConfig" );
+		assertEq( getContract(address(dao), "stakingConfig()"), address(stakingConfig), "Incorrect dao.stakingConfig" );
+        assertEq( getContract(address(dao), "rewardsConfig()"), address(rewardsConfig), "Incorrect dao.rewardsConfig" );
+        assertEq( getContract(address(dao), "stableConfig()"), address(stableConfig), "Incorrect dao.stableConfig" );
+		assertEq( getContract(address(dao), "daoConfig()"), address(daoConfig), "Incorrect dao.daoConfig" );
+        assertEq( getContract(address(dao), "liquidity()"), address(liquidity), "Incorrect dao.liquidity" );
+        assertEq( getContract(address(dao), "liquidityRewardsEmitter()"), address(liquidityRewardsEmitter), "Incorrect dao.liquidityRewardsEmitter" );
+
+		assertEq( getContract(address(proposals), "staking()"), address(staking), "Incorrect proposals.staking" );
+        assertEq( getContract(address(proposals), "exchangeConfig()"), address(exchangeConfig), "Incorrect proposals.exchangeConfig" );
+        assertEq( getContract(address(proposals), "poolsConfig()"), address(poolsConfig), "Incorrect proposals.poolsConfig" );
+        assertEq( getContract(address(proposals), "stakingConfig()"), address(stakingConfig), "Incorrect proposals.stakingConfig" );
+        assertEq( getContract(address(proposals), "daoConfig()"), address(daoConfig), "Incorrect proposals.daoConfig" );
+
+		assertEq( getContract( address(exchangeConfig), "owner()" ), address(dao), "exchangeConfig owner is not dao" );
+		assertEq( getContract( address(poolsConfig), "owner()" ), address(dao), "poolsConfig owner is not dao" );
+		assertEq( getContract( address(stakingConfig), "owner()" ), address(dao), "stakingConfig owner is not dao" );
+		assertEq( getContract( address(rewardsConfig), "owner()" ), address(dao), "rewardsConfig owner is not dao" );
+		assertEq( getContract( address(stableConfig), "owner()" ), address(dao), "stableConfig owner is not dao" );
+		assertEq( getContract( address(daoConfig), "owner()" ), address(dao), "daoConfig owner is not dao" );
 
         if ( DEBUG )
         	assertTrue( functionExists( address(priceFeed), "forcedPriceBTCWith18Decimals()" ), "For DEBUG: The PriceFeed should be a ForcedPriceFeed" );

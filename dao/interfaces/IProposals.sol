@@ -32,7 +32,7 @@ struct Ballot
 
 interface IProposals
 	{
-	function createConfirmationProposal( string calldata ballotName, BallotType ballotType, address address1, string memory string1 ) external;
+	function createConfirmationProposal( string calldata ballotName, BallotType ballotType, address address1, string calldata string1, string calldata description ) external;
 	function markBallotAsFinalized( uint256 ballotID ) external;
 
 	function proposeParameterBallot( uint256 parameterType, string calldata description ) external;

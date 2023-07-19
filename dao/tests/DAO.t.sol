@@ -285,10 +285,21 @@ contract TestDAO is Test, Deployment
         staking.stakeSALT( 1000000 ether );
 
        	IERC20 token = new TestERC20(18);
-		salt.transfer( address(dao), 1000000 ether );
 
         proposals.proposeTokenWhitelisting( token, "", "" );
-		_voteForAndFinalizeBallot(1, Vote.YES);
+
+		uint256 ballotID = 1;
+        proposals.castVote(ballotID, Vote.YES);
+
+        // Increase block time to finalize the ballot
+        vm.warp(block.timestamp + 11 days );
+
+        // Test Parameter Ballot finalization
+		vm.expectRevert( "Whitelisting is not currently possible due to insufficient bootstrapping rewards" );
+        dao.finalizeBallot(ballotID);
+
+		salt.transfer( address(dao), 1000000 ether );
+        dao.finalizeBallot(ballotID);
 
 		// Check for the effects of the vote
 		assertTrue( poolsConfig.tokenHasBeenWhitelisted(token, wbtc, weth), "Token not whitelisted" );
@@ -309,6 +320,46 @@ contract TestDAO is Test, Deployment
 
 		// Check for the effects of the vote
 		assertFalse( poolsConfig.tokenHasBeenWhitelisted(token, wbtc, weth), "Token should not be whitelisted" );
+    	}
+
+
+	// A unit test to test that finalizing an approved whitelist token ballot has the desired effect
+    function testUnwhitelistTokenApproved() public
+    	{
+        vm.startPrank(alice);
+        staking.stakeSALT( 1000000 ether );
+
+       	IERC20 token = new TestERC20(18);
+		salt.transfer( address(dao), 1000000 ether );
+
+        proposals.proposeTokenWhitelisting( token, "", "" );
+		_voteForAndFinalizeBallot(1, Vote.YES);
+
+        proposals.proposeTokenUnwhitelisting( token, "", "" );
+		_voteForAndFinalizeBallot(2, Vote.YES);
+
+		// Check for the effects of the vote
+		assertFalse( poolsConfig.tokenHasBeenWhitelisted(token, wbtc, weth), "Token should not be whitelisted" );
+    	}
+
+
+	// A unit test to test that finalizing a denied whitelist token ballot has the desired effect
+    function testUnwhitelistTokenDenied() public
+    	{
+        vm.startPrank(alice);
+        staking.stakeSALT( 1000000 ether );
+
+       	IERC20 token = new TestERC20(18);
+		salt.transfer( address(dao), 1000000 ether );
+
+        proposals.proposeTokenWhitelisting( token, "", "" );
+		_voteForAndFinalizeBallot(1, Vote.YES);
+
+        proposals.proposeTokenUnwhitelisting( token, "", "" );
+		_voteForAndFinalizeBallot(2, Vote.NO);
+
+		// Check for the effects of the vote
+		assertTrue( poolsConfig.tokenHasBeenWhitelisted(token, wbtc, weth), "Token not whitelisted" );
     	}
 
 
@@ -541,7 +592,7 @@ contract TestDAO is Test, Deployment
 
 
 	// A unit test to test that finalizing an approved websiteUpdate ballot has the desired effect
-    function testSetWebsiteApproved() internal
+    function testSetWebsiteApproved() public
     	{
         vm.startPrank(alice);
         staking.stakeSALT( 1000000 ether );
@@ -558,7 +609,7 @@ contract TestDAO is Test, Deployment
 
 
 	// A unit test to test that finalizing a websiteUpdate ballot in which the initial ballot fails has no effect
-    function testSetWebsiteDenied1() internal
+    function testSetWebsiteDenied1() public
     	{
         vm.startPrank(alice);
         staking.stakeSALT( 1000000 ether );
@@ -572,7 +623,7 @@ contract TestDAO is Test, Deployment
 
 
 	// A unit test to test that finalizing a websiteUpdate ballot in which the confirmation ballot fails has no effect
-    function testSetWebsiteDenied2() internal
+    function testSetWebsiteDenied2() public
     	{
         vm.startPrank(alice);
         staking.stakeSALT( 1000000 ether );
@@ -639,6 +690,10 @@ contract TestDAO is Test, Deployment
         staking.stakeSALT(5000000 ether);
         proposals.castVote(ballotID, Vote.INCREASE);
 
+        dao.finalizeBallot(ballotID);
+
+		// Shouldn't work
+        vm.expectRevert("The ballot is not yet able to be finalized");
         dao.finalizeBallot(ballotID);
         }
 

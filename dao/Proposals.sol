@@ -90,11 +90,11 @@ contract Proposals is IProposals, ReentrancyGuard
 
 
 	// Create a confirmation proposal from the DAO
-	function createConfirmationProposal( string memory ballotName, BallotType ballotType, address address1, string memory string1 ) public
+	function createConfirmationProposal( string memory ballotName, BallotType ballotType, address address1, string memory string1, string memory description ) public
 		{
 		require( msg.sender == address(exchangeConfig.dao()), "Only the DAO can create a confirmation proposal" );
 
-		_possiblyCreateProposal( ballotName, ballotType, address1, 0, string1, "", 0 );
+		_possiblyCreateProposal( ballotName, ballotType, address1, 0, string1, description, 0 );
 		}
 
 

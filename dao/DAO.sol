@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BSL 1.1
 pragma solidity ^0.8.12;
 
-import "forge-std/Test.sol";
 import "../rewards/interfaces/IRewardsConfig.sol";
 import "../stable/interfaces/IStableConfig.sol";
 import "../staking/interfaces/ILiquidity.sol";
@@ -20,7 +19,7 @@ import "./Parameters.sol";
 // Allows users to propose and vote on various governance actions such as changing parameters, whitelisting/unwhitelisting tokens, sending tokens, calling other contracts, and updating the website.
 // It handles proposing ballots, tracking votes, enforcing voting requirements, and executing approved proposals.
 // It also stores SALT in the contract for later use and WETH for forming Protocol Owned Liquidity of either SALT/WBTC, SALT/WETH or SALT/USDS.
-contract DAO is IDAO, Upkeepable, Parameters, Test
+contract DAO is IDAO, Upkeepable, Parameters
     {
 	using SafeERC20 for IERC20;
 
@@ -103,7 +102,6 @@ contract DAO is IDAO, Upkeepable, Parameters, Test
 
 	function _executeSetContract( Ballot memory ballot ) internal
 		{
-		console.log( "EXECUTE SET CONTRACT: ", ballot.ballotName );
 		bytes32 nameHash = keccak256(bytes( ballot.ballotName ) );
 
 		if ( nameHash == keccak256(bytes( "setContract:priceFeed_confirm" )) )
@@ -129,7 +127,6 @@ contract DAO is IDAO, Upkeepable, Parameters, Test
 
 	function _executeApproval( Ballot memory ballot ) internal
 		{
-		console.log( "_executeApproval: ", uint256(ballot.ballotType) );
 		if ( ballot.ballotType == BallotType.UNWHITELIST_TOKEN )
 			{
 			// All tokens are paired with both WBTC and WETH so unwhitelist those pools
@@ -156,11 +153,11 @@ contract DAO is IDAO, Upkeepable, Parameters, Test
 
 		// Once an initial setContract proposal passes, it automatically starts a second confirmation ballot (to prevent last minute approvals)
 		else if ( ballot.ballotType == BallotType.SET_CONTRACT )
-			proposals.createConfirmationProposal( string.concat(ballot.ballotName, "_confirm"), BallotType.CONFIRM_SET_CONTRACT, ballot.address1, "" );
+			proposals.createConfirmationProposal( string.concat(ballot.ballotName, "_confirm"), BallotType.CONFIRM_SET_CONTRACT, ballot.address1, "", ballot.description );
 
 		// Once an initial setWebsiteURL proposal passes, it automatically starts a second confirmation ballot (to prevent last minute approvals)
 		else if ( ballot.ballotType == BallotType.SET_WEBSITE_URL )
-			proposals.createConfirmationProposal( string.concat(ballot.ballotName, "_confirm"), BallotType.CONFIRM_SET_WEBSITE_URL, address(0), ballot.string1 );
+			proposals.createConfirmationProposal( string.concat(ballot.ballotName, "_confirm"), BallotType.CONFIRM_SET_WEBSITE_URL, address(0), ballot.string1, ballot.description );
 
 		else if ( ballot.ballotType == BallotType.CONFIRM_SET_CONTRACT )
 			_executeSetContract( ballot );
