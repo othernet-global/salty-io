@@ -177,6 +177,8 @@ contract Proposals is IProposals, ReentrancyGuard
 
 	function proposeCountryInclusion( string memory country, string memory description ) public nonReentrant
 		{
+		require( keccak256(abi.encodePacked(country)) != keccak256(abi.encodePacked("")), "country cannot be empty" );
+
 		string memory ballotName = string.concat("include:", country );
 		_possiblyCreateProposal( ballotName, BallotType.INCLUDE_COUNTRY, address(0), 0, country, description, 5 * daoConfig.baseProposalCost() );
 		}
@@ -184,6 +186,8 @@ contract Proposals is IProposals, ReentrancyGuard
 
 	function proposeCountryExclusion( string memory country, string memory description ) public nonReentrant
 		{
+		require( keccak256(abi.encodePacked(country)) != keccak256(abi.encodePacked("")), "country cannot be empty" );
+
 		string memory ballotName = string.concat("exclude:", country );
 		_possiblyCreateProposal( ballotName, BallotType.EXCLUDE_COUNTRY, address(0), 0, country, description, 5 * daoConfig.baseProposalCost() );
 		}
@@ -200,7 +204,7 @@ contract Proposals is IProposals, ReentrancyGuard
 
 	function proposeWebsiteUpdate( string memory newWebsiteURL, string memory description ) public nonReentrant
 		{
-		require( keccak256(abi.encodePacked(newWebsiteURL)) != keccak256(abi.encodePacked("")), "Website URL cannot be empty" );
+		require( keccak256(abi.encodePacked(newWebsiteURL)) != keccak256(abi.encodePacked("")), "newWebsiteURL cannot be empty" );
 
 		string memory ballotName = string.concat("setURL:", newWebsiteURL );
 		_possiblyCreateProposal( ballotName, BallotType.SET_WEBSITE_URL, address(0), 0, newWebsiteURL, description, 10 * daoConfig.baseProposalCost() );
