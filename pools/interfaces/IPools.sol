@@ -13,7 +13,7 @@ interface IPools
 	function deposit( IERC20 token, uint256 amount ) external;
 	function withdraw( IERC20 token, uint256 amount ) external;
 	function swap( IERC20[] calldata tokens, uint256 amountIn, uint256 minAmountOut, uint256 deadline ) external returns (uint256 amountOut);
-	function arbitrage( IERC20[] calldata tokens, uint256 initialAmountIn, uint256 deadline ) external returns (uint256 arbitrageProfit);
+	function arbitrage( IERC20[] calldata tokens, uint256 initialAmountIn, uint256 minArbitrageProfit, uint256 deadline ) external returns (uint256 arbitrageProfit);
 	function depositSwapWithdraw(IERC20 tokenIn, IERC20 tokenOut, uint256 amountIn, uint256 minAmountOut, uint256 deadline) external returns (uint256 amountOut);
 	function dualZapInLiquidity(IERC20 tokenA, IERC20 tokenB, uint256 zapAmountA, uint256 zapAmountB, uint256 minLiquidityReceived, uint256 deadline, bool bypassSwap ) external returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity);
 

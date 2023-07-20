@@ -278,11 +278,14 @@ contract Pools is IPools, ReentrancyGuard
     	}
 
 
-    // Swap one token for another along a predefined path
+    // Swap one token for another along a predefined path.
+    // Only allows swaps of two or three tokens, with circular arbitrage trades of four or more tokens being handled by the arbitrage() function
+    // As every token is pooled with WETH, tokens can be swapped token1->WETH->token2 or directly token1->token2 if the pool exists.
     // Requires that the first token in the chain has already been deposited for msg.sender
 	function swap( IERC20[] calldata tokens, uint256 amountIn, uint256 minAmountOut, uint256 deadline ) public nonReentrant ensureNotExpired(deadline) returns (uint256 amountOut)
 		{
-		require( tokens.length >= 2, "Must swap at least two tokens" );
+		// Only two or three token chains are directly swappable in so that circular arbitrage trades involving four or more tokens must be handled by the arbitrage() function below.
+		require( (tokens.length >= 2) && (tokens.length <= 3), "Can only directly swap two or three token chains" );
 
 		IERC20 tokenIn = tokens[0];
 		IERC20 tokenOut;
@@ -310,10 +313,10 @@ contract Pools is IPools, ReentrancyGuard
 
 
     // Arbitrage one to token to itself along a circular path.
-    // Does not require any deposited tokens to make the call, but requires that the resulting amountOut is greater than amountIn.
+    // Does not require any deposited tokens to make the call, but requires that the resulting amountOut is greater than the specified amountIn.
     // Essentially the caller virtually "borrows" amountIn of the token and virtually "repays" it at the end of the swap chain.
     // The extra amountOut (compared to amountIn) is the arbitrage profit.
-	function arbitrage( IERC20[] calldata tokens, uint256 initialAmountIn, uint256 deadline ) public nonReentrant ensureNotExpired(deadline) returns (uint256 arbitrageProfit)
+	function arbitrage( IERC20[] calldata tokens, uint256 initialAmountIn, uint256 minArbitrageProfit, uint256 deadline ) public nonReentrant ensureNotExpired(deadline) returns (uint256 arbitrageProfit)
 		{
 		IERC20 tokenIn = tokens[0];
 
@@ -341,7 +344,7 @@ contract Pools is IPools, ReentrancyGuard
 		// Some of the arbitrage profit will be sent to the DAO
 		uint256 daoShareOfProfit;
 
-		// The DAO share of the profit is dependent on whether or not the caller is the exchangeConfig.aaa
+		// The DAO share of the profit is dependent on whether or not the caller is the current AAA contract
 		if ( msg.sender == address( exchangeConfig.aaa() ) )
 			daoShareOfProfit = ( totalArbitrageProfit * poolsConfig.daoPercentShareInternalArbitrage() ) / 100;
 		else
@@ -349,6 +352,9 @@ contract Pools is IPools, ReentrancyGuard
 
 		// Arbitrage profit for the caller
 		arbitrageProfit = totalArbitrageProfit - daoShareOfProfit;
+
+		// Helps prevent the transaction from being frontrun
+		require( arbitrageProfit >= minArbitrageProfit, "Insufficient arbitrage profit" );
 
 		// Update deposited balances with the profit
 		_userDeposits[address(dao)][tokenOut] += daoShareOfProfit;
