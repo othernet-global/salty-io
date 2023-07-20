@@ -14,15 +14,15 @@ contract AAA is IAAA, ReentrancyGuard, Upkeepable
     {
 	using SafeERC20 for IERC20;
 
-    IDAO public dao;
-    IPools public pools;
-    IExchangeConfig public exchangeConfig;
+    IDAO immutable public dao;
+    IPools immutable public pools;
+    IExchangeConfig immutable public exchangeConfig;
 
-    IRewardsEmitter public liquidityRewardsEmitter;
-	IRewardsEmitter public stakingRewardsEmitter;
-	IRewardsEmitter public collateralRewardsEmitter;
+    IRewardsEmitter immutable public liquidityRewardsEmitter;
+	IRewardsEmitter immutable public stakingRewardsEmitter;
+	IRewardsEmitter immutable public collateralRewardsEmitter;
 
-	IERC20 public weth;
+	IERC20 immutable public weth;
 
 
     constructor( IDAO _dao, IPools _pools, IExchangeConfig _exchangeConfig )

@@ -65,8 +65,8 @@ contract TestParametersOffchain is Test
 			return rewardsConfig.rewardsEmitterDailyPercentTimes1000();
 		else if ( parameter == Parameters.ParameterTypes.emissionsWeeklyPercentTimes1000 )
 			return rewardsConfig.emissionsWeeklyPercentTimes1000();
-		else if ( parameter == Parameters.ParameterTypes.emissionsXSaltHoldersPercent )
-			return rewardsConfig.emissionsXSaltHoldersPercent();
+		else if ( parameter == Parameters.ParameterTypes.rewardsXSaltHoldersPercent )
+			return rewardsConfig.rewardsXSaltHoldersPercent();
 
 		else if ( parameter == Parameters.ParameterTypes.rewardPercentForCallingLiquidation )
 			return stableConfig.rewardPercentForCallingLiquidation();
@@ -158,6 +158,8 @@ contract TestParametersOffchain is Test
 		vm.startPrank(address(parameters));
 
 		_checkParameter( Parameters.ParameterTypes.maximumWhitelistedPools, 20, 50, 100, 10 );
+		_checkParameter( Parameters.ParameterTypes.daoPercentShareExternalArbitrage, 50, 80, 95, 5 );
+		_checkParameter( Parameters.ParameterTypes.daoPercentShareInternalArbitrage, 20, 30, 50, 5 );
 		}
 
 
@@ -178,7 +180,7 @@ contract TestParametersOffchain is Test
 
 		_checkParameter( Parameters.ParameterTypes.rewardsEmitterDailyPercentTimes1000, 500, 1000, 2500, 250 );
 		_checkParameter( Parameters.ParameterTypes.emissionsWeeklyPercentTimes1000, 250, 500, 1000, 250 );
-		_checkParameter( Parameters.ParameterTypes.emissionsXSaltHoldersPercent, 25, 50, 75, 5 );
+		_checkParameter( Parameters.ParameterTypes.rewardsXSaltHoldersPercent, 25, 50, 75, 5 );
 		}
 
 
@@ -214,7 +216,7 @@ contract TestParametersOffchain is Test
 		_checkParameter( Parameters.ParameterTypes.ballotDuration, 3 days, 10 days, 14 days, 1 days );
 		_checkParameter( Parameters.ParameterTypes.baseProposalCost, 100 ether, 500 ether, 2000 ether, 100 ether );
 		_checkParameter( Parameters.ParameterTypes.maxPendingTokensForWhitelisting, 3, 5, 12, 1 );
-		_checkParameter( Parameters.ParameterTypes.upkeepRewardPercentTimes1000, 1000, 3000, 10000, 500 );
+		_checkParameter( Parameters.ParameterTypes.upkeepRewardPercentTimes1000, 1000, 5000, 10000, 500 );
 		}
     }
 

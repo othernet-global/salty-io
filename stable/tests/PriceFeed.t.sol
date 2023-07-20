@@ -188,35 +188,31 @@ contract PriceFeedTest is Test, PriceFeed
 	function testFailureConditionExternalDependencies() public {
 		address invalidAddress = address(0xDEAD);
 
-		// Set invalid addresses
-		CHAINLINK_BTC_USD = invalidAddress;
-		CHAINLINK_ETH_USD = invalidAddress;
-		UNISWAP_V3_BTC_ETH = invalidAddress;
-		UNISWAP_V3_USDC_ETH = invalidAddress;
+		PriceFeed feed = new PriceFeed( invalidAddress, invalidAddress, invalidAddress, invalidAddress );
 
 		vm.expectRevert("PriceFeed: Invalid Chainlink price");
-		this.latestChainlinkPrice(CHAINLINK_BTC_USD);
+		feed.latestChainlinkPrice(CHAINLINK_BTC_USD);
 
 		vm.expectRevert("PriceFeed: Invalid Chainlink price");
-		this.latestChainlinkPrice(CHAINLINK_ETH_USD);
+		feed.latestChainlinkPrice(CHAINLINK_ETH_USD);
 
 		vm.expectRevert("PriceFeed: Invalid Uniswap TWAP");
-		this.getUniswapTwapWei(UNISWAP_V3_BTC_ETH, 5 minutes);
+		feed.getUniswapTwapWei(UNISWAP_V3_BTC_ETH, 5 minutes);
 
 		vm.expectRevert("PriceFeed: Invalid Uniswap TWAP");
-		this.getUniswapTwapWei(UNISWAP_V3_USDC_ETH, 5 minutes);
+		feed.getUniswapTwapWei(UNISWAP_V3_USDC_ETH, 5 minutes);
 
 		vm.expectRevert("PriceFeed: Invalid Uniswap price");
-		this.getUniswapPriceBTC(5 minutes);
+		feed.getUniswapPriceBTC(5 minutes);
 
 		vm.expectRevert("PriceFeed: Invalid Uniswap price");
-		this.getUniswapPriceETH(5 minutes);
+		feed.getUniswapPriceETH(5 minutes);
 
 		vm.expectRevert("PriceFeed: Invalid Chainlink price");
-		this.getPriceBTC();
+		feed.getPriceBTC();
 
 		vm.expectRevert("PriceFeed: Invalid Chainlink price");
-		this.getPriceETH();
+		feed.getPriceETH();
 		}
 
 

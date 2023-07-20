@@ -14,6 +14,8 @@ contract Parameters
 
 		// PoolsConfig
 		maximumWhitelistedPools,
+		daoPercentShareInternalArbitrage,
+		daoPercentShareExternalArbitrage,
 
 		// StakingConfig
 		minUnstakeWeeks,
@@ -24,7 +26,7 @@ contract Parameters
 		// RewardsConfig
     	rewardsEmitterDailyPercentTimes1000,
 		emissionsWeeklyPercentTimes1000,
-		emissionsXSaltHoldersPercent,
+		rewardsXSaltHoldersPercent,
 
 		// StableConfig
 		rewardPercentForCallingLiquidation,
@@ -68,7 +70,7 @@ contract Parameters
 			rewardsConfig.changeRewardsEmitterDailyPercent(increase);
 		else if ( parameterType == ParameterTypes.emissionsWeeklyPercentTimes1000 )
 			rewardsConfig.changeEmissionsWeeklyPercent(increase);
-		else if ( parameterType == ParameterTypes.emissionsXSaltHoldersPercent )
+		else if ( parameterType == ParameterTypes.rewardsXSaltHoldersPercent )
 			rewardsConfig.changeXSaltHoldersPercent(increase);
 
 		// StableConfig

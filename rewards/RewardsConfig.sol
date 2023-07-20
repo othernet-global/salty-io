@@ -17,9 +17,9 @@ contract RewardsConfig is IRewardsConfig, Ownable
 	// Range: 0.25% to 1.0% with an adjustment of 0.25%
 	uint256 public emissionsWeeklyPercentTimes1000 = 500;  // Defaults to 0.50% with a 1000x multiplier
 
-	// By default, xSALT holders get 50% and liquidity providers get 50% of emissions
+	// By default, xSALT holders get 50% and liquidity providers get 50% of emissions and arbitrage profits
 	// Range: 25% to 75% with an adjustment of 5%
-    uint256 public emissionsXSaltHoldersPercent = 50;
+    uint256 public rewardsXSaltHoldersPercent = 50;
 
 
 	function changeRewardsEmitterDailyPercent(bool increase) public onlyOwner
@@ -55,13 +55,13 @@ contract RewardsConfig is IRewardsConfig, Ownable
         {
         if (increase)
             {
-            if (emissionsXSaltHoldersPercent < 75)
-                emissionsXSaltHoldersPercent = emissionsXSaltHoldersPercent + 5;
+            if (rewardsXSaltHoldersPercent < 75)
+                rewardsXSaltHoldersPercent = rewardsXSaltHoldersPercent + 5;
             }
         else
             {
-            if (emissionsXSaltHoldersPercent > 25)
-                emissionsXSaltHoldersPercent = emissionsXSaltHoldersPercent - 5;
+            if (rewardsXSaltHoldersPercent > 25)
+                rewardsXSaltHoldersPercent = rewardsXSaltHoldersPercent - 5;
             }
         }
     }

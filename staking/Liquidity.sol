@@ -16,7 +16,7 @@ contract Liquidity is ILiquidity, StakingRewards
     {
 	using SafeERC20 for IERC20;
 
-	IPools public pools;
+	IPools immutable public pools;
 
 
 	constructor( IPools _pools, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig )

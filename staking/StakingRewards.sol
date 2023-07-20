@@ -31,12 +31,10 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 	using SafeERC20 for ISalt;
 
 
-	// The SALT token which will be used for the claimable rewards
-	ISalt public salt;
-
-	IExchangeConfig public immutable exchangeConfig;
-    IStakingConfig public immutable stakingConfig;
-    IPoolsConfig public immutable poolsConfig;
+	ISalt immutable public salt;
+	IExchangeConfig immutable public exchangeConfig;
+    IStakingConfig immutable public stakingConfig;
+    IPoolsConfig immutable public poolsConfig;
 
 	// A nested mapping that stores the UserShareInfo data for each user and each poolID.
 	mapping(address=>mapping(bytes32=>UserShareInfo)) private _userShareInfo;

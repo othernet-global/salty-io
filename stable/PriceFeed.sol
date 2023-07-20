@@ -22,11 +22,11 @@ contract PriceFeed is IPriceFeed
 	uint256 public constant MINIMUM_PERCENT_DIFF_FOR_CHAINLINK_ONLY_PRICE_TIMES_1000 = 3000;
 
 	// https://docs.chain.link/data-feeds/price-feeds/addresses
-	address public CHAINLINK_BTC_USD;
-    address public CHAINLINK_ETH_USD;
+	address immutable public CHAINLINK_BTC_USD;
+    address immutable public CHAINLINK_ETH_USD;
 
-    address public UNISWAP_V3_BTC_ETH;
-	address public UNISWAP_V3_USDC_ETH;
+    address immutable public UNISWAP_V3_BTC_ETH;
+	address immutable public UNISWAP_V3_USDC_ETH;
 
 
 	constructor( address _CHAINLINK_BTC_USD, address _CHAINLINK_ETH_USD, address _UNISWAP_V3_BTC_ETH, address _UNISWAP_V3_USDC_ETH )

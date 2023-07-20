@@ -12,7 +12,6 @@ contract PoolsConfig is IPoolsConfig, Ownable
     {
     event eWhitelistPool(IERC20 indexed tokenA, IERC20 indexed tokenB, bytes32 indexed poolID);
     event eUnwhitelistPool(IERC20 indexed tokenA, IERC20 indexed tokenB, bytes32 indexed poolID);
-	event eMaximumWhitelistedPoolsChanged(uint256 newValue);
 
 	struct TokenPair
 		{
@@ -34,6 +33,14 @@ contract PoolsConfig is IPoolsConfig, Ownable
 	// If the maximum number of pools is reached, some tokens will need to be delisted before new ones can be whitelisted
 	// Range: 20 to 100 with an adjustment of 10
 	uint256 public maximumWhitelistedPools = 50;
+
+	// The percent of arbitrage profit that is sent to the DAO when arbitrage() is called with the exchange by the AAA contract
+	// Range: 20% to 50% with an adjustment of 5%
+	uint256 public daoPercentShareInternalArbitrage = 30;
+
+	// The percent of arbitrage profit that is sent to the DAO when arbitrage() is called from outside of the exchange
+	// Range: 50% to 95% with an adjustment of 5%
+	uint256 public daoPercentShareExternalArbitrage = 80;
 
 	// A special pool that represents staked SALT that is not associated with any particular pool.
     bytes32 public constant STAKED_SALT = bytes32(0);
@@ -76,8 +83,36 @@ contract PoolsConfig is IPoolsConfig, Ownable
             if (maximumWhitelistedPools > 20)
                 maximumWhitelistedPools -= 10;
             }
+        }
 
-        emit eMaximumWhitelistedPoolsChanged(maximumWhitelistedPools);
+
+	function changeDaoPercentShareInternalArbitrage(bool increase) public onlyOwner
+        {
+        if (increase)
+            {
+            if (daoPercentShareInternalArbitrage < 50)
+                daoPercentShareInternalArbitrage += 5;
+            }
+        else
+            {
+            if (daoPercentShareInternalArbitrage > 20)
+                daoPercentShareInternalArbitrage -= 5;
+            }
+        }
+
+
+	function changeDaoPercentShareExternalArbitrage(bool increase) public onlyOwner
+        {
+        if (increase)
+            {
+            if (daoPercentShareExternalArbitrage < 95)
+                daoPercentShareExternalArbitrage += 5;
+            }
+        else
+            {
+            if (daoPercentShareExternalArbitrage > 50)
+                daoPercentShareExternalArbitrage -= 5;
+            }
         }
 
 

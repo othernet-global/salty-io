@@ -22,13 +22,11 @@ contract Proposals is IProposals, ReentrancyGuard
 	using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.UintSet;
 
-    IStaking public staking;
-
-    IExchangeConfig public exchangeConfig;
-    IPoolsConfig public poolsConfig;
-    IStakingConfig public stakingConfig;
-    IDAOConfig public daoConfig;
-
+    IStaking immutable public staking;
+    IExchangeConfig immutable public exchangeConfig;
+    IPoolsConfig immutable public poolsConfig;
+    IStakingConfig immutable public stakingConfig;
+    IDAOConfig immutable public daoConfig;
 
 	// Mapping from ballotName to the currently open ballotID (zero if none).
 	// Used to check for existing ballots by name so as to not allow duplicate ballots to be created.

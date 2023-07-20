@@ -11,7 +11,7 @@
 //
 //contract AccessManager is IAccessManager
 //    {
-//    IDAO public dao;
+//    IDAO immutable public dao;
 //
 //	mapping(address=>bool) public walletHasVerified;
 //    mapping(address=>string) public walletCountries;

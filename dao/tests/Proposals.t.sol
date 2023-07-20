@@ -39,7 +39,7 @@ contract TestProposals is Test, Deployment
 			IDAO dao = IDAO(getContract( address(exchangeConfig), "dao()" ));
 
 			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, usds );
-			pools = new Pools( exchangeConfig );
+			pools = new Pools( exchangeConfig, poolsConfig );
 
 			staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
 			liquidity = new Liquidity( pools, exchangeConfig, poolsConfig, stakingConfig );

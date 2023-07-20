@@ -40,7 +40,7 @@ contract TestDAO is Test, Deployment
 			usds = new USDS( stableConfig, wbtc, weth );
 
 			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, usds );
-			pools = new Pools( exchangeConfig );
+			pools = new Pools( exchangeConfig, poolsConfig );
 
 			staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
 			liquidity = new Liquidity( pools, exchangeConfig, poolsConfig, stakingConfig );
@@ -120,8 +120,8 @@ contract TestDAO is Test, Deployment
 			return rewardsConfig.rewardsEmitterDailyPercentTimes1000();
 		else if ( parameter == Parameters.ParameterTypes.emissionsWeeklyPercentTimes1000 )
 			return rewardsConfig.emissionsWeeklyPercentTimes1000();
-		else if ( parameter == Parameters.ParameterTypes.emissionsXSaltHoldersPercent )
-			return rewardsConfig.emissionsXSaltHoldersPercent();
+		else if ( parameter == Parameters.ParameterTypes.rewardsXSaltHoldersPercent )
+			return rewardsConfig.rewardsXSaltHoldersPercent();
 
 		else if ( parameter == Parameters.ParameterTypes.rewardPercentForCallingLiquidation )
 			return stableConfig.rewardPercentForCallingLiquidation();

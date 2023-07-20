@@ -10,6 +10,6 @@ interface IRewardsConfig
 
 	// Views
     function emissionsWeeklyPercentTimes1000() external view returns (uint256);
-    function emissionsXSaltHoldersPercent() external view returns (uint256);
+    function rewardsXSaltHoldersPercent() external view returns (uint256);
     function rewardsEmitterDailyPercentTimes1000() external view returns (uint256);
     }

@@ -50,9 +50,9 @@ contract DAOConfig is IDAOConfig, Ownable
 	// Range: 3 to 12 with an adjustment of 1
 	uint256 public maxPendingTokensForWhitelisting = 5;
 
-	// The share of the POL rewards and arbitrage profit that are sent to the caller of Upkeep.performUpkeep()
+	// The share of the WETH arbitrage profits that are sent to the caller of Upkeep.performUpkeep()
 	// Range: 1% to 10% with an adjustment of 0.50%
-	uint256 public upkeepRewardPercentTimes1000 = 3 * 1000;
+	uint256 public upkeepRewardPercentTimes1000 = 5 * 1000;
 
 
 	function changeBootstrappingRewards(bool increase) public onlyOwner

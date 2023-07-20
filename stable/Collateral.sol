@@ -31,22 +31,21 @@ contract Collateral is Liquidity, ICollateral
 	using SafeERC20 for IUSDS;
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    IStableConfig public stableConfig;
+    IStableConfig immutable public stableConfig;
+	IERC20 immutable public wbtc;
+	IERC20 immutable public weth;
+    IUSDS immutable public usds;
 
-	IERC20 public wbtc;
-	IERC20 public weth;
-    IUSDS public usds;
+	// Cached for efficiency
+	uint256 immutable public wbtcDecimals;
+    uint256 immutable public wethDecimals;
+    bytes32 immutable public collateralPoolID;
 
    	// Keeps track of wallets that have borrowed USDS (so that they can be checked easily for sufficient colalteral ratios)
    	EnumerableSet.AddressSet private _walletsWithBorrowedUSDS;
 
 	// The amount of USDS that has been borrowed by each user
     mapping(address=>uint256) public usdsBorrowedByUsers;
-
-	// Cached for efficiency
-	uint256 public wbtcDecimals;
-    uint256 public wethDecimals;
-    bytes32 public collateralPoolID;
 
 
     constructor( IPools _pools, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IStableConfig _stableConfig )

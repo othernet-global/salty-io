@@ -31,7 +31,8 @@ contract Pools is IPools, ReentrancyGuard
 	using SafeERC20 for IERC20;
 
 
-	IExchangeConfig public immutable exchangeConfig;
+	IExchangeConfig immutable public exchangeConfig;
+	IPoolsConfig immutable public poolsConfig;
 	IDAO public dao;
 
 	// Token balances less than dust are treated as if they don't exist at all.
@@ -39,7 +40,7 @@ contract Pools is IPools, ReentrancyGuard
 	// For tokens with 6 decimal places (like USDC) DUST has a value of .0001
 	uint256 constant public DUST = 100;
 
-	// Keeps track of the token reserves and lastSwapTimestamp by poolID
+	// Keeps track of the pool reserves by poolID
 	mapping(bytes32=>PoolReserves) private _poolReserves;
 
 	// The total liquidity for each poolID
@@ -53,11 +54,13 @@ contract Pools is IPools, ReentrancyGuard
 
 
 
-	constructor( IExchangeConfig _exchangeConfig )
+	constructor( IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig )
 		{
 		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
+		require( address(_poolsConfig) != address(0), "_poolsConfig cannot be address(0)" );
 
 		exchangeConfig = _exchangeConfig;
+		poolsConfig = _poolsConfig;
 		}
 
 
@@ -178,17 +181,17 @@ contract Pools is IPools, ReentrancyGuard
 
 		(bytes32 poolID, bool flipped) = PoolUtils.poolID(tokenA, tokenB);
 
-		PoolReserves storage _poolInfo = _poolReserves[poolID];
+		PoolReserves storage reserves = _poolReserves[poolID];
 
 		uint256 _totalLiquidity = totalLiquidity[poolID];
 		require( _userLiquidity[msg.sender][poolID] >= liquidityToRemove, "Cannot remove more liquidity than the current balance" );
 
 		// Determine what the withdrawn liquidity is worth and round down in favor of the protocol
-		reclaimedA = ( _poolInfo.reserve0 * liquidityToRemove ) / _totalLiquidity;
-		reclaimedB = ( _poolInfo.reserve1 * liquidityToRemove ) / _totalLiquidity;
+		reclaimedA = ( reserves.reserve0 * liquidityToRemove ) / _totalLiquidity;
+		reclaimedB = ( reserves.reserve1 * liquidityToRemove ) / _totalLiquidity;
 
-		_poolInfo.reserve0 -= reclaimedA;
-		_poolInfo.reserve1 -= reclaimedB;
+		reserves.reserve0 -= reclaimedA;
+		reserves.reserve1 -= reclaimedB;
 
 		_userLiquidity[msg.sender][poolID] -= liquidityToRemove;
         totalLiquidity[poolID] = _totalLiquidity - liquidityToRemove;
@@ -246,10 +249,10 @@ contract Pools is IPools, ReentrancyGuard
     	{
         (bytes32 poolID, bool flipped) = PoolUtils.poolID(tokenIn, tokenOut);
 
-        PoolReserves storage _poolInfo = _poolReserves[poolID];
+        PoolReserves storage reserves = _poolReserves[poolID];
 
-        uint256 reserve0 = _poolInfo.reserve0;
-        uint256 reserve1 = _poolInfo.reserve1;
+        uint256 reserve0 = reserves.reserve0;
+        uint256 reserve1 = reserves.reserve1;
 
 		// Flip reserves to the token order in the arguments
         if (flipped)
@@ -270,9 +273,8 @@ contract Pools is IPools, ReentrancyGuard
             (reserve0, reserve1) = (reserve1, reserve0);
 
         // Update poolInfo
-		_poolInfo.reserve0 = reserve0;
-		_poolInfo.reserve1 = reserve1;
-//        _poolInfo.lastSwapTimestamp = block.timestamp;
+		reserves.reserve0 = reserve0;
+		reserves.reserve1 = reserve1;
     	}
 
 
@@ -336,14 +338,19 @@ contract Pools is IPools, ReentrancyGuard
 		// Determine the arbitrage profit
 		uint256 totalArbitrageProfit = amountOut - initialAmountIn;
 
-		// Arbitrage profit is split between the caller and the DAO.
-		// This is fixed at a 2/3 : 1/3 split rather than adjustable by the DAO in order to prevent additional external contract lookups and save gas.
-		// 1/3 of the profit from both external users and the AAA.sol automatic atomic arbitrage contract is sent to the DAO via this mechanism.
-		uint256 daoShareOfProfit = totalArbitrageProfit / 3;
+		// Some of the arbitrage profit will be sent to the DAO
+		uint256 daoShareOfProfit;
+
+		// The DAO share of the profit is dependent on whether or not the caller is the exchangeConfig.aaa
+		if ( msg.sender == address( exchangeConfig.aaa() ) )
+			daoShareOfProfit = ( totalArbitrageProfit * poolsConfig.daoPercentShareInternalArbitrage() ) / 100;
+		else
+			daoShareOfProfit = ( totalArbitrageProfit * poolsConfig.daoPercentShareExternalArbitrage() ) / 100;
 
 		// Arbitrage profit for the caller
 		arbitrageProfit = totalArbitrageProfit - daoShareOfProfit;
 
+		// Update deposited balances with the profit
 		_userDeposits[address(dao)][tokenOut] += daoShareOfProfit;
 		_userDeposits[msg.sender][tokenOut] += arbitrageProfit;
 		}

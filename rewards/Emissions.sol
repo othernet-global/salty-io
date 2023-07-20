@@ -16,14 +16,12 @@ import "../interfaces/IExchangeConfig.sol";
 
 contract Emissions is Upkeepable
     {
-	IStaking public staking;
-
-	IExchangeConfig public exchangeConfig;
-	IStakingConfig public stakingConfig;
-	IPoolsConfig public poolsConfig;
-	IRewardsConfig public rewardsConfig;
-
-	ISalt public salt;
+	IStaking immutable public staking;
+	IExchangeConfig immutable public exchangeConfig;
+	IStakingConfig immutable public stakingConfig;
+	IPoolsConfig immutable public poolsConfig;
+	IRewardsConfig immutable public rewardsConfig;
+	ISalt immutable public salt;
 
 	// A special pool that represents staked SALT that is not associated with any particular pool.
 	bytes32 public constant STAKED_SALT = bytes32(uint256(0));
@@ -108,7 +106,7 @@ contract Emissions is Upkeepable
 			return;
 
 		// Split the emissions between xSALT Holders and Liquidity Providers
-		uint256 xsaltHoldersAmount = ( saltToSend * rewardsConfig.emissionsXSaltHoldersPercent() ) / 100;
+		uint256 xsaltHoldersAmount = ( saltToSend * rewardsConfig.rewardsXSaltHoldersPercent() ) / 100;
 		uint256 liquidityHoldersRewardsAmount = saltToSend - xsaltHoldersAmount;
 
 		// Send SALT rewards to the stakingRewardsEmitter

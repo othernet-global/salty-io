@@ -17,20 +17,21 @@ import "../pools/interfaces/IPools.sol";
 // If WBTC/WETH collateral is liquidated the reclaimed WBTC and WETH tokens are sent to this contract and swapped for USDS which is then burned (essentially "undoing" the user's original collateral deposit and USDS borrow).
 contract USDS is ERC20, IUSDS, Upkeepable
     {
-    IStableConfig public stableConfig;
-    IERC20 public wbtc;
-    IERC20 public weth;
+    IStableConfig immutable public stableConfig;
+    IERC20 immutable public wbtc;
+    IERC20 immutable public weth;
 
     ICollateral public collateral;
     IPools public pools;
+
+	// Cached for efficiency
+    uint256 immutable public wbtcDecimals;
+    uint256 immutable public wethDecimals;
 
 	// This corresponds to USDS that was borrowed by users who had their collateral liquidated.
 	// Because liquidated collateral no longer exists the borrowed USDS needs to be burned as well in order to
 	// "undo" the collateralized position and return state back to where it was before the user deposited collateral and borrowed USDS.
 	uint256 public usdsThatShouldBeBurned;
-
-    uint256 public wbtcDecimals;
-    uint256 public wethDecimals;
 
 
 	constructor( IStableConfig _stableConfig, IERC20 _wbtc, IERC20 _weth )

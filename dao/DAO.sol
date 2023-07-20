@@ -23,23 +23,21 @@ contract DAO is IDAO, Upkeepable, Parameters
     {
 	using SafeERC20 for IERC20;
 
-	IExchangeConfig public exchangeConfig;
-	IPoolsConfig public poolsConfig;
-	IStakingConfig public stakingConfig;
-	IRewardsConfig public rewardsConfig;
-	IStableConfig public stableConfig;
-	IDAOConfig public daoConfig;
-	ILiquidity public liquidity;
-	IRewardsEmitter public liquidityRewardsEmitter;
+	IProposals immutable public proposals;
+	IExchangeConfig immutable public exchangeConfig;
+	IPoolsConfig immutable public poolsConfig;
+	IStakingConfig immutable public stakingConfig;
+	IRewardsConfig immutable public rewardsConfig;
+	IStableConfig immutable public stableConfig;
+	IDAOConfig immutable public daoConfig;
+	ILiquidity immutable public liquidity;
+	IRewardsEmitter immutable public liquidityRewardsEmitter;
 
 	// The default IPFS URL for the website content (can be changed with a setWebsiteURL proposal)
 	string public websiteURL;
 
 	// Countries that have been excluded from access to the DEX (used by AccessManager.sol)
 	mapping(string=>bool) public excludedCountries;
-
-	// Contract which handles the proposals submitted by DAO members
-	IProposals public proposals;
 
 
     constructor( IProposals _proposals, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IRewardsConfig _rewardsConfig, IStableConfig _stableConfig, IDAOConfig _daoConfig, ILiquidity _liquidity, IRewardsEmitter _liquidityRewardsEmitter )

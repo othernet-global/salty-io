@@ -23,7 +23,7 @@ contract TestPools is Test, Deployment
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 			{
 			vm.prank(DEPLOYER);
-			pools = new Pools(exchangeConfig);
+			pools = new Pools(exchangeConfig, poolsConfig);
 
 			pools.setDAO(dao);
 			}
@@ -125,7 +125,7 @@ contract TestPools is Test, Deployment
 		vm.stopPrank();
 		}
 
-	function testGasSwapAndAAA() public
+	function testGasSwapAndManualAAA() public
 		{
 		pools.depositSwapWithdraw(tokens[6], tokens[7], 10 ether, 5 ether, block.timestamp );
 
@@ -135,9 +135,10 @@ contract TestPools is Test, Deployment
 		arb[2] = tokens[6];
 		arb[3] = tokens[5];
 
-		uint256 amountOut = pools.swap( arb, 1 ether, .5 ether, block.timestamp );
+		uint256 amountOut = pools.swap( arb, 1 ether, 0, block.timestamp );
 		console.log( "arbIn: ", 1 ether );
 		console.log( "arbOut: ", amountOut );
+		console.log( "arbProfit: ", amountOut - 1 ether );
 		}
 
 
@@ -152,7 +153,7 @@ contract TestPools is Test, Deployment
 		arb[3] = tokens[5];
 
 		uint256 arbitrageProfit = pools.arbitrage(arb, 1 ether, block.timestamp );
-		console.log( "arbitrageProfit: ", arbitrageProfit );
+		console.log( "totalArbitrageProfit: ", arbitrageProfit * 3 / 2 );
 		}
 
 
