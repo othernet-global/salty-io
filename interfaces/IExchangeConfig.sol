@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSL 1.1
 pragma solidity ^0.8.12;
 
-import "./IAAA.sol";
+import "./IArbitrageSearch.sol";
 import "../dao/interfaces/IDAO.sol";
 import "../interfaces/IAccessManager.sol";
 import "../stable/interfaces/IUSDS.sol";
@@ -12,7 +12,6 @@ import "../rewards/interfaces/IRewardsConfig.sol";
 interface IExchangeConfig
 	{
 	function setDAO( IDAO _dao ) external; // onlyOwner
-	function setAAA( IAAA _aaa ) external; // onlyOwner
 	function setAccessManager( IAccessManager _accessManager ) external; // onlyOwner
 	function setStakingRewardsEmitter( IRewardsEmitter _rewardsEmitter ) external; // onlyOwner
 	function setLiquidityRewardsEmitter( IRewardsEmitter _rewardsEmitter ) external; // onlyOwner
@@ -25,7 +24,7 @@ interface IExchangeConfig
 	function usdc() external view returns (IERC20);
 	function usds() external view returns (IUSDS);
 
-	function aaa() external view returns (IAAA);
+	function arbitrageSearch() external view returns (IArbitrageSearch);
 	function accessManager() external view returns (IAccessManager);
 	function dao() external view returns (IDAO);
 	function stakingRewardsEmitter() external view returns (IRewardsEmitter);

@@ -19,9 +19,6 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 	// The DAO can only be set once
 	IDAO public dao;
 
-	// Automatic Atomic Arbitrage
-	IAAA public aaa;
-
 	// The rewards emitters
 	IRewardsEmitter public stakingRewardsEmitter;
 	IRewardsEmitter public liquidityRewardsEmitter;
@@ -57,14 +54,6 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 		require( address(_dao) != address(0), "_dao cannot be address(0)" );
 
 		dao = _dao;
-		}
-
-
-	function setAAA( IAAA _aaa ) public onlyOwner
-		{
-		require( address(_aaa) != address(0), "_aaa cannot be address(0)" );
-
-		aaa = _aaa;
 		}
 
 
@@ -106,7 +95,7 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 		// These protocol components will need access to the exchange contracts
 		if ( wallet == address(dao) )
 			return true;
-		if ( wallet == address(aaa) )
+		if ( wallet == address(arbitrageSearch) )
 			return true;
 
 		return accessManager.walletHasAccess( wallet );

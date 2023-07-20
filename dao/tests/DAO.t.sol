@@ -106,6 +106,10 @@ contract TestDAO is Test, Deployment
 		{
 		if ( parameter == Parameters.ParameterTypes.maximumWhitelistedPools )
 			return poolsConfig.maximumWhitelistedPools();
+		else if ( parameter == Parameters.ParameterTypes.daoPercentShareInternalArbitrage )
+			return poolsConfig.daoPercentShareInternalArbitrage();
+		else if ( parameter == Parameters.ParameterTypes.daoPercentShareExternalArbitrage )
+			return poolsConfig.daoPercentShareExternalArbitrage();
 
 		else if ( parameter == Parameters.ParameterTypes.minUnstakeWeeks )
 			return stakingConfig.minUnstakeWeeks();
@@ -177,7 +181,7 @@ contract TestDAO is Test, Deployment
 
 		uint256 newValue = _parameterValue( Parameters.ParameterTypes( parameterNum ) );
 
-		if ( parameterNum != 8 )
+		if ( parameterNum != 10 )
 			assert( newValue > originalValue );
     }
 
@@ -223,9 +227,10 @@ contract TestDAO is Test, Deployment
         assertEq(proposals.ballotForID(ballotID).ballotIsLive, false, "Parameter Ballot not correctly finalized");
 
 		uint256 newValue = _parameterValue( Parameters.ParameterTypes( parameterNum ) );
-		if ( parameterNum != 1 )
-		if ( parameterNum != 8 )
-		if ( parameterNum != 12 )
+
+		if ( parameterNum != 3 )
+		if ( parameterNum != 10 )
+		if ( parameterNum != 14 )
 			assert( newValue < originalValue );
     }
 
@@ -236,7 +241,7 @@ contract TestDAO is Test, Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 5000000 ether );
 
-    	for( uint256 i = 0; i < 22; i++ )
+    	for( uint256 i = 0; i < 24; i++ )
 	 		_checkFinalizeIncreaseParameterBallot( i );
     	}
 
@@ -247,7 +252,7 @@ contract TestDAO is Test, Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 5000000 ether );
 
-    	for( uint256 i = 0; i < 22; i++ )
+    	for( uint256 i = 0; i < 24; i++ )
 	 		_checkFinalizeDecreaseParameterBallot( i );
     	}
 
@@ -258,7 +263,7 @@ contract TestDAO is Test, Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 5000000 ether );
 
-    	for( uint256 i = 0; i < 22; i++ )
+    	for( uint256 i = 0; i < 24; i++ )
 	 		_checkFinalizeNoChangeParameterBallot( i );
     	}
 
@@ -493,8 +498,8 @@ contract TestDAO is Test, Deployment
 		{
 		bytes32 nameHash = keccak256(bytes(contractName));
 
-		if ( nameHash == keccak256(bytes("AAA" )))
-			return address(exchangeConfig.aaa());
+		if ( nameHash == keccak256(bytes("ArbitrageSearch" )))
+			return address(exchangeConfig.arbitrageSearch());
 		if ( nameHash == keccak256(bytes("priceFeed" )))
 			return address(stableConfig.priceFeed());
 		if ( nameHash == keccak256(bytes("accessManager" )))
@@ -529,7 +534,7 @@ contract TestDAO is Test, Deployment
 	// A unit test to test that finalizing an approved setContract ballot works with all possible contract options
 	function testSetContractApproved() public
 		{
-		_checkSetContractApproved( 1, "AAA", address(0x1231230 ) );
+		_checkSetContractApproved( 1, "ArbitrageSearch", address(0x1231230 ) );
 		_checkSetContractApproved( 3, "priceFeed", address(0x1231231 ) );
 		_checkSetContractApproved( 5, "accessManager", address( new TestAccessManager(dao) ) );
 		_checkSetContractApproved( 7, "stakingRewardsEmitter", address(0x1231233 ) );
@@ -554,7 +559,7 @@ contract TestDAO is Test, Deployment
 	// A unit test to test that  with all possible contract options, finalizing a setContract ballot has no effect when the initial ballot fails
 	function testSetContractDenied1() public
 		{
-		_checkSetContractDenied1( 1, "AAA", address(0x1231230 ) );
+		_checkSetContractDenied1( 1, "ArbitrageSearch", address(0x1231230 ) );
 		_checkSetContractDenied1( 2, "priceFeed", address(0x1231231 ) );
 		_checkSetContractDenied1( 3, "accessManager", address( new TestAccessManager(dao) ) );
 		_checkSetContractDenied1( 4, "stakingRewardsEmitter", address(0x1231233 ) );
@@ -582,7 +587,7 @@ contract TestDAO is Test, Deployment
 	// A unit test to test that  with all possible contract options, finalizing a setContract ballot has no effect when the confirm ballot fails
 	function testSetContractDenied2() public
 		{
-		_checkSetContractDenied2( 1, "AAA", address(0x1231230 ) );
+		_checkSetContractDenied2( 1, "ArbitrageSearch", address(0x1231230 ) );
 		_checkSetContractDenied2( 3, "priceFeed", address(0x1231231 ) );
 		_checkSetContractDenied2( 5, "accessManager", address( new TestAccessManager(dao) ) );
 		_checkSetContractDenied2( 7, "stakingRewardsEmitter", address(0x1231233 ) );

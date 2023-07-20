@@ -51,6 +51,10 @@ contract TestParametersOffchain is Test
 		{
 		if ( parameter == Parameters.ParameterTypes.maximumWhitelistedPools )
 			return poolsConfig.maximumWhitelistedPools();
+		else if ( parameter == Parameters.ParameterTypes.daoPercentShareInternalArbitrage )
+			return poolsConfig.daoPercentShareInternalArbitrage();
+		else if ( parameter == Parameters.ParameterTypes.daoPercentShareExternalArbitrage )
+			return poolsConfig.daoPercentShareExternalArbitrage();
 
 		else if ( parameter == Parameters.ParameterTypes.minUnstakeWeeks )
 			return stakingConfig.minUnstakeWeeks();

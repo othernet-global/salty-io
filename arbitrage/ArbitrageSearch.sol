@@ -2,7 +2,7 @@
 pragma solidity ^0.8.12;
 
 import "./openzeppelin/security/ReentrancyGuard.sol";
-import "./interfaces/IAAA.sol";
+import "./interfaces/IArbitrageSearch.sol";
 import "./rewards/interfaces/IRewardsEmitter.sol";
 import "./dao/interfaces/IDAO.sol";
 import "./interfaces/IExchangeConfig.sol";
@@ -10,16 +10,12 @@ import "./openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import "./Upkeepable.sol";
 
 
-contract AAA is IAAA, ReentrancyGuard, Upkeepable
+contract ArbitrageSearch is IArbitrageSearch
     {
 	using SafeERC20 for IERC20;
 
     IPools immutable public pools;
     IExchangeConfig immutable public exchangeConfig;
-
-    IRewardsEmitter immutable public liquidityRewardsEmitter;
-	IRewardsEmitter immutable public stakingRewardsEmitter;
-	IRewardsEmitter immutable public collateralRewardsEmitter;
 
 	IERC20 immutable public weth;
 
@@ -32,23 +28,16 @@ contract AAA is IAAA, ReentrancyGuard, Upkeepable
 		pools = _pools;
 		exchangeConfig = _exchangeConfig;
 
-		liquidityRewardsEmitter = exchangeConfig.liquidityRewardsEmitter();
-		stakingRewardsEmitter = exchangeConfig.stakingRewardsEmitter();
-		collateralRewardsEmitter = exchangeConfig.collateralRewardsEmitter();
-
 		weth = exchangeConfig.weth();
     	}
 
 
-	// Attempt arbitrage just after the given token swap
-	function attemptArbitrage( address swapper, IERC20[] memory swapPath, uint256 amountIn ) public nonReentrant
+	// Determine an arbitrage path to use for the given swap whihc jsut occured (in this same transaction)
+	function findArbitrage( IERC20[] memory swapPath, uint256 amountIn ) external returns (IERC20[] memory arbPath, uint256 arbAmount)
     	{
     	// Make sure the swap is profitable
+
+    	return (new IERC20[](0), 0);
     	}
-
-
-	function _performUpkeep() internal override
-		{
-		}
 	}
 

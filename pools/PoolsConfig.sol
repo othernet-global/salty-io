@@ -5,6 +5,7 @@ import "../openzeppelin/access/Ownable.sol";
 import "../openzeppelin/utils/structs/EnumerableSet.sol";
 import "./interfaces/IPoolsConfig.sol";
 import "./PoolUtils.sol";
+import "../arbitrage/interfaces/IArbitrageSearch.sol";
 
 
 // Contract owned by the DAO and only modifiable by the DAO
@@ -23,18 +24,22 @@ contract PoolsConfig is IPoolsConfig, Ownable
     using EnumerableSet for EnumerableSet.Bytes32Set;
 
 
+	// For finding profitable arbitrage paths
+	IArbitrageSearch public arbitrageSearch;
+
 	// Keeps track of what pools have been whitelisted
 	EnumerableSet.Bytes32Set private _whitelist;
 
 	// A mapping from poolIDs to the underlying TokenPair
 	mapping(bytes32=>TokenPair) public underlyingPoolTokens;
 
+
 	// The maximum number of pools that can be whitelisted at any one time.
 	// If the maximum number of pools is reached, some tokens will need to be delisted before new ones can be whitelisted
 	// Range: 20 to 100 with an adjustment of 10
 	uint256 public maximumWhitelistedPools = 50;
 
-	// The percent of arbitrage profit that is sent to the DAO when arbitrage() is called with the exchange by the AAA contract
+	// The percent of arbitrage profit that is sent to the DAO when arbitrage() is called with the exchange by the ArbitrageSearch contract
 	// Range: 20% to 50% with an adjustment of 5%
 	uint256 public daoPercentShareInternalArbitrage = 30;
 
@@ -68,6 +73,14 @@ contract PoolsConfig is IPoolsConfig, Ownable
 
 		if ( _whitelist.remove(poolID) )
 			emit eUnwhitelistPool(tokenA, tokenB, poolID);
+		}
+
+
+	function setArbitrageSearch( IArbitrageSearch _arbitrageSearch ) public onlyOwner
+		{
+		require( address(_arbitrageSearch) != address(0), "_arbitrageSearch cannot be address(0)" );
+
+		arbitrageSearch = _arbitrageSearch;
 		}
 
 

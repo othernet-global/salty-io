@@ -9,9 +9,10 @@ import "../interfaces/IExchangeConfig.sol";
 import "./interfaces/IPoolsConfig.sol";
 import "./PoolUtils.sol";
 import "./PoolMath.sol";
+import "./ArbManager.sol";
 
 
-contract Pools is IPools, ReentrancyGuard
+contract Pools is IPools, ReentrancyGuard, ArbManager
 	{
 	struct PoolReserves
 		{
@@ -245,9 +246,10 @@ contract Pools is IPools, ReentrancyGuard
 	// Internal swap that calculates amountOut based on token reserves and the specified amountIn and then updates the reserves.
 	// It only adjusts the reserves - it does not adjust deposited user balances or do ERC20 transfers.
 	// Token pair must be a whitelisted pool (which prevents invalid token addresses)
-    function _adjustReservesForSwap( IERC20 tokenIn, IERC20 tokenOut, uint256 amountIn ) internal returns (uint256 amountOut)
+    function _adjustReservesForSwap( IERC20 tokenIn, IERC20 tokenOut, uint256 amountIn ) internal returns (uint256 amountOut, bytes32 poolID)
     	{
-        (bytes32 poolID, bool flipped) = PoolUtils.poolID(tokenIn, tokenOut);
+    	bool flipped;
+        (poolID, flipped) = PoolUtils.poolID(tokenIn, tokenOut);
 
         PoolReserves storage reserves = _poolReserves[poolID];
 
@@ -278,59 +280,29 @@ contract Pools is IPools, ReentrancyGuard
     	}
 
 
-    // Swap one token for another along a predefined path.
-    // Only allows swaps of two or three tokens, with circular arbitrage trades of four or more tokens being handled by the arbitrage() function
-    // As every token is pooled with WETH, tokens can be swapped token1->WETH->token2 or directly token1->token2 if the pool exists.
-    // Requires that the first token in the chain has already been deposited for msg.sender
-	function swap( IERC20[] calldata tokens, uint256 amountIn, uint256 minAmountOut, uint256 deadline ) public nonReentrant ensureNotExpired(deadline) returns (uint256 amountOut)
-		{
-		// Only two or three token chains are directly swappable in so that circular arbitrage trades involving four or more tokens must be handled by the arbitrage() function below.
-		require( (tokens.length >= 2) && (tokens.length <= 3), "Can only directly swap two or three token chains" );
-
-		IERC20 tokenIn = tokens[0];
-		IERC20 tokenOut;
-
-		mapping(IERC20=>uint256) storage userDeposits = _userDeposits[msg.sender];
-
-    	require( userDeposits[tokenIn] >= amountIn, "Insufficient deposited token balance of initial token" );
-		userDeposits[tokenIn] -= amountIn;
-
-		for( uint256 i = 1; i < tokens.length; i++ )
-			{
-			tokenOut = tokens[i];
-
-			amountOut = _adjustReservesForSwap( tokenIn, tokenOut, amountIn );
-
-			tokenIn = tokenOut;
-			amountIn = amountOut;
-			}
-
-		require( amountOut >= minAmountOut, "Insufficient resulting token amount" );
-
-		// Deposit the final tokenOut into the users account
-		userDeposits[tokenOut] += amountOut;
-		}
-
-
     // Arbitrage one to token to itself along a circular path.
     // Does not require any deposited tokens to make the call, but requires that the resulting amountOut is greater than the specified amountIn.
     // Essentially the caller virtually "borrows" amountIn of the token and virtually "repays" it at the end of the swap chain.
     // The extra amountOut (compared to amountIn) is the arbitrage profit.
-	function arbitrage( IERC20[] calldata tokens, uint256 initialAmountIn, uint256 minArbitrageProfit, uint256 deadline ) public nonReentrant ensureNotExpired(deadline) returns (uint256 arbitrageProfit)
+	function _arbitrage( address profitRecipient, bool fromInsideExchange, IERC20[] memory arbPath, uint256 initialAmountIn, uint256 minArbitrageProfit ) internal returns (uint256 arbitrageProfit)
 		{
-		IERC20 tokenIn = tokens[0];
+		IERC20 tokenIn = arbPath[0];
 
-		require( address(tokenIn) == address(tokens[tokens.length-1]), "Arbitrage must start and end with the same token" );
-		require( tokens.length >= 4, "Must swap at least four tokens" );
+		require( address(tokenIn) == address(arbPath[arbPath.length-1]), "Arbitrage must start and end with the same token" );
+		require( arbPath.length >= 4, "Must swap at least four tokens" );
+
+		// Will be used by the ArbManager to keep track of which pool contribute to arbitrage
+		bytes32[] memory arbPathPoolIDs = new bytes32[](arbPath.length - 1);
 
 		IERC20 tokenOut;
 		uint256 amountIn = initialAmountIn;
 		uint256 amountOut;
-		for( uint256 i = 1; i < tokens.length; i++ )
-			{
-			tokenOut = tokens[i];
 
-			amountOut = _adjustReservesForSwap( tokenIn, tokenOut, amountIn );
+		for( uint256 i = 1; i < arbPath.length; i++ )
+			{
+			tokenOut = arbPath[i];
+
+			( amountOut, arbPathPoolIDs[i-1]) = _adjustReservesForSwap( tokenIn, tokenOut, amountIn );
 
 			tokenIn = tokenOut;
 			amountIn = amountOut;
@@ -344,21 +316,74 @@ contract Pools is IPools, ReentrancyGuard
 		// Some of the arbitrage profit will be sent to the DAO
 		uint256 daoShareOfProfit;
 
-		// The DAO share of the profit is dependent on whether or not the caller is the current AAA contract
-		if ( msg.sender == address( exchangeConfig.aaa() ) )
+		// The DAO share of the profit is dependent on whether or not the function is being called from from inside the exchange - from swap() or depositSwapWithdraw()
+		// or publicly via arbitrage()
+		if ( fromInsideExchange )
 			daoShareOfProfit = ( totalArbitrageProfit * poolsConfig.daoPercentShareInternalArbitrage() ) / 100;
 		else
 			daoShareOfProfit = ( totalArbitrageProfit * poolsConfig.daoPercentShareExternalArbitrage() ) / 100;
 
-		// Arbitrage profit for the caller
+		// Arbitrage profit for the profitRecipient
 		arbitrageProfit = totalArbitrageProfit - daoShareOfProfit;
 
-		// Helps prevent the transaction from being frontrun
+		// Helps prevent the transaction from being frontrun by establishing a minArbitrageProfit
 		require( arbitrageProfit >= minArbitrageProfit, "Insufficient arbitrage profit" );
 
-		// Update deposited balances with the profit
+		// Update deposited balances with the profit amounts
 		_userDeposits[address(dao)][tokenOut] += daoShareOfProfit;
-		_userDeposits[msg.sender][tokenOut] += arbitrageProfit;
+		_userDeposits[profitRecipient][tokenOut] += arbitrageProfit;
+
+		if ( fromInsideExchange )
+			{
+			// Update the stats related to the pools that contributed to the arbitrage so they can be rewards proportionally later
+			_updateArbitrageStats( arbPathPoolIDs, arbitrageProfit );
+			}
+		}
+
+
+	// Publicly callable arbitrage function which will send a share of the arbitrage profits to the DAO
+	function arbitrage( IERC20[] memory arbPath, uint256 initialAmountIn, uint256 minArbitrageProfit, uint256 deadline ) public nonReentrant ensureNotExpired(deadline) returns (uint256 arbitrageProfit)
+		{
+		return _arbitrage( msg.sender, false, arbPath, initialAmountIn, minArbitrageProfit );
+		}
+
+
+    // Swap one token for another along a predefined path.
+    // Only allows swaps of two or three tokens, with circular arbitrage trades of four or more tokens being handled by the arbitrage() function
+    // As every token is pooled with WETH, tokens can be swapped token1->WETH->token2 or directly token1->token2 if the pool exists.
+    // Requires that the first token in the chain has already been deposited for msg.sender
+	function swap( IERC20[] memory swapPath, uint256 amountIn, uint256 minAmountOut, uint256 deadline ) public nonReentrant ensureNotExpired(deadline) returns (uint256 amountOut)
+		{
+		// Only two or three token chains are directly swappable in so that circular arbitrage trades involving four or more tokens must be handled by the arbitrage() function below.
+		require( (swapPath.length >= 2) && (swapPath.length <= 3), "Can only directly swap two or three token chains" );
+
+		IERC20 tokenIn = swapPath[0];
+		IERC20 tokenOut;
+
+		mapping(IERC20=>uint256) storage userDeposits = _userDeposits[msg.sender];
+
+    	require( userDeposits[tokenIn] >= amountIn, "Insufficient deposited token balance of initial token" );
+		userDeposits[tokenIn] -= amountIn;
+
+		for( uint256 i = 1; i < swapPath.length; i++ )
+			{
+			tokenOut = swapPath[i];
+
+			( amountOut,) = _adjustReservesForSwap( tokenIn, tokenOut, amountIn );
+
+			tokenIn = tokenOut;
+			amountIn = amountOut;
+			}
+
+		require( amountOut >= minAmountOut, "Insufficient resulting token amount" );
+
+		// Deposit the final tokenOut into the users account
+		userDeposits[tokenOut] += amountOut;
+
+		// Determine the best arbPath (if any) and then deposit the arbitrage profits for the ArbManager to distribute later
+		(IERC20[] memory arbPath, uint256 arbAmount) = exchangeConfig.arbitrageSearch().findArbitrage(swapPath, amountIn );
+		if ( arbAmount > 0 )
+			_arbitrage( ARB_MANAGER, true, arbPath, arbAmount, arbAmount );
 		}
 
 
@@ -368,12 +393,22 @@ contract Pools is IPools, ReentrancyGuard
 		// Transfer tokenIn from the sender
 		_transferFromUserNoFeeOnTransfer( tokenIn, amountIn );
 
-		amountOut = _adjustReservesForSwap( tokenIn, tokenOut, amountIn );
+		( amountOut,) = _adjustReservesForSwap( tokenIn, tokenOut, amountIn );
 
 		require( amountOut >= minAmountOut, "Insufficient resulting token amount" );
 
     	// Send tokenOut to the user
     	tokenOut.safeTransfer( msg.sender, amountOut );
+
+		// Automatic Automatic Arbitrage
+		IERC20[] memory tokens = new IERC20[](2);
+		tokens[0] = tokenIn;
+		tokens[1] = tokenOut;
+
+		// Determine the best arbPath (if any) and then deposit the arbitrage profits for the ArbManager to distribute later
+		(IERC20[] memory arbPath, uint256 arbAmount) = exchangeConfig.arbitrageSearch().findArbitrage(tokens, amountIn );
+		if ( arbAmount > 0 )
+			_arbitrage( ARB_MANAGER, true, arbPath, arbAmount, arbAmount );
 		}
 
 
@@ -463,7 +498,7 @@ contract Pools is IPools, ReentrancyGuard
 
 
 	// Determine the expected swap result for a given series of swaps and amountIn
-	function quoteAmountOut( IERC20[] calldata tokens, uint256 amountIn ) public view returns (uint256 amountOut)
+	function quoteAmountOut( IERC20[] memory tokens, uint256 amountIn ) public view returns (uint256 amountOut)
 		{
 		require( tokens.length >= 2, "Must have at least two tokens swapped" );
 
@@ -495,7 +530,7 @@ contract Pools is IPools, ReentrancyGuard
 
 	// For a given desired amountOut and a series of swaps, determine the amountIn that would be required.
 	// amountIn is rounded up
-	function quoteAmountIn(  IERC20[] calldata tokens, uint256 amountOut ) public view returns (uint256 amountIn)
+	function quoteAmountIn(  IERC20[] memory tokens, uint256 amountOut ) public view returns (uint256 amountIn)
 		{
 		require( tokens.length >= 2, "Must have at least two tokens swapped" );
 

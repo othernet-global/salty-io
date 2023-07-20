@@ -48,7 +48,7 @@ contract TestDeployment is Deployment, Test
         assertEq( getContract(address(exchangeConfig), "usds()"), address(usds), "Incorrect exchangeConfig.usds" );
         assertEq( getContract(address(exchangeConfig), "accessManager()"), address(accessManager), "Incorrect exchangeConfig.accessManager" );
         assertEq( getContract(address(exchangeConfig), "dao()"), address(dao), "Incorrect exchangeConfig.dao" );
-//        assertEq( getContract(address(exchangeConfig), "aaa()"), address(aaa), "Incorrect exchangeConfig.aaa" );
+        assertEq( getContract(address(exchangeConfig), "arbitrageSearch()"), address(arbitrageSearch), "Incorrect exchangeConfig.arbitrageSearch" );
 
         assertEq( getContract(address(pools), "exchangeConfig()"), address(exchangeConfig), "Incorrect pools.exchangeConfig" );
         assertEq( getContract(address(pools), "dao()"), address(dao), "Incorrect pools.dao" );
@@ -135,8 +135,8 @@ contract TestDeployment is Deployment, Test
         assertEq( getContract(address(usds), "collateral()"), address(collateral), "Incorrect usds.collateral" );
         assertEq( getContract(address(usds), "pools()"), address(pools), "Incorrect usds.pools" );
 
-
-//        assertEq( getContract(address(aaa), "optimizer()"), address(optimizer), "Incorrect aaa.optimizer" );
+        assertEq( getContract(address(arbitrageSearch), "pools()"), address(pools), "Incorrect arbitrageSearch.pools" );
+        assertEq( getContract(address(arbitrageSearch), "exchangeConfig()"), address(exchangeConfig), "Incorrect arbitrageSearch.exchangeConfig" );
 //
 //        if ( DEBUG )
 //        	assertTrue( functionExists( address(accessManager), "isTest()" ), "For DEBUG: The AccessManager should be a TestAccessManager" );
@@ -183,7 +183,7 @@ contract TestDeployment is Deployment, Test
    		console.log( "collateralRewardsEmitter: ", address(collateralRewardsEmitter) );
 		console.log( "" );
 //   		console.log( "optimizer: ", address(optimizer) );
-//   		console.log( "aaa: ", address(aaa) );
+   		console.log( "arbitrageSearch: ", address(arbitrageSearch) );
 ////   		console.log( "emissions: ", address(emissions) );
 //   		console.log( "dao: ", address(dao) );
 		console.log( "" );

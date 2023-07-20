@@ -22,8 +22,8 @@ contract Deployment
     bool public DEBUG = true;
 	address constant public DEPLOYER = 0x73107dA86708c2DAd0D91388fB057EeE3E2581aF;
 
-	IDAO public dao = IDAO(address(0xB42c5c4388d23172238398044FD05B8BB4Be1F41));
-	Emissions public emissions = Emissions(address(0x59b4655eB13fF174Ac77B081b8eC31aB0a1EC137));
+	IDAO public dao = IDAO(address(0x0a3b29c7aF7a765abf76Ed45Df90f4ED201f7877));
+	Emissions public emissions = Emissions(address(0xb1700796014A6C8A408710b1549a7aA4e805BccF));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));
@@ -53,7 +53,7 @@ contract Deployment
 	IPriceFeed public priceFeed = stableConfig.priceFeed();
 	IAccessManager public accessManager = exchangeConfig.accessManager();
 
-//	IAAA public aaa = exchangeConfig.aaa();
+	IArbitrageSearch public arbitrageSearch = exchangeConfig.arbitrageSearch();
 
 	// A special pool that represents staked SALT that is not associated with any particular pool.
 	bytes32 public constant STAKED_SALT = bytes32(0);

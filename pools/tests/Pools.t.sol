@@ -125,7 +125,7 @@ contract TestPools is Test, Deployment
 		vm.stopPrank();
 		}
 
-	function testGasSwapAndManualAAA() public
+	function testGasSwapAndManualArbitrageSearch() public
 		{
 		pools.depositSwapWithdraw(tokens[6], tokens[7], 10 ether, 5 ether, block.timestamp );
 
@@ -152,10 +152,9 @@ contract TestPools is Test, Deployment
 		arb[2] = tokens[6];
 		arb[3] = tokens[5];
 
-		uint256 arbitrageProfit = pools.arbitrage(arb, 1 ether, block.timestamp );
+		uint256 arbitrageProfit = pools.arbitrage(arb, 1 ether, 0, block.timestamp );
 		console.log( "totalArbitrageProfit: ", arbitrageProfit * 3 / 2 );
 		}
-
 
 
 	// A unit test that ensures adding/removing liquidity fails when token0 and token1 are identical.
