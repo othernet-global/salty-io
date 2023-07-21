@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity ^0.8.12;
+pragma solidity =0.8.20;
 
 import "forge-std/Test.sol";
 import "../Deployment.sol";
@@ -48,7 +48,6 @@ contract TestDeployment is Deployment, Test
         assertEq( getContract(address(exchangeConfig), "usds()"), address(usds), "Incorrect exchangeConfig.usds" );
         assertEq( getContract(address(exchangeConfig), "accessManager()"), address(accessManager), "Incorrect exchangeConfig.accessManager" );
         assertEq( getContract(address(exchangeConfig), "dao()"), address(dao), "Incorrect exchangeConfig.dao" );
-        assertEq( getContract(address(exchangeConfig), "arbitrageSearch()"), address(arbitrageSearch), "Incorrect exchangeConfig.arbitrageSearch" );
 
         assertEq( getContract(address(pools), "exchangeConfig()"), address(exchangeConfig), "Incorrect pools.exchangeConfig" );
         assertEq( getContract(address(pools), "dao()"), address(dao), "Incorrect pools.dao" );
@@ -114,6 +113,8 @@ contract TestDeployment is Deployment, Test
 		assertEq( getContract( address(rewardsConfig), "owner()" ), address(dao), "rewardsConfig owner is not dao" );
 		assertEq( getContract( address(stableConfig), "owner()" ), address(dao), "stableConfig owner is not dao" );
 		assertEq( getContract( address(daoConfig), "owner()" ), address(dao), "daoConfig owner is not dao" );
+
+        assertEq( getContract(address(poolsConfig), "arbitrageSearch()"), address(arbitrageSearch), "Incorrect poolsConfig.arbitrageSearch" );
 
         if ( DEBUG )
         	assertTrue( functionExists( address(priceFeed), "forcedPriceBTCWith18Decimals()" ), "For DEBUG: The PriceFeed should be a ForcedPriceFeed" );

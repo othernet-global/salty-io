@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity ^0.8.12;
+pragma solidity =0.8.20;
 
 import "forge-std/Test.sol";
 import "../Parameters.sol";
@@ -51,10 +51,8 @@ contract TestParametersOffchain is Test
 		{
 		if ( parameter == Parameters.ParameterTypes.maximumWhitelistedPools )
 			return poolsConfig.maximumWhitelistedPools();
-		else if ( parameter == Parameters.ParameterTypes.daoPercentShareInternalArbitrage )
-			return poolsConfig.daoPercentShareInternalArbitrage();
-		else if ( parameter == Parameters.ParameterTypes.daoPercentShareExternalArbitrage )
-			return poolsConfig.daoPercentShareExternalArbitrage();
+		else if ( parameter == Parameters.ParameterTypes.daoPercentShareArbitrage )
+			return poolsConfig.daoPercentShareArbitrage();
 
 		else if ( parameter == Parameters.ParameterTypes.minUnstakeWeeks )
 			return stakingConfig.minUnstakeWeeks();
@@ -162,8 +160,7 @@ contract TestParametersOffchain is Test
 		vm.startPrank(address(parameters));
 
 		_checkParameter( Parameters.ParameterTypes.maximumWhitelistedPools, 20, 50, 100, 10 );
-		_checkParameter( Parameters.ParameterTypes.daoPercentShareExternalArbitrage, 50, 80, 95, 5 );
-		_checkParameter( Parameters.ParameterTypes.daoPercentShareInternalArbitrage, 20, 30, 50, 5 );
+		_checkParameter( Parameters.ParameterTypes.daoPercentShareArbitrage, 20, 30, 50, 5 );
 		}
 
 

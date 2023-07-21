@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity ^0.8.12;
+pragma solidity =0.8.20;
 
 import "../openzeppelin/token/ERC20/ERC20.sol";
 import "../stable/interfaces/ICollateral.sol";
 import "../stable/interfaces/IStableConfig.sol";
 import "./interfaces/IUSDS.sol";
-import "../Upkeepable.sol";
 import "../pools/PoolUtils.sol";
 import "../pools/interfaces/IPools.sol";
 
@@ -15,7 +14,7 @@ import "../pools/interfaces/IPools.sol";
 // The minimum default collateral ratio is 110% - below which positions can be liquidated by any user.
 
 // If WBTC/WETH collateral is liquidated the reclaimed WBTC and WETH tokens are sent to this contract and swapped for USDS which is then burned (essentially "undoing" the user's original collateral deposit and USDS borrow).
-contract USDS is ERC20, IUSDS, Upkeepable
+contract USDS is ERC20, IUSDS
     {
     IStableConfig immutable public stableConfig;
     IERC20 immutable public wbtc;
@@ -114,7 +113,7 @@ contract USDS is ERC20, IUSDS, Upkeepable
 		tokens[0] = token;
 		tokens[1] = this;
 
-		uint256 quoteOut = pools.quoteAmountOut( tokens, amountToSwap );
+		uint256 quoteOut = PoolUtils.quoteAmountOut( pools, tokens, amountToSwap );
 
 		if ( quoteOut < minimumOut )
 			return; // we'll try swapping again later
@@ -128,7 +127,7 @@ contract USDS is ERC20, IUSDS, Upkeepable
 	// Additionally, any WBTC/WETH sent here when user collateral was liquidated can be swapped for USDS which is then burned as well.
 	// As the minimum collateral ratio defaults to 110% any excess WBTC/WETH that is not swapped for USDS will remain in this contract - in the case
     // that future liquidated positions are undercollateralized during times of high market volatility and WBTC/WETH is needed to purchase more USDS to burn.
-	function _performUpkeep() internal override
+	function performUpkeep() public
 		{
 		if ( usdsThatShouldBeBurned == 0 )
 			return;

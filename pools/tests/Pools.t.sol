@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity ^0.8.12;
+pragma solidity =0.8.20;
 
 import "forge-std/Test.sol";
 import "../../root_tests/TestERC20.sol";
 import "../Pools.sol";
 import "../../Deployment.sol";
+import "../PoolUtils.sol";
 
 
 contract TestPools is Test, Deployment
@@ -98,13 +99,13 @@ contract TestPools is Test, Deployment
 		}
 
 
-	function testGasSwap() public
+	function testGasSwapAndArbitrage() public
 		{
 		pools.depositSwapWithdraw(tokens[6], tokens[7], 10 ether, 5 ether, block.timestamp );
 		}
 
 
-	function testGasEcoSwap() public
+	function testGasEcoSwapAndArbitrage() public
 		{
 		IERC20[] memory arb = new IERC20[](2);
 		arb[0] = tokens[5];
@@ -119,41 +120,10 @@ contract TestPools is Test, Deployment
 		}
 
 
-	function testEmpty2() public
+	function testEmptyPrank() public
 		{
 		vm.startPrank(DEPLOYER);
 		vm.stopPrank();
-		}
-
-	function testGasSwapAndManualArbitrageSearch() public
-		{
-		pools.depositSwapWithdraw(tokens[6], tokens[7], 10 ether, 5 ether, block.timestamp );
-
-		IERC20[] memory arb = new IERC20[](4);
-		arb[0] = tokens[5];
-		arb[1] = tokens[7];
-		arb[2] = tokens[6];
-		arb[3] = tokens[5];
-
-		uint256 amountOut = pools.swap( arb, 1 ether, 0, block.timestamp );
-		console.log( "arbIn: ", 1 ether );
-		console.log( "arbOut: ", amountOut );
-		console.log( "arbProfit: ", amountOut - 1 ether );
-		}
-
-
-	function testGasSwapAndArbitrage() public
-		{
-		pools.depositSwapWithdraw(tokens[6], tokens[7], 10 ether, 5 ether, block.timestamp );
-
-		IERC20[] memory arb = new IERC20[](4);
-		arb[0] = tokens[5];
-		arb[1] = tokens[7];
-		arb[2] = tokens[6];
-		arb[3] = tokens[5];
-
-		uint256 arbitrageProfit = pools.arbitrage(arb, 1 ether, 0, block.timestamp );
-		console.log( "totalArbitrageProfit: ", arbitrageProfit * 3 / 2 );
 		}
 
 
@@ -257,7 +227,7 @@ contract TestPools is Test, Deployment
 
 		uint256 amountIn = 300 ether;
 
-        vm.expectRevert("Must swap at least two tokens");
+        vm.expectRevert("Swap only works with two or three token swap chains");
         pools.swap(tokens1, amountIn, 1 ether, block.timestamp);
 
         // test for case where tokens array contains more than two tokens, but the user doesn't possess enough of one of the intermediate tokens
@@ -695,7 +665,7 @@ contract TestPools is Test, Deployment
         // Test that swap fails with only one token
         IERC20[] memory oneToken = new IERC20[](1);
         oneToken[0] = tokens[0];
-        vm.expectRevert("Must swap at least two tokens");
+        vm.expectRevert("Swap only works with two or three token swap chains");
         pools.swap(oneToken, 500 ether, 1 ether, block.timestamp + 60);
 
         // Test that swap fails with insufficient balance
@@ -713,20 +683,24 @@ contract TestPools is Test, Deployment
         pools.swap(threeTokens, 500 ether, 1500 ether, block.timestamp + 60);
 
         // Test valid swap with two tokens
-        pools.swap(twoTokens, 500 ether, 1 ether, block.timestamp + 60);
+        pools.swap(twoTokens, 250 ether, 1 ether, block.timestamp + 60);
+        assertEq(pools.getUserDeposit(address(DEPLOYER), tokens[5]), 750 ether);
+
+        // Test valid swap with three tokens
+        pools.swap(threeTokens, 250 ether, 1 ether, block.timestamp + 60);
         assertEq(pools.getUserDeposit(address(DEPLOYER), tokens[5]), 500 ether);
 
 		vm.warp( block.timestamp + 1 hours );
 
-        // Deposit of tokenOut from setup was 1000 ether - 333.3333 ether more is expected from the trade
-        assertEq(pools.getUserDeposit(address(DEPLOYER), tokens[6]), 1333.333333333333333334 ether);
+        // Deposit of tokenOut from setup was 1000 ether + 200 ether more expected from the trade
+        assertEq(pools.getUserDeposit(address(DEPLOYER), tokens[6]), 1200 ether);
 
 		pools.getPoolReserves(tokens[5], tokens[6]);
 		pools.getPoolReserves(tokens[6], tokens[7]);
 
         // Test valid swap with three tokens
         pools.swap(threeTokens, 500 ether, 1 ether, block.timestamp + 60);
-        assertEq(pools.getUserDeposit(address(DEPLOYER), tokens[7]), 1142.857142857142857144 ether);
+        assertEq(pools.getUserDeposit(address(DEPLOYER), tokens[7]), 1230.769230769230769233 ether);
     }
 
 
@@ -1494,7 +1468,7 @@ contract TestPools is Test, Deployment
 		uint256 amountIn = 100 ether;
 		pools.deposit(chain[0], amountIn );
 
-		uint256 estimateOut = pools.quoteAmountOut( chain, amountIn );
+		uint256 estimateOut = PoolUtils.quoteAmountOut( pools, chain, amountIn );
         uint256 amountOut = pools.swap(chain, amountIn, 0 ether, block.timestamp);
 
 		assertEq( estimateOut, amountOut, "quoteAmountOut did not return an accurate result" );
@@ -1528,7 +1502,7 @@ contract TestPools is Test, Deployment
 		pools.addLiquidity( chain[1], chain[2], 200 ether, 2000 ether, 0, block.timestamp );
 
 		uint256 targetAmountOut = 100 ether;
-		uint256 amountIn = pools.quoteAmountIn( chain, targetAmountOut );
+		uint256 amountIn = PoolUtils.quoteAmountIn( pools, chain, targetAmountOut );
 
 //		console.log( "amountIn: ", amountIn );
 
@@ -1569,9 +1543,9 @@ contract TestPools is Test, Deployment
         chain[1] =new TestERC20(18);
         chain[2] = new TestERC20(18);
 
-		uint256 amountIn = pools.quoteAmountIn( chain, 100 ether );
+		uint256 amountIn = PoolUtils.quoteAmountIn( pools, chain, 100 ether );
 		assertEq(amountIn, 0);
-		uint256 amountOut = pools.quoteAmountOut( chain, 100 ether );
+		uint256 amountOut = PoolUtils.quoteAmountOut( pools, chain, 100 ether );
 		assertEq(amountOut, 0);
 		}
 
@@ -1839,6 +1813,5 @@ function testMinLiquidityAndReclaimedAmounts() public {
     vm.expectRevert("Insufficient underlying tokens returned");
     pools.removeLiquidity(token0, token1, liquidityBefore, excessiveMinReclaimedA, excessiveMinReclaimedB, block.timestamp);
 }
-
     }
 

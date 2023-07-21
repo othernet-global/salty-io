@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity ^0.8.12;
+pragma solidity =0.8.20;
 
-import "./IArbitrageSearch.sol";
+import "../arbitrage/interfaces/IArbitrageSearch.sol";
 import "../dao/interfaces/IDAO.sol";
 import "../interfaces/IAccessManager.sol";
 import "../stable/interfaces/IUSDS.sol";
@@ -24,7 +24,6 @@ interface IExchangeConfig
 	function usdc() external view returns (IERC20);
 	function usds() external view returns (IUSDS);
 
-	function arbitrageSearch() external view returns (IArbitrageSearch);
 	function accessManager() external view returns (IAccessManager);
 	function dao() external view returns (IDAO);
 	function stakingRewardsEmitter() external view returns (IRewardsEmitter);

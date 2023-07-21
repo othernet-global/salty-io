@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity ^0.8.12;
+pragma solidity =0.8.20;
 
 import "../../openzeppelin/token/ERC20/IERC20.sol";
 import "../../arbitrage/interfaces/IArbitrageSearch.sol";
@@ -11,14 +11,12 @@ interface IPoolsConfig
 	function unwhitelistPool( IERC20 tokenA, IERC20 tokenB ) external; // onlyOwner
 	function setArbitrageSearch( IArbitrageSearch _arbitrageSearch ) external; // onlyOwner
 	function changeMaximumWhitelistedPools(bool increase) external; // onlyOwner
-	function changeDaoPercentShareInternalArbitrage(bool increase) external; // onlyOwner
-	function changeDaoPercentShareExternalArbitrage(bool increase) external; // onlyOwner
+	function changeDaoPercentShareArbitrage(bool increase) external; // onlyOwner
 
 	// Views
+	function arbitrageSearch() external view returns (IArbitrageSearch);
     function maximumWhitelistedPools() external view returns (uint256);
-	function daoPercentShareInternalArbitrage() external view returns (uint256);
-	function daoPercentShareExternalArbitrage() external view returns (uint256);
-
+	function daoPercentShareArbitrage() external view returns (uint256);
 	function numberOfWhitelistedPools() external view returns (uint256);
 	function whitelistedPoolAtIndex( uint256 index ) external view returns (bytes32);
 	function isWhitelisted( bytes32 poolID ) external view returns (bool);

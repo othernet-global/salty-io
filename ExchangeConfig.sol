@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity ^0.8.12;
+pragma solidity =0.8.20;
 
 import "./openzeppelin/access/Ownable.sol";
 import "./interfaces/IExchangeConfig.sol";
@@ -94,8 +94,6 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 		{
 		// These protocol components will need access to the exchange contracts
 		if ( wallet == address(dao) )
-			return true;
-		if ( wallet == address(arbitrageSearch) )
 			return true;
 
 		return accessManager.walletHasAccess( wallet );

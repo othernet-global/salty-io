@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity ^0.8.12;
+pragma solidity =0.8.20;
 
 import "../openzeppelin/access/Ownable.sol";
 import "../openzeppelin/utils/structs/EnumerableSet.sol";
@@ -24,7 +24,7 @@ contract PoolsConfig is IPoolsConfig, Ownable
     using EnumerableSet for EnumerableSet.Bytes32Set;
 
 
-	// For finding profitable arbitrage paths
+	// For finding profitable circular arbitrage paths after swaps
 	IArbitrageSearch public arbitrageSearch;
 
 	// Keeps track of what pools have been whitelisted
@@ -39,13 +39,9 @@ contract PoolsConfig is IPoolsConfig, Ownable
 	// Range: 20 to 100 with an adjustment of 10
 	uint256 public maximumWhitelistedPools = 50;
 
-	// The percent of arbitrage profit that is sent to the DAO when arbitrage() is called with the exchange by the ArbitrageSearch contract
+	// The percent of arbitrage profit that is sent to the DAO when _arbitrage() is called
 	// Range: 20% to 50% with an adjustment of 5%
-	uint256 public daoPercentShareInternalArbitrage = 30;
-
-	// The percent of arbitrage profit that is sent to the DAO when arbitrage() is called from outside of the exchange
-	// Range: 50% to 95% with an adjustment of 5%
-	uint256 public daoPercentShareExternalArbitrage = 80;
+	uint256 public daoPercentShareArbitrage = 30;
 
 	// A special pool that represents staked SALT that is not associated with any particular pool.
     bytes32 public constant STAKED_SALT = bytes32(0);
@@ -99,32 +95,17 @@ contract PoolsConfig is IPoolsConfig, Ownable
         }
 
 
-	function changeDaoPercentShareInternalArbitrage(bool increase) public onlyOwner
+	function changeDaoPercentShareArbitrage(bool increase) public onlyOwner
         {
         if (increase)
             {
-            if (daoPercentShareInternalArbitrage < 50)
-                daoPercentShareInternalArbitrage += 5;
+            if (daoPercentShareArbitrage < 50)
+                daoPercentShareArbitrage += 5;
             }
         else
             {
-            if (daoPercentShareInternalArbitrage > 20)
-                daoPercentShareInternalArbitrage -= 5;
-            }
-        }
-
-
-	function changeDaoPercentShareExternalArbitrage(bool increase) public onlyOwner
-        {
-        if (increase)
-            {
-            if (daoPercentShareExternalArbitrage < 95)
-                daoPercentShareExternalArbitrage += 5;
-            }
-        else
-            {
-            if (daoPercentShareExternalArbitrage > 50)
-                daoPercentShareExternalArbitrage -= 5;
+            if (daoPercentShareArbitrage > 20)
+                daoPercentShareArbitrage -= 5;
             }
         }
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity ^0.8.12;
+pragma solidity =0.8.20;
 
 import "./interfaces/IDAOConfig.sol";
 import "../rewards/interfaces/IRewardsConfig.sol";
@@ -14,8 +14,7 @@ contract Parameters
 
 		// PoolsConfig
 		maximumWhitelistedPools,
-		daoPercentShareInternalArbitrage,
-		daoPercentShareExternalArbitrage,
+		daoPercentShareArbitrage,
 
 		// StakingConfig
 		minUnstakeWeeks,
@@ -54,10 +53,8 @@ contract Parameters
 		// PoolsConfig
 		if ( parameterType == ParameterTypes.maximumWhitelistedPools )
 			poolsConfig.changeMaximumWhitelistedPools( increase );
-		else if ( parameterType == ParameterTypes.daoPercentShareInternalArbitrage )
-			poolsConfig.changeDaoPercentShareInternalArbitrage( increase );
-		else if ( parameterType == ParameterTypes.daoPercentShareExternalArbitrage )
-			poolsConfig.changeDaoPercentShareExternalArbitrage( increase );
+		else if ( parameterType == ParameterTypes.daoPercentShareArbitrage )
+			poolsConfig.changeDaoPercentShareArbitrage( increase );
 
 		// StakingConfig
 		else if ( parameterType == ParameterTypes.minUnstakeWeeks )

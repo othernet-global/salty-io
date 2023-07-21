@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity ^0.8.12;
+pragma solidity =0.8.20;
 
 import "forge-std/Test.sol";
 import "../Proposals.sol";
@@ -106,10 +106,8 @@ contract TestDAO is Test, Deployment
 		{
 		if ( parameter == Parameters.ParameterTypes.maximumWhitelistedPools )
 			return poolsConfig.maximumWhitelistedPools();
-		else if ( parameter == Parameters.ParameterTypes.daoPercentShareInternalArbitrage )
-			return poolsConfig.daoPercentShareInternalArbitrage();
-		else if ( parameter == Parameters.ParameterTypes.daoPercentShareExternalArbitrage )
-			return poolsConfig.daoPercentShareExternalArbitrage();
+		else if ( parameter == Parameters.ParameterTypes.daoPercentShareArbitrage )
+			return poolsConfig.daoPercentShareArbitrage();
 
 		else if ( parameter == Parameters.ParameterTypes.minUnstakeWeeks )
 			return stakingConfig.minUnstakeWeeks();
@@ -181,7 +179,7 @@ contract TestDAO is Test, Deployment
 
 		uint256 newValue = _parameterValue( Parameters.ParameterTypes( parameterNum ) );
 
-		if ( parameterNum != 10 )
+		if ( parameterNum != 9 )
 			assert( newValue > originalValue );
     }
 
@@ -228,9 +226,9 @@ contract TestDAO is Test, Deployment
 
 		uint256 newValue = _parameterValue( Parameters.ParameterTypes( parameterNum ) );
 
-		if ( parameterNum != 3 )
-		if ( parameterNum != 10 )
-		if ( parameterNum != 14 )
+		if ( parameterNum != 2 )
+		if ( parameterNum != 9 )
+		if ( parameterNum != 13 )
 			assert( newValue < originalValue );
     }
 
@@ -241,7 +239,7 @@ contract TestDAO is Test, Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 5000000 ether );
 
-    	for( uint256 i = 0; i < 24; i++ )
+    	for( uint256 i = 0; i < 23; i++ )
 	 		_checkFinalizeIncreaseParameterBallot( i );
     	}
 
@@ -252,7 +250,7 @@ contract TestDAO is Test, Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 5000000 ether );
 
-    	for( uint256 i = 0; i < 24; i++ )
+    	for( uint256 i = 0; i < 23; i++ )
 	 		_checkFinalizeDecreaseParameterBallot( i );
     	}
 
@@ -263,7 +261,7 @@ contract TestDAO is Test, Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 5000000 ether );
 
-    	for( uint256 i = 0; i < 24; i++ )
+    	for( uint256 i = 0; i < 23; i++ )
 	 		_checkFinalizeNoChangeParameterBallot( i );
     	}
 
@@ -499,7 +497,7 @@ contract TestDAO is Test, Deployment
 		bytes32 nameHash = keccak256(bytes(contractName));
 
 		if ( nameHash == keccak256(bytes("ArbitrageSearch" )))
-			return address(exchangeConfig.arbitrageSearch());
+			return address(poolsConfig.arbitrageSearch());
 		if ( nameHash == keccak256(bytes("priceFeed" )))
 			return address(stableConfig.priceFeed());
 		if ( nameHash == keccak256(bytes("accessManager" )))

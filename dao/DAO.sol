@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity ^0.8.12;
+pragma solidity =0.8.20;
 
 import "../rewards/interfaces/IRewardsConfig.sol";
 import "../stable/interfaces/IStableConfig.sol";
@@ -90,7 +90,7 @@ contract DAO is IDAO, Upkeepable, Parameters
 		if ( nameHash == keccak256(bytes( "setContract:priceFeed_confirm" )) )
 			stableConfig.setPriceFeed( IPriceFeed(ballot.address1) );
 		else if ( nameHash == keccak256(bytes( "setContract:ArbitrageSearch_confirm" )) )
-			exchangeConfig.setArbitrageSearch( IArbitrageSearch(ballot.address1) );
+			poolsConfig.setArbitrageSearch( IArbitrageSearch(ballot.address1) );
 		else if ( nameHash == keccak256(bytes( "setContract:accessManager_confirm" )) )
 			exchangeConfig.setAccessManager( IAccessManager(ballot.address1) );
 		else if ( nameHash == keccak256(bytes( "setContract:stakingRewardsEmitter_confirm" )) )

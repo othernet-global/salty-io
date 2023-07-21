@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity ^0.8.12;
+pragma solidity =0.8.20;
 
 import "./pools/interfaces/IPools.sol";
 import "./pools/interfaces/IPoolsConfig.sol";
@@ -22,8 +22,8 @@ contract Deployment
     bool public DEBUG = true;
 	address constant public DEPLOYER = 0x73107dA86708c2DAd0D91388fB057EeE3E2581aF;
 
-	IDAO public dao = IDAO(address(0x0a3b29c7aF7a765abf76Ed45Df90f4ED201f7877));
-	Emissions public emissions = Emissions(address(0xb1700796014A6C8A408710b1549a7aA4e805BccF));
+	IDAO public dao = IDAO(address(0xAB50DdB2FE98D7134944153226C31d77be73c527));
+	Emissions public emissions = Emissions(address(0x592659ba07e1a91a2B8E501660B3E80bdE8ff4A2));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));
@@ -53,7 +53,7 @@ contract Deployment
 	IPriceFeed public priceFeed = stableConfig.priceFeed();
 	IAccessManager public accessManager = exchangeConfig.accessManager();
 
-	IArbitrageSearch public arbitrageSearch = exchangeConfig.arbitrageSearch();
+	IArbitrageSearch public arbitrageSearch = IArbitrageSearch(getContract(address(poolsConfig), "arbitrageSearch()" ));
 
 	// A special pool that represents staked SALT that is not associated with any particular pool.
 	bytes32 public constant STAKED_SALT = bytes32(0);

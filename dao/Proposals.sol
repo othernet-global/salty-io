@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity ^0.8.12;
+pragma solidity =0.8.20;
 
 import "../openzeppelin/utils/structs/EnumerableSet.sol";
 import "../openzeppelin/token/ERC20/utils/SafeERC20.sol";

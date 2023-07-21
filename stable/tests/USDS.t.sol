@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity ^0.8.12;
+pragma solidity =0.8.20;
 
 import "forge-std/Test.sol";
 import "../USDS.sol";
@@ -624,6 +624,7 @@ contract USDSTest is Test, Deployment
 
         // Call performUpkeep twice
         uint256 initialTotalSupply = usds.totalSupply();
+
         usds.performUpkeep();
         usds.performUpkeep();
 
