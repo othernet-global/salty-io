@@ -19,9 +19,16 @@ contract TestPools is Pools
 		setDAO( deployment.dao() );
 		}
 
-	function arbitrage( IERC20[] memory arbitragePath, uint256 arbitrageAmountIn, uint256 minArbitrageProfit ) public returns (uint256 arbitrageProfit)
+
+	function attemptArbitrage( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, bool hasDirectPool ) public returns (uint256 swapAmountInValueInETH, uint256 arbitrageProfit)
 		{
-		return _arbitrage(arbitragePath, arbitrageAmountIn, minArbitrageProfit);
+		return _attemptArbitrage(swapTokenIn, swapTokenOut, swapAmountIn, hasDirectPool);
+		}
+
+
+	function arbitrage( IERC20 tokenIn, IERC20 tokenA, IERC20 tokenB, IERC20 tokenC, uint256 arbitrageAmountIn, uint256 minArbitrageProfit ) public returns (uint256 arbitrageProfit)
+		{
+		return _arbitrage(tokenIn, tokenA, tokenB, tokenC, arbitrageAmountIn, minArbitrageProfit);
 		}
     }
 

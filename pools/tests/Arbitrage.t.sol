@@ -19,6 +19,8 @@ contract TestArbitrage is Test, Deployment
 
 	TestPools public testPools;
 
+	IERC20 noToken = IERC20(address(0));
+
 
 	constructor()
 		{
@@ -71,25 +73,11 @@ contract TestArbitrage is Test, Deployment
 		// and 5->6->7->5 after a swap from 7->6
 
 
-		IERC20[] memory pathA = new IERC20[](4);
-		pathA[0] = tokens[1];
-		pathA[1] = tokens[2];
-		pathA[2] = tokens[3];
-		pathA[3] = tokens[1];
+		uint256 arbitrageProfitA = testPools.arbitrage( tokens[1], tokens[2], tokens[3], noToken, arbAmountIn, 0);
 
-		IERC20[] memory pathB1 = new IERC20[](3);
-		pathB1[0] = tokens[5];
-		pathB1[1] = tokens[6];
-		pathB1[2] = tokens[7];
-
-		IERC20[] memory pathB2 = new IERC20[](2);
-		pathB2[0] = tokens[7];
-		pathB2[1] = tokens[5];
-
-		uint256 arbitrageProfitA = testPools.arbitrage( pathA, arbAmountIn, 0);
-
-		uint256 swapOut = testPools.swap( pathB1, arbAmountIn, 0, block.timestamp);
-		uint256 arbitrageProfitB = testPools.swap( pathB2, swapOut, 0, block.timestamp) - arbAmountIn;
+		uint256 swapOut = testPools.swap( tokens[5], tokens[6], arbAmountIn, 0, block.timestamp);
+		swapOut = testPools.swap( tokens[6], tokens[7], swapOut, 0, block.timestamp);
+		uint256 arbitrageProfitB = testPools.swap( tokens[7], tokens[5], swapOut, 0, block.timestamp) - arbAmountIn;
 
 		uint256 daoShareOfProfit = ( arbitrageProfitB * poolsConfig.daoPercentShareArbitrage() ) / 100;
 		arbitrageProfitB = arbitrageProfitB - daoShareOfProfit;
@@ -101,7 +89,133 @@ contract TestArbitrage is Test, Deployment
 	function testArbitrage() public
 		{
 		vm.startPrank( alice );
+
 		_checkArbitrage( 50 ether, 5 ether );
+		_checkArbitrage( 100 ether, 1 ether );
 		}
+
+
+	function testExcessiveArbitrage() public
+		{
+		vm.startPrank( alice );
+
+		uint256 swapAmountIn = 1 ether;
+		uint256 arbAmountIn = 100 ether;
+
+		testPools.depositSwapWithdraw( tokens[3], tokens[2], swapAmountIn, 0 ether, block.timestamp );
+
+		vm.expectRevert( "With arbitrage, resulting amountOut must be greater than arbitrageAmountIn" );
+		testPools.arbitrage( tokens[1], tokens[2], tokens[3], noToken, arbAmountIn, 0);
+		}
+
+
+	function testArbitrageProfitSplit() public
+		{
+		vm.startPrank( alice );
+
+		uint256 swapAmountIn = 100 ether;
+		uint256 arbAmountIn = 10 ether;
+
+		testPools.depositSwapWithdraw( tokens[3], tokens[2], swapAmountIn, 0 ether, block.timestamp );
+
+		IERC20[] memory pathA = new IERC20[](4);
+		pathA[0] = tokens[1];
+		pathA[1] = tokens[2];
+		pathA[2] = tokens[3];
+		pathA[3] = tokens[1];
+
+		uint256 quoteOut = PoolUtils.quoteAmountOut( testPools, pathA, arbAmountIn );
+		uint256 expectedProfit = quoteOut - arbAmountIn;
+
+		uint256 startingDepositDAO = testPools.depositBalance( address(dao), tokens[1] );
+		uint256 startingDepositArbitrageProfits = testPools.depositBalance( address(testPools), tokens[1] );
+
+		uint256 expectedProfitDAO = ( expectedProfit * poolsConfig.daoPercentShareArbitrage() ) / 100;
+		uint256 expectedProfitArbitrageProfits = expectedProfit - expectedProfitDAO;
+
+		uint256 arbitrageProfit = testPools.arbitrage( tokens[1], tokens[2], tokens[3], noToken, arbAmountIn, 0);
+
+		uint256 profitDAO =  testPools.depositBalance( address(dao), tokens[1] ) - startingDepositDAO;
+		uint256 profitArbitrageProfits = testPools.depositBalance( address(testPools), tokens[1] ) - startingDepositArbitrageProfits;
+
+		console.log( "expectedProfitDAO: ", expectedProfitDAO );
+		console.log( "expectedProfitArbitrageProfits: ", expectedProfitArbitrageProfits );
+
+		assertEq( arbitrageProfit, expectedProfitArbitrageProfits );
+		assertEq( profitDAO, expectedProfitDAO );
+		assertEq( profitArbitrageProfits, expectedProfitArbitrageProfits );
+		}
+
+
+	// A unit test which tests the _attemptArbitrage function where the initial token in the chain is WETH. The test should confirm that the swapAmountIn is correctly converted to swapAmountInValueInETH.
+	function testPossiblyAttemptArbitrageWETH() public
+    {
+        vm.startPrank( alice );
+        uint256 swapAmountIn = 5 ether;
+
+        (uint256 swapAmountInValueInETH,) = testPools.attemptArbitrage( weth, tokens[1], swapAmountIn, true );
+
+        // Ensure that the swapAmountIn is correctly converted to swapAmountInValueInETH
+        assertEq(swapAmountInValueInETH, swapAmountIn);
     }
+
+
+	// A unit test which tests the _attemptArbitrage function where the initial token in the chain is not WETH. The test should confirm that the swapAmountIn is correctly converted to swapAmountInValueInETH using the pool reserves.
+	function testNonWETHArbitrageA() public {
+
+		vm.prank(address(dao));
+		poolsConfig.whitelistPool( weth, tokens[1] );
+
+		vm.prank(DEPLOYER);
+		weth.transfer(alice, 1000 ether);
+
+		vm.startPrank(alice);
+       	weth.approve( address(testPools), type(uint256).max );
+		testPools.addLiquidity( weth, tokens[1], 500 ether, 1000 ether, 0, block.timestamp );
+
+
+        (uint256 swapAmountInValueInETH,) = testPools.attemptArbitrage(tokens[1], tokens[2], 10 ether, false);
+
+        assertEq( swapAmountInValueInETH, 5 ether );
+    }
+
+
+	// A unit test which tests the _attemptArbitrage function where the initial token in the chain is not WETH. The test should confirm that the swapAmountIn is correctly converted to swapAmountInValueInETH using the pool reserves.
+	function testNonWETHArbitrageB() public {
+
+		vm.prank(address(dao));
+		poolsConfig.whitelistPool( weth, tokens[1] );
+
+		vm.prank(DEPLOYER);
+		weth.transfer(alice, 1000 ether);
+
+		vm.startPrank(alice);
+       	weth.approve( address(testPools), type(uint256).max );
+		testPools.addLiquidity( weth, tokens[1], 1000 ether, 500 ether, 0, block.timestamp );
+
+
+        (uint256 swapAmountInValueInETH,) = testPools.attemptArbitrage(tokens[1], tokens[2], 10 ether, false);
+
+        assertEq( swapAmountInValueInETH, 20 ether );
+    }
+
+
+	// A unit test which tests the _attemptArbitrage function where there is not enough reserves to determine value in ETH. The function should return early and no arbitrage operation should be performed.
+	function testLowReserves() public {
+
+		vm.prank(address(dao));
+		poolsConfig.whitelistPool( weth, tokens[1] );
+
+		vm.prank(DEPLOYER);
+		weth.transfer(alice, 1000 ether);
+
+		vm.startPrank(alice);
+
+        (uint256 swapAmountInValueInETH,) = testPools.attemptArbitrage(tokens[1], tokens[2], 10 ether, false);
+
+        assertEq( swapAmountInValueInETH, 0 ether );
+    }
+
+	// A unit test which tests the _attemptArbitrage function where a profitable arbitrage path is found. The function should call _arbitrage with the found arbitrage path and amount.
+	}
 
