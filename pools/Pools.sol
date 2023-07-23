@@ -284,54 +284,41 @@ contract Pools is IPools, ReentrancyGuard, ArbitrageProfits
     	}
 
 
-    // Arbitrage a token to itself along a circular path, taking advantage of imbalances in the exchange pools.
-    // Arbitrage path will either be tokenIn->tokenA->tokenB->tokenIn or tokenIn->tokenA->tokenB->tokenC->tokenIn if tokenC !=address(0).
+    // Arbitrage a token to itself along a circular path (ending with the starting token), taking advantage of imbalances in the exchange pools.
     // Does not require any deposited tokens to make the call, but requires that the resulting amountOut is greater than the specified arbitrageAmountIn.
-    // Essentially the caller virtually "borrows" arbitrageAmountIn of the token and virtually "repays" it from their received amountOut at the end of the swap chain.
+    // Essentially the caller virtually "borrows" arbitrageAmountIn of the starting token and virtually "repays" it from their received amountOut at the end of the swap chain.
     // The extra amountOut (compared to arbitrageAmountIn) is the arbitrage profit.
-	function _arbitrage( IERC20 tokenIn, IERC20 tokenA, IERC20 tokenB, IERC20 tokenC, uint256 arbitrageAmountIn, uint256 minArbitrageProfit ) internal returns (uint256 arbitrageProfit)
+	function _arbitrage( IERC20[] memory arbitrageSwapPath, uint256 arbitrageAmountIn ) internal
 		{
-		// Will be used by the ArbitrageProfits to keep track of which pools contributed to the arbitrage (so they can be rewards proportionally)
-		bytes32[] memory arbitragePathPoolIDs = new bytes32[](4); // up to 4 swaps in the chain
+		uint256 arbitrageSwapPathLength = arbitrageSwapPath.length;
 
-		uint256 amountOut;
-		( amountOut, arbitragePathPoolIDs[0]) = _adjustReservesForSwap( tokenIn, tokenA, arbitrageAmountIn );
-		( amountOut, arbitragePathPoolIDs[1]) = _adjustReservesForSwap( tokenA, tokenB, amountOut );
+		// Will be used by ArbitrageProfits._updateArbitrageStats to keep track of which pools contributed to the arbitrage (so they can be rewarded proportionally)
+		bytes32[] memory arbitragePathPoolIDs = new bytes32[](arbitrageSwapPathLength);
 
-		if ( address(tokenC) == address(0) )
-			( amountOut, arbitragePathPoolIDs[2]) = _adjustReservesForSwap( tokenB, tokenIn, amountOut ); // back to tokenIn
-		else
-			{
-			( amountOut, arbitragePathPoolIDs[2]) = _adjustReservesForSwap( tokenB, tokenC, amountOut );
-			( amountOut, arbitragePathPoolIDs[3]) = _adjustReservesForSwap( tokenC, tokenIn, amountOut ); // back to tokenIn
-			}
+		uint256 amount = arbitrageAmountIn;
+		for( uint256 i = 0; i < arbitrageSwapPathLength - 1; i++ )
+			( amount, arbitragePathPoolIDs[i]) = _adjustReservesForSwap( arbitrageSwapPath[i], arbitrageSwapPath[i + 1], amount );
 
-		require( amountOut > arbitrageAmountIn, "With arbitrage, resulting amountOut must be greater than arbitrageAmountIn" );
+		// Complete the cycle
+		( amount, arbitragePathPoolIDs[arbitrageSwapPathLength - 1]) = _adjustReservesForSwap( arbitrageSwapPath[arbitrageSwapPathLength - 1], arbitrageSwapPath[0], amount );
 
-		// Determine the arbitrage profit
-		uint256 totalArbitrageProfit = amountOut - arbitrageAmountIn;
+		require( amount > arbitrageAmountIn, "With arbitrage, resulting amountOut must be greater than arbitrageAmountIn" );
 
-		// Some of the arbitrage profit will be sent to the DAO
-		uint256 daoShareOfProfit = ( totalArbitrageProfit * poolsConfig.daoPercentShareArbitrage() ) / 100;
+		uint256 arbitrageProfit = amount - arbitrageAmountIn;
 
-		// Caluclate the arbitrage profit for the ArbitrageProfits contract
-		arbitrageProfit = totalArbitrageProfit - daoShareOfProfit;
-
-		// Prevent the transaction from being significantly frontrun by confirming minArbitrageProfit
-		require( arbitrageProfit >= minArbitrageProfit, "Insufficient arbitrage profit" );
-
-		// Update deposited balances with the profit amounts
-		_userDeposits[address(dao)][tokenIn] += daoShareOfProfit;
-		_userDeposits[address(this)][tokenIn] += arbitrageProfit;
+		// ArbitrageProfits will be later divided between the DAO, SALT stakers and liquidity providers in ArbitrageProfits.performUpkeep
+ 		_userDeposits[address(this)][ arbitrageSwapPath[0] ] += arbitrageProfit;
 
 		// Update the stats related to the pools that contributed to the arbitrage so they can be rewarded proportionally later
 		_updateArbitrageStats( arbitragePathPoolIDs, arbitrageProfit );
 		}
 
 
-	// Check to see if profitable arbitrage is possible after the swap that was just made (in this same transaction)
-	function _attemptArbitrage( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, bool hasDirectPool ) internal returns (uint256 swapAmountInValueInETH, uint256 arbitrageProfit)
+	// Check to see if profitable arbitrage is possible after the swap that was just made (previously in this same transaction)
+	function _attemptArbitrage( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, bool isWhitelistedPair ) internal
 		{
+		uint256 swapAmountInValueInETH;
+
 		// Determine the ETH equivalent of swapAmountIn of the initial token in the chain
 		if ( address(swapTokenIn) == address(weth) )
 			swapAmountInValueInETH = swapAmountIn;
@@ -340,51 +327,53 @@ contract Pools is IPools, ReentrancyGuard, ArbitrageProfits
 			(uint256 reservesWETH, uint256 reservesTokenIn) = getPoolReserves(weth, swapTokenIn);
 
 			if ( (reservesWETH<=DUST) || (reservesTokenIn<=DUST) )
-				return (0,0); // not enough reserves to determine value in ETH
+				return; // can't arbitrage as there are not enough reserves to determine value in ETH
 
 			swapAmountInValueInETH = ( swapAmountIn * reservesWETH ) / reservesTokenIn;
 			}
 
-		// Determine the best arbitragePath (if any), and if one is found perform the arbitrage
-		(IERC20 tokenIn, IERC20 tokenA, IERC20 tokenB, IERC20 tokenC, uint256 arbitrageAmountIn) = poolsConfig.arbitrageSearch().findArbitrage(swapTokenIn, swapTokenOut, swapAmountInValueInETH, hasDirectPool );
+		// Determine the best arbitragePath (if any)
+   		(IERC20[] memory arbitrageSwapPath, uint256 arbitrageAmountIn) = poolsConfig.arbitrageSearch().findArbitrage(swapTokenIn, swapTokenOut, swapAmountInValueInETH, isWhitelistedPair );
+
+		// If arbitrage is viable, then perform it
 		if ( arbitrageAmountIn > 0 )
-			arbitrageProfit = _arbitrage( tokenIn, tokenA, tokenB, tokenC, arbitrageAmountIn, 0 );
-		else
-			arbitrageProfit = 0;
+			_arbitrage( arbitrageSwapPath, arbitrageAmountIn );
 		}
 
 
-	// Adjust the reserves for swapping between the two tokens and immediately attempt arbitrage
-	function _adjustReservesAndAttemptArbitrage( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut ) internal returns (uint256 amountOut)
+	// Adjust the reserves for swapping between the two specified tokens and then immediately attempt arbitrage
+	function _adjustReservesAndAttemptArbitrage( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut ) internal returns (uint256 swapAmountOut)
 		{
-		// See if there is liquidity between tokenIn and tokenOut
+		// See if tokenIn and tokenOut are whitelisted and therefore can have direct liquidity in the pool
 		(bytes32 poolID,) = PoolUtils.poolID(swapTokenIn, swapTokenOut);
-		bool hasDirectPool = totalLiquidity[poolID] > 0;
+		bool isWhitelistedPair = poolsConfig.isWhitelisted(poolID);
 
-		if ( hasDirectPool )
+		if ( isWhitelistedPair )
 			{
 			// Direct swap between the two tokens
-			( amountOut,) = _adjustReservesForSwap( swapTokenIn, swapTokenOut, swapAmountIn );
+			( swapAmountOut,) = _adjustReservesForSwap( swapTokenIn, swapTokenOut, swapAmountIn );
 			}
 		else
 			{
-			// Swap with WETH as the intermediate (as every token is pooled with WETH)
+			// Swap with WETH as the intermediate between swapTokenIn and swapTokenOut (as every token is pooled with WETH)
 			( uint256 wethOut,) = _adjustReservesForSwap( swapTokenIn, weth, swapAmountIn );
-			( amountOut,) = _adjustReservesForSwap( weth, swapTokenOut, wethOut );
+			( swapAmountOut,) = _adjustReservesForSwap( weth, swapTokenOut, wethOut );
 			}
 
-		require( amountOut >= minAmountOut, "Insufficient resulting token amount" );
+		// Make sure the swap meet's the specified minimums
+		require( swapAmountOut >= minAmountOut, "Insufficient resulting token amount" );
 
 		// The user's swap has just been made - attempt atomic arbitrage to rebalance the pool and yield arbitrage profit
-		_attemptArbitrage( swapTokenIn, swapTokenOut, swapAmountIn, hasDirectPool );
+		_attemptArbitrage( swapTokenIn, swapTokenOut, swapAmountIn, isWhitelistedPair );
 		}
 
 
     // Swap one token for another.
-    // Uses the pool for the two tokens if available, or if not uses token1->WETH->token2 (as every token on the DEX is pooled with WETH)
+    // Uses the direct pool between two tokens if available, or if not uses token1->WETH->token2 (as every token on the DEX is pooled with WETH)
     // Having simpler swaps without multiple tokens in the swap chain makes it simpler (and less expensive gas wise) to find suitable arbitrage opportunities.
+    // Cheap arbitrage gas-wise is important as arbitrage will be perform at swap time.
     // Requires that the first token in the chain has already been deposited for msg.sender
-	function swap( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline ) public nonReentrant ensureNotExpired(deadline) returns (uint256 amountOut)
+	function swap( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline ) public nonReentrant ensureNotExpired(deadline) returns (uint256 swapAmountOut)
 		{
 		// Confirm and adjust user deposits
 		mapping(IERC20=>uint256) storage userDeposits = _userDeposits[msg.sender];
@@ -392,23 +381,23 @@ contract Pools is IPools, ReentrancyGuard, ArbitrageProfits
     	require( userDeposits[swapTokenIn] >= swapAmountIn, "Insufficient deposited token balance of initial token" );
 		userDeposits[swapTokenIn] -= swapAmountIn;
 
-		amountOut = _adjustReservesAndAttemptArbitrage(swapTokenIn, swapTokenOut, swapAmountIn, minAmountOut );
+		swapAmountOut = _adjustReservesAndAttemptArbitrage(swapTokenIn, swapTokenOut, swapAmountIn, minAmountOut );
 
 		// Deposit the final tokenOut for the caller
-		userDeposits[swapTokenOut] += amountOut;
+		userDeposits[swapTokenOut] += swapAmountOut;
 		}
 
 
 	// Convenience method that allows the sender to deposit tokenIn, swap to tokenOut and then have tokenOut sent to the sender
-	function depositSwapWithdraw(IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline) public nonReentrant ensureNotExpired(deadline) returns (uint256 amountOut)
+	function depositSwapWithdraw(IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline) public nonReentrant ensureNotExpired(deadline) returns (uint256 swapAmountOut)
 		{
 		// Transfer tokenIn from the sender
 		_transferFromUserNoFeeOnTransfer( swapTokenIn, swapAmountIn );
 
-		amountOut = _adjustReservesAndAttemptArbitrage(swapTokenIn, swapTokenOut, swapAmountIn, minAmountOut );
+		swapAmountOut = _adjustReservesAndAttemptArbitrage(swapTokenIn, swapTokenOut, swapAmountIn, minAmountOut );
 
     	// Send tokenOut to the user
-    	swapTokenOut.safeTransfer( msg.sender, amountOut );
+    	swapTokenOut.safeTransfer( msg.sender, swapAmountOut );
 		}
 
 

@@ -99,18 +99,6 @@ contract TestPools is Test, Deployment
 		}
 
 
-	function testGasSwapAndArbitrage() public
-		{
-		pools.depositSwapWithdraw(tokens[7], tokens[6], 10 ether, 5 ether, block.timestamp );
-		}
-
-
-	function testGasEcoSwapAndArbitrage() public
-		{
-		pools.swap( tokens[7], tokens[6], 10 ether, 5 ether, block.timestamp );
-		}
-
-
 	function testEmpty() public
 		{
 		}

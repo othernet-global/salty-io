@@ -4,9 +4,9 @@ pragma solidity =0.8.20;
 
 interface IRewardsConfig
 	{
+	function changeRewardsEmitterDailyPercent(bool increase) external; // onlyOwner
 	function changeEmissionsWeeklyPercent(bool increase) external; // onlyOwner
 	function changeXSaltHoldersPercent(bool increase) external; // onlyOwner
-	function changeRewardsEmitterDailyPercent(bool increase) external; // onlyOwner
 
 	// Views
     function emissionsWeeklyPercentTimes1000() external view returns (uint256);

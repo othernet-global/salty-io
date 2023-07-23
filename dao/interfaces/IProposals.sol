@@ -50,11 +50,11 @@ interface IProposals
 	// Views
 	function nextBallotID() external returns (uint256);
 	function openBallotsByName( string calldata name ) external returns (uint256);
-	function lastUserVoteForBallot( uint256 ballotID, address user ) external view returns (UserVote memory);
-	function votesCastForBallot( uint256 ballotID, Vote vote ) external view returns (uint256);
 
 	function ballotForID( uint256 ballotID ) external view returns (Ballot calldata);
-	function requiredQuorumForBallotType( BallotType ballotType ) external view returns (uint256);
+	function lastUserVoteForBallot( uint256 ballotID, address user ) external view returns (UserVote calldata);
+	function votesCastForBallot( uint256 ballotID, Vote vote ) external view returns (uint256);
+	function requiredQuorumForBallotType( BallotType ballotType ) external view returns (uint256 requiredQuorum);
 	function totalVotesCastForBallot( uint256 ballotID ) external view returns (uint256);
 	function ballotIsApproved( uint256 ballotID ) external view returns (bool);
 	function winningParameterVote( uint256 ballotID ) external view returns (Vote);

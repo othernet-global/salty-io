@@ -18,17 +18,17 @@ struct UserShareInfo
 
 interface IStakingRewards
 	{
-	function claimAllRewards( bytes32[] calldata pools ) external;
+	function claimAllRewards( bytes32[] calldata poolIDs ) external;
 	function addSALTRewards( AddedReward[] calldata addedRewards ) external;
 
 	// Views
-	function totalSharesForPools( bytes32[] calldata pools ) external view returns (uint256[] calldata shares);
+	function totalSharesForPools( bytes32[] calldata poolIDs ) external view returns (uint256[] calldata shares);
 	function totalSharesForPool( bytes32 poolID ) external view returns (uint256);
-	function totalRewardsForPools( bytes32[] calldata pools ) external view returns (uint256[] calldata rewards);
+	function totalRewardsForPools( bytes32[] calldata poolIDs ) external view returns (uint256[] calldata rewards);
 
-	function userPendingReward( address wallet, bytes32 pool ) external view returns (uint256);
-	function userRewardsForPools( address wallet, bytes32[] calldata pools ) external view returns (uint256[] calldata rewards);
-	function userShareForPools( address wallet, bytes32[] calldata pools ) external view returns (uint256[] calldata shares);
+	function userPendingReward( address wallet, bytes32 poolID ) external view returns (uint256);
+	function userRewardsForPools( address wallet, bytes32[] calldata poolIDs ) external view returns (uint256[] calldata rewards);
+	function userShareForPools( address wallet, bytes32[] calldata poolIDs ) external view returns (uint256[] calldata shares);
 	function userShareForPool( address wallet, bytes32 poolID ) external view returns (uint256);
-	function userCooldowns( address wallet, bytes32[] calldata pools ) external view returns (uint256[] calldata cooldowns);
+	function userCooldowns( address wallet, bytes32[] calldata poolIDs ) external view returns (uint256[] calldata cooldowns);
 	}

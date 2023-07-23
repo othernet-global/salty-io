@@ -9,5 +9,5 @@ interface IRewardsEmitter
 	function addSALTRewards( AddedReward[] calldata addedRewards ) external;
 
 	// Views
-	function pendingRewardsForPools( bytes32[] calldata pairs ) external view returns (uint256[] calldata);
+	function pendingRewardsForPools( bytes32[] calldata pools ) external view returns (uint256[] calldata);
 	}

@@ -22,6 +22,11 @@ contract USDSTest is Test, Deployment
 			usds.setPools(pools);
 
 			vm.stopPrank();
+
+			vm.startPrank(address(dao));
+			poolsConfig.whitelistPool( usds, wbtc );
+			poolsConfig.whitelistPool( usds, weth );
+			vm.stopPrank();
 			}
 		}
 

@@ -22,8 +22,8 @@ contract Deployment
     bool public DEBUG = true;
 	address constant public DEPLOYER = 0x73107dA86708c2DAd0D91388fB057EeE3E2581aF;
 
-	IDAO public dao = IDAO(address(0xEA039317F0D7a7fbcC63fF7B5cCcDF9ef2159e91));
-	Emissions public emissions = Emissions(address(0xFE5BC53Cb50Bd1B4EE52E9E5F7659dA383444bF2));
+	IDAO public dao = IDAO(address(0xb534057467B993485435aa287B841A3e33D95C42));
+	Emissions public emissions = Emissions(address(0x6687138E0DC499D666f5C3B1D1D5788A56Eb02b2));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));
