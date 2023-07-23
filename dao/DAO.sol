@@ -89,7 +89,7 @@ contract DAO is IDAO, Upkeepable, Parameters
 
 		if ( nameHash == keccak256(bytes( "setContract:priceFeed_confirm" )) )
 			stableConfig.setPriceFeed( IPriceFeed(ballot.address1) );
-		else if ( nameHash == keccak256(bytes( "setContract:ArbitrageSearch_confirm" )) )
+		else if ( nameHash == keccak256(bytes( "setContract:arbitrageSearch_confirm" )) )
 			poolsConfig.setArbitrageSearch( IArbitrageSearch(ballot.address1) );
 		else if ( nameHash == keccak256(bytes( "setContract:accessManager_confirm" )) )
 			exchangeConfig.setAccessManager( IAccessManager(ballot.address1) );

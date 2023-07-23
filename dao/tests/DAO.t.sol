@@ -496,7 +496,7 @@ contract TestDAO is Test, Deployment
 		{
 		bytes32 nameHash = keccak256(bytes(contractName));
 
-		if ( nameHash == keccak256(bytes("ArbitrageSearch" )))
+		if ( nameHash == keccak256(bytes("arbitrageSearch" )))
 			return address(poolsConfig.arbitrageSearch());
 		if ( nameHash == keccak256(bytes("priceFeed" )))
 			return address(stableConfig.priceFeed());
@@ -532,7 +532,7 @@ contract TestDAO is Test, Deployment
 	// A unit test to test that finalizing an approved setContract ballot works with all possible contract options
 	function testSetContractApproved() public
 		{
-		_checkSetContractApproved( 1, "ArbitrageSearch", address(0x1231230 ) );
+		_checkSetContractApproved( 1, "arbitrageSearch", address(0x1231230 ) );
 		_checkSetContractApproved( 3, "priceFeed", address(0x1231231 ) );
 		_checkSetContractApproved( 5, "accessManager", address( new TestAccessManager(dao) ) );
 		_checkSetContractApproved( 7, "stakingRewardsEmitter", address(0x1231233 ) );
