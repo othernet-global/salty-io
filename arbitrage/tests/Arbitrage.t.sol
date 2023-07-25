@@ -9,11 +9,8 @@ import "../../pools/PoolUtils.sol";
 import "../ArbitrageSearch.sol";
 
 
-contract TestArbitrage is Test, Deployment
+contract TestArbitrageGas is Test, Deployment
 	{
-	IERC20 public tokenE;	// similar price to ETH
-    IERC20 public tokenB; // similar price to BTC
-
 	address public alice = address(0x1111);
 
 
@@ -33,304 +30,373 @@ contract TestArbitrage is Test, Deployment
 			vm.prank(address(dao));
 			poolsConfig.setArbitrageSearch( arbitrageSearch );
 			}
+		}
 
-		vm.startPrank(alice);
-		tokenE = new TestERC20(18);
-        tokenB = new TestERC20(18);
-        vm.stopPrank();
 
+	function _setupTokenForTesting( IERC20 token ) public
+		{
+		// Whitelist the tokens with WBTC and WETH
         vm.startPrank(address(dao));
-        poolsConfig.whitelistPool(tokenE, wbtc);
-        poolsConfig.whitelistPool(tokenE, weth);
-        poolsConfig.whitelistPool(tokenB, wbtc);
-        poolsConfig.whitelistPool(tokenB, weth);
+        poolsConfig.whitelistPool(token, wbtc);
+        poolsConfig.whitelistPool(token, weth);
         vm.stopPrank();
 
 		vm.startPrank(DEPLOYER);
 		wbtc.transfer(alice, 1000000 *10**8);
 		weth.transfer(alice, 1000000 ether);
+		salt.transfer(alice, 1000000 ether);
 		vm.stopPrank();
 
-		IPriceFeed priceFeed = stableConfig.priceFeed();
-		uint256 priceBTC = priceFeed.getPriceBTC();
-		uint256 priceETH = priceFeed.getPriceETH();
-
 		vm.startPrank(alice);
-		tokenE.approve( address(pools), type(uint256).max );
-   		tokenB.approve( address(pools), type(uint256).max );
+		token.approve( address(pools), type(uint256).max );
    		wbtc.approve( address(pools), type(uint256).max );
    		weth.approve( address(pools), type(uint256).max );
+   		salt.approve( address(pools), type(uint256).max );
 
-		pools.addLiquidity( tokenE, wbtc, 100 ether * priceBTC / priceETH, 100 *10**8, 0, block.timestamp );
-		pools.addLiquidity( tokenE, weth, 1000 ether, 1000 ether, 0, block.timestamp );
-		pools.addLiquidity( tokenB, wbtc, 100 ether, 100 *10**8, 0, block.timestamp );
-		pools.addLiquidity( tokenB, weth, 1000 ether * priceETH / priceBTC, 1000 ether, 0, block.timestamp );
-		pools.addLiquidity( wbtc, weth, 1000 *10**8, 1000 ether * priceBTC / priceETH, 0, block.timestamp );
+		pools.addLiquidity( token, wbtc, 100 ether, 100 *10**8, 0, block.timestamp );
+		pools.addLiquidity( token, weth, 100 ether, 100 ether, 0, block.timestamp );
+		pools.addLiquidity( salt, wbtc, 100 ether, 100 *10**8, 0, block.timestamp );
+		pools.addLiquidity( salt, weth, 100 ether, 100 ether, 0, block.timestamp );
+		pools.addLiquidity( wbtc, weth, 1000 *10**8, 1000 ether, 0, block.timestamp );
 
-		pools.deposit( tokenE, 100 ether );
-        pools.deposit( tokenB, 100 *10**8 );
+		pools.deposit( token, 100 ether );
+		}
 
-		// Initial transactions cost more gas
-		pools.swap( tokenE, weth, 10 ether, 0, block.timestamp );
-		pools.depositSwapWithdraw( weth, tokenE, 10 ether, 0, block.timestamp );
 
+	function _setupTokenForTesting2( IERC20 token ) public
+		{
+		// Whitelist the tokens with WBTC and WETH
+        vm.startPrank(address(dao));
+        poolsConfig.whitelistPool(token, wbtc);
+        poolsConfig.whitelistPool(token, weth);
         vm.stopPrank();
-		}
 
-
-	function testGasDepositSwapWithdrawAndArbitrage() public
-		{
 		vm.startPrank(alice);
-		pools.depositSwapWithdraw( tokenE, weth, 10 ether, 0, block.timestamp );
+		token.approve( address(pools), type(uint256).max );
+
+		pools.addLiquidity( token, wbtc, 100 ether, 100 *10**8, 0, block.timestamp );
+		pools.addLiquidity( token, weth, 100 ether, 100 ether, 0, block.timestamp );
+
+		pools.deposit( token, 100 ether );
 		}
 
-
-	function testGasSwapAndArbitrage() public
+	function _setupTokenForTestingNoLiquidity( IERC20 token ) public
 		{
-		vm.startPrank(alice);
-		pools.swap( tokenE, weth, 10 ether, 0, block.timestamp );
-		}
+		// Whitelist the tokens with WBTC and WETH
+        vm.startPrank(address(dao));
+        poolsConfig.whitelistPool(token, wbtc);
+        poolsConfig.whitelistPool(token, weth);
+        vm.stopPrank();
 
-
-	function testDepositSwapWithdrawAndArbitrage() public
-		{
-		vm.startPrank(alice);
-		uint256 amountOut = pools.depositSwapWithdraw( tokenE, weth, 10 ether, 0, block.timestamp );
-
-		console.log( "amountOut: ", amountOut );
-		console.log( "ending pools balance: ", pools.depositBalance( address(pools), weth ) );
-
-		assertEq( amountOut, 9899420288049410069 );
-		assertEq( pools.depositBalance( address(pools), weth ), 177652421181197960 );
-		}
-
-
-	function testEmpty() public
-		{
-		}
-
-
-	function testPoolID() public pure
-		{
-		PoolUtils.poolID( IERC20(address(0x1)), IERC20(address(0x2)));
-		PoolUtils.poolID( IERC20(address(0x2)), IERC20(address(0x1)));
-		}
-
-
-	function testPrank() public
-		{
-		vm.startPrank(alice);
+		vm.startPrank(DEPLOYER);
+		wbtc.transfer(alice, 1000000 *10**8);
+		weth.transfer(alice, 1000000 ether);
+		salt.transfer(alice, 1000000 ether);
 		vm.stopPrank();
+
+		vm.startPrank(alice);
+		token.approve( address(pools), type(uint256).max );
+   		wbtc.approve( address(pools), type(uint256).max );
+   		weth.approve( address(pools), type(uint256).max );
+   		salt.approve( address(pools), type(uint256).max );
+
+		pools.addLiquidity( token, wbtc, 100 ether, 100 *10**8, 0, block.timestamp );
+		pools.addLiquidity( token, weth, 100 ether, 100 ether, 0, block.timestamp );
+		pools.addLiquidity( salt, wbtc, 100 ether, 100 *10**8, 0, block.timestamp );
+		pools.addLiquidity( wbtc, weth, 1000 *10**8, 1000 ether, 0, block.timestamp );
+
+		pools.deposit( token, 100 ether );
 		}
 
 
+	// swap: WBTC->WETH
+	// arb: WETH->WBTC->SALT->WETH
+	function testArbitrage1() public
+		{
+		assertEq( pools.depositBalance( address(pools), weth ), 0, "starting deposited eth balance should be zero" );
+
+		vm.prank(alice);
+		IERC20 token = new TestERC20(18);
+
+		_setupTokenForTesting(token);
+		vm.startPrank(alice);
+
+		uint256 startingWETH = weth.balanceOf(alice);
+		uint256 amountOut = pools.depositSwapWithdraw( wbtc, weth, 10 *10**8, 0, block.timestamp );
+
+		// Check the swap itself
+		assertEq( amountOut, 9900990099009900991 );
+        assertEq( weth.balanceOf(alice) - startingWETH, 9900990099009900991 );
+
+        // Check that the arbitrage swaps happened as expected
+        (uint256 reservesA0, uint256 reservesA1) = pools.getPoolReserves(weth, wbtc);
+        (uint256 reservesB0, uint256 reservesB1) = pools.getPoolReserves(wbtc, salt);
+        (uint256 reservesC0, uint256 reservesC1) = pools.getPoolReserves(salt, weth);
+
+		assertFalse( reservesA0 == (1000 ether - amountOut), "Arbitrage did not happen" );
+		assertTrue( reservesA0 > ( 1000 ether - amountOut), "reservesA0 incorrect" );
+		assertTrue( reservesA1 < ( 100 ether + 1*10**8), "reservesA1 incorrect" );
+		assertTrue( reservesB0 > (100 * 10**8), "reservesB0 incorrect" );
+		assertTrue( reservesB1 < (100 ether), "reservesB1 incorrect" );
+		assertTrue( reservesC0 > (100 ether), "reservesC0 incorrect" );
+		assertTrue( reservesC1 < (1000 ether), "reservesC1 incorrect" );
+
+//		console.log( "profit: ", pools.depositBalance( address(pools), weth ) );
+		assertTrue( pools.depositBalance( address(pools), weth ) > 2* 10**15, "arbitrage profit too low" );
+		}
 
 
+	// swap: WETH->WBTC
+	// arb: WETH->SALT->WBTC->WETH
+	function testArbitrage2() public
+		{
+		assertEq( pools.depositBalance( address(pools), weth ), 0, "starting deposited eth balance should be zero" );
+
+		vm.prank(alice);
+		IERC20 token = new TestERC20(18);
+
+		_setupTokenForTesting(token);
+		vm.startPrank(alice);
+
+		uint256 startingWBTC = wbtc.balanceOf(alice);
+		uint256 amountOut = pools.depositSwapWithdraw( weth, wbtc, 10 ether, 0, block.timestamp );
+
+		// Check the swap itself
+		assertEq( amountOut, 990099010 );
+        assertEq( wbtc.balanceOf(alice) - startingWBTC, 990099010 );
+
+        // Check that the arbitrage swaps happened as expected
+        (uint256 reservesA0, uint256 reservesA1) = pools.getPoolReserves(weth, salt);
+        (uint256 reservesB0, uint256 reservesB1) = pools.getPoolReserves(salt, wbtc);
+        (uint256 reservesC0, uint256 reservesC1) = pools.getPoolReserves(wbtc, weth);
+
+		assertFalse( reservesA0 == (100 ether), "Arbitrage did not happen" );
+		assertTrue( reservesA0 > ( 100 ether), "reservesA0 incorrect" );
+		assertTrue( reservesA1 < ( 100 ether), "reservesA1 incorrect" );
+		assertTrue( reservesB0 > (100 ether), "reservesB0 incorrect" );
+		assertTrue( reservesB1 < (100 ether), "reservesB1 incorrect" );
+		assertTrue( reservesC0 > (1000 *10**8 - amountOut), "reservesC0 incorrect" );
+		assertTrue( reservesC1 < (1000 ether + 10 ether), "reservesC1 incorrect" );
+
+//		console.log( "profit: ", pools.depositBalance( address(pools), weth ) );
+		assertTrue( pools.depositBalance( address(pools), weth ) > 2* 10**15, "arbitrage profit too low" );
+		}
 
 
-//	function setUp() public
-//		{
-//		vm.startPrank( alice );
-//
-//		for( uint256 i = 0; i < 10; i++ )
-//			tokens[i] = new TestERC20( 18 );
-//		vm.stopPrank();
-//
-//		for( uint256 i = 0; i < 9; i++ )
-//			{
-//			vm.prank(address(dao));
-//			poolsConfig.whitelistPool( tokens[i], tokens[i + 1] );
-//
-//			vm.startPrank( alice );
-//        	tokens[i].approve( address(testPools), type(uint256).max );
-//        	tokens[i+1].approve( address(testPools), type(uint256).max );
-//			testPools.addLiquidity( tokens[i], tokens[i + 1], 1000 ether, 1000 ether, 0, block.timestamp );
-//			vm.stopPrank();
-//			}
-//
-//		vm.startPrank(address(dao));
-//		poolsConfig.whitelistPool( tokens[7], tokens[5] );
-//		poolsConfig.whitelistPool( tokens[3], tokens[1] );
-//		vm.stopPrank();
-//
-//		vm.startPrank( alice );
-//		testPools.addLiquidity( tokens[7], tokens[5], 1000 ether, 1000 ether, 0, block.timestamp );
-//		testPools.addLiquidity( tokens[3], tokens[1], 1000 ether, 1000 ether, 0, block.timestamp );
-//
-//		testPools.deposit( tokens[1], 1000 ether );
-//		testPools.deposit( tokens[5], 1000 ether );
-//		vm.stopPrank();
-//		}
-//
-//
-//	function _checkArbitrage( uint256 swapAmountIn, uint256 arbAmountIn ) public
-//		{
-//		testPools.depositSwapWithdraw( tokens[7], tokens[6], swapAmountIn, 0 ether, block.timestamp );
-//		testPools.depositSwapWithdraw( tokens[3], tokens[2], swapAmountIn, 0 ether, block.timestamp );
-//
-//		// Two arbitrage chains will be tested:
-//		// 1->2->3->1 after a swap from 3->2
-//		// and 5->6->7->5 after a swap from 7->6
-//
-//		IERC20[] memory arbitrageSwapPath = new IERC20[](3);
-//		arbitrageSwapPath[0] = tokens[1];
-//		arbitrageSwapPath[1] = tokens[2];
-//		arbitrageSwapPath[2] = tokens[3];
-//
-//		uint256 arbitrageProfitA = testPools.arbitrage( arbitrageSwapPath, arbAmountIn);
-//
-//		uint256 swapOut = testPools.swap( tokens[5], tokens[6], arbAmountIn, 0, block.timestamp);
-//		swapOut = testPools.swap( tokens[6], tokens[7], swapOut, 0, block.timestamp);
-//		uint256 arbitrageProfitB = testPools.swap( tokens[7], tokens[5], swapOut, 0, block.timestamp) - arbAmountIn;
-//
-//		uint256 daoShareOfProfit = ( arbitrageProfitB * poolsConfig.daoPercentShareArbitrage() ) / 100;
-//		arbitrageProfitB = arbitrageProfitB - daoShareOfProfit;
-//
-//		assertEq( arbitrageProfitA, arbitrageProfitB );
-//		}
-//
-//
-//	function testArbitrage() public
-//		{
-//		vm.startPrank( alice );
-//
-//		_checkArbitrage( 50 ether, 5 ether );
-//		_checkArbitrage( 100 ether, 1 ether );
-//		}
-//
-//
-//	function testExcessiveArbitrage() public
-//		{
-//		vm.startPrank( alice );
-//
-//		uint256 swapAmountIn = 1 ether;
-//		uint256 arbAmountIn = 100 ether;
-//
-//		testPools.depositSwapWithdraw( tokens[3], tokens[2], swapAmountIn, 0 ether, block.timestamp );
-//
-//		vm.expectRevert( "With arbitrage, resulting amountOut must be greater than arbitrageAmountIn" );
-//
-//		IERC20[] memory arbitrageSwapPath = new IERC20[](3);
-//		arbitrageSwapPath[0] = tokens[1];
-//		arbitrageSwapPath[1] = tokens[2];
-//		arbitrageSwapPath[2] = tokens[3];
-//
-//		testPools.arbitrage(arbitrageSwapPath, arbAmountIn);
-//		}
-//
-//
-//	function testArbitrageProfitSplit() public
-//		{
-//		vm.startPrank( alice );
-//
-//		uint256 swapAmountIn = 100 ether;
-//		uint256 arbAmountIn = 10 ether;
-//
-//		testPools.depositSwapWithdraw( tokens[3], tokens[2], swapAmountIn, 0 ether, block.timestamp );
-//
-//		IERC20[] memory pathA = new IERC20[](4);
-//		pathA[0] = tokens[1];
-//		pathA[1] = tokens[2];
-//		pathA[2] = tokens[3];
-//		pathA[3] = tokens[1];
-//
-//		uint256 quoteOut = PoolUtils.quoteAmountOut( testPools, pathA, arbAmountIn );
-//		uint256 expectedProfit = quoteOut - arbAmountIn;
-//
-//		uint256 startingDepositDAO = testPools.depositBalance( address(dao), tokens[1] );
-//		uint256 startingDepositArbitrageProfits = testPools.depositBalance( address(testPools), tokens[1] );
-//
-//		uint256 expectedProfitDAO = ( expectedProfit * poolsConfig.daoPercentShareArbitrage() ) / 100;
-//		uint256 expectedProfitArbitrageProfits = expectedProfit - expectedProfitDAO;
-//
-//		IERC20[] memory arbitrageSwapPath = new IERC20[](3);
-//		arbitrageSwapPath[0] = tokens[1];
-//		arbitrageSwapPath[1] = tokens[2];
-//		arbitrageSwapPath[2] = tokens[3];
-//
-//		uint256 arbitrageProfit = testPools.arbitrage( arbitrageSwapPath, arbAmountIn);
-//
-//		uint256 profitDAO =  testPools.depositBalance( address(dao), tokens[1] ) - startingDepositDAO;
-//		uint256 profitArbitrageProfits = testPools.depositBalance( address(testPools), tokens[1] ) - startingDepositArbitrageProfits;
-//
-//		console.log( "expectedProfitDAO: ", expectedProfitDAO );
-//		console.log( "expectedProfitArbitrageProfits: ", expectedProfitArbitrageProfits );
-//
-//		assertEq( arbitrageProfit, expectedProfitArbitrageProfits );
-//		assertEq( profitDAO, expectedProfitDAO );
-//		assertEq( profitArbitrageProfits, expectedProfitArbitrageProfits );
-//		}
-//
-//
-//	// A unit test which tests the _attemptArbitrage function where the initial token in the chain is WETH. The test should confirm that the swapAmountIn is correctly converted to swapAmountInValueInETH.
-//	function testPossiblyAttemptArbitrageWETH() public
-//    {
-//        vm.startPrank( alice );
-//        uint256 swapAmountIn = 5 ether;
-//
-//        (uint256 swapAmountInValueInETH,) = testPools.attemptArbitrage( weth, tokens[1], swapAmountIn, true );
-//
-//        // Ensure that the swapAmountIn is correctly converted to swapAmountInValueInETH
-//        assertEq(swapAmountInValueInETH, swapAmountIn);
-//    }
-//
-//
-//	// A unit test which tests the _attemptArbitrage function where the initial token in the chain is not WETH. The test should confirm that the swapAmountIn is correctly converted to swapAmountInValueInETH using the pool reserves.
-//	function testNonWETHArbitrageA() public {
-//
-//		vm.prank(address(dao));
-//		poolsConfig.whitelistPool( weth, tokens[1] );
-//
-//		vm.prank(DEPLOYER);
-//		weth.transfer(alice, 1000 ether);
-//
-//		vm.startPrank(alice);
-//       	weth.approve( address(testPools), type(uint256).max );
-//		testPools.addLiquidity( weth, tokens[1], 500 ether, 1000 ether, 0, block.timestamp );
-//
-//
-//        (uint256 swapAmountInValueInETH,) = testPools.attemptArbitrage(tokens[1], tokens[2], 10 ether, false);
-//
-//        assertEq( swapAmountInValueInETH, 5 ether );
-//    }
-//
-//
-//	// A unit test which tests the _attemptArbitrage function where the initial token in the chain is not WETH. The test should confirm that the swapAmountIn is correctly converted to swapAmountInValueInETH using the pool reserves.
-//	function testNonWETHArbitrageB() public {
-//
-//		vm.prank(address(dao));
-//		poolsConfig.whitelistPool( weth, tokens[1] );
-//
-//		vm.prank(DEPLOYER);
-//		weth.transfer(alice, 1000 ether);
-//
-//		vm.startPrank(alice);
-//       	weth.approve( address(testPools), type(uint256).max );
-//		testPools.addLiquidity( weth, tokens[1], 1000 ether, 500 ether, 0, block.timestamp );
-//
-//
-//        (uint256 swapAmountInValueInETH,) = testPools.attemptArbitrage(tokens[1], tokens[2], 10 ether, false);
-//
-//        assertEq( swapAmountInValueInETH, 20 ether );
-//    }
-//
-//
-//	// A unit test which tests the _attemptArbitrage function where there is not enough reserves to determine value in ETH. The function should return early and no arbitrage operation should be performed.
-//	function testLowReserves() public {
-//
-//		vm.prank(address(dao));
-//		poolsConfig.whitelistPool( weth, tokens[1] );
-//
-//		vm.prank(DEPLOYER);
-//		weth.transfer(alice, 1000 ether);
-//
-//		vm.startPrank(alice);
-//
-//        (uint256 swapAmountInValueInETH,) = testPools.attemptArbitrage(tokens[1], tokens[2], 10 ether, false);
-//
-//        assertEq( swapAmountInValueInETH, 0 ether );
-//    }
-//
-//	// A unit test which tests the _attemptArbitrage function where a profitable arbitrage path is found. The function should call _arbitrage with the found arbitrage path and amount.
+	// swap: WETH->token
+	// arb: WETH->WBTC->token->WETH
+    function testArbitrage3() public
+		{
+		assertEq( pools.depositBalance( address(pools), weth ), 0, "starting deposited eth balance should be zero" );
+
+		vm.prank(alice);
+		IERC20 token = new TestERC20(18);
+
+		_setupTokenForTesting(token);
+		vm.startPrank(alice);
+
+		uint256 startingBalance = token.balanceOf(alice);
+		uint256 amountOut = pools.depositSwapWithdraw( weth, token, 10 ether, 0, block.timestamp );
+
+		// Check the swap itself
+		assertEq( amountOut, 9090909090909090910 );
+        assertEq( token.balanceOf(alice) - startingBalance, 9090909090909090910 );
+
+        // Check that the arbitrage swaps happened as expected
+        (uint256 reservesA0, uint256 reservesA1) = pools.getPoolReserves(weth, wbtc);
+        (uint256 reservesB0, uint256 reservesB1) = pools.getPoolReserves(wbtc, token);
+        (uint256 reservesC0, uint256 reservesC1) = pools.getPoolReserves(token, weth);
+
+		assertFalse( reservesA0 == (1000 ether), "Arbitrage did not happen" );
+		assertTrue( reservesA0 > ( 1000 ether), "reservesA0 incorrect" );
+		assertTrue( reservesA1 < ( 1000 *10**8), "reservesA1 incorrect" );
+		assertTrue( reservesB0 > (100 *10**8), "reservesB0 incorrect" );
+		assertTrue( reservesB1 < (100 ether), "reservesB1 incorrect" );
+		assertTrue( reservesC0 > (100 ether - amountOut), "reservesC0 incorrect" );
+		assertTrue( reservesC1 < (1000 ether + 10 ether), "reservesC1 incorrect" );
+
+//		console.log( "profit: ", pools.depositBalance( address(pools), weth ) );
+		assertTrue( pools.depositBalance( address(pools), weth ) > 2* 10**15, "arbitrage profit too low" );
+		}
+
+
+	// swap: token->WETH
+    // arb: WETH->token->WBTC->WETH
+	function testArbitrage4() public
+		{
+		assertEq( pools.depositBalance( address(pools), weth ), 0, "starting deposited eth balance should be zero" );
+
+		vm.prank(alice);
+		IERC20 token = new TestERC20(18);
+
+		_setupTokenForTesting(token);
+		vm.startPrank(alice);
+
+		uint256 startingWETH = weth.balanceOf(alice);
+		uint256 amountOut = pools.depositSwapWithdraw( token, weth, 1 ether, 0, block.timestamp );
+
+		// Check the swap itself
+		assertEq( amountOut, 990099009900990100 );
+        assertEq( weth.balanceOf(alice) - startingWETH, 990099009900990100 );
+
+        // Check that the arbitrage swaps happened as expected
+        (uint256 reservesA0, uint256 reservesA1) = pools.getPoolReserves(weth, token);
+        (uint256 reservesB0, uint256 reservesB1) = pools.getPoolReserves(token, wbtc);
+        (uint256 reservesC0, uint256 reservesC1) = pools.getPoolReserves(wbtc, weth);
+
+		assertFalse( reservesA0 == (100 ether - amountOut), "Arbitrage did not happen" );
+
+		assertTrue( reservesA0 > ( 100 ether - amountOut), "reservesA0 incorrect" );
+		assertTrue( reservesA1 < ( 100 ether + 1 ether), "reservesA1 incorrect" );
+		assertTrue( reservesB0 > (100 ether), "reservesB0 incorrect" );
+		assertTrue( reservesB1 < (100 * 10**8), "reservesB1 incorrect" );
+		assertTrue( reservesC0 > (100 * 10**8), "reservesC0 incorrect" );
+		assertTrue( reservesC1 < (1000 ether), "reservesC1 incorrect" );
+
+		assertTrue( pools.depositBalance( address(pools), weth ) > 2* 10**15, "arbitrage profit too low" );
+		}
+
+
+	// swap: token1->token2
+	// arb: WETH->token2->token1->WETH
+    function testArbitrage5() public
+		{
+		assertEq( pools.depositBalance( address(pools), weth ), 0, "starting deposited eth balance should be zero" );
+
+		vm.startPrank(alice);
+		IERC20 token1 = new TestERC20(18);
+		IERC20 token2 = new TestERC20(18);
+		vm.stopPrank();
+
+		_setupTokenForTesting(token1);
+		_setupTokenForTesting(token2);
+
+        vm.prank(address(dao));
+        poolsConfig.whitelistPool(token1, token2);
+
+		vm.startPrank(alice);
+		token1.approve( address(pools), type(uint256).max );
+		token2.approve( address(pools), type(uint256).max );
+
+		pools.addLiquidity( token1, token2, 100 ether, 100 ether, 0, block.timestamp );
+
+		uint256 startingBalance = token2.balanceOf(alice);
+		uint256 amountOut = pools.depositSwapWithdraw( token1, token2, 1 ether, 0, block.timestamp );
+
+		// Check the swap itself
+		assertEq( amountOut, 990099009900990100 );
+        assertEq( token2.balanceOf(alice) - startingBalance, 990099009900990100 );
+
+        // Check that the arbitrage swaps happened as expected
+        (uint256 reservesA0, uint256 reservesA1) = pools.getPoolReserves(weth, token2);
+        (uint256 reservesB0, uint256 reservesB1) = pools.getPoolReserves(token2, token1);
+        (uint256 reservesC0, uint256 reservesC1) = pools.getPoolReserves(token1, weth);
+
+		assertFalse( reservesA0 == (100 ether), "Arbitrage did not happen" );
+		assertTrue( reservesA0 > ( 100 ether), "reservesA0 incorrect" );
+		assertTrue( reservesA1 < ( 100 ether), "reservesA1 incorrect" );
+		assertTrue( reservesB0 > (100 ether - amountOut), "reservesB0 incorrect" );
+		assertTrue( reservesB1 < (100 ether + 1 ether), "reservesB1 incorrect" );
+		assertTrue( reservesC0 > (100 ether), "reservesC0 incorrect" );
+		assertTrue( reservesC1 < (100 ether), "reservesC1 incorrect" );
+
+//		console.log( "profit: ", pools.depositBalance( address(pools), weth ) );
+		assertTrue( pools.depositBalance( address(pools), weth ) > 2* 10**15, "arbitrage profit too low" );
+		}
+
+
+	// swap: token1->WETH->token2   (intermediate WETH used in swaps without direct pool on exchange)
+	// arb: WETH->token1->WBTC->token2->WETH
+    function testArbitrageIntermediateWETH() public
+		{
+		assertEq( pools.depositBalance( address(pools), weth ), 0, "starting deposited eth balance should be zero" );
+
+		vm.startPrank(alice);
+		IERC20 token1 = new TestERC20(18);
+		IERC20 token2 = new TestERC20(18);
+		vm.stopPrank();
+
+		_setupTokenForTesting(token1);
+		_setupTokenForTesting2(token2);
+
+		vm.startPrank(alice);
+		token1.approve( address(pools), type(uint256).max );
+		token2.approve( address(pools), type(uint256).max );
+
+		uint256 startingBalance = token2.balanceOf(alice);
+		uint256 amountOut = pools.depositSwapWithdraw( token1, token2, 1 ether, 0, block.timestamp );
+
+		// Check the swap itself
+		assertEq( amountOut, 980392156862745100 );
+        assertEq( token2.balanceOf(alice) - startingBalance, 980392156862745100 );
+
+        // Check that the arbitrage swaps happened as expected
+        (uint256 reservesA0, uint256 reservesA1) = pools.getPoolReserves(weth, token1);
+        (uint256 reservesB0, uint256 reservesB1) = pools.getPoolReserves(token1, wbtc);
+        (uint256 reservesC0, uint256 reservesC1) = pools.getPoolReserves(wbtc, token2);
+        (uint256 reservesD0, uint256 reservesD1) = pools.getPoolReserves(token2, weth);
+
+		assertFalse( reservesA0 == (100 ether), "Arbitrage did not happen" );
+		assertEq( reservesA0, 99492543623174198606, "reservesA0 incorrect" );
+		assertEq( reservesA1, 100510044630829603835, "reservesA1 incorrect" );
+		assertEq( reservesB0, 100489955369170396165, "reservesB0 incorrect" );
+		assertEq( reservesB1, 9951243348, "reservesB1 incorrect" );
+		assertEq( reservesC0, 10048756652, "reservesC0 incorrect" );
+		assertEq( reservesC1, 99514799156865879689, "reservesC1 incorrect" );
+		assertEq( reservesD0, 99504808686271375211, "reservesD0 incorrect" );
+		assertEq( reservesD1, 100497655661335838603, "reservesD1 incorrect" );
+
+//		console.log( "profit: ", pools.depositBalance( address(pools), weth ) );
+		assertEq( pools.depositBalance( address(pools), weth ), 9800715489962791, "arbitrage profit incorrect" );
+		}
+
+
+	// A unit test to check that arbitrage doesn't happen when one of the pools in the arbitrage chain lacks liquidity
+	function testArbitrageFailed() public
+		{
+		assertEq( pools.depositBalance( address(pools), weth ), 0, "starting deposited eth balance should be zero" );
+
+		vm.prank(alice);
+		IERC20 token = new TestERC20(18);
+
+		_setupTokenForTestingNoLiquidity(token);
+		vm.startPrank(alice);
+
+		uint256 startingWETH = weth.balanceOf(alice);
+		uint256 amountOut = pools.depositSwapWithdraw( wbtc, weth, 10 *10**8, 0, block.timestamp );
+
+		// Check the swap itself
+		assertEq( amountOut, 9900990099009900991 );
+		assertEq( weth.balanceOf(alice) - startingWETH, 9900990099009900991 );
+
+		(uint256 reservesA0,) = pools.getPoolReserves(weth, wbtc);
+
+		assertTrue( reservesA0 == (1000 ether - amountOut), "Arbitrage should not happen" );
+		assertEq( pools.depositBalance( address(pools), weth ), 0, "There should be no arbitrage profit" );
+		}
+
+
+	function testSeriesOfTrades() public
+		{
+		assertEq( pools.depositBalance( address(pools), weth ), 0, "starting deposited eth balance should be zero" );
+
+		vm.prank(alice);
+		IERC20 token = new TestERC20(18);
+
+		_setupTokenForTesting(token);
+		vm.startPrank(alice);
+
+		for( uint256 i = 0; i < 20; i++ )
+			{
+			uint256 startingDepositWeth = pools.depositBalance( address(pools), weth );
+
+			pools.depositSwapWithdraw( weth, wbtc, 1 ether, 0, block.timestamp );
+
+			uint256 profit = pools.depositBalance( address(pools), weth ) - startingDepositWeth;
+			assertTrue( profit > 3*10**13, "Profit lower than expected" );
+
+//			console.log( i, profit );
+			}
+		}
 	}
 
