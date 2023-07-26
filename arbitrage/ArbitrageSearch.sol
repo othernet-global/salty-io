@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BSL 1.1
 pragma solidity =0.8.20;
 
-import "forge-std/Test.sol";
 import "./interfaces/IArbitrageSearch.sol";
 import "../interfaces/IExchangeConfig.sol";
 
@@ -11,9 +10,9 @@ contract ArbitrageSearch is IArbitrageSearch
     IPools immutable public pools;
     IExchangeConfig immutable public exchangeConfig;
 
-	IERC20 public wbtc;
-	IERC20 public weth;
-	ISalt public salt;
+	IERC20 immutable public wbtc;
+	IERC20 immutable public weth;
+	ISalt immutable public salt;
 
 	// Token balances less than dust are treated as if they don't exist at all.
 	// With the 18 decimals that are used for most tokens, DUST has a value of 0.0000000000000001
@@ -22,6 +21,7 @@ contract ArbitrageSearch is IArbitrageSearch
 
 	// Used to estimate the point just to the right of the midpoint
    	uint256 constant public MIDPOINT_PRECISION = 10**15; // .001 ETH precision for arb search
+
 
     constructor( IPools _pools, IExchangeConfig _exchangeConfig )
     	{
@@ -81,6 +81,7 @@ contract ArbitrageSearch is IArbitrageSearch
 		}
 
 
+	// Given the reserves for the arbitrage swap, claculate the profit at the midpoint of the current possible range and just to the right of the midpoint.
 	function _determineProfits( uint256 midpoint, uint256 reservesA0, uint256 reservesA1, uint256 reservesB0, uint256 reservesB1, uint256 reservesC0, uint256 reservesC1, uint256 reservesD0, uint256 reservesD1 ) internal pure returns (int256 profitMidpoint, int256 profitRightOfMidpoint )
 		{
 		uint256 kA = reservesA0 * reservesA1;
@@ -108,10 +109,11 @@ contract ArbitrageSearch is IArbitrageSearch
 
 
 	// Perform a modified binary search to search for the bestArbAmountIn in a range of 1% to 125% of swapAmountInValueInETH.
-   	// Arbitrage paths from this contract always start and end with WETH for simplicity so the valueInETH translates directly to the amount of WETH to use within the arbitrage swap.
+	// The search will be done using a binary search algorithm where profits are determined at the midpoint of the current range, and also just to the right of the midpoint.
+	// Assuming that the profit function is unimodal (which may not actually be true), the two profit calculations at and near the midpoint can show us which half of the range the maximum profit is in.
 	function _binarySearch( uint256 swapAmountInValueInETH, uint256 reservesA0, uint256 reservesA1, uint256 reservesB0, uint256 reservesB1, uint256 reservesC0, uint256 reservesC1, uint256 reservesD0, uint256 reservesD1 ) internal pure returns (uint256 bestArbAmountIn)
 		{
-		// Search bestArbAmountIn in a range from 1% to 125% of swapAmountInValueInETH
+		// Search bestArbAmountIn in a range from 1% to 125% of swapAmountInValueInETH.
     	uint256 leftPoint = swapAmountInValueInETH / 100;
     	uint256 rightPoint = swapAmountInValueInETH + swapAmountInValueInETH >> 2; // 125% of swapAmountInValueInETH
 
@@ -153,8 +155,6 @@ contract ArbitrageSearch is IArbitrageSearch
 	// Determine an arbitrage path to use for the given swap which just occured in this same transaction
 	function findArbitrage( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountInValueInETH, bool isWhitelistedPair ) public view returns (IERC20[] memory arbitrageSwapPath, uint256 arbtrageAmountIn)
     	{
-//    	console.log( "swapAmountInValueInETH: ", swapAmountInValueInETH );
-
 		// Whitelisted pairs have a direct pool within the exchange, while nonwhitelisted pairs will use intermediate WETH as: token1->WETH->token2
     	if (isWhitelistedPair )
     		{

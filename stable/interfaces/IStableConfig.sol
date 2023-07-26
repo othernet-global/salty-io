@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSL 1.1
 pragma solidity =0.8.20;
 
-import "./IPriceFeed.sol";
+import "../../price_feed/interfaces/IPriceFeed.sol";
 
 
 interface IStableConfig

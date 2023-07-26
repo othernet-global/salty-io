@@ -124,8 +124,12 @@ contract TestDeployment is Deployment, Test
 
         	assertEq( getContract( address(priceFeed), "CHAINLINK_BTC_USD()" ), address(0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c), "Incorrect BTC/USD Chainlink price feed" );
         	assertEq( getContract( address(priceFeed), "CHAINLINK_ETH_USD()" ), address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419), "Incorrect ETH/USD Chainlink price feed" );
-        	assertEq( getContract( address(priceFeed), "UNISWAP_V3_BTC_ETH()" ), address(0x4585FE77225b41b697C938B018E2Ac67Ac5a20c0), "Incorrect BTC/ETH Uniswap v3 Pool" );
+        	assertEq( getContract( address(priceFeed), "UNISWAP_V3_BTC_ETH()" ), address(0xCBCdF9626bC03E24f779434178A73a0B4bad62eD), "Incorrect BTC/ETH Uniswap v3 Pool" );
         	assertEq( getContract( address(priceFeed), "UNISWAP_V3_USDC_ETH()" ), address(0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640), "Incorrect ETH/USDC Uniswap v3 Pool" );
+
+			assertEq( address(wbtc), 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599, "Invalid WBTC" );
+			assertEq( address(weth), 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2, "Invalid WETH" );
+			assertEq( address(usdc), 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, "Invalid USDC" );
         	}
 
         assertEq( getContract(address(stableConfig), "priceFeed()"), address(priceFeed), "Incorrect stableConfig.priceFeed" );

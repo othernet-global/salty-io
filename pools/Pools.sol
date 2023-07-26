@@ -360,7 +360,7 @@ contract Pools is IPools, ReentrancyGuard, ArbitrageProfits
 			( swapAmountOut,) = _adjustReservesForSwap( weth, swapTokenOut, wethOut );
 			}
 
-		// Make sure the swap meet's the specified minimums
+		// Make sure the swap meets the specified minimums
 		require( swapAmountOut >= minAmountOut, "Insufficient resulting token amount" );
 
 		// The user's swap has just been made - attempt atomic arbitrage to rebalance the pool and yield arbitrage profit

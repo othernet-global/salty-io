@@ -3,7 +3,7 @@ pragma solidity =0.8.20;
 
 import "../openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import "../openzeppelin/utils/structs/EnumerableSet.sol";
-import "./interfaces/IPriceFeed.sol";
+import "../price_feed/interfaces/IPriceFeed.sol";
 import "./USDS.sol";
 import "../pools/PoolUtils.sol";
 import "../staking/Liquidity.sol";
@@ -323,7 +323,7 @@ contract Collateral is Liquidity, ICollateral
 		}
 
 
-	// Returns the specified collateral value based on the PriceFeed WBTC and WETH prices
+	// Returns the specified collateral value based on the ComboPriceFeed.sol WBTC and WETH prices
 	// Returns the value with 18 decimals
 	function collateralValueInUSD( uint256 collateralAmount ) public view returns (uint256)
 		{

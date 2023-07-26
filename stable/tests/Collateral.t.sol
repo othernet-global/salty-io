@@ -9,7 +9,7 @@ import "../../ExchangeConfig.sol";
 import "../../pools/Pools.sol";
 import "../../staking/Staking.sol";
 import "../../rewards/RewardsEmitter.sol";
-import "./IForcedPriceFeed.sol";
+import "../../price_feed/tests/IForcedPriceFeed.sol";
 
 
 contract TestCollateral is Test, Deployment

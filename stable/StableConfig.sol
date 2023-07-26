@@ -2,7 +2,7 @@
 pragma solidity =0.8.20;
 
 import "../openzeppelin/access/Ownable.sol";
-import "./interfaces/IPriceFeed.sol";
+import "../price_feed/interfaces/IPriceFeed.sol";
 import "./interfaces/IStableConfig.sol";
 
 // Contract owned by the DAO with parameters modifiable only by the DAO

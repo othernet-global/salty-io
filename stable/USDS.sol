@@ -94,7 +94,7 @@ contract USDS is ERC20, IUSDS
 
 
 	// Swap a percentage of the given token for USDS
-	// Make sure that the swap has less slippage (in comparison to the PriceFeed price) than specified in stableConfig
+	// Make sure that the swap has less slippage (in comparison to the ComboPriceFeed.sol price) than specified in stableConfig
 	function _swapPercentOfTokenForUSDS( IERC20 token, uint256 tokenDecimals, uint256 priceFeedTokenPrice, uint256 percentSwapToUSDS, uint256 maximumLiquidationSlippagePercentTimes1000 ) internal
 		{
 		uint256 balance = token.balanceOf( address(this) );
@@ -103,8 +103,8 @@ contract USDS is ERC20, IUSDS
 		if ( amountToSwap == 0 )
 			return;
 
-		// Determine the minimum expected USDS based on the PriceFeed price
-		// USDS has 18 decimals and PriceFeed report prices in 18 decimals so divide by tokenDecimals
+		// Determine the minimum expected USDS based on the ComboPriceFeed.sol price
+		// USDS has 18 decimals and ComboPriceFeed.sol report prices in 18 decimals so divide by tokenDecimals
 		uint256 amountOutBasedOnPriceFeed = amountToSwap * priceFeedTokenPrice / 10**tokenDecimals;
 		uint256 minimumOut = ( amountOutBasedOnPriceFeed * ( 100 * 1000 - maximumLiquidationSlippagePercentTimes1000 ) ) / (100*1000);
 

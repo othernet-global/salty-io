@@ -11,7 +11,7 @@ import "../../staking/Liquidity.sol";
 import "../../staking/Staking.sol";
 import "../../stable/Collateral.sol";
 import "../../rewards/RewardsEmitter.sol";
-import "../../stable/tests/IForcedPriceFeed.sol";
+import "../../price_feed/tests/IForcedPriceFeed.sol";
 import "../../pools/PoolsConfig.sol";
 import "../DAO.sol";
 import "./TestCallReceiver.sol";

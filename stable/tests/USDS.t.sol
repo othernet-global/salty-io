@@ -4,7 +4,7 @@ pragma solidity =0.8.20;
 import "forge-std/Test.sol";
 import "../USDS.sol";
 import "../../Deployment.sol";
-import "./IForcedPriceFeed.sol";
+import "../../price_feed/tests/IForcedPriceFeed.sol";
 
 
 contract USDSTest is Test, Deployment
@@ -358,13 +358,13 @@ contract USDSTest is Test, Deployment
     }
 
 
-	// A unit test that checks USDS balance is less than usdsThatShouldBeBurned and WBTC and WETH sufficient to cover usdsThatShouldBeBurned when performUpkeep called.  Checks that the amount swapped compared to the PriceFeed prices, and amount burned are correct.
+	// A unit test that checks USDS balance is less than usdsThatShouldBeBurned and WBTC and WETH sufficient to cover usdsThatShouldBeBurned when performUpkeep called.  Checks that the amount swapped compared to the ComboPriceFeed.sol prices, and amount burned are correct.
 	function testPerformUpkeepWithInsufficientUSDSAndSufficientWBTC_WETH() public {
         uint256 usdsToBurn = 500 ether;
         uint256 wbtcDeposit = 1 *10**8; // WBTC has 8 decimals
         uint256 wethDeposit = 10 ether;  // WETH has 18 decimals
 
-		// PriceFeed returns prices with 18 decimals
+		// ComboPriceFeed.sol returns prices with 18 decimals
 		IPriceFeed priceFeed = stableConfig.priceFeed();
 		uint256 btcPrice = priceFeed.getPriceBTC();
         uint256 ethPrice = priceFeed.getPriceETH();
@@ -416,7 +416,7 @@ contract USDSTest is Test, Deployment
         uint256 wbtcDeposit = 1 *10**8; // WBTC has 8 decimals
         uint256 wethDeposit = 10 ether;  // WETH has 18 decimals
 
-		// PriceFeed returns prices with 18 decimals
+		// ComboPriceFeed.sol returns prices with 18 decimals
 		IPriceFeed priceFeed = stableConfig.priceFeed();
 		uint256 btcPrice = priceFeed.getPriceBTC();
         uint256 ethPrice = priceFeed.getPriceETH();
@@ -465,13 +465,13 @@ contract USDSTest is Test, Deployment
 
 
 
-	// A unit test that checks that BTC and ETH are not swapped if slippage is too high compared to what the PriceFeed is showing pricewise.
+	// A unit test that checks that BTC and ETH are not swapped if slippage is too high compared to what the ComboPriceFeed.sol is showing pricewise.
 	function testPerformUpkeepWithSkewedPriceFeedPrices() public {
  	       uint256 usdsToBurn = 500 ether;
             uint256 wbtcDeposit = 1 *10**8; // WBTC has 8 decimals
             uint256 wethDeposit = 10 ether;  // WETH has 18 decimals
 
-    		// PriceFeed returns prices with 18 decimals
+    		// ComboPriceFeed.sol returns prices with 18 decimals
     		IPriceFeed priceFeed = stableConfig.priceFeed();
 
     		// Skew the BTC price so that the swap fails
@@ -537,7 +537,7 @@ contract USDSTest is Test, Deployment
         uint256 wbtcDeposit = 1 *10**8; // WBTC has 8 decimals
         uint256 wethDeposit = 0 ether;  // WETH has 18 decimals
 
-		// PriceFeed returns prices with 18 decimals
+		// ComboPriceFeed.sol returns prices with 18 decimals
 		IPriceFeed priceFeed = stableConfig.priceFeed();
 		uint256 btcPrice = priceFeed.getPriceBTC();
         uint256 ethPrice = priceFeed.getPriceETH();
@@ -593,7 +593,7 @@ contract USDSTest is Test, Deployment
         uint256 wbtcDeposit = 1 *10**8; // WBTC has 8 decimals
         uint256 wethDeposit = 10 ether;  // WETH has 18 decimals
 
-		// PriceFeed returns prices with 18 decimals
+		// ComboPriceFeed.sol returns prices with 18 decimals
 		IPriceFeed priceFeed = stableConfig.priceFeed();
 		uint256 btcPrice = priceFeed.getPriceBTC();
         uint256 ethPrice = priceFeed.getPriceETH();
