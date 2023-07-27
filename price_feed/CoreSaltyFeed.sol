@@ -16,7 +16,7 @@ contract CoreSaltyFeed is IPriceFeed
 
 	IERC20 immutable public wbtc;
 	IERC20 immutable public weth;
-	IERC20 immutable public usdc;
+	IERC20 immutable public usds;
 
 	// Token balances less than dust are treated as if they don't exist at all.
 	// With the 18 decimals that are used for most tokens, DUST has a value of 0.0000000000000001
@@ -32,29 +32,29 @@ contract CoreSaltyFeed is IPriceFeed
 		pools = _pools;
 		wbtc = _exchangeConfig.wbtc();
 		weth = _exchangeConfig.weth();
-		usdc = _exchangeConfig.usdc();
+		usds = _exchangeConfig.usds();
 		}
 
 
 	function getPriceBTC() public view returns (uint256)
 		{
-        (uint256 reservesWBTC, uint256 reservesUSDC) = pools.getPoolReserves(wbtc, usdc);
+        (uint256 reservesWBTC, uint256 reservesUSDS) = pools.getPoolReserves(wbtc, usds);
 
-		if ( ( reservesWBTC < DUST ) || ( reservesUSDC < DUST ) )
+		if ( ( reservesWBTC < DUST ) || ( reservesUSDS < DUST ) )
 			return 0;
 
-		// reservesWBTC has 8 decimals, keep the 18 decimals of reservesUSDC
-		return ( reservesUSDC * 10**8 ) / reservesWBTC;
+		// reservesWBTC has 8 decimals, keep the 18 decimals of reservesUSDS
+		return ( reservesUSDS * 10**8 ) / reservesWBTC;
 		}
 
 
 	function getPriceETH() public view returns (uint256)
 		{
-        (uint256 reservesWETH, uint256 reservesUSDC) = pools.getPoolReserves(weth, usdc);
+        (uint256 reservesWETH, uint256 reservesUSDS) = pools.getPoolReserves(weth, usds);
 
-		if ( ( reservesWETH < DUST ) || ( reservesUSDC < DUST ) )
+		if ( ( reservesWETH < DUST ) || ( reservesUSDS < DUST ) )
 			return 0;
 
-		return ( reservesUSDC * 10**18 ) / reservesWETH;
+		return ( reservesUSDS * 10**18 ) / reservesWETH;
 		}
     }

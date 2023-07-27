@@ -20,7 +20,6 @@ contract TestCollateral is Test, Deployment
     address public constant charlie = address(0x3333);
 
 	bytes32 public collateralPoolID;
-	IForcedPriceFeed public _forcedPriceFeed;
 
 
 	constructor()
@@ -33,7 +32,7 @@ contract TestCollateral is Test, Deployment
 
 			// Because USDS already set the Collateral on deployment and it can only be done once, we have to recreate USDS as well
 			// That cascades into recreating multiple other contracts as well.
-			usds = new USDS( stableConfig, wbtc, weth );
+			usds = new USDS( priceAggregator, stableConfig, wbtc, weth );
 
 			IDAO dao = IDAO(getContract( address(exchangeConfig), "dao()" ));
 
@@ -42,7 +41,7 @@ contract TestCollateral is Test, Deployment
 
 			staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
 			liquidity = new Liquidity( pools, exchangeConfig, poolsConfig, stakingConfig );
-			collateral = new Collateral(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig);
+			collateral = new Collateral(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
 
 			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig );
 			liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig );
@@ -57,13 +56,13 @@ contract TestCollateral is Test, Deployment
 			vm.stopPrank();
 			}
 
+		priceAggregator.performUpkeep();
+
 		(collateralPoolID,) = PoolUtils.poolID( wbtc, weth );
 
 		// Mint some USDS to the DEPLOYER
 		vm.prank( address(collateral) );
 		usds.mintTo( DEPLOYER, 2000000 ether );
-
-		_forcedPriceFeed = IForcedPriceFeed(address(priceFeed));
 		}
 
 
@@ -136,8 +135,9 @@ contract TestCollateral is Test, Deployment
 	function _crashCollateralPrice() internal
 		{
 		vm.startPrank( DEPLOYER );
-		_forcedPriceFeed.setBTCPrice( _forcedPriceFeed.getPriceBTC() * 54 / 100);
-		_forcedPriceFeed.setETHPrice( _forcedPriceFeed.getPriceETH() * 54 / 100 );
+		forcedPriceFeed.setBTCPrice( forcedPriceFeed.getPriceBTC() * 54 / 100);
+		forcedPriceFeed.setETHPrice( forcedPriceFeed.getPriceETH() * 54 / 100 );
+		priceAggregator.performUpkeep();
 		vm.stopPrank();
 		}
 
@@ -149,8 +149,9 @@ contract TestCollateral is Test, Deployment
 		assertEq(usds.balanceOf(alice), 0, "Alice should start with zero USDS");
 
 		// Total needs to be at least 2500
-		uint256 depositedWBTC = ( 1000 ether *10**8) / stableConfig.priceFeed().getPriceBTC();
-		uint256 depositedWETH = ( 1000 ether *10**18) / stableConfig.priceFeed().getPriceETH();
+		priceAggregator.performUpkeep();
+		uint256 depositedWBTC = ( 1000 ether *10**8) / priceAggregator.getPriceBTC();
+		uint256 depositedWETH = ( 1000 ether *10**18) / priceAggregator.getPriceETH();
 
 		// Alice will deposit collateral and borrow max USDS
 		vm.startPrank(alice);
@@ -389,8 +390,9 @@ contract TestCollateral is Test, Deployment
 		uint256 aliceETH = ( reserveWETH * aliceCollateral ) / totalLP; // 18 decimals
 
 		vm.startPrank( DEPLOYER );
-		_forcedPriceFeed.setBTCPrice( 20000 ether );
-		_forcedPriceFeed.setETHPrice( 2000 ether );
+		forcedPriceFeed.setBTCPrice( 20000 ether );
+		forcedPriceFeed.setETHPrice( 2000 ether );
+		priceAggregator.performUpkeep();
 		vm.stopPrank();
 
         uint256 aliceCollateralValue0 = collateral.userCollateralValueInUSD(alice);
@@ -401,8 +403,9 @@ contract TestCollateral is Test, Deployment
 
 
 		vm.startPrank( DEPLOYER );
-		_forcedPriceFeed.setBTCPrice( 15000 ether );
-		_forcedPriceFeed.setETHPrice( 1777 ether );
+		forcedPriceFeed.setBTCPrice( 15000 ether );
+		forcedPriceFeed.setETHPrice( 1777 ether );
+		priceAggregator.performUpkeep();
 		vm.stopPrank();
 
         aliceCollateralValue0 = collateral.userCollateralValueInUSD(alice);
@@ -413,8 +416,9 @@ contract TestCollateral is Test, Deployment
 
 
 		vm.startPrank( DEPLOYER );
-		_forcedPriceFeed.setBTCPrice( 45000 ether );
-		_forcedPriceFeed.setETHPrice( 11777 ether );
+		forcedPriceFeed.setBTCPrice( 45000 ether );
+		forcedPriceFeed.setETHPrice( 11777 ether );
+		priceAggregator.performUpkeep();
 		vm.stopPrank();
 
         aliceCollateralValue0 = collateral.userCollateralValueInUSD(alice);
@@ -545,9 +549,8 @@ contract TestCollateral is Test, Deployment
 		uint256 aliceETH = ( reserveWETH * aliceCollateral ) / totalCollateral;
 
 		// Prices from the price feed have 18 decimals
-		IPriceFeed priceFeed = stableConfig.priceFeed();
-		uint256 btcPrice = priceFeed.getPriceBTC();
-        uint256 ethPrice = priceFeed.getPriceETH();
+		uint256 btcPrice = priceAggregator.getPriceBTC();
+        uint256 ethPrice = priceAggregator.getPriceETH();
 
 		// Keep the 18 decimals from the price and remove the decimals from the amount held by the user
 		uint256 btcValue = ( aliceBTC * btcPrice ) / (10 ** 8 );
@@ -1006,7 +1009,7 @@ contract TestCollateral is Test, Deployment
 	// A unit test that tests maxRewardValueForCallingLiquidation
 	function testMaxRewardValueForCallingLiquidation() public {
 		vm.startPrank(alice);
-		collateral.depositCollateralAndIncreaseShare(( 100000 ether *10**8) / stableConfig.priceFeed().getPriceBTC(), ( 100000 ether *10**18) / stableConfig.priceFeed().getPriceETH() , 0, block.timestamp, false );
+		collateral.depositCollateralAndIncreaseShare(( 100000 ether *10**8) / priceAggregator.getPriceBTC(), ( 100000 ether *10**18) / priceAggregator.getPriceETH() , 0, block.timestamp, false );
 
 		uint256 maxUSDS = collateral.maxBorrowableUSDS(alice);
 		collateral.borrowUSDS( maxUSDS );
@@ -1050,8 +1053,8 @@ contract TestCollateral is Test, Deployment
 	function testRewardValueForCallingLiquidation() public {
 		vm.startPrank(alice);
 
-		uint256 depositedWBTC = ( 1500 ether *10**8) / stableConfig.priceFeed().getPriceBTC();
-		uint256 depositedWETH = ( 1500 ether *10**18) / stableConfig.priceFeed().getPriceETH();
+		uint256 depositedWBTC = ( 1500 ether *10**8) / priceAggregator.getPriceBTC();
+		uint256 depositedWETH = ( 1500 ether *10**18) / priceAggregator.getPriceETH();
 
 		collateral.depositCollateralAndIncreaseShare( depositedWBTC, depositedWETH , 0, block.timestamp, false );
 
@@ -1095,7 +1098,7 @@ contract TestCollateral is Test, Deployment
 	// A unit test to test minimumCollateralValueForBorrowing
 	function testMinimumCollateralValueForBorrowing() public {
 		vm.startPrank(alice);
-		collateral.depositCollateralAndIncreaseShare(( 1000 ether *10**8) / stableConfig.priceFeed().getPriceBTC(), ( 1000 ether *10**18) / stableConfig.priceFeed().getPriceETH() , 0, block.timestamp, false );
+		collateral.depositCollateralAndIncreaseShare(( 1000 ether *10**8) / priceAggregator.getPriceBTC(), ( 1000 ether *10**18) / priceAggregator.getPriceETH() , 0, block.timestamp, false );
 
 		uint256 maxUSDS = collateral.maxBorrowableUSDS(alice);
 		assertEq( maxUSDS, 0, "Should not be able to borrow USDS with only $2000 worth of collateral" );
@@ -1104,7 +1107,7 @@ contract TestCollateral is Test, Deployment
 		collateral.borrowUSDS( 1 );
 
 		vm.warp( block.timestamp + 1 hours );
-		collateral.depositCollateralAndIncreaseShare(( 1000 ether *10**8) / stableConfig.priceFeed().getPriceBTC(), ( 1000 ether *10**18) / stableConfig.priceFeed().getPriceETH() , 0, block.timestamp, false );
+		collateral.depositCollateralAndIncreaseShare(( 1000 ether *10**8) / priceAggregator.getPriceBTC(), ( 1000 ether *10**18) / priceAggregator.getPriceETH() , 0, block.timestamp, false );
 
 		maxUSDS = collateral.maxBorrowableUSDS(alice);
         uint256 expectedMaxUSDS = 2000 ether;

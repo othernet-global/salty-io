@@ -6,6 +6,7 @@ import "../rewards/interfaces/IRewardsConfig.sol";
 import "../stable/interfaces/IStableConfig.sol";
 import "../staking/interfaces/IStakingConfig.sol";
 import "../pools/interfaces/IPoolsConfig.sol";
+import "../price_feed/interfaces/IPriceAggregator.sol";
 
 
 contract Parameters
@@ -43,12 +44,16 @@ contract Parameters
 		ballotDuration,
 		baseProposalCost,
 		maxPendingTokensForWhitelisting,
-		upkeepRewardPercentTimes1000
+		upkeepRewardPercentTimes1000,
+
+		// PriceAggregator
+		maximumPriceFeedDifferenceTimes1000,
+		setPriceFeedCooldown
 		}
 
 
 	// If the parameter has an invalid parameterType then the call is a no-op
-	function _executeParameterChange( ParameterTypes parameterType, bool increase, IPoolsConfig poolsConfig, IStakingConfig stakingConfig, IRewardsConfig rewardsConfig, IStableConfig stableConfig, IDAOConfig daoConfig ) internal
+	function _executeParameterChange( ParameterTypes parameterType, bool increase, IPoolsConfig poolsConfig, IStakingConfig stakingConfig, IRewardsConfig rewardsConfig, IStableConfig stableConfig, IDAOConfig daoConfig, IPriceAggregator priceAggregator ) internal
 		{
 		// PoolsConfig
 		if ( parameterType == ParameterTypes.maximumWhitelistedPools )
@@ -105,5 +110,11 @@ contract Parameters
 			daoConfig.changeMaxPendingTokensForWhitelisting(increase);
 		else if ( parameterType == ParameterTypes.upkeepRewardPercentTimes1000 )
 			daoConfig.changeUpkeepRewardPercent(increase);
+
+		// PriceAggregator
+		else if ( parameterType == ParameterTypes.maximumPriceFeedDifferenceTimes1000 )
+			priceAggregator.changeMaximumPriceFeedDifferenceTimes1000(increase);
+		else if ( parameterType == ParameterTypes.setPriceFeedCooldown )
+			priceAggregator.changeSetPriceFeedCooldown(increase);
 		}
 	}

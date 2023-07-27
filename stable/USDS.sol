@@ -7,6 +7,7 @@ import "../stable/interfaces/IStableConfig.sol";
 import "./interfaces/IUSDS.sol";
 import "../pools/PoolUtils.sol";
 import "../pools/interfaces/IPools.sol";
+import "../price_feed/interfaces/IPriceAggregator.sol";
 
 
 // USDS can be borrowed by users who have deposited WBTC/WETH liquidity as collateral via Collateral.sol
@@ -16,6 +17,7 @@ import "../pools/interfaces/IPools.sol";
 // If WBTC/WETH collateral is liquidated the reclaimed WBTC and WETH tokens are sent to this contract and swapped for USDS which is then burned (essentially "undoing" the user's original collateral deposit and USDS borrow).
 contract USDS is ERC20, IUSDS
     {
+    IPriceAggregator immutable public priceAggregator;
     IStableConfig immutable public stableConfig;
     IERC20 immutable public wbtc;
     IERC20 immutable public weth;
@@ -33,13 +35,15 @@ contract USDS is ERC20, IUSDS
 	uint256 public usdsThatShouldBeBurned;
 
 
-	constructor( IStableConfig _stableConfig, IERC20 _wbtc, IERC20 _weth )
+	constructor( IPriceAggregator _priceAggregator, IStableConfig _stableConfig, IERC20 _wbtc, IERC20 _weth )
 		ERC20( "testUSDS", "USDS" )
 		{
+		require( address(_priceAggregator) != address(0), "_priceAggregator cannot be address(0)" );
 		require( address(_stableConfig) != address(0), "_stableConfig cannot be address(0)" );
 		require( address(_wbtc) != address(0), "_wbtc cannot be address(0)" );
 		require( address(_weth) != address(0), "_weth cannot be address(0)" );
 
+		priceAggregator = _priceAggregator;
 		stableConfig = _stableConfig;
 		wbtc = _wbtc;
 		weth = _weth;
@@ -94,7 +98,7 @@ contract USDS is ERC20, IUSDS
 
 
 	// Swap a percentage of the given token for USDS
-	// Make sure that the swap has less slippage (in comparison to the ComboPriceFeed.sol price) than specified in stableConfig
+	// Make sure that the swap has less slippage (in comparison to the PriceAggregator price) than specified in stableConfig
 	function _swapPercentOfTokenForUSDS( IERC20 token, uint256 tokenDecimals, uint256 priceFeedTokenPrice, uint256 percentSwapToUSDS, uint256 maximumLiquidationSlippagePercentTimes1000 ) internal
 		{
 		uint256 balance = token.balanceOf( address(this) );
@@ -103,8 +107,8 @@ contract USDS is ERC20, IUSDS
 		if ( amountToSwap == 0 )
 			return;
 
-		// Determine the minimum expected USDS based on the ComboPriceFeed.sol price
-		// USDS has 18 decimals and ComboPriceFeed.sol report prices in 18 decimals so divide by tokenDecimals
+		// Determine the minimum expected USDS based on the PriceAggregator price
+		// USDS has 18 decimals and PriceAggregator report prices in 18 decimals so divide by tokenDecimals
 		uint256 amountOutBasedOnPriceFeed = amountToSwap * priceFeedTokenPrice / 10**tokenDecimals;
 		uint256 minimumOut = ( amountOutBasedOnPriceFeed * ( 100 * 1000 - maximumLiquidationSlippagePercentTimes1000 ) ) / (100*1000);
 
@@ -148,9 +152,8 @@ contract USDS is ERC20, IUSDS
 		uint256 maximumLiquidationSlippagePercentTimes1000 = stableConfig.maximumLiquidationSlippagePercentTimes1000();
 
 		// Prices will be used to determine minimum amountOuts
-		IPriceFeed priceFeed = stableConfig.priceFeed();
-		uint256 btcPrice = priceFeed.getPriceBTC();
-        uint256 ethPrice = priceFeed.getPriceETH();
+		uint256 btcPrice = priceAggregator.getPriceBTC();
+        uint256 ethPrice = priceAggregator.getPriceETH();
 
 		// Swap a percent of the WBTC and WETH in the contract for USDS
 		_swapPercentOfTokenForUSDS( wbtc, wbtcDecimals, btcPrice, percentSwapToUSDS, maximumLiquidationSlippagePercentTimes1000 );

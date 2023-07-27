@@ -2,15 +2,12 @@
 pragma solidity =0.8.20;
 
 import "../openzeppelin/access/Ownable.sol";
-import "../price_feed/interfaces/IPriceFeed.sol";
 import "./interfaces/IStableConfig.sol";
+
 
 // Contract owned by the DAO with parameters modifiable only by the DAO
 contract StableConfig is IStableConfig, Ownable
     {
-	// Interface for the price feed that provides prices for both BTC and ETH
-	IPriceFeed public priceFeed;
-
 	// The reward (in collateraLP) that a user receives for instigating the liquidation process - as a percentage
 	// of the amount of collateralLP that is liquidated.
 	// Range: 5 to 10 with an adjustment of 1
@@ -43,20 +40,6 @@ contract StableConfig is IStableConfig, Ownable
 	// In USDS.performUpkeep, the percent of WBTC or WETH that is swapped for USDS (which is then burned)
 	// Range: 1 to 10% with an adjustment of 1%
 	uint256 public percentSwapToUSDS = 5;
-
-
-	constructor( IPriceFeed _priceFeed )
-		{
-		setPriceFeed( _priceFeed );
-		}
-
-
-	// Sets the price feed that provides prices for both BTC and ETH.
-	function setPriceFeed( IPriceFeed _priceFeed ) public onlyOwner
-		{
-		require( address(_priceFeed) != address(0), "Cannot specify a null PriceFeed" );
-		priceFeed = _priceFeed;
-		}
 
 
 	function changeRewardPercentForCallingLiquidation(bool increase) public onlyOwner

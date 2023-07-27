@@ -6,7 +6,6 @@ import "../../price_feed/interfaces/IPriceFeed.sol";
 
 interface IStableConfig
 	{
-	function setPriceFeed( IPriceFeed _priceFeed ) external; // onlyOwner
 	function changeRewardPercentForCallingLiquidation(bool increase) external; // onlyOwner
 	function changeMaxRewardValueForCallingLiquidation(bool increase) external; // onlyOwner
 	function changeMinimumCollateralValueForBorrowing(bool increase) external; // onlyOwner
@@ -16,7 +15,6 @@ interface IStableConfig
 	function changePercentSwapToUSDS(bool increase) external; // onlyOwner
 
 	// Views
-    function priceFeed() external view returns (IPriceFeed);
     function rewardPercentForCallingLiquidation() external view returns (uint256);
     function maxRewardValueForCallingLiquidation() external view returns (uint256);
     function minimumCollateralValueForBorrowing() external view returns (uint256);

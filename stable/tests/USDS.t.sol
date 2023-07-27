@@ -4,7 +4,6 @@ pragma solidity =0.8.20;
 import "forge-std/Test.sol";
 import "../USDS.sol";
 import "../../Deployment.sol";
-import "../../price_feed/tests/IForcedPriceFeed.sol";
 
 
 contract USDSTest is Test, Deployment
@@ -17,7 +16,7 @@ contract USDSTest is Test, Deployment
 			{
 			vm.startPrank(DEPLOYER);
 
-			usds = new USDS(stableConfig, wbtc, weth);
+			usds = new USDS(priceAggregator, stableConfig, wbtc, weth);
 			usds.setCollateral(collateral);
 			usds.setPools(pools);
 
@@ -28,6 +27,8 @@ contract USDSTest is Test, Deployment
 			poolsConfig.whitelistPool( usds, weth );
 			vm.stopPrank();
 			}
+
+		priceAggregator.performUpkeep();
 		}
 
 
@@ -37,7 +38,7 @@ contract USDSTest is Test, Deployment
 		address secondAddress = address(0x6666);
 
 		// New USDS in case Collateral was set in the deployed version already
-		usds = new USDS(stableConfig, wbtc, weth);
+		usds = new USDS(priceAggregator, stableConfig, wbtc, weth);
 
 		// Initial set up
 		assertEq(address(usds.collateral()), address(0));
@@ -61,7 +62,7 @@ contract USDSTest is Test, Deployment
 		address secondAddress = address(0x6666);
 
 		// New USDS in case Colalteral was set in the deployed version already
-		usds = new USDS(stableConfig, wbtc, weth);
+		usds = new USDS(priceAggregator, stableConfig, wbtc, weth);
 
 		// Initial set up
 		assertEq(address(usds.pools()), address(0));
@@ -135,7 +136,7 @@ contract USDSTest is Test, Deployment
     	address collateralAddress = address(0x5555);
 
     	// New USDS instance in case Collateral was set in the deployed version already
-    	USDS newUSDS = new USDS(stableConfig, wbtc, weth);
+    	USDS newUSDS = new USDS(priceAggregator, stableConfig, wbtc, weth);
 
     	// Initial set up
     	assertEq(address(newUSDS.collateral()), address(0));
@@ -207,7 +208,7 @@ contract USDSTest is Test, Deployment
         uint256 usdsToBurn = 1 ether;
 
         // New USDS instance in case Collateral was set in the deployed version already
-        USDS newUSDS = new USDS(stableConfig, wbtc, weth);
+        USDS newUSDS = new USDS(priceAggregator, stableConfig, wbtc, weth);
 
         // Expect revert as the Collateral contract is not set yet
         vm.expectRevert("Not the Collateral contract");
@@ -221,17 +222,21 @@ contract USDSTest is Test, Deployment
         address wbtcAddress = address(0x1111); // Suppose this is a valid wbtc address
         address wethAddress = address(0x2222); // Suppose this is a valid weth address
 
+        // Test with zero address as priceAggregator
+        vm.expectRevert("_priceAggregator cannot be address(0)");
+        USDS newUSDS = new USDS(IPriceAggregator(zeroAddress), IStableConfig(zeroAddress), IERC20(wbtcAddress), IERC20(wethAddress));
+
         // Test with zero address as stableConfig
         vm.expectRevert("_stableConfig cannot be address(0)");
-        USDS newUSDS = new USDS(IStableConfig(zeroAddress), IERC20(wbtcAddress), IERC20(wethAddress));
+        newUSDS = new USDS(priceAggregator, IStableConfig(zeroAddress), IERC20(wbtcAddress), IERC20(wethAddress));
 
         // Test with zero address as wbtc
         vm.expectRevert("_wbtc cannot be address(0)");
-        newUSDS = new USDS(stableConfig, IERC20(zeroAddress), IERC20(wethAddress));
+        newUSDS = new USDS(priceAggregator, stableConfig, IERC20(zeroAddress), IERC20(wethAddress));
 
         // Test with zero address as weth
         vm.expectRevert("_weth cannot be address(0)");
-        newUSDS = new USDS(stableConfig, IERC20(wbtcAddress), IERC20(zeroAddress));
+        newUSDS = new USDS(priceAggregator, stableConfig, IERC20(wbtcAddress), IERC20(zeroAddress));
     }
 
 
@@ -269,7 +274,7 @@ contract USDSTest is Test, Deployment
 	// A unit test that sets an invalid or zero address for the Pools contract.
     function testSetInvalidPoolsAddress() public {
         // New USDS in case Pools was set in the deployed version already
-        usds = new USDS(stableConfig, wbtc, weth);
+        usds = new USDS(priceAggregator, stableConfig, wbtc, weth);
 
         // Attempt to set the pools address to an invalid or zero address
         vm.expectRevert("_pools cannot be address(0)");
@@ -358,16 +363,16 @@ contract USDSTest is Test, Deployment
     }
 
 
-	// A unit test that checks USDS balance is less than usdsThatShouldBeBurned and WBTC and WETH sufficient to cover usdsThatShouldBeBurned when performUpkeep called.  Checks that the amount swapped compared to the ComboPriceFeed.sol prices, and amount burned are correct.
+	// A unit test that checks USDS balance is less than usdsThatShouldBeBurned and WBTC and WETH sufficient to cover usdsThatShouldBeBurned when performUpkeep called.  Checks that the amount swapped compared to the PriceAggregator prices, and amount burned are correct.
 	function testPerformUpkeepWithInsufficientUSDSAndSufficientWBTC_WETH() public {
         uint256 usdsToBurn = 500 ether;
         uint256 wbtcDeposit = 1 *10**8; // WBTC has 8 decimals
         uint256 wethDeposit = 10 ether;  // WETH has 18 decimals
 
-		// ComboPriceFeed.sol returns prices with 18 decimals
-		IPriceFeed priceFeed = stableConfig.priceFeed();
-		uint256 btcPrice = priceFeed.getPriceBTC();
-        uint256 ethPrice = priceFeed.getPriceETH();
+		// PriceAggregator returns prices with 18 decimals
+		priceAggregator.performUpkeep();
+		uint256 btcPrice = priceAggregator.getPriceBTC();
+        uint256 ethPrice = priceAggregator.getPriceETH();
 
         // Set up USDS.usdsToBurn
         vm.prank(address(collateral));
@@ -416,10 +421,9 @@ contract USDSTest is Test, Deployment
         uint256 wbtcDeposit = 1 *10**8; // WBTC has 8 decimals
         uint256 wethDeposit = 10 ether;  // WETH has 18 decimals
 
-		// ComboPriceFeed.sol returns prices with 18 decimals
-		IPriceFeed priceFeed = stableConfig.priceFeed();
-		uint256 btcPrice = priceFeed.getPriceBTC();
-        uint256 ethPrice = priceFeed.getPriceETH();
+		// PriceAggregator returns prices with 18 decimals
+		uint256 btcPrice = priceAggregator.getPriceBTC();
+        uint256 ethPrice = priceAggregator.getPriceETH();
 
         // Set up USDS.usdsToBurn
         vm.prank(address(collateral));
@@ -465,18 +469,15 @@ contract USDSTest is Test, Deployment
 
 
 
-	// A unit test that checks that BTC and ETH are not swapped if slippage is too high compared to what the ComboPriceFeed.sol is showing pricewise.
+	// A unit test that checks that BTC and ETH are not swapped if slippage is too high compared to what the PriceAggregator is showing pricewise.
 	function testPerformUpkeepWithSkewedPriceFeedPrices() public {
  	       uint256 usdsToBurn = 500 ether;
             uint256 wbtcDeposit = 1 *10**8; // WBTC has 8 decimals
             uint256 wethDeposit = 10 ether;  // WETH has 18 decimals
 
-    		// ComboPriceFeed.sol returns prices with 18 decimals
-    		IPriceFeed priceFeed = stableConfig.priceFeed();
-
     		// Skew the BTC price so that the swap fails
-    		uint256 btcPrice0 = priceFeed.getPriceBTC();
-			uint256 ethPrice0 = priceFeed.getPriceETH();
+    		uint256 btcPrice0 = priceAggregator.getPriceBTC();
+			uint256 ethPrice0 = priceAggregator.getPriceETH();
 
     		uint256 btcPrice = btcPrice0 - btcPrice0 * 11 / 1000;
             uint256 ethPrice = ethPrice0 - ethPrice0 * 11 / 1000;
@@ -522,8 +523,9 @@ contract USDSTest is Test, Deployment
             ethPrice = ethPrice0 - ethPrice0 * 7 / 1000;
 
 			vm.startPrank(DEPLOYER);
-            IForcedPriceFeed(address(priceFeed)).setBTCPrice( btcPrice );
-            IForcedPriceFeed(address(priceFeed)).setETHPrice( ethPrice );
+            forcedPriceFeed.setBTCPrice( btcPrice );
+            forcedPriceFeed.setETHPrice( ethPrice );
+			priceAggregator.performUpkeep();
             vm.stopPrank();
 
             usds.performUpkeep();
@@ -537,10 +539,9 @@ contract USDSTest is Test, Deployment
         uint256 wbtcDeposit = 1 *10**8; // WBTC has 8 decimals
         uint256 wethDeposit = 0 ether;  // WETH has 18 decimals
 
-		// ComboPriceFeed.sol returns prices with 18 decimals
-		IPriceFeed priceFeed = stableConfig.priceFeed();
-		uint256 btcPrice = priceFeed.getPriceBTC();
-        uint256 ethPrice = priceFeed.getPriceETH();
+		// PriceAggregator returns prices with 18 decimals
+		uint256 btcPrice = priceAggregator.getPriceBTC();
+        uint256 ethPrice = priceAggregator.getPriceETH();
 
         // Set up USDS.usdsToBurn
         vm.prank(address(collateral));
@@ -593,10 +594,9 @@ contract USDSTest is Test, Deployment
         uint256 wbtcDeposit = 1 *10**8; // WBTC has 8 decimals
         uint256 wethDeposit = 10 ether;  // WETH has 18 decimals
 
-		// ComboPriceFeed.sol returns prices with 18 decimals
-		IPriceFeed priceFeed = stableConfig.priceFeed();
-		uint256 btcPrice = priceFeed.getPriceBTC();
-        uint256 ethPrice = priceFeed.getPriceETH();
+		// PriceAggregator returns prices with 18 decimals
+		uint256 btcPrice = priceAggregator.getPriceBTC();
+        uint256 ethPrice = priceAggregator.getPriceETH();
 
         // Set up USDS.usdsToBurn
         vm.prank(address(collateral));
@@ -688,7 +688,7 @@ contract USDSTest is Test, Deployment
         address randomAddress = address(0x6666);
 
         // New USDS in case Collateral was set in the deployed version already
-        usds = new USDS(stableConfig, wbtc, weth);
+        usds = new USDS(priceAggregator, stableConfig, wbtc, weth);
 
         // Set up the correct address as the collateral address
         vm.prank(DEPLOYER);
@@ -711,7 +711,7 @@ contract USDSTest is Test, Deployment
         address secondAddress = address(0x6666);
 
         // New USDS in case Pools was set in the deployed version already
-        usds = new USDS(stableConfig, wbtc, weth);
+        usds = new USDS(priceAggregator, stableConfig, wbtc, weth);
 
         // Initial set up
         assertEq(address(usds.pools()), address(0));

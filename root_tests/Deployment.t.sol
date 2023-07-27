@@ -69,6 +69,7 @@ contract TestDeployment is Deployment, Test
         assertEq( getContract(address(collateral), "exchangeConfig()"), address(exchangeConfig), "Incorrect collateral.exchangeConfig" );
         assertEq( getContract(address(collateral), "poolsConfig()"), address(poolsConfig), "Incorrect collateral.poolsConfig" );
         assertEq( getContract(address(collateral), "stakingConfig()"), address(stakingConfig), "Incorrect collateral.stakingConfig" );
+        assertEq( getContract(address(collateral), "priceAggregator()"), address(priceAggregator), "Incorrect collateral.priceAggregator" );
 
 		assertEq( getContract(address(stakingRewardsEmitter), "stakingRewards()"), address(staking), "Incorrect stakingRewardsEmitter.stakingRewards" );
         assertEq( getContract(address(stakingRewardsEmitter), "poolsConfig()"), address(poolsConfig), "Incorrect stakingRewardsEmitter.poolsConfig" );
@@ -98,6 +99,7 @@ contract TestDeployment is Deployment, Test
         assertEq( getContract(address(dao), "rewardsConfig()"), address(rewardsConfig), "Incorrect dao.rewardsConfig" );
         assertEq( getContract(address(dao), "stableConfig()"), address(stableConfig), "Incorrect dao.stableConfig" );
 		assertEq( getContract(address(dao), "daoConfig()"), address(daoConfig), "Incorrect dao.daoConfig" );
+		assertEq( getContract(address(dao), "priceAggregator()"), address(priceAggregator), "Incorrect dao.priceAggregator" );
         assertEq( getContract(address(dao), "liquidity()"), address(liquidity), "Incorrect dao.liquidity" );
         assertEq( getContract(address(dao), "liquidityRewardsEmitter()"), address(liquidityRewardsEmitter), "Incorrect dao.liquidityRewardsEmitter" );
 
@@ -113,32 +115,35 @@ contract TestDeployment is Deployment, Test
 		assertEq( getContract( address(rewardsConfig), "owner()" ), address(dao), "rewardsConfig owner is not dao" );
 		assertEq( getContract( address(stableConfig), "owner()" ), address(dao), "stableConfig owner is not dao" );
 		assertEq( getContract( address(daoConfig), "owner()" ), address(dao), "daoConfig owner is not dao" );
+		assertEq( getContract( address(priceAggregator), "owner()" ), address(dao), "priceAggregator owner is not dao" );
 
         assertEq( getContract(address(poolsConfig), "arbitrageSearch()"), address(arbitrageSearch), "Incorrect poolsConfig.arbitrageSearch" );
 
         if ( DEBUG )
-        	assertTrue( functionExists( address(priceFeed), "forcedPriceBTCWith18Decimals()" ), "For DEBUG: The PriceFeed should be a ForcedPriceFeed" );
+        	assertTrue( functionExists( address(priceAggregator.priceFeed1()), "forcedPriceBTCWith18Decimals()" ), "For DEBUG: The PriceFeed should be a ForcedPriceFeed" );
         else
         	{
-        	assertFalse( functionExists( address(priceFeed), "forcedPriceBTCWith18Decimals()" ), "For DEBUG: The PriceFeed should not be a ForcedPriceFeed" );
+        	assertFalse( functionExists( address(priceAggregator), "forcedPriceBTCWith18Decimals()" ), "For DEBUG: The PriceFeed should not be a ForcedPriceFeed" );
 
-        	assertEq( getContract( address(priceFeed), "CHAINLINK_BTC_USD()" ), address(0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c), "Incorrect BTC/USD Chainlink price feed" );
-        	assertEq( getContract( address(priceFeed), "CHAINLINK_ETH_USD()" ), address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419), "Incorrect ETH/USD Chainlink price feed" );
-        	assertEq( getContract( address(priceFeed), "UNISWAP_V3_BTC_ETH()" ), address(0xCBCdF9626bC03E24f779434178A73a0B4bad62eD), "Incorrect BTC/ETH Uniswap v3 Pool" );
-        	assertEq( getContract( address(priceFeed), "UNISWAP_V3_USDC_ETH()" ), address(0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640), "Incorrect ETH/USDC Uniswap v3 Pool" );
+			address uniswapFeed = getContract( address(priceAggregator.priceFeed1()), "uniswapFeed()" );
+        	assertEq( getContract( address(priceAggregator.priceFeed2()), "CHAINLINK_BTC_USD()" ), address(0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c), "Incorrect BTC/USD Chainlink price feed" );
+        	assertEq( getContract( address(priceAggregator.priceFeed2()), "CHAINLINK_ETH_USD()" ), address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419), "Incorrect ETH/USD Chainlink price feed" );
+        	assertEq( getContract( address(uniswapFeed), "UNISWAP_V3_BTC_ETH()" ), address(0xCBCdF9626bC03E24f779434178A73a0B4bad62eD), "Incorrect BTC/ETH Uniswap v3 Pool" );
+        	assertEq( getContract( address(uniswapFeed), "UNISWAP_V3_USDC_ETH()" ), address(0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640), "Incorrect ETH/USDC Uniswap v3 Pool" );
+
+			assertEq( getContract( address(priceAggregator.priceFeed3()), "usds()" ), address(usds), "Invalid priceAggregator.saltyFeed.USDS" );
 
 			assertEq( address(wbtc), 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599, "Invalid WBTC" );
 			assertEq( address(weth), 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2, "Invalid WETH" );
 			assertEq( address(usdc), 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, "Invalid USDC" );
         	}
 
-        assertEq( getContract(address(stableConfig), "priceFeed()"), address(priceFeed), "Incorrect stableConfig.priceFeed" );
-
         assertEq( getContract(address(usds), "stableConfig()"), address(stableConfig), "Incorrect usds.stableConfig" );
         assertEq( getContract(address(usds), "wbtc()"), address(wbtc), "Incorrect usds.wbtc" );
         assertEq( getContract(address(usds), "weth()"), address(weth), "Incorrect usds.weth" );
         assertEq( getContract(address(usds), "collateral()"), address(collateral), "Incorrect usds.collateral" );
         assertEq( getContract(address(usds), "pools()"), address(pools), "Incorrect usds.pools" );
+        assertEq( getContract(address(usds), "priceAggregator()"), address(priceAggregator), "Incorrect usds.priceAggregator" );
 
         assertEq( getContract(address(arbitrageSearch), "pools()"), address(pools), "Incorrect arbitrageSearch.pools" );
         assertEq( getContract(address(arbitrageSearch), "exchangeConfig()"), address(exchangeConfig), "Incorrect arbitrageSearch.exchangeConfig" );
@@ -165,7 +170,10 @@ contract TestDeployment is Deployment, Test
    		console.log( "accessManager: ", address(accessManager) );
 		console.log( "" );
    		console.log( "salt: ", address(salt) );
-   		console.log( "priceFeed: ", address(priceFeed) );
+   		console.log( "priceAggregator: ", address(priceAggregator) );
+   		console.log( "priceFeed1: ", address(priceAggregator.priceFeed1()) );
+   		console.log( "priceFeed2: ", address(priceAggregator.priceFeed2()) );
+   		console.log( "priceFeed3: ", address(priceAggregator.priceFeed3()) );
 //   		console.log( "util: ", address(util) );
 		console.log( "" );
    		console.log( "stableConfig: ", address(stableConfig) );

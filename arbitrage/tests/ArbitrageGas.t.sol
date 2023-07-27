@@ -34,6 +34,10 @@ contract TestArbitrage is Test, Deployment
 			poolsConfig.setArbitrageSearch( arbitrageSearch );
 			}
 
+		priceAggregator.performUpkeep();
+		uint256 priceBTC = priceAggregator.getPriceBTC();
+		uint256 priceETH = priceAggregator.getPriceETH();
+
 		vm.startPrank(alice);
 		tokenE = new TestERC20(18);
         tokenB = new TestERC20(18);
@@ -50,10 +54,6 @@ contract TestArbitrage is Test, Deployment
 		wbtc.transfer(alice, 1000000 *10**8);
 		weth.transfer(alice, 1000000 ether);
 		vm.stopPrank();
-
-		IPriceFeed priceFeed = stableConfig.priceFeed();
-		uint256 priceBTC = priceFeed.getPriceBTC();
-		uint256 priceETH = priceFeed.getPriceETH();
 
 		vm.startPrank(alice);
 		tokenE.approve( address(pools), type(uint256).max );
@@ -96,8 +96,8 @@ contract TestArbitrage is Test, Deployment
 //		console.log( "amountOut: ", amountOut );
 //		console.log( "ending pools balance: ", pools.depositBalance( address(pools), weth ) );
 
-		assertEq( amountOut, 9900222422156006271 );
-		assertEq( pools.depositBalance( address(pools), weth ), 154223760273113047 );
+		assertEq( amountOut, 9900223544648871298 );
+		assertEq( pools.depositBalance( address(pools), weth ), 154279064741019952 );
 		}
 	}
 

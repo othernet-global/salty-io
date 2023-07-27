@@ -3,11 +3,11 @@ pragma solidity =0.8.20;
 
 import "../openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import "../openzeppelin/utils/structs/EnumerableSet.sol";
-import "../price_feed/interfaces/IPriceFeed.sol";
 import "./USDS.sol";
 import "../pools/PoolUtils.sol";
 import "../staking/Liquidity.sol";
 import "./interfaces/ICollateral.sol";
+import "../price_feed/interfaces/IPriceAggregator.sol";
 
 
 // Allows users to add and deposit WBTC/WETH liquidity as collateral for borrowing USDS stablecoin.
@@ -32,6 +32,7 @@ contract Collateral is Liquidity, ICollateral
     using EnumerableSet for EnumerableSet.AddressSet;
 
     IStableConfig immutable public stableConfig;
+	IPriceAggregator immutable public priceAggregator;
 	IERC20 immutable public wbtc;
 	IERC20 immutable public weth;
     IUSDS immutable public usds;
@@ -48,11 +49,13 @@ contract Collateral is Liquidity, ICollateral
     mapping(address=>uint256) public usdsBorrowedByUsers;
 
 
-    constructor( IPools _pools, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IStableConfig _stableConfig )
+    constructor( IPools _pools, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IStableConfig _stableConfig, IPriceAggregator _priceAggregator )
 		Liquidity( _pools, _exchangeConfig, _poolsConfig, _stakingConfig )
     	{
 		require( address(_stableConfig) != address(0), "_stableConfig cannot be address(0)" );
+		require( address(_priceAggregator) != address(0), "_priceAggregator cannot be address(0)" );
 
+		priceAggregator = _priceAggregator;
         stableConfig = _stableConfig;
 
 		wbtc = exchangeConfig.wbtc();
@@ -306,14 +309,13 @@ contract Collateral is Liquidity, ICollateral
 		}
 
 
-	// The current market value in USD for a given amount of BTC and ETH using the StableConfig.priceFeed
+	// The current market value in USD for a given amount of BTC and ETH using the PriceAggregator
 	// Returns the value with 18 decimals
 	function underlyingTokenValueInUSD( uint256 amountBTC, uint256 amountETH ) public view returns (uint256)
 		{
 		// Prices from the price feed have 18 decimals
-		IPriceFeed priceFeed = stableConfig.priceFeed();
-		uint256 btcPrice = priceFeed.getPriceBTC();
-        uint256 ethPrice = priceFeed.getPriceETH();
+		uint256 btcPrice = priceAggregator.getPriceBTC();
+        uint256 ethPrice = priceAggregator.getPriceETH();
 
 		// Keep the 18 decimals from the price and remove the decimals from the token balance
 		uint256 btcValue = ( amountBTC * btcPrice ) / (10 ** wbtcDecimals );
@@ -323,7 +325,7 @@ contract Collateral is Liquidity, ICollateral
 		}
 
 
-	// Returns the specified collateral value based on the ComboPriceFeed.sol WBTC and WETH prices
+	// Returns the specified collateral value based on the PriceAggregator.sol WBTC and WETH prices
 	// Returns the value with 18 decimals
 	function collateralValueInUSD( uint256 collateralAmount ) public view returns (uint256)
 		{

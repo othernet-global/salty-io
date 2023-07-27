@@ -2,7 +2,7 @@
 //pragma solidity =0.8.20;
 //
 //import "forge-std/Test.sol";
-//import "../../price_feed/ComboPriceFeed.sol";
+//import "../../price_feed/DualPriceFeed.sol.sol";
 //
 //contract PriceFeedTest is Test, PriceFeedA
 //	{

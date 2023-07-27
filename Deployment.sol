@@ -13,6 +13,7 @@ import "./rewards/Emissions.sol";
 import "./dao/interfaces/IDAOConfig.sol";
 import "./dao/interfaces/IDAO.sol";
 import "./dao/interfaces/IProposals.sol";
+import "./price_feed/tests/IForcedPriceFeed.sol";
 
 
 // Stores the contract addresses for the various parts of the exchange and allows the unit tests to be run on them.
@@ -22,8 +23,10 @@ contract Deployment
     bool public DEBUG = true;
 	address constant public DEPLOYER = 0x73107dA86708c2DAd0D91388fB057EeE3E2581aF;
 
-	IDAO public dao = IDAO(address(0xeE847C1406B7C0F6b38EA4038d205aEB1835a109));
-	Emissions public emissions = Emissions(address(0x53b399E23Ec2b0198a235FBa70a72a4395dD2D2B));
+	IForcedPriceFeed public forcedPriceFeed = IForcedPriceFeed(address(0x3B0Eb37f26b502bAe83df4eCc54afBDfb90B5d3a));
+
+	IDAO public dao = IDAO(address(0xf39a4b5Ef824dAac0FD242fb633cFF09BD4485F2));
+	Emissions public emissions = Emissions(address(0xb37Cbd13193AF8e0c8ef6c042A5179e4614f472C));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));
@@ -31,6 +34,7 @@ contract Deployment
 	IStableConfig public stableConfig = IStableConfig(getContract(address(dao), "stableConfig()" ));
 	IRewardsConfig public rewardsConfig = IRewardsConfig(getContract(address(dao), "rewardsConfig()" ));
 	IDAOConfig public daoConfig = IDAOConfig(getContract(address(dao), "daoConfig()" ));
+	IPriceAggregator public priceAggregator = IPriceAggregator(getContract(address(dao), "priceAggregator()" ));
 
 	ISalt public salt = exchangeConfig.salt();
     IERC20 public wbtc = exchangeConfig.wbtc();
@@ -50,7 +54,6 @@ contract Deployment
 
 	IProposals public proposals = IProposals(getContract(address(dao), "proposals()" ));
 
-	IPriceFeed public priceFeed = stableConfig.priceFeed();
 	IAccessManager public accessManager = exchangeConfig.accessManager();
 
 	IArbitrageSearch public arbitrageSearch = IArbitrageSearch(getContract(address(poolsConfig), "arbitrageSearch()" ));

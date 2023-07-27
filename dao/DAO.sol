@@ -14,6 +14,7 @@ import "../interfaces/IAccessManager.sol";
 import "./interfaces/IDAO.sol";
 import "../pools/PoolUtils.sol";
 import "./Parameters.sol";
+import "../price_feed/interfaces/IPriceAggregator.sol";
 
 
 // Allows users to propose and vote on various governance actions such as changing parameters, whitelisting/unwhitelisting tokens, sending tokens, calling other contracts, and updating the website.
@@ -30,6 +31,8 @@ contract DAO is IDAO, Upkeepable, Parameters
 	IRewardsConfig immutable public rewardsConfig;
 	IStableConfig immutable public stableConfig;
 	IDAOConfig immutable public daoConfig;
+	IPriceAggregator immutable public priceAggregator;
+
 	ILiquidity immutable public liquidity;
 	IRewardsEmitter immutable public liquidityRewardsEmitter;
 
@@ -40,7 +43,7 @@ contract DAO is IDAO, Upkeepable, Parameters
 	mapping(string=>bool) public excludedCountries;
 
 
-    constructor( IProposals _proposals, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IRewardsConfig _rewardsConfig, IStableConfig _stableConfig, IDAOConfig _daoConfig, ILiquidity _liquidity, IRewardsEmitter _liquidityRewardsEmitter )
+    constructor( IProposals _proposals, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IRewardsConfig _rewardsConfig, IStableConfig _stableConfig, IDAOConfig _daoConfig, IPriceAggregator _priceAggregator, ILiquidity _liquidity, IRewardsEmitter _liquidityRewardsEmitter )
 		{
 		require( address(_proposals) != address(0), "_proposals cannot be address(0)" );
 		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
@@ -49,6 +52,7 @@ contract DAO is IDAO, Upkeepable, Parameters
 		require( address(_rewardsConfig) != address(0), "_rewardsConfig cannot be address(0)" );
 		require( address(_stableConfig) != address(0), "_stableConfig cannot be address(0)" );
 		require( address(_daoConfig) != address(0), "_daoConfig cannot be address(0)" );
+		require( address(_priceAggregator) != address(0), "_priceAggregator cannot be address(0)" );
 		require( address(_liquidity) != address(0), "_liquidity cannot be address(0)" );
 		require( address(_liquidityRewardsEmitter) != address(0), "_liquidityRewardsEmitter cannot be address(0)" );
 
@@ -59,6 +63,7 @@ contract DAO is IDAO, Upkeepable, Parameters
 		rewardsConfig = _rewardsConfig;
 		stableConfig = _stableConfig;
 		daoConfig = _daoConfig;
+		priceAggregator = _priceAggregator;
         liquidity = _liquidity;
         liquidityRewardsEmitter = _liquidityRewardsEmitter;
 
@@ -75,9 +80,9 @@ contract DAO is IDAO, Upkeepable, Parameters
 		Vote winningVote = proposals.winningParameterVote(ballotID);
 
 		if ( winningVote == Vote.INCREASE )
-			_executeParameterChange( ParameterTypes(ballot.number1), true, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig );
+			_executeParameterChange( ParameterTypes(ballot.number1), true, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator );
 		else if ( winningVote == Vote.DECREASE )
-			_executeParameterChange( ParameterTypes(ballot.number1), false, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig );
+			_executeParameterChange( ParameterTypes(ballot.number1), false, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator );
 
 		proposals.markBallotAsFinalized(ballotID);
 		}
@@ -87,8 +92,12 @@ contract DAO is IDAO, Upkeepable, Parameters
 		{
 		bytes32 nameHash = keccak256(bytes( ballot.ballotName ) );
 
-		if ( nameHash == keccak256(bytes( "setContract:priceFeed_confirm" )) )
-			stableConfig.setPriceFeed( IPriceFeed(ballot.address1) );
+		if ( nameHash == keccak256(bytes( "setContract:priceFeed1_confirm" )) )
+			priceAggregator.setPriceFeed( 1, IPriceFeed(ballot.address1) );
+		else if ( nameHash == keccak256(bytes( "setContract:priceFeed2_confirm" )) )
+			priceAggregator.setPriceFeed( 2, IPriceFeed(ballot.address1) );
+		else if ( nameHash == keccak256(bytes( "setContract:priceFeed3_confirm" )) )
+			priceAggregator.setPriceFeed( 3, IPriceFeed(ballot.address1) );
 		else if ( nameHash == keccak256(bytes( "setContract:arbitrageSearch_confirm" )) )
 			poolsConfig.setArbitrageSearch( IArbitrageSearch(ballot.address1) );
 		else if ( nameHash == keccak256(bytes( "setContract:accessManager_confirm" )) )

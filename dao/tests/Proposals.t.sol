@@ -34,7 +34,7 @@ contract TestProposals is Test, Deployment
 
 			// Because USDS already set the Collateral on deployment and it can only be done once, we have to recreate USDS as well
 			// That cascades into recreating multiple other contracts as well.
-			usds = new USDS( stableConfig, wbtc, weth );
+			usds = new USDS( priceAggregator, stableConfig, wbtc, weth );
 
 			IDAO dao = IDAO(getContract( address(exchangeConfig), "dao()" ));
 
@@ -43,7 +43,7 @@ contract TestProposals is Test, Deployment
 
 			staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
 			liquidity = new Liquidity( pools, exchangeConfig, poolsConfig, stakingConfig );
-			collateral = new Collateral(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig);
+			collateral = new Collateral(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
 
 			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig );
 			liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig );

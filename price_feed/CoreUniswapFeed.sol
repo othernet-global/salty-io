@@ -40,12 +40,15 @@ contract CoreUniswapFeed is IPriceFeedUniswap
 		weth = _exchangeConfig.weth();
 		usdc = _exchangeConfig.usdc();
 
+		// Assume WBTC/WETH order
 		wbtc_wethFlipped = address(weth) < address(wbtc);
+
+		// Assume WETH/USDC order
 		weth_usdcFlipped = address(usdc) < address(weth);
 		}
 
 
-	// Returns amount of token0 given token1 * ( 10 ** 18 )
+	// Returns amount of token0 given token1 * ( 10 ** 18 ) from the given pool
     function _getUniswapTwapWei( address pool, uint256 twapInterval ) public view returns (uint256)
     	{
 		IUniswapV3Pool _pool = IUniswapV3Pool( pool );
@@ -75,7 +78,7 @@ contract CoreUniswapFeed is IPriceFeedUniswap
 
 
 	// Wrap the _getUniswapTwapWei function in a public function that includes a try/catch.
-	// Fails if a zero TWAP is returned.
+	// Returns zero on any type of failure.
     function getUniswapTwapWei( address pool, uint256 twapInterval ) public view returns (uint256)
 		{
 		// Initialize return value to 0
@@ -93,14 +96,14 @@ contract CoreUniswapFeed is IPriceFeedUniswap
 		}
 
 
-	// Uses WBTC/WETH and WETH.USDC pools because they have much higher TVL than just the Uniswap v3 WBTC/USD pool.
+	// Uses WBTC/WETH and WETH/USDC pools because they have much higher TVL than just the Uniswap v3 WBTC/USD pool.
 	// virtual - really just needed for the derived unit tests
 	function getTwapWBTC( uint256 twapInterval ) public virtual view returns (uint256)
 		{
     	uint256 uniswapWBTC_WETH = getUniswapTwapWei( UNISWAP_V3_WBTC_WETH, twapInterval );
         uint256 uniswapUSDC_WETH = getUniswapTwapWei( UNISWAP_V3_WETH_USDC, twapInterval );
 
-		// Return zero if invalid
+		// Return zero if either is invalid
         if ((uniswapWBTC_WETH == 0) || (uniswapUSDC_WETH == 0 ))
 	        return 0;
 

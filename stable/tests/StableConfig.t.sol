@@ -13,7 +13,7 @@ contract TestStableConfig is Test
 
 	constructor()
 		{
-		stableConfig = new StableConfig( _forcedPriceFeed );
+		stableConfig = new StableConfig();
 		}
 
 

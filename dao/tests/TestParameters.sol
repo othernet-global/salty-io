@@ -5,8 +5,8 @@ import "../Parameters.sol";
 
 contract TestParameters is Parameters
     {
-	function executeParameterChange( ParameterTypes parameterType, bool increase, IPoolsConfig poolsConfig, IStakingConfig stakingConfig, IRewardsConfig rewardsConfig, IStableConfig stableConfig, IDAOConfig daoConfig ) public
+	function executeParameterChange( ParameterTypes parameterType, bool increase, IPoolsConfig poolsConfig, IStakingConfig stakingConfig, IRewardsConfig rewardsConfig, IStableConfig stableConfig, IDAOConfig daoConfig, IPriceAggregator priceAggregator ) public
 		{
-		_executeParameterChange( parameterType, increase, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig );
+		_executeParameterChange( parameterType, increase, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator );
 		}
 	}

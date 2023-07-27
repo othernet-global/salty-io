@@ -16,6 +16,7 @@ import "../../pools/PoolsConfig.sol";
 import "../DAO.sol";
 import "./TestCallReceiver.sol";
 import "../../root_tests/TestAccessManager.sol";
+import "../../price_feed/PriceAggregator.sol";
 
 
 contract TestDAO is Test, Deployment
@@ -35,16 +36,19 @@ contract TestDAO is Test, Deployment
 
 			poolsConfig = new PoolsConfig();
 
+			priceAggregator = new PriceAggregator();
+			priceAggregator.setInitialFeeds( IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)) );
+
 			// Because USDS already set the Collateral on deployment and it can only be done once, we have to recreate USDS as well
 			// That cascades into recreating multiple other contracts as well.
-			usds = new USDS( stableConfig, wbtc, weth );
+			usds = new USDS( priceAggregator, stableConfig, wbtc, weth );
 
 			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, usds );
 			pools = new Pools( exchangeConfig, poolsConfig );
 
 			staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
 			liquidity = new Liquidity( pools, exchangeConfig, poolsConfig, stakingConfig );
-			collateral = new Collateral(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig);
+			collateral = new Collateral(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
 
 			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig );
 			liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig );
@@ -54,16 +58,17 @@ contract TestDAO is Test, Deployment
 			proposals = new Proposals( staking, exchangeConfig, poolsConfig, stakingConfig, daoConfig );
 
 			address oldDAO = address(dao);
-			dao = new DAO( proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, liquidity, liquidityRewardsEmitter );
+			dao = new DAO( proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidity, liquidityRewardsEmitter );
 
 			exchangeConfig.setDAO( dao );
 			exchangeConfig.setAccessManager( accessManager );
 			usds.setPools( pools );
 			usds.setCollateral( collateral );
 
-			// Transfer ownership of the config files to the DAO
+			// Transfer ownership of the newly created config files to the DAO
 			Ownable(address(exchangeConfig)).transferOwnership( address(dao) );
 			Ownable(address(poolsConfig)).transferOwnership( address(dao) );
+			Ownable(address(priceAggregator)).transferOwnership(address(dao));
 			vm.stopPrank();
 
 			vm.startPrank(address(oldDAO));
@@ -101,6 +106,8 @@ contract TestDAO is Test, Deployment
     	usds.approve( address(proposals), type(uint256).max );
     	vm.stopPrank();
     	}
+
+
 
 	function _parameterValue( Parameters.ParameterTypes parameter ) internal view returns (uint256)
 		{
@@ -154,6 +161,11 @@ contract TestDAO is Test, Deployment
 			return daoConfig.maxPendingTokensForWhitelisting();
 		else if ( parameter == Parameters.ParameterTypes.upkeepRewardPercentTimes1000 )
 			return daoConfig.upkeepRewardPercentTimes1000();
+
+		else if ( parameter == Parameters.ParameterTypes.maximumPriceFeedDifferenceTimes1000 )
+			return priceAggregator.maximumPriceFeedDifferenceTimes1000();
+		else if ( parameter == Parameters.ParameterTypes.setPriceFeedCooldown )
+			return priceAggregator.setPriceFeedCooldown();
 
 		require(false, "Invalid ParameterType" );
 		return 0;
@@ -498,8 +510,6 @@ contract TestDAO is Test, Deployment
 
 		if ( nameHash == keccak256(bytes("arbitrageSearch" )))
 			return address(poolsConfig.arbitrageSearch());
-		if ( nameHash == keccak256(bytes("priceFeed" )))
-			return address(stableConfig.priceFeed());
 		if ( nameHash == keccak256(bytes("accessManager" )))
 			return address(exchangeConfig.accessManager());
 		if ( nameHash == keccak256(bytes("stakingRewardsEmitter" )))
@@ -508,6 +518,12 @@ contract TestDAO is Test, Deployment
 			return address(exchangeConfig.liquidityRewardsEmitter());
 		if ( nameHash == keccak256(bytes("collateralRewardsEmitter" )))
 			return address(exchangeConfig.collateralRewardsEmitter());
+		if ( nameHash == keccak256(bytes("priceFeed1" )))
+			return address(priceAggregator.priceFeed1());
+		if ( nameHash == keccak256(bytes("priceFeed2" )))
+			return address(priceAggregator.priceFeed2());
+		if ( nameHash == keccak256(bytes("priceFeed3" )))
+			return address(priceAggregator.priceFeed3());
 
 		return address(0);
 		}
@@ -533,11 +549,15 @@ contract TestDAO is Test, Deployment
 	function testSetContractApproved() public
 		{
 		_checkSetContractApproved( 1, "arbitrageSearch", address(0x1231230 ) );
-		_checkSetContractApproved( 3, "priceFeed", address(0x1231231 ) );
-		_checkSetContractApproved( 5, "accessManager", address( new TestAccessManager(dao) ) );
-		_checkSetContractApproved( 7, "stakingRewardsEmitter", address(0x1231233 ) );
-		_checkSetContractApproved( 9, "liquidityRewardsEmitter", address(0x1231234 ) );
-		_checkSetContractApproved( 11, "collateralRewardsEmitter", address(0x1231235 ) );
+		_checkSetContractApproved( 3, "accessManager", address( new TestAccessManager(dao) ) );
+		_checkSetContractApproved( 5, "stakingRewardsEmitter", address(0x1231233 ) );
+		_checkSetContractApproved( 7, "liquidityRewardsEmitter", address(0x1231234 ) );
+		_checkSetContractApproved( 9, "collateralRewardsEmitter", address(0x1231235 ) );
+		_checkSetContractApproved( 11, "priceFeed1", address(0x1231236 ) );
+		vm.warp(block.timestamp + 60 days);
+		_checkSetContractApproved( 13, "priceFeed2", address(0x1231237 ) );
+		vm.warp(block.timestamp + 60 days);
+		_checkSetContractApproved( 15, "priceFeed3", address(0x1231238 ) );
 		}
 
 
@@ -586,11 +606,13 @@ contract TestDAO is Test, Deployment
 	function testSetContractDenied2() public
 		{
 		_checkSetContractDenied2( 1, "ArbitrageSearch", address(0x1231230 ) );
-		_checkSetContractDenied2( 3, "priceFeed", address(0x1231231 ) );
-		_checkSetContractDenied2( 5, "accessManager", address( new TestAccessManager(dao) ) );
-		_checkSetContractDenied2( 7, "stakingRewardsEmitter", address(0x1231233 ) );
-		_checkSetContractDenied2( 9, "liquidityRewardsEmitter", address(0x1231234 ) );
-		_checkSetContractDenied2( 11, "collateralRewardsEmitter", address(0x1231235 ) );
+		_checkSetContractDenied2( 3, "accessManager", address( new TestAccessManager(dao) ) );
+		_checkSetContractDenied2( 5, "stakingRewardsEmitter", address(0x1231233 ) );
+		_checkSetContractDenied2( 7, "liquidityRewardsEmitter", address(0x1231234 ) );
+		_checkSetContractDenied2( 9, "collateralRewardsEmitter", address(0x1231235 ) );
+		_checkSetContractDenied2( 11, "priceFeed1", address(0x1231236 ) );
+		_checkSetContractDenied2( 13, "priceFeed2", address(0x1231237 ) );
+		_checkSetContractDenied2( 15, "priceFeed3", address(0x1231238 ) );
 		}
 
 
@@ -646,7 +668,7 @@ contract TestDAO is Test, Deployment
 	function testDAOConstructor() public {
 
         vm.startPrank(DEPLOYER);
-        DAO testDAO = new DAO(proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, liquidity, liquidityRewardsEmitter);
+        DAO testDAO = new DAO(proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidity, liquidityRewardsEmitter);
 
         assertEq(address(testDAO.proposals()), address(proposals), "Proposals contract address mismatch");
         assertEq(address(testDAO.exchangeConfig()), address(exchangeConfig), "ExchangeConfig contract address mismatch");
@@ -655,6 +677,7 @@ contract TestDAO is Test, Deployment
         assertEq(address(testDAO.rewardsConfig()), address(rewardsConfig), "RewardsConfig contract address mismatch");
         assertEq(address(testDAO.stableConfig()), address(stableConfig), "StableConfig contract address mismatch");
         assertEq(address(testDAO.daoConfig()), address(daoConfig), "DAOConfig contract address mismatch");
+        assertEq(address(testDAO.priceAggregator()), address(priceAggregator), "PriceAggregator contract address mismatch");
         assertEq(address(testDAO.liquidity()), address(liquidity), "Liquidity contract address mismatch");
         assertEq(address(testDAO.liquidityRewardsEmitter()), address(liquidityRewardsEmitter), "LiquidityRewardsEmitter contract address mismatch");
 

@@ -11,6 +11,7 @@ import "../../rewards/RewardsConfig.sol";
 import "../../stable/StableConfig.sol";
 import "../../ExchangeConfig.sol";
 import "./TestParameters.sol";
+import "../../price_feed/PriceAggregator.sol";
 
 
 contract TestParametersOffchain is Test
@@ -23,6 +24,7 @@ contract TestParametersOffchain is Test
 	StableConfig public stableConfig;
 	ExchangeConfig public exchangeConfig;
 	DAOConfig public daoConfig;
+	PriceAggregator public priceAggregator;
 
 	Deployment public deployment = new Deployment();
 	address public DEPLOYER;
@@ -39,9 +41,10 @@ contract TestParametersOffchain is Test
 		poolsConfig = new PoolsConfig();
 		stakingConfig = new StakingConfig();
 		rewardsConfig = new RewardsConfig();
-		stableConfig = new StableConfig(deployment.priceFeed());
+		stableConfig = new StableConfig();
 		exchangeConfig = new ExchangeConfig(deployment.salt(), deployment.wbtc(), deployment.weth(), deployment.usdc(), deployment.usds());
 		daoConfig = new DAOConfig();
+		priceAggregator = new PriceAggregator();
 
 		vm.stopPrank();
 		}
@@ -100,6 +103,11 @@ contract TestParametersOffchain is Test
 		else if ( parameter == Parameters.ParameterTypes.upkeepRewardPercentTimes1000 )
 			return daoConfig.upkeepRewardPercentTimes1000();
 
+		else if ( parameter == Parameters.ParameterTypes.maximumPriceFeedDifferenceTimes1000 )
+			return priceAggregator.maximumPriceFeedDifferenceTimes1000();
+		else if ( parameter == Parameters.ParameterTypes.setPriceFeedCooldown )
+			return priceAggregator.setPriceFeedCooldown();
+
 		require(false, "Invalid ParameterType" );
 		return 0;
 		}
@@ -110,7 +118,7 @@ contract TestParametersOffchain is Test
 		assertEq( _parameterValue(parameter), defaultValue, "Default value is not as expected" );
 
 		// Try increasing once
-		parameters.executeParameterChange( parameter, true, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig );
+		parameters.executeParameterChange( parameter, true, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator );
 
 		uint256 expectedAfterIncrease = defaultValue + change;
 		if ( expectedAfterIncrease > maxValue )
@@ -119,7 +127,7 @@ contract TestParametersOffchain is Test
 		assertEq( _parameterValue(parameter), expectedAfterIncrease, "Increased value is not as expected" );
 
 		// Decrease once
-		parameters.executeParameterChange( parameter, false, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig );
+		parameters.executeParameterChange( parameter, false, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator );
 
 		uint256 expectedAfterDecrease = expectedAfterIncrease - change;
 		if ( expectedAfterDecrease < minValue )
@@ -131,26 +139,26 @@ contract TestParametersOffchain is Test
 		// Increase until max
 		while( true )
 			{
-			parameters.executeParameterChange( parameter, true, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig );
+			parameters.executeParameterChange( parameter, true, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator );
 			if ( _parameterValue(parameter) >= maxValue )
 				break;
 			}
 
 		// Increase one more time
-		parameters.executeParameterChange( parameter, true, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig );
+		parameters.executeParameterChange( parameter, true, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator );
 		assertEq( _parameterValue(parameter), maxValue, "Max value not as expected" );
 
 
 		// Decrease until min
 		while( true )
 			{
-			parameters.executeParameterChange( parameter, false, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig );
+			parameters.executeParameterChange( parameter, false, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator );
 			if ( _parameterValue(parameter) <= minValue )
 				break;
 			}
 
 		// Decrease one more time
-		parameters.executeParameterChange( parameter, false, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig );
+		parameters.executeParameterChange( parameter, false, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator );
 		assertEq( _parameterValue(parameter), minValue, "Min value not as expected" );
 		}
 
@@ -218,6 +226,14 @@ contract TestParametersOffchain is Test
 		_checkParameter( Parameters.ParameterTypes.baseProposalCost, 100 ether, 500 ether, 2000 ether, 100 ether );
 		_checkParameter( Parameters.ParameterTypes.maxPendingTokensForWhitelisting, 3, 5, 12, 1 );
 		_checkParameter( Parameters.ParameterTypes.upkeepRewardPercentTimes1000, 1000, 5000, 10000, 500 );
+		}
+
+
+	function testPriceAggregatorParameters() public
+		{
+		vm.startPrank(address(parameters));
+		_checkParameter( Parameters.ParameterTypes.maximumPriceFeedDifferenceTimes1000, 2000, 5000, 7000, 500 );
+		_checkParameter( Parameters.ParameterTypes.setPriceFeedCooldown, 30 days, 35 days, 45 days, 5 days );
 		}
     }
 
