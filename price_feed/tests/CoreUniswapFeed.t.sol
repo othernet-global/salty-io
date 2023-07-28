@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity =0.8.20;
+pragma solidity =0.8.21;
 
 import "forge-std/Test.sol";
 import "./TestUniswapFeed.sol";
@@ -30,7 +30,7 @@ contract TestCoreUniswapFeed is Test, Deployment
         // Set some arbitrary twap values for the test
         uint256 twapValueWETH_USDC = 2 ether;
 
-        testUniswapFeed.setTwapWETH( twapValueWETH_USDC );
+        testUniswapFeed.setTwapWETH_USDC( twapValueWETH_USDC );
 
         // Test for max TWAP interval
         uint256 maxTwapWETH = testUniswapFeed.getTwapWETH( maxTwapInterval );
@@ -95,8 +95,8 @@ function testCoreUniswapFeedConstructor( address _wbtc, address _weth, address _
     // Set forced TWAPs
     uint256 forcedTWAP_WBTC_WETH = 2 ether;
     uint256 forcedTWAP_WETH_USDC = 3 ether;
-    testUniswapFeed.setTwapWBTC(forcedTWAP_WBTC_WETH);
-    testUniswapFeed.setTwapWETH(forcedTWAP_WETH_USDC);
+    testUniswapFeed.setTwapWBTC_WETH(forcedTWAP_WBTC_WETH);
+    testUniswapFeed.setTwapWETH_USDC(forcedTWAP_WETH_USDC);
 
     // Get TWAPs
     uint256 twapWBTC = testUniswapFeed.getTwapWBTC(1);

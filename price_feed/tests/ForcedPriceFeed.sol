@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity =0.8.20;
+pragma solidity =0.8.21;
 
 import "../../openzeppelin/access/Ownable.sol";
+import "./IForcedPriceFeed.sol";
 
 
 // For testing liquidation which requires that collteral has insufficient value to proceed
-contract ForcedPriceFeed is Ownable
+contract ForcedPriceFeed is IForcedPriceFeed, Ownable
     {
+    bool public revertNext;
+
+
 	uint256 public forcedPriceBTCWith18Decimals;
 	uint256 public forcedPriceETHWith18Decimals;
 
@@ -30,14 +34,24 @@ contract ForcedPriceFeed is Ownable
 		}
 
 
+	function setRevertNext() public
+		{
+		revertNext = true;
+		}
+
+
 	function getPriceBTC() external view returns (uint256)
 		{
+		require( !revertNext, "revertNext is true" );
+
 		return forcedPriceBTCWith18Decimals;
 		}
 
 
 	function getPriceETH() external view returns (uint256)
 		{
+		require( !revertNext, "revertNext is true" );
+
 		return forcedPriceETHWith18Decimals;
 		}
     }

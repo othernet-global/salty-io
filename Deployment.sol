@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity =0.8.20;
+pragma solidity =0.8.21;
 
 import "./pools/interfaces/IPools.sol";
 import "./pools/interfaces/IPoolsConfig.sol";

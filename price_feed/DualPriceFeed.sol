@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity =0.8.20;
+pragma solidity =0.8.21;
 
 import "../openzeppelin/token/ERC20/ERC20.sol";
 import "./interfaces/IPriceFeed.sol";
@@ -22,15 +22,10 @@ contract DualPriceFeed is IPriceFeed
 	uint256 public constant MINIMUM_DEFAULT_PERCENT_DIFF_TIMES_1000 = 3000; // 3% maximum diff
 
 
-	constructor( address _CHAINLINK_BTC_USD, address _CHAINLINK_ETH_USD, address _UNISWAP_V3_BTC_ETH, address _UNISWAP_V3_USDC_ETH, IExchangeConfig _exchangeConfig )
+	constructor( IPriceFeed _chainlinkFeed, IPriceFeedUniswap _uniswapFeed )
 		{
-		require( _CHAINLINK_BTC_USD != address(0), "_CHAINLINK_BTC_USD cannot be address(0)" );
-		require( _CHAINLINK_ETH_USD != address(0), "_CHAINLINK_ETH_USD cannot be address(0)" );
-		require( _UNISWAP_V3_BTC_ETH != address(0), "_UNISWAP_V3_BTC_ETH cannot be address(0)" );
-		require( _UNISWAP_V3_USDC_ETH != address(0), "_UNISWAP_V3_USDC_ETH cannot be address(0)" );
-
-		chainlinkFeed = new CoreChainlinkFeed( _CHAINLINK_BTC_USD, _CHAINLINK_ETH_USD );
-		uniswapFeed = new CoreUniswapFeed( _UNISWAP_V3_BTC_ETH, _UNISWAP_V3_USDC_ETH, _exchangeConfig );
+		chainlinkFeed = _chainlinkFeed;
+		uniswapFeed = _uniswapFeed;
 		}
 
 

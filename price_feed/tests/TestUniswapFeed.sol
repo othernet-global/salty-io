@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL 1.1
-pragma solidity =0.8.20;
+pragma solidity =0.8.21;
 
 import "forge-std/Test.sol";
 import "../../interfaces/IExchangeConfig.sol";
@@ -27,13 +27,13 @@ contract TestUniswapFeed is CoreUniswapFeed
 		}
 
 
-	function setTwapWBTC( uint256 twap ) public
+	function setTwapWBTC_WETH( uint256 twap ) public
 		{
 		forcedTWAP_WBTC_WETH = twap;
 		}
 
 
-	function setTwapWETH( uint256 twap ) public
+	function setTwapWETH_USDC( uint256 twap ) public
 		{
 		forcedTWAP_WETH_USDC = twap;
 		}
