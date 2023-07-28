@@ -10,6 +10,7 @@ import "../../pools/Pools.sol";
 import "../../staking/Staking.sol";
 import "../../rewards/RewardsEmitter.sol";
 import "../../price_feed/tests/IForcedPriceFeed.sol";
+import "../../price_feed/tests/ForcedPriceFeed.sol";
 
 
 contract TestCollateral is Test, Deployment
@@ -1119,4 +1120,130 @@ contract TestCollateral is Test, Deployment
 
 		assertEq( usds.balanceOf(alice), expectedMaxUSDS * 999 / 1000, "Incorrect USDS balance for alice" );
         }
+
+
+	// A user test to check that no liquidation is possible if the PriceFeed isn't returning a valid price
+	function testUserLiquidationWithTwoFailedPriceFeeds() public {
+        // Deposit and borrow for Alice
+        _depositHalfCollateralAndBorrowMax(alice);
+
+        // Check if Alice has a position
+        assertTrue(_userHasCollateral(alice));
+
+        // Crash the collateral price
+        _crashCollateralPrice();
+        vm.warp( block.timestamp + 1 days );
+
+		IForcedPriceFeed forcedPriceFeed = new ForcedPriceFeed(0, 0 );
+
+		vm.startPrank(address(dao));
+		priceAggregator.setPriceFeed(1, IPriceFeed(address(forcedPriceFeed)));
+		vm.warp( block.timestamp + 60 days);
+		priceAggregator.setPriceFeed(2, IPriceFeed(address(forcedPriceFeed)));
+		vm.stopPrank();
+
+		priceAggregator.performUpkeep();
+
+        // Liquidate Alice's position
+        vm.expectRevert( "Invalid WBTC price" );
+        collateral.liquidateUser(alice);
+
+        assertFalse( collateral.userShareForPool(alice, collateralPoolID) == 0 );
+    }
+
+
+
+	// A user test to check that no liquidation is possible if the PriceFeed isn't returning a valid price
+	function testUserLiquidationWithDivergentPrices() public {
+        // Deposit and borrow for Alice
+        _depositHalfCollateralAndBorrowMax(alice);
+
+        // Check if Alice has a position
+        assertTrue(_userHasCollateral(alice));
+
+        // Crash the collateral price
+        _crashCollateralPrice();
+        vm.warp( block.timestamp + 1 days );
+
+		IForcedPriceFeed forcedPriceFeed1 = new ForcedPriceFeed(0, 0 );
+		IForcedPriceFeed forcedPriceFeed2 = new ForcedPriceFeed(30000, 3000 );
+		IForcedPriceFeed forcedPriceFeed3 = new ForcedPriceFeed(33000, 3300 );
+
+		vm.startPrank(address(dao));
+		priceAggregator.setPriceFeed(1, IPriceFeed(address(forcedPriceFeed1)));
+		vm.warp( block.timestamp + 60 days);
+		priceAggregator.setPriceFeed(2, IPriceFeed(address(forcedPriceFeed2)));
+		vm.warp( block.timestamp + 60 days);
+		priceAggregator.setPriceFeed(3, IPriceFeed(address(forcedPriceFeed3)));
+		vm.stopPrank();
+
+		priceAggregator.performUpkeep();
+
+        // Liquidate Alice's position
+        vm.expectRevert( "Invalid WBTC price" );
+        collateral.liquidateUser(alice);
+
+        assertFalse( collateral.userShareForPool(alice, collateralPoolID) == 0 );
+    }
+
+
+	// A user test to check that no liquidation is possible if the PriceFeed is returning two similar prices and once failure
+	function testUserLiquidationWithTwoGoodFeeds() public {
+        // Deposit and borrow for Alice
+        _depositHalfCollateralAndBorrowMax(alice);
+
+        // Check if Alice has a position
+        assertTrue(_userHasCollateral(alice));
+
+        // Crash the collateral price
+        _crashCollateralPrice();
+        vm.warp( block.timestamp + 1 days );
+
+		IForcedPriceFeed forcedPriceFeed1 = new ForcedPriceFeed(0, 0 );
+		IForcedPriceFeed forcedPriceFeed2 = new ForcedPriceFeed(30000, 3000 );
+		IForcedPriceFeed forcedPriceFeed3 = new ForcedPriceFeed(31000, 3100 );
+
+		vm.startPrank(address(dao));
+		priceAggregator.setPriceFeed(1, IPriceFeed(address(forcedPriceFeed1)));
+		vm.warp( block.timestamp + 60 days);
+		priceAggregator.setPriceFeed(2, IPriceFeed(address(forcedPriceFeed2)));
+		vm.warp( block.timestamp + 60 days);
+		priceAggregator.setPriceFeed(3, IPriceFeed(address(forcedPriceFeed3)));
+		vm.stopPrank();
+
+		priceAggregator.performUpkeep();
+
+        // Liquidate Alice's position
+        collateral.liquidateUser(alice);
+
+        assertTrue( collateral.userShareForPool(alice, collateralPoolID) == 0 );
+    }
+
+
+	// A user test to check that no borrowing is possible if the PriceFeed is returning an invalid price
+	function testUserBorrowingWithBadPriceFeed() public {
+
+		IForcedPriceFeed forcedPriceFeed = new ForcedPriceFeed(0, 0 );
+
+		vm.startPrank(address(dao));
+		priceAggregator.setPriceFeed(1, IPriceFeed(address(forcedPriceFeed)));
+		vm.warp( block.timestamp + 60 days);
+		priceAggregator.setPriceFeed(2, IPriceFeed(address(forcedPriceFeed)));
+		vm.stopPrank();
+
+		priceAggregator.performUpkeep();
+
+
+        // Deposit and borrow for Alice
+		vm.startPrank( alice );
+		collateral.depositCollateralAndIncreaseShare(wbtc.balanceOf(alice) / 2, weth.balanceOf(alice) / 2, 0, block.timestamp, false );
+
+        vm.expectRevert( "Invalid WBTC price" );
+		uint256 maxUSDS = collateral.maxBorrowableUSDS(alice);
+
+        vm.expectRevert( "Invalid WBTC price" );
+		collateral.borrowUSDS( maxUSDS );
+		vm.stopPrank();
+        }
+
 }

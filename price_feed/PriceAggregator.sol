@@ -121,7 +121,9 @@ contract PriceAggregator is IPriceAggregator, Ownable
 		else
 			price3 = type(uint256).max;
 
-		require( numNonZero >= 2, "Need at least two PriceFeeds to report price" );
+		// If less than two price sources then return zero to indicate failure
+		if ( numNonZero < 2 )
+			return 0;
 
 		uint256 diff12 = _absoluteDifference(price1, price2);
 		uint256 diff13 = _absoluteDifference(price1, price3);
@@ -139,7 +141,9 @@ contract PriceAggregator is IPriceAggregator, Ownable
 
 		uint256 averagePrice = ( priceA + priceB ) / 2;
 
-		require( (_absoluteDifference(priceA, priceB) * 100000) / averagePrice <= maximumPriceFeedDifferenceTimes1000, "The closest two prices are more than 2% different." );
+		// If price sources too far apart then return zero to indicate failure
+		if (  (_absoluteDifference(priceA, priceB) * 100000) / averagePrice > maximumPriceFeedDifferenceTimes1000 )
+			return 0;
 
 		return averagePrice;
 		}

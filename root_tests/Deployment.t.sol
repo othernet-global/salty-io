@@ -123,13 +123,15 @@ contract TestDeployment is Deployment, Test
         	assertTrue( functionExists( address(priceAggregator.priceFeed1()), "forcedPriceBTCWith18Decimals()" ), "For DEBUG: The PriceFeed should be a ForcedPriceFeed" );
         else
         	{
+        	// Live on the Ethereum blockchain
+        	// Check that contracts are what they are expected to be
         	assertFalse( functionExists( address(priceAggregator), "forcedPriceBTCWith18Decimals()" ), "For DEBUG: The PriceFeed should not be a ForcedPriceFeed" );
 
 			address uniswapFeed = getContract( address(priceAggregator.priceFeed1()), "uniswapFeed()" );
         	assertEq( getContract( address(priceAggregator.priceFeed2()), "CHAINLINK_BTC_USD()" ), address(0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c), "Incorrect BTC/USD Chainlink price feed" );
         	assertEq( getContract( address(priceAggregator.priceFeed2()), "CHAINLINK_ETH_USD()" ), address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419), "Incorrect ETH/USD Chainlink price feed" );
-        	assertEq( getContract( address(uniswapFeed), "UNISWAP_V3_BTC_ETH()" ), address(0xCBCdF9626bC03E24f779434178A73a0B4bad62eD), "Incorrect BTC/ETH Uniswap v3 Pool" );
-        	assertEq( getContract( address(uniswapFeed), "UNISWAP_V3_USDC_ETH()" ), address(0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640), "Incorrect ETH/USDC Uniswap v3 Pool" );
+        	assertEq( getContract( address(uniswapFeed), "UNISWAP_V3_WBTC_WETH()" ), address(0xCBCdF9626bC03E24f779434178A73a0B4bad62eD), "Incorrect WBTC/WETH Uniswap v3 Pool" );
+        	assertEq( getContract( address(uniswapFeed), "UNISWAP_V3_WETH_USDC()" ), address(0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640), "Incorrect WETH/USDC Uniswap v3 Pool" );
 
 			assertEq( getContract( address(priceAggregator.priceFeed3()), "usds()" ), address(usds), "Invalid priceAggregator.saltyFeed.USDS" );
 

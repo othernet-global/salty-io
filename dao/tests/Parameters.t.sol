@@ -223,7 +223,7 @@ contract TestParametersOffchain is Test
 		_checkParameter( Parameters.ParameterTypes.percentPolRewardsBurned, 25, 50, 75, 5 );
 		_checkParameter( Parameters.ParameterTypes.baseBallotQuorumPercentTimes1000, 5000, 10000, 20000, 1000 );
 		_checkParameter( Parameters.ParameterTypes.ballotDuration, 3 days, 10 days, 14 days, 1 days );
-		_checkParameter( Parameters.ParameterTypes.baseProposalCost, 100 ether, 500 ether, 2000 ether, 100 ether );
+		_checkParameter( Parameters.ParameterTypes.baseProposalCost, 250 ether, 500 ether, 5000 ether, 250 ether );
 		_checkParameter( Parameters.ParameterTypes.maxPendingTokensForWhitelisting, 3, 5, 12, 1 );
 		_checkParameter( Parameters.ParameterTypes.upkeepRewardPercentTimes1000, 1000, 5000, 10000, 500 );
 		}

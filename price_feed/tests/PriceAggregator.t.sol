@@ -73,14 +73,18 @@ contract TestPriceAggreagator is Test, Deployment
 
         // Test reverts if there are not at least two non-zero prices
         priceFeed2.setBTCPrice(0 ether);  // Setting 0 price to priceFeed2 as well
-        vm.expectRevert("Need at least two PriceFeeds to report price");
         priceAggregator.performUpkeep();  // This will internally call _aggregatePrices
+
+        vm.expectRevert( "Invalid WBTC price" );
+        priceAggregator.getPriceBTC();
 
         // Test reverts if the closest two prices are more than the maximum allowed difference apart
         priceFeed2.setBTCPrice(50000 ether);  // Resetting priceFeed2's price
-        priceFeed3.setBTCPrice(60000 ether);  // Setting a price more than 5% different from priceFeed2 to priceFeed3
-        vm.expectRevert("The closest two prices are more than 2% different.");
+        priceFeed3.setBTCPrice(52600 ether);  // Setting a price more than 5% different from priceFeed2 to priceFeed3
         priceAggregator.performUpkeep();  // This will internally call _aggregatePrices
+
+        vm.expectRevert( "Invalid WBTC price" );
+        priceAggregator.getPriceBTC();
 
         // Test correctly calculates the average of the two non-zero prices
         priceFeed3.setBTCPrice(51000 ether);  // Resetting priceFeed3's price
@@ -107,6 +111,36 @@ contract TestPriceAggreagator is Test, Deployment
         priceFeed3.setBTCPrice(50000 ether);
         priceAggregator.performUpkeep();  // This will internally call _aggregatePrices
         assertEq(priceAggregator.getPriceBTC(), 49500 ether);  // The average of priceFeed1 and priceFeed3
+
+
+
+
+		// Test price1 and price2 the closest and out of range
+        priceFeed1.setBTCPrice(60100 ether);
+        priceFeed2.setBTCPrice(50000 ether);
+        priceFeed3.setBTCPrice(0 ether);
+        priceAggregator.performUpkeep();  // This will internally call _aggregatePrices
+
+        vm.expectRevert( "Invalid WBTC price" );
+        priceAggregator.getPriceBTC();
+
+		// Test price2 and price3 the closest and out of range
+        priceFeed1.setBTCPrice(0 ether);
+        priceFeed2.setBTCPrice(50100 ether);
+        priceFeed3.setBTCPrice(60200 ether);
+        priceAggregator.performUpkeep();  // This will internally call _aggregatePrices
+
+        vm.expectRevert( "Invalid WBTC price" );
+        priceAggregator.getPriceBTC();
+
+		// Test price1 and price3 the closest and out of range
+        priceFeed1.setBTCPrice(69000 ether);
+        priceFeed2.setBTCPrice(0 ether);
+        priceFeed3.setBTCPrice(50000 ether);
+        priceAggregator.performUpkeep();  // This will internally call _aggregatePrices
+
+        vm.expectRevert( "Invalid WBTC price" );
+        priceAggregator.getPriceBTC();
 
     }
 	}

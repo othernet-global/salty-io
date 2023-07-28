@@ -37,7 +37,7 @@ contract DAOConfig is IDAOConfig, Ownable
 
 	// The base USDS cost to propose a ballot to the DAO.
 	// This cost is paid at the time the proposal is made - whether or not it is eventually approved by the voters.
-	// Range: 100 ether to 2000 ether with an adjustment of 100 ether.
+	// Range: 250 ether to 5000 ether with an adjustment of 250 ether.
 	// Parameter adjustment cost: = 1 * baseProposalCost
 	// Token whitelisting cost: = 2 * baseProposalCost
 	// Sending SALT from the DAO cost: = 3 * baseProposalCost
@@ -118,13 +118,13 @@ contract DAOConfig is IDAOConfig, Ownable
     	{
         if (increase)
         	{
-            if (baseProposalCost < 2000 ether)
-                baseProposalCost += 100 ether;
+            if (baseProposalCost < 5000 ether)
+                baseProposalCost += 250 ether;
         	}
         else
         	{
-            if (baseProposalCost > 100 ether)
-                baseProposalCost -= 100 ether;
+            if (baseProposalCost > 250 ether)
+                baseProposalCost -= 250 ether;
     	    }
 	    }
 
