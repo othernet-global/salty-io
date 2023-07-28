@@ -58,6 +58,3 @@ contract TestCoreFeeds is Test, Deployment
 		console.log( "salty eth: ", saltyFeed.getPriceETH() / 10**18 );
 		}
 	}
-
-
-
