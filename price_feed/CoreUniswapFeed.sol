@@ -79,7 +79,8 @@ contract CoreUniswapFeed is IPriceFeedUniswap
 
 	// Wrap the _getUniswapTwapWei function in a public function that includes a try/catch.
 	// Returns zero on any type of failure.
-    function getUniswapTwapWei( address pool, uint256 twapInterval ) public view returns (uint256)
+	// virtual - really just needed for the derived unit tests
+    function getUniswapTwapWei( address pool, uint256 twapInterval ) public virtual view returns (uint256)
 		{
 		// Initialize return value to 0
 		uint256 twap = 0;
@@ -97,38 +98,37 @@ contract CoreUniswapFeed is IPriceFeedUniswap
 
 
 	// Uses WBTC/WETH and WETH/USDC pools because they have much higher TVL than just the Uniswap v3 WBTC/USD pool.
-	// virtual - really just needed for the derived unit tests
 	function getTwapWBTC( uint256 twapInterval ) public virtual view returns (uint256)
 		{
     	uint256 uniswapWBTC_WETH = getUniswapTwapWei( UNISWAP_V3_WBTC_WETH, twapInterval );
-        uint256 uniswapUSDC_WETH = getUniswapTwapWei( UNISWAP_V3_WETH_USDC, twapInterval );
+        uint256 uniswapWETH_USDC = getUniswapTwapWei( UNISWAP_V3_WETH_USDC, twapInterval );
 
 		// Return zero if either is invalid
-        if ((uniswapWBTC_WETH == 0) || (uniswapUSDC_WETH == 0 ))
+        if ((uniswapWBTC_WETH == 0) || (uniswapWETH_USDC == 0 ))
 	        return 0;
 
 		if ( wbtc_wethFlipped )
 			uniswapWBTC_WETH = 10**36 / uniswapWBTC_WETH;
 
 		if ( ! weth_usdcFlipped )
-			uniswapUSDC_WETH = 10**36 / uniswapUSDC_WETH;
+			uniswapWETH_USDC = 10**36 / uniswapWETH_USDC;
 
-		return ( uniswapUSDC_WETH * 10**18) / uniswapWBTC_WETH;
+		return ( uniswapWETH_USDC * 10**18) / uniswapWBTC_WETH;
 		}
 
 
 	// virtual - really just needed for the derived unit tests
 	function getTwapWETH( uint256 twapInterval ) public virtual view returns (uint256)
 		{
-        uint256 twap = getUniswapTwapWei( UNISWAP_V3_WETH_USDC, twapInterval );
+        uint256 uniswapWETH_USDC = getUniswapTwapWei( UNISWAP_V3_WETH_USDC, twapInterval );
 
 		// Return zero if invalid
-        if ( twap == 0 )
+        if ( uniswapWETH_USDC == 0 )
 	        return 0;
 
         if ( ! weth_usdcFlipped )
-        	return 10**36 / twap;
+        	return 10**36 / uniswapWETH_USDC;
         else
-        	return twap;
+        	return uniswapWETH_USDC;
 		}
     }
