@@ -162,8 +162,8 @@ contract TestDAO is Test, Deployment
 		else if ( parameter == Parameters.ParameterTypes.upkeepRewardPercentTimes1000 )
 			return daoConfig.upkeepRewardPercentTimes1000();
 
-		else if ( parameter == Parameters.ParameterTypes.maximumPriceFeedDifferenceTimes1000 )
-			return priceAggregator.maximumPriceFeedDifferenceTimes1000();
+		else if ( parameter == Parameters.ParameterTypes.maximumPriceFeedPercentDifferenceTimes1000 )
+			return priceAggregator.maximumPriceFeedPercentDifferenceTimes1000();
 		else if ( parameter == Parameters.ParameterTypes.setPriceFeedCooldown )
 			return priceAggregator.setPriceFeedCooldown();
 

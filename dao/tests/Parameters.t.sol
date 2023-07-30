@@ -103,8 +103,8 @@ contract TestParametersOffchain is Test
 		else if ( parameter == Parameters.ParameterTypes.upkeepRewardPercentTimes1000 )
 			return daoConfig.upkeepRewardPercentTimes1000();
 
-		else if ( parameter == Parameters.ParameterTypes.maximumPriceFeedDifferenceTimes1000 )
-			return priceAggregator.maximumPriceFeedDifferenceTimes1000();
+		else if ( parameter == Parameters.ParameterTypes.maximumPriceFeedPercentDifferenceTimes1000 )
+			return priceAggregator.maximumPriceFeedPercentDifferenceTimes1000();
 		else if ( parameter == Parameters.ParameterTypes.setPriceFeedCooldown )
 			return priceAggregator.setPriceFeedCooldown();
 
@@ -232,7 +232,7 @@ contract TestParametersOffchain is Test
 	function testPriceAggregatorParameters() public
 		{
 		vm.startPrank(address(parameters));
-		_checkParameter( Parameters.ParameterTypes.maximumPriceFeedDifferenceTimes1000, 2000, 5000, 7000, 500 );
+		_checkParameter( Parameters.ParameterTypes.maximumPriceFeedPercentDifferenceTimes1000, 2000, 5000, 7000, 500 );
 		_checkParameter( Parameters.ParameterTypes.setPriceFeedCooldown, 30 days, 35 days, 45 days, 5 days );
 		}
     }

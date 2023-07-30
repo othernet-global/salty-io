@@ -14,7 +14,7 @@ contract ArbitrageSearch is IArbitrageSearch
 	IERC20 immutable public weth;
 	ISalt immutable public salt;
 
-	// Token balances less than dust are treated as if they don't exist at all.
+	// Token reserves less than dust are treated as if they don't exist at all.
 	// With the 18 decimals that are used for most tokens, DUST has a value of 0.0000000000000001
 	// For tokens with 6 decimal places (like USDC) DUST has a value of .0001
 	uint256 constant public DUST = 100;

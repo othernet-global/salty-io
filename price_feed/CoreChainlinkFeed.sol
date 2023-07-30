@@ -27,8 +27,7 @@ contract CoreChainlinkFeed is IPriceFeed
 
 	// Returns a Chainlink oracle price with 18 decimals (converted from Chainlink's 8 decimals).
 	// Returns zero on any type of failure.
-	// virtual - really just needed for the derived unit tests.
-	function latestChainlinkPrice(address _chainlinkFeed) public virtual view returns (uint256)
+	function latestChainlinkPrice(address _chainlinkFeed) public view returns (uint256)
 		{
 		AggregatorV3Interface chainlinkFeed = AggregatorV3Interface(_chainlinkFeed);
 

@@ -47,7 +47,7 @@ contract Parameters
 		upkeepRewardPercentTimes1000,
 
 		// PriceAggregator
-		maximumPriceFeedDifferenceTimes1000,
+		maximumPriceFeedPercentDifferenceTimes1000,
 		setPriceFeedCooldown
 		}
 
@@ -112,8 +112,8 @@ contract Parameters
 			daoConfig.changeUpkeepRewardPercent(increase);
 
 		// PriceAggregator
-		else if ( parameterType == ParameterTypes.maximumPriceFeedDifferenceTimes1000 )
-			priceAggregator.changeMaximumPriceFeedDifferenceTimes1000(increase);
+		else if ( parameterType == ParameterTypes.maximumPriceFeedPercentDifferenceTimes1000 )
+			priceAggregator.changeMaximumPriceFeedPercentDifferenceTimes1000(increase);
 		else if ( parameterType == ParameterTypes.setPriceFeedCooldown )
 			priceAggregator.changeSetPriceFeedCooldown(increase);
 		}

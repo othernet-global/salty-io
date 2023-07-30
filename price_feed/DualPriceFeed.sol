@@ -10,7 +10,7 @@ import "./CoreUniswapFeed.sol";
 
 
 // DualPriceFeed.sol retrieves BTC and ETH price data from Chainlink and Uniswap V3.
-// If the difference between Chainlink's price and Uniswap's 5-minute TWAP is under 3% then the Uniswap 5-minute TWAP is returned for reasonably fast resolution.
+// If the difference between Chainlink's price and Uniswap's 5-minute TWAP is under 3% then the Uniswap 5-minute TWAP is returned for reasonably fast price resolution.
 // Otherwise, in the face of price volatility Uniswap's 1-hour TWAP is returned to resist price manipulation.
 
 contract DualPriceFeed is IPriceFeed
@@ -24,6 +24,9 @@ contract DualPriceFeed is IPriceFeed
 
 	constructor( IPriceFeed _chainlinkFeed, IPriceFeedUniswap _uniswapFeed )
 		{
+		require( address(_chainlinkFeed) != address(0), "_chainlinkFeed cannot be address(0)" );
+		require( address(_uniswapFeed) != address(0), "_uniswapFeed cannot be address(0)" );
+
 		chainlinkFeed = _chainlinkFeed;
 		uniswapFeed = _uniswapFeed;
 		}
@@ -40,8 +43,12 @@ contract DualPriceFeed is IPriceFeed
 
     function getPriceBTC() public view returns (uint256)
     	{
+    	// Both with 18 decimals
     	uint256 chainlinkPrice = chainlinkFeed.getPriceBTC();
     	uint256 uniswapPrice5 = uniswapFeed.getTwapWBTC( 5 minutes );
+
+    	if ( ( chainlinkPrice == 0 ) || uniswapPrice5 == 0 )
+    		return 0;
 
         // Check to see how different the Chainlink and Uniswap prices are
         uint256 diffPercentTimes1000 = ( 100 * 1000 * _absoluteDifference( uniswapPrice5, chainlinkPrice ) ) / chainlinkPrice;
@@ -57,8 +64,12 @@ contract DualPriceFeed is IPriceFeed
 
     function getPriceETH() public view returns (uint256)
     	{
+    	// Both with 18 decimals
     	uint256 chainlinkPrice = chainlinkFeed.getPriceETH();
     	uint256 uniswapPrice5 = uniswapFeed.getTwapWETH( 5 minutes );
+
+    	if ( ( chainlinkPrice == 0 ) || uniswapPrice5 == 0 )
+    		return 0;
 
         // Check to see how different the Chainlink and Uniswap prices are
         uint256 diffPercentTimes1000 = ( 100 * 1000 * _absoluteDifference( uniswapPrice5, chainlinkPrice ) ) / chainlinkPrice;

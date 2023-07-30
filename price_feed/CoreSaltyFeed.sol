@@ -18,7 +18,7 @@ contract CoreSaltyFeed is IPriceFeed
 	IERC20 immutable public weth;
 	IERC20 immutable public usds;
 
-	// Token balances less than dust are treated as if they don't exist at all.
+	// Token reserves less than dust are treated as if they don't exist at all.
 	// With the 18 decimals that are used for most tokens, DUST has a value of 0.0000000000000001
 	// For tokens with 8 decimal places (like WBTC) DUST has a value of .000001
 	uint256 constant public DUST = 100;
