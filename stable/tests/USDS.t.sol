@@ -3,7 +3,7 @@ pragma solidity =0.8.21;
 
 import "forge-std/Test.sol";
 import "../USDS.sol";
-import "../../Deployment.sol";
+import "../../dev/Deployment.sol";
 
 
 contract USDSTest is Test, Deployment

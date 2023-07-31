@@ -2,7 +2,7 @@
 pragma solidity =0.8.21;
 
 import "forge-std/Test.sol";
-import "../../Deployment.sol";
+import "../../dev/Deployment.sol";
 import "../../root_tests/TestERC20.sol";
 import "../Liquidity.sol";
 

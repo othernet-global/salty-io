@@ -3,7 +3,7 @@ pragma solidity =0.8.21;
 
 import "forge-std/Test.sol";
 import "../Parameters.sol";
-import "../../Deployment.sol";
+import "../../dev/Deployment.sol";
 import "../DAOConfig.sol";
 import "../../pools/PoolsConfig.sol";
 import "../../staking/StakingConfig.sol";

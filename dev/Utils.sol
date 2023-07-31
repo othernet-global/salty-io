@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BSL 1.1
 pragma solidity =0.8.21;
 
-import "./openzeppelin/token/ERC20/ERC20.sol";
-import "./openzeppelin/token/ERC20/IERC20.sol";
-import "./pools/interfaces/IPools.sol";
-import "./pools/interfaces/IPoolsConfig.sol";
+import "../openzeppelin/token/ERC20/ERC20.sol";
+import "../openzeppelin/token/ERC20/IERC20.sol";
+import "../pools/interfaces/IPools.sol";
+import "../pools/interfaces/IPoolsConfig.sol";
 
 
 // Convenience functions called from the UI

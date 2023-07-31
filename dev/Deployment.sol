@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: BSL 1.1
 pragma solidity =0.8.21;
 
-import "./pools/interfaces/IPools.sol";
-import "./pools/interfaces/IPoolsConfig.sol";
-import "./interfaces/IExchangeConfig.sol";
-import "./stable/USDS.sol";
-import "./staking/interfaces/IStakingConfig.sol";
-import "./staking/interfaces/IStaking.sol";
-import "./staking/interfaces/ILiquidity.sol";
-import "./rewards/interfaces/IRewardsEmitter.sol";
-import "./rewards/Emissions.sol";
-import "./dao/interfaces/IDAOConfig.sol";
-import "./dao/interfaces/IDAO.sol";
-import "./dao/interfaces/IProposals.sol";
-import "./price_feed/tests/IForcedPriceFeed.sol";
+import "../pools/interfaces/IPools.sol";
+import "../pools/interfaces/IPoolsConfig.sol";
+import "../interfaces/IExchangeConfig.sol";
+import "../stable/USDS.sol";
+import "../staking/interfaces/IStakingConfig.sol";
+import "../staking/interfaces/IStaking.sol";
+import "../staking/interfaces/ILiquidity.sol";
+import "../rewards/interfaces/IRewardsEmitter.sol";
+import "../rewards/Emissions.sol";
+import "../dao/interfaces/IDAOConfig.sol";
+import "../dao/interfaces/IDAO.sol";
+import "../dao/interfaces/IProposals.sol";
+import "../price_feed/tests/IForcedPriceFeed.sol";
 
 
 // Stores the contract addresses for the various parts of the exchange and allows the unit tests to be run on them.

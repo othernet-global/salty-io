@@ -7,7 +7,7 @@ import "../../root_tests/TestERC20.sol";
 import "../StakingConfig.sol";
 import "../interfaces/IStakingConfig.sol";
 import "./TestStakingRewards.sol";
-import "../../Deployment.sol";
+import "../../dev/Deployment.sol";
 import "../../pools/PoolUtils.sol";
 
 
