@@ -141,7 +141,12 @@ contract DAO is IDAO, Upkeepable, Parameters
 			excludedCountries[ ballot.string1 ] = false;
 
 		else if ( ballot.ballotType == BallotType.EXCLUDE_COUNTRY )
+			{
 			excludedCountries[ ballot.string1 ] = true;
+
+			// If the AccessManager doesn't implement excludedCountriesUpdated, this will revert and countries will not be able to be excluded until the AccessManager is working properly.
+			exchangeConfig.accessManager().excludedCountriesUpdated();
+			}
 
 		// Once an initial setContract proposal passes, it automatically starts a second confirmation ballot (to prevent last minute approvals)
 		else if ( ballot.ballotType == BallotType.SET_CONTRACT )

@@ -68,8 +68,6 @@ contract Proposals is IProposals, ReentrancyGuard
 
 	function _possiblyCreateProposal( string memory ballotName, BallotType ballotType, address address1, uint256 number1, string memory string1, string memory string2, uint256 proposalCost ) internal returns (uint256 ballotID)
 		{
-		require( exchangeConfig.walletHasAccess(msg.sender), "Sending wallet does not have exchange access" );
-
 		// Make sure that a proposal of the same name is not already open for the ballot
 		require( openBallotsByName[ballotName] == 0, "Cannot create a proposal similar to a ballot that is still open" );
 		require( openBallotsByName[ string.concat(ballotName, "_confirm")] == 0, "Cannot create a proposal for a ballot with a secondary confirmation" );
@@ -212,8 +210,6 @@ contract Proposals is IProposals, ReentrancyGuard
 	// Cast a vote on an open ballot
 	function castVote( uint256 ballotID, Vote vote ) public nonReentrant
 		{
-		require( exchangeConfig.walletHasAccess(msg.sender), "Sending wallet does not have exchange access" );
-
 		Ballot memory ballot = ballots[ballotID];
 
 		// Require that the ballot is actually live

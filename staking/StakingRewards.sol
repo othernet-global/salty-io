@@ -65,12 +65,10 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 
 
 	// Increase a user's share for the given whitelisted pool.
-	// Requires exchange access for the sender
 	function _increaseUserShare( address wallet, bytes32 poolID, uint256 amountToIncrease, bool useCooldown ) internal
 		{
 		require( poolsConfig.isWhitelisted( poolID ), "Invalid pool" );
 		require( amountToIncrease != 0, "Cannot increase zero share" );
-		require( exchangeConfig.walletHasAccess(msg.sender), "Sending wallet does not have exchange access" );
 
 		UserShareInfo storage user = _userShareInfo[wallet][poolID];
 

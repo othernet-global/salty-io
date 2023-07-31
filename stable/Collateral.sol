@@ -70,9 +70,12 @@ contract Collateral is Liquidity, ICollateral
 
 
 	// Deposit WBTC/WETH liqudity as collateral and increase the caller's collateral share for future rewards.
-	// The called function addLiquidityAndIncreaseShare is nonReentrant
-    function depositCollateralAndIncreaseShare( uint256 maxAmountWBTC, uint256 maxAmountWETH, uint256 minLiquidityReceived, uint256 deadline, bool bypassZapping ) public returns (uint256 addedAmountWBTC, uint256 addedAmountWETH, uint256 addedLiquidity)
+	// The called function addLiquidityAndIncreaseShare is nonReentrant.
+	// Requires that the sending wallet has exchange access.
+	function depositCollateralAndIncreaseShare( uint256 maxAmountWBTC, uint256 maxAmountWETH, uint256 minLiquidityReceived, uint256 deadline, bool bypassZapping ) public returns (uint256 addedAmountWBTC, uint256 addedAmountWETH, uint256 addedLiquidity)
 		{
+		require( exchangeConfig.walletHasAccess(msg.sender), "Sending wallet does not have exchange access" );
+
 		// Have the user deposit the specified WBTC/WETH liquidity and increase their collateral share
 		(addedAmountWBTC, addedAmountWETH, addedLiquidity) = addLiquidityAndIncreaseShare( wbtc, weth, maxAmountWBTC, maxAmountWETH, minLiquidityReceived, deadline, bypassZapping );
 
@@ -96,10 +99,12 @@ contract Collateral is Liquidity, ICollateral
 
 
 	// Borrow USDS using existing collateral, making sure that the amount being borrowed does not exceed maxBorrowable
+	// Requires that the sending wallet has exchange access.
     function borrowUSDS( uint256 amountBorrowed ) public nonReentrant
 		{
 		require( userShareForPool( msg.sender, collateralPoolID ) > 0, "User does not have any collateral" );
 		require( amountBorrowed <= maxBorrowableUSDS(msg.sender), "Excessive amountBorrowed" );
+		require( exchangeConfig.walletHasAccess(msg.sender), "Sending wallet does not have exchange access" );
 
 		// Increase the borrowed amount for the user
 		usdsBorrowedByUsers[msg.sender] += amountBorrowed;

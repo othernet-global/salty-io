@@ -92,7 +92,7 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 	// Provide access to the protocol components that require it and then look to the AccessManager to determine if a wallet should have access.
 	function walletHasAccess( address wallet ) public view returns (bool)
 		{
-		// These protocol components will need access to the exchange contracts
+		// The dao should always have access, even if it didn't register with the AccessManager
 		if ( wallet == address(dao) )
 			return true;
 

@@ -4,6 +4,9 @@ pragma solidity =0.8.21;
 
 interface IAccessManager
 	{
-	function setCountry( string calldata country ) external;
-	function walletHasAccess( address wallet ) external view returns (bool);
+	function excludedCountriesUpdated() external;
+	function grantAccess() external;
+
+	// Views
+	function walletHasAccess(address wallet) external view returns (bool);
 	}

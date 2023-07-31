@@ -36,7 +36,7 @@ contract PriceAggregator is IPriceAggregator, Ownable
 	// Range: 30 to 45 days with an adjustment of 5 days
 	uint256 public setPriceFeedCooldown = 35 days;
 
-	// The exponential average of the number of PriceFeeds that were used to aggregate prices.
+	// The exponential average of the number of PriceFeeds that were used to aggregate prices on the last update.
 	// Can detect recent errors or PriceFeed failures and encourage further investigation.
 	uint256 public priceFeedInclusionAverage;
 

@@ -19,14 +19,19 @@ contract TestAccessManager is IAccessManager
 		}
 
 
-	function isTest() external
+	function isTest() public
 		{
 		}
 
 
-	function setCountry( string calldata country ) external
+	function grantAccess() public
 		{
 		}
+
+
+    function excludedCountriesUpdated() public
+    	{
+    	}
 
 
 	function walletHasAccess( address wallet ) public pure returns (bool)

@@ -32,9 +32,11 @@ contract Liquidity is ILiquidity, StakingRewards
 	// Tokens are zapped in by default - where all the tokens specified by the user are added to the liqudiity pool regardless of their ratio.
 	// With zapping, if one of the tokens has excess in regards to the reserves token ratio, then some of it is first swapped for the other before the liquidity is added. (See PoolMath.sol for details)
 	// bypassZapping allows this zapping to be avoided - which results in a simple addLiquidity call.
-	// Requires that the sending wallet has exchange access and that the pool is whitelisted (both checked in _increaseUserShare).
+	// Requires that the sending wallet has exchange access and that the pool is whitelisted (checked in _increaseShare).
 	function addLiquidityAndIncreaseShare( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 deadline, bool bypassZapping ) public nonReentrant returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
 		{
+		require( exchangeConfig.walletHasAccess(msg.sender), "Sending wallet does not have exchange access" );
+
 		// Remember the initial underlying token balances of this contract so we can later determine if any of the user's tokens are later unused for adding liquidity and should be sent back.
 		uint256 startingBalanceA = tokenA.balanceOf( address(this) );
 		uint256 startingBalanceB = tokenB.balanceOf( address(this) );

@@ -8,7 +8,7 @@ import "./pools/interfaces/IPoolsConfig.sol";
 
 
 // Convenience functions called from the UI
-contract Util
+contract Utils
     {
 	function tokenNames( address[] memory tokens ) public view returns (string[] memory)
 		{
