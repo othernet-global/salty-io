@@ -5,7 +5,6 @@ import "forge-std/Test.sol";
 import "../../dev/Deployment.sol";
 import "../../root_tests/TestERC20.sol";
 import "../../pools/PoolUtils.sol";
-import "../../Upkeepable.sol";
 import "../Emissions.sol";
 
 
@@ -87,9 +86,6 @@ contract TestEmissions is Test, Deployment
 	// A unit test to check the performUpkeepForLiquidityHolderEmissions function when there are multiple whitelisted pools with different shares. Verify that the amount of SALT tokens sent to each RewardsEmitter is proportional to the votes received by each pool.
 	function testPerformUpkeepForLiquidityHolderEmissions() public {
 
-		// Reset the performUpkeep timestamp
-        Upkeepable(address(emissions)).performUpkeep();
-
         // Alice and Bob deposit votes for pools
         vm.startPrank(alice);
         staking.stakeSALT(5 ether);
@@ -105,11 +101,11 @@ contract TestEmissions is Test, Deployment
 
 		// Emissions.performUpkeep should cap the transferred rewards at one week of duration
 		// We'll try with two weeks and make sure that it is capped
-		vm.warp( block.timestamp + 2 weeks );
-
         uint256 amountToSend = 100 ether;
         salt.transfer( address(emissions), amountToSend );
-        Upkeepable(address(emissions)).performUpkeep();
+
+        vm.prank(address(dao));
+        emissions.performUpkeep(2 weeks);
 
         // For a delay of more than one week, performUpkeep will send 1% (as modified in the constructor) of the SALT balance in the Emissions contract to the liquidityRewardsEmitter
         // Half of that will go to liquidity and half to the xSALT holders
@@ -127,16 +123,14 @@ contract TestEmissions is Test, Deployment
 
 	// A unit test to check the performUpkeepForLiquidityHolderEmissions function when the total number of pool votes is zero, ensuring the function does not perform any actions.
 	function testPerformUpkeepForLiquidityHolderEmissionsWithZeroTotalPoolVotes() public {
-		// Reset the performUpkeep timestamp
-        Upkeepable(address(emissions)).performUpkeep();
-
 		// Emissions.performUpkeep should cap the transferred rewards at one week of duration
 		// We'll try with two weeks and make sure that it is capped
-		vm.warp( block.timestamp + 2 weeks );
 
         uint256 amountToSend = 100 ether;
         salt.transfer( address(emissions), amountToSend );
-        Upkeepable(address(emissions)).performUpkeep();
+
+        vm.prank(address(dao));
+        emissions.performUpkeep(2 weeks);
 
         // Check that the amount of SALT sent to each RewardsEmitter is proportional to the votes received by each pool
         uint256 pool1Rewards = pendingLiquidityRewardsForPool(pool1);
@@ -146,6 +140,16 @@ contract TestEmissions is Test, Deployment
         assertEq(pool1Rewards, 0 );
         assertEq(pool2Rewards, 0 );
     }
+
+
+	function testPerformUpkeepOnlyCallableFromDAO() public
+		{
+		vm.expectRevert( "Emissions.performUpkeep only callable from the DAO contract" );
+        emissions.performUpkeep(2 weeks);
+
+		vm.prank(address(dao));
+        emissions.performUpkeep(2 weeks);
+		}
 
 
 	// A unit test to check the _performUpkeep function when the timeSinceLastUpkeep is zero. Verify that the function does not perform any actions.
@@ -167,11 +171,11 @@ contract TestEmissions is Test, Deployment
         staking.depositVotes(pool2, 3 ether);
         vm.stopPrank();
 
-        Upkeepable(address(emissions)).performUpkeep();
-
         // Call _performUpkeep function
         uint256 initialSaltBalance = salt.balanceOf(address(this));
-        Upkeepable(address(emissions)).performUpkeep();
+
+		vm.prank(address(dao));
+        emissions.performUpkeep(0);
 
         // Since timeSinceLastUpkeep was zero, no actions should be taken
         // Therefore, the SALT balance should be the same
@@ -202,11 +206,11 @@ contract TestEmissions is Test, Deployment
         // Transfer out all SALT from the contract to achieve zero balance
         salt.transfer(alice, salt.balanceOf(address(this)));
 
-		vm.warp( block.timestamp + 2 weeks );
-
         // Call _performUpkeep function
         uint256 initialSaltBalance = salt.balanceOf(address(this));
-        Upkeepable(address(emissions)).performUpkeep();
+
+		vm.prank(address(dao));
+        emissions.performUpkeep(2 weeks);
 
         // Since the SALT balance was zero, no actions should be taken
         uint256 finalSaltBalance = salt.balanceOf(address(this));
@@ -219,8 +223,6 @@ contract TestEmissions is Test, Deployment
 
 		// Transfer the initial rewards
         salt.transfer( address(emissions), 100 ether );
-
-		Upkeepable(address(emissions)).performUpkeep();
 
 		// Alice stakes and deposits votes for pools
 		vm.startPrank(alice);
@@ -256,8 +258,6 @@ contract TestEmissions is Test, Deployment
 			uint256 initialBalanceStakingRewardsEmitter = salt.balanceOf(address(stakingRewardsEmitter));
 			uint256 initialBalanceLiquidityRewardsEmitter = salt.balanceOf(address(liquidityRewardsEmitter));
 
-			vm.warp(block.timestamp + upkeepIntervals[i]);
-
 			uint256 saltBalance = salt.balanceOf(address(emissions));
 
 			// Interval is capped at one week
@@ -266,7 +266,10 @@ contract TestEmissions is Test, Deployment
 				interval = 1 weeks;
 
 			uint256 expectedDistribution = ( saltBalance * interval * rewardsConfig.emissionsWeeklyPercentTimes1000() ) / ( 100 * 1000 weeks );
-			Upkeepable(address(emissions)).performUpkeep();
+
+			vm.prank(address(dao));
+    	    emissions.performUpkeep(upkeepIntervals[i]);
+
 
 			uint256 finalBalanceStakingRewardsEmitter = salt.balanceOf(address(stakingRewardsEmitter));
 			uint256 finalBalanceLiquidityRewardsEmitter = salt.balanceOf(address(liquidityRewardsEmitter));
@@ -287,8 +290,6 @@ contract TestEmissions is Test, Deployment
 	// A unit test in which 10 ether votes are deposited into pool1 and pool2 and performUpkeep is called, then 10 ether more is deposited into pool2, 1 day passes and performUpkeep is called. Checks that the proper amount of SALT rewards is deposited in _liquidtity for pool1 and pool2 each time.
 	function testPerformUpkeep() public {
 
-        Upkeepable(address(emissions)).performUpkeep();
-
 		// Transfer the initial rewards
         salt.transfer( address(emissions), 100 ether );
 
@@ -298,8 +299,6 @@ contract TestEmissions is Test, Deployment
         staking.depositVotes(pool2, 10 ether);
 		vm.stopPrank();
 
-		vm.warp( block.timestamp + 1 days );
-
 		uint256 saltBalance = salt.balanceOf(address(emissions));
 		uint256 expectedDistribution = ( saltBalance * ( 1 days ) * rewardsConfig.emissionsWeeklyPercentTimes1000() ) / ( 100 * 1000 weeks );
 
@@ -307,7 +306,10 @@ contract TestEmissions is Test, Deployment
 		expectedDistribution = expectedDistribution / 2;
 
         // Call performUpkeep to send emissions to liquidityRewardsEmitter
-        Upkeepable(address(emissions)).performUpkeep();
+        vm.warp( block.timestamp + 1 days );
+		vm.prank(address(dao));
+        emissions.performUpkeep(1 days);
+
 
 
         // Check that the amount of SALT sent to each RewardsEmitter is proportional to the votes received by each pool
@@ -321,7 +323,6 @@ contract TestEmissions is Test, Deployment
         vm.prank(alice);
         staking.depositVotes(pool2, 10 ether);
 
-		vm.warp( block.timestamp + 2 days );
 
 		uint256 saltBalance2 = salt.balanceOf(address(emissions));
 		uint256 expectedDistribution2 = ( saltBalance2 * ( 2 days ) * rewardsConfig.emissionsWeeklyPercentTimes1000() ) / ( 100 * 1000 weeks );
@@ -331,7 +332,9 @@ contract TestEmissions is Test, Deployment
 
         // Call performUpkeep to send emissions to liquidityRewardsEmitter proportional to the
         // 10 ether voted for pool1 and 20 ether voted for pool2
-        Upkeepable(address(emissions)).performUpkeep();
+        vm.warp( block.timestamp + 2 days );
+		vm.prank(address(dao));
+        emissions.performUpkeep(2 days);
 
 
         uint256 pool1Rewards2 = pendingLiquidityRewardsForPool(pool1);
@@ -377,17 +380,15 @@ contract TestEmissions is Test, Deployment
 			staking.depositVotes(newPool, 5 ether / numMaxPools );
         }
 
-        // Let's warp to the future
-        vm.warp(block.timestamp + 1 weeks);
+		vm.prank(address(dao));
+        emissions.performUpkeep(1 weeks);
 
-        // Run _performUpkeep and expect no reverts
-        Upkeepable(address(emissions)).performUpkeep();
     }
 
 	// A unit test to test _performUpkeep if there are no SALT rewards in the emissions contract
 	function testPerformUpkeepWithNoSaltInContract() public {
-		vm.warp( block.timestamp + 1 hours );
+		vm.prank(address(dao));
+        emissions.performUpkeep(1 hours);
 
-        Upkeepable(address(emissions)).performUpkeep();
         }
 	}

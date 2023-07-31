@@ -6,7 +6,6 @@ import "../stable/interfaces/IStableConfig.sol";
 import "../staking/interfaces/ILiquidity.sol";
 import "../staking/interfaces/IStaking.sol";
 import "../rewards/interfaces/IRewardsEmitter.sol";
-import "../Upkeepable.sol";
 import "./interfaces/ICalledContract.sol";
 import "../interfaces/IExchangeConfig.sol";
 import "./interfaces/IProposals.sol";
@@ -15,12 +14,14 @@ import "./interfaces/IDAO.sol";
 import "../pools/PoolUtils.sol";
 import "./Parameters.sol";
 import "../price_feed/interfaces/IPriceAggregator.sol";
+import "./UpkeepPerformer.sol";
+import "../openzeppelin/security/ReentrancyGuard.sol";
 
 
 // Allows users to propose and vote on various governance actions such as changing parameters, whitelisting/unwhitelisting tokens, sending tokens, calling other contracts, and updating the website.
 // It handles proposing ballots, tracking votes, enforcing voting requirements, and executing approved proposals.
 // It also stores SALT in the contract for later use and WETH for forming Protocol Owned Liquidity of either SALT/WBTC, SALT/WETH or SALT/USDS.
-contract DAO is IDAO, Upkeepable, Parameters
+contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
     {
 	using SafeERC20 for IERC20;
 
@@ -231,19 +232,10 @@ contract DAO is IDAO, Upkeepable, Parameters
 
 
 
-
-	// Performs upkeep on the exchange, handling various housekeeping functions such as:
-	// Emissions - distributing SALT rewards to the stakingRewardsEmitter and liquidityRewardsEmitter
-	// ArbitrageSearch - converting previous arbitrage profits from WETH to SALT and sending them to the releveant RewardsEmitters
-	// RewardsEmitters - for staking, liquidity and collateral SALT rewards distribution.
-	// Liquidator - liquidating any LP that is currently being held in the Liquidator contract, burning the required amount of USDS and sending extra WETH to the POL_Optimizer.
-	// POL_Optimizer - forming optimized Protocol Owned Liquidity with the WETH it has been sent.
-	// DAO - staking any LP that was sent to it by the POL_Optimizer.
-
-	// The caller of performUpkeep receives a share of the DAO Protocol Owned Liquidity profits that are claimed during the upkeep and also
-	// receives any WETH (swapped to SALT) that was sent by the ArbitrageSearch on its performUpkeep.
-	function _performUpkeep() internal override
+	// Call UpkeepPerformer.performUpkeep which in turn calsl performUpkeep on various contracts in the protocol.
+	function performUpkeep() public nonReentrant
 		{
+		_performUpkeep();
 		}
 
 

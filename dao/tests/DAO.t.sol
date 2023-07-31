@@ -60,6 +60,8 @@ contract TestDAO is Test, Deployment
 			address oldDAO = address(dao);
 			dao = new DAO( proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidity, liquidityRewardsEmitter );
 
+			accessManager = new AccessManager(dao);
+
 			exchangeConfig.setDAO( dao );
 			exchangeConfig.setAccessManager( accessManager );
 			usds.setPools( pools );

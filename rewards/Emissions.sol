@@ -1,20 +1,21 @@
 // SPDX-License-Identifier: BSL 1.1
 pragma solidity =0.8.21;
 
-import "../Upkeepable.sol";
 import "../staking/interfaces/IStaking.sol";
 import "../staking/interfaces/IStakingConfig.sol";
 import "../pools/interfaces/IPoolsConfig.sol";
 import "../rewards/interfaces/IRewardsEmitter.sol";
 import "../interfaces/ISalt.sol";
 import "../interfaces/IExchangeConfig.sol";
+import "./interfaces/IEmissions.sol";
+import "../openzeppelin/security/ReentrancyGuard.sol";
 
 
 // Responsible for storing the SALT emissions at launch and then distributing them over time.
 // The emissions are gradually distributed to the stakingRewardsEmitter and liquidityRewardsEmitter on performUpkeep.
 // Default rate of emissions is 0.50% of the remaining SALT balance per week (interpolated based on the time elapsed since the last performUpkeep call).
 
-contract Emissions is Upkeepable
+contract Emissions is IEmissions, ReentrancyGuard
     {
 	IStaking immutable public staking;
 	IExchangeConfig immutable public exchangeConfig;
@@ -87,13 +88,14 @@ contract Emissions is Upkeepable
 
 	// Transfer a percent (default 0.50% per week) of the currently held SALT to stakingRewardsEmitter and liquidityRewardsEmitter
 	// The percentage to transfer is interpolated from how long it's been since the last performUpkeep()
-	function _performUpkeep() internal override
+	function performUpkeep( uint256 timeSinceLastUpkeep ) public
 		{
-		uint256 saltBalance = salt.balanceOf( address( this ) );
+		require( msg.sender == address(exchangeConfig.dao()), "Emissions.performUpkeep only callable from the DAO contract" );
 
-		uint256 timeSinceLastUpkeep = timeSinceLastUpkeep();
 		if ( timeSinceLastUpkeep == 0 )
 			return;
+
+		uint256 saltBalance = salt.balanceOf( address( this ) );
 
 		// Cap the timeSinceLastUpkeep at one week (if for some reason it has been longer).
 		// This will cap the emitted rewards at a default of 0.50% in this transaction.

@@ -6,7 +6,6 @@ import "../../dev/Deployment.sol";
 import "../../root_tests/TestERC20.sol";
 import "../RewardsEmitter.sol";
 import "../../pools/PoolUtils.sol";
-import "../../interfaces/IUpkeepable.sol";
 
 contract TestRewardsEmitter is Test, Deployment
 	{
@@ -217,11 +216,9 @@ contract TestRewardsEmitter is Test, Deployment
         assertEq(pendingLiquidityRewardsForPool(poolIDs[0]), 10 ether);
         assertEq(pendingLiquidityRewardsForPool(poolIDs[1]), 10 ether);
 
-        // Warp time forward one day
-        vm.warp(block.timestamp + 1 days);
-
         // Call performUpkeep
-        IUpkeepable(address(liquidityRewardsEmitter)).performUpkeep();
+        vm.prank(address(dao));
+        liquidityRewardsEmitter.performUpkeep(1 days);
 
         // Verify that the correct amount of rewards were deducted from each pool's pending rewards
         // By default, 5% of the rewards should be deducted per day
@@ -256,8 +253,8 @@ contract TestRewardsEmitter is Test, Deployment
         assertEq(pendingLiquidityRewardsForPool(poolIDs[1]), 100 ether);
 
         // Perform upkeep after 1 day for poolIDs[0] and poolIDs[1]
-        vm.warp(block.timestamp + 1 days);
-        Upkeepable(address(liquidityRewardsEmitter)).performUpkeep();
+        vm.prank(address(dao));
+        liquidityRewardsEmitter.performUpkeep(1 days);
 
         // After upkeep, rewards should be reduced by 2.5% (increased from default) for each pool
         assertEq(pendingLiquidityRewardsForPool(poolIDs[0]), 97.5 ether );
@@ -338,11 +335,8 @@ contract TestRewardsEmitter is Test, Deployment
         assertEq(pendingRewards[0], 100000 ether);
         assertEq(pendingRewards[1], 100000 ether);
 
-        // Increase block timestamp by one day
-        vm.warp(block.timestamp + 1 days);
-
-        // Perform upkeep on the pools
-        Upkeepable(address(liquidityRewardsEmitter)).performUpkeep();
+        vm.prank(address(dao));
+        liquidityRewardsEmitter.performUpkeep(2 weeks);
 
         // Verify that 5% of the rewards have been distributed (default daily distribution rate)
         pendingRewards = liquidityRewardsEmitter.pendingRewardsForPools(poolIDs);
@@ -355,19 +349,15 @@ contract TestRewardsEmitter is Test, Deployment
 	function testPerformUpkeepNoRewards() public {
         // Perform initial upkeep without any rewards added
         vm.prank(alice);
-        Upkeepable(address(liquidityRewardsEmitter)).performUpkeep();
 
         // Verify that no SALT rewards are distributed for both pools
         uint256[] memory pendingRewards = liquidityRewardsEmitter.pendingRewardsForPools(poolIDs);
         assertEq( pendingRewards[0], 0);
         assertEq( pendingRewards[1], 0);
 
-        // Warp time by 1 day
-        vm.warp(block.timestamp + 1 days);
-
         // Perform upkeep again
-        vm.prank(alice);
-        Upkeepable(address(liquidityRewardsEmitter)).performUpkeep();
+        vm.prank(address(dao));
+        liquidityRewardsEmitter.performUpkeep(2 weeks);
 
         // Verify that no SALT rewards are distributed for both pools, even after 1 day
         pendingRewards = liquidityRewardsEmitter.pendingRewardsForPools(poolIDs);
@@ -389,7 +379,8 @@ contract TestRewardsEmitter is Test, Deployment
         assertEq(pendingLiquidityRewardsForPool(poolIDs[1]), 0 ether);
 
         // Perform upkeep
-        Upkeepable(address(liquidityRewardsEmitter)).performUpkeep();
+        vm.prank(address(dao));
+        liquidityRewardsEmitter.performUpkeep(1 days);
 
         // Ensure that the function did not revert and that the pending rewards for pool[1] is still 0
         assertEq(pendingLiquidityRewardsForPool(poolIDs[1]), 0 ether);
@@ -402,9 +393,6 @@ contract TestRewardsEmitter is Test, Deployment
 	// A test that emits rewards amounts with delay between performUpkeep calls of 1 hour, 12 hours, 24 hours, and 48 hours.
 	function testEmittingRewardsWithDifferentDelays() public {
 
-		 // Reset the performUpkeep() timer
-        Upkeepable(address(liquidityRewardsEmitter)).performUpkeep();
-
         // Add some SALT rewards to the pool
         AddedReward[] memory addedRewards = new AddedReward[](1);
         addedRewards[0] = AddedReward(poolIDs[1], 1000 ether);
@@ -413,8 +401,8 @@ contract TestRewardsEmitter is Test, Deployment
 		uint256 denominatorMult = 100 days * 1000;
 
         // Perform upkeep after 1 hour
-        vm.warp(block.timestamp + 1 hours);
-        Upkeepable(address(liquidityRewardsEmitter)).performUpkeep();
+        vm.prank(address(dao));
+        liquidityRewardsEmitter.performUpkeep(1 hours);
 
         // Check rewards
         uint256 pendingRewards = liquidityRewardsEmitter.pendingRewardsForPools(poolIDs)[1];
@@ -425,8 +413,8 @@ contract TestRewardsEmitter is Test, Deployment
 
 
         // Perform upkeep after 12 more hours
-        vm.warp(block.timestamp + 12 hours);
-        Upkeepable(address(liquidityRewardsEmitter)).performUpkeep();
+		vm.prank(address(dao));
+		liquidityRewardsEmitter.performUpkeep(12 hours);
 
         // Check rewards
         pendingRewards = liquidityRewardsEmitter.pendingRewardsForPools(poolIDs)[1];
@@ -437,8 +425,8 @@ contract TestRewardsEmitter is Test, Deployment
 
 
         // Perform upkeep after 24 more hours
-        vm.warp(block.timestamp + 24 hours);
-       Upkeepable(address(liquidityRewardsEmitter)).performUpkeep();
+        vm.prank(address(dao));
+        liquidityRewardsEmitter.performUpkeep(24 hours);
 
         // Check rewards
         pendingRewards = liquidityRewardsEmitter.pendingRewardsForPools(poolIDs)[1];
@@ -449,8 +437,8 @@ contract TestRewardsEmitter is Test, Deployment
 
 
         // Perform upkeep after 48 more hours
-        vm.warp(block.timestamp + 48 hours);
-       Upkeepable(address(liquidityRewardsEmitter)).performUpkeep();
+		vm.prank(address(dao));
+		liquidityRewardsEmitter.performUpkeep(48 hours);
 
         // Check rewards - will be capped at 24 hours of delay
         pendingRewards = liquidityRewardsEmitter.pendingRewardsForPools(poolIDs)[1];
@@ -471,17 +459,14 @@ contract TestRewardsEmitter is Test, Deployment
         vm.stopPrank();
 
 
-		 // Reset the performUpkeep() timer
-        Upkeepable(address(liquidityRewardsEmitter)).performUpkeep();
-
         // Add some SALT rewards to the pool
         AddedReward[] memory addedRewards = new AddedReward[](1);
         addedRewards[0] = AddedReward(poolIDs[0], 1000 ether);
         liquidityRewardsEmitter.addSALTRewards(addedRewards);
 
         // Perform upkeep to distribute rewards
-        vm.warp( block.timestamp + 1 days );
-        Upkeepable(address(liquidityRewardsEmitter)).performUpkeep();
+        vm.prank(address(dao));
+        liquidityRewardsEmitter.performUpkeep(1 days);
 
 		uint256 rewards0 = pendingLiquidityRewardsForPool(poolIDs[0]);
 
@@ -497,15 +482,26 @@ contract TestRewardsEmitter is Test, Deployment
         uint256 newDailyPercent = rewardsConfig.rewardsEmitterDailyPercentTimes1000();
         assertTrue(newDailyPercent > oldDailyPercent, "New daily percent should be greater than old daily percent");
 
-        vm.warp( block.timestamp + 1 days );
-        Upkeepable(address(liquidityRewardsEmitter)).performUpkeep();
+        vm.prank(address(dao));
+        liquidityRewardsEmitter.performUpkeep(1 days);
+
 		uint256 rewards1 = pendingLiquidityRewardsForPool(poolIDs[0]);
 
 //		console.log( " (rewards0 - 1000 ether): ",  1000 ether - rewards0 );
 //		console.log( " (rewards1 - rewards0): ",  rewards0 - rewards1 );
 
 		assertTrue( (rewards0 - rewards1) > (1000 ether - rewards0), "Distributed rewards should have increased" );
-
     }
+
+
+	function testPerformUpkeepOnlyCallableFromDAO() public
+		{
+		vm.expectRevert( "RewardsEmitter.performUpkeep only callable from the DAO contract" );
+        liquidityRewardsEmitter.performUpkeep(2 weeks);
+
+		vm.prank(address(dao));
+        liquidityRewardsEmitter.performUpkeep(2 weeks);
+		}
+
 	}
 

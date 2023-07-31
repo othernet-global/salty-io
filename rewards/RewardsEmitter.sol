@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BSL 1.1
 pragma solidity =0.8.21;
 
-import "../Upkeepable.sol";
 import "../openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import "../pools/interfaces/IPoolsConfig.sol";
 import "../staking/interfaces/IStakingConfig.sol";
@@ -9,7 +8,7 @@ import "../rewards/interfaces/IRewardsConfig.sol";
 import "../interfaces/IExchangeConfig.sol";
 import "./interfaces/IRewardsEmitter.sol";
 import "../interfaces/ISalt.sol";
-
+import "../openzeppelin/security/ReentrancyGuard.sol";
 
 // Stores SALT rewards for later distribution at a default rate of 1% per day to those holding shares in the specified StakingRewards contract.
 // The gradual emissions rate is to help offset the natural rewards fluctuation and create a more stable yield.
@@ -19,11 +18,12 @@ import "../interfaces/ISalt.sol";
 // Liquidity.sol - allows liquidity providers to deposit and stake liquidity.
 // Collateral.sol - allows users to deposit and stake WBTC/WETH liquidity as collateral for borrowing USDS stablecoin.
 
-contract RewardsEmitter is Upkeepable, IRewardsEmitter
+contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
     {
 	using SafeERC20 for ISalt;
 
 	IStakingRewards immutable public stakingRewards;
+	IExchangeConfig immutable public exchangeConfig;
 	IPoolsConfig immutable public poolsConfig;
 	IStakingConfig immutable public stakingConfig;
 	IRewardsConfig immutable public rewardsConfig;
@@ -43,7 +43,7 @@ contract RewardsEmitter is Upkeepable, IRewardsEmitter
 		require( address(_stakingConfig) != address(0), "_stakingConfig cannot be address(0)" );
 
 		stakingRewards = _stakingRewards;
-
+		exchangeConfig = _exchangeConfig;
 		poolsConfig = _poolsConfig;
 		stakingConfig = _stakingConfig;
 		rewardsConfig = _rewardsConfig;
@@ -78,14 +78,15 @@ contract RewardsEmitter is Upkeepable, IRewardsEmitter
 
 
 	// Transfer a percent (default 1% per day) of the currently held rewards to the specified StakingRewards pools.
-	// The percentage to transfer is interpolated from how long it's been since the last _performUpkeep().
-	function _performUpkeep() internal override
+	// The percentage to transfer is interpolated from how long it's been since the last performUpkeep().
+	function performUpkeep( uint256 timeSinceLastUpkeep ) public
 		{
-		bytes32[] memory pools = poolsConfig.whitelistedPools();
+		require( msg.sender == address(exchangeConfig.dao()), "RewardsEmitter.performUpkeep only callable from the DAO contract" );
 
-		uint256 timeSinceLastUpkeep = timeSinceLastUpkeep();
 		if ( timeSinceLastUpkeep == 0 )
 			return;
+
+		bytes32[] memory pools = poolsConfig.whitelistedPools();
 
 		// Cap the timeSinceLastUpkeep at one day (if for some reason it has been longer).
 		// This will cap the emitted rewards at a default of 1% in this transaction.

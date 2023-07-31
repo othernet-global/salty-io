@@ -7,7 +7,7 @@ import "../pools/interfaces/IPools.sol";
 import "../pools/interfaces/IPoolsConfig.sol";
 
 
-// Convenience functions called from the UI
+// Convenience functions called from the Web3 UI
 contract Utils
     {
 	function tokenNames( address[] memory tokens ) public view returns (string[] memory)
