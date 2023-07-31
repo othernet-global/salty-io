@@ -74,6 +74,13 @@ contract TestProposals is Test, Deployment
 		usds.mintTo( DEPLOYER, 2000000 ether );
 		usds.mintTo( alice, 1000000 ether );
 		vm.stopPrank();
+
+		vm.prank(alice);
+		accessManager.grantAccess();
+		vm.prank(bob);
+		accessManager.grantAccess();
+		vm.prank(DEPLOYER);
+		accessManager.grantAccess();
 		}
 
 
@@ -424,10 +431,14 @@ contract TestProposals is Test, Deployment
 
         // Almost reach quorum
         vm.prank(alice);
-        staking.stakeSALT(1111111 ether);
+        staking.stakeSALT(1110111 ether);
 
-		// Default user has no access to the exchange
-        vm.expectRevert( "Sending wallet does not have exchange access" );
+		// Default user has no access to the exchange, but can still vote
+		vm.prank(DEPLOYER);
+		salt.transfer(address(this), 1000 ether );
+
+		salt.approve( address(staking), type(uint256).max);
+		staking.stakeSALT( 1000 ether );
         proposals.castVote(ballotID, Vote.INCREASE);
 
         vm.startPrank(alice);
@@ -436,9 +447,11 @@ contract TestProposals is Test, Deployment
         bool canFinalizeBallotAlmostAtQuorum = proposals.canFinalizeBallot(ballotID);
 
 		// Reach quorum
+		vm.prank(alice);
         staking.stakeSALT(1 ether);
 
         // Recast vote to include new stake
+		vm.prank(alice);
         proposals.castVote(ballotID, Vote.DECREASE);
 
         bool canFinalizeBallotAtQuorum = proposals.canFinalizeBallot(ballotID);

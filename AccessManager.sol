@@ -17,7 +17,7 @@ contract AccessManager is IAccessManager
     uint256 public geoVersion;
     mapping(uint256 => mapping(address => bool)) private _walletsWithAccess;
 
-	IDAO public dao;
+	IDAO immutable public dao;
 
 
 	constructor( IDAO _dao )

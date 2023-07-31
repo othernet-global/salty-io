@@ -64,6 +64,13 @@ contract TestCollateral is Test, Deployment
 		// Mint some USDS to the DEPLOYER
 		vm.prank( address(collateral) );
 		usds.mintTo( DEPLOYER, 2000000 ether );
+
+		vm.prank(alice);
+		accessManager.grantAccess();
+		vm.prank(bob);
+		accessManager.grantAccess();
+		vm.prank(charlie);
+		accessManager.grantAccess();
 		}
 
 

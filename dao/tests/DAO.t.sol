@@ -15,8 +15,8 @@ import "../../price_feed/tests/IForcedPriceFeed.sol";
 import "../../pools/PoolsConfig.sol";
 import "../DAO.sol";
 import "./TestCallReceiver.sol";
-import "../../root_tests/TestAccessManager.sol";
 import "../../price_feed/PriceAggregator.sol";
+import "../../AccessManager.sol";
 
 
 contract TestDAO is Test, Deployment
@@ -549,7 +549,7 @@ contract TestDAO is Test, Deployment
 	function testSetContractApproved() public
 		{
 		_checkSetContractApproved( 1, "arbitrageSearch", address(0x1231230 ) );
-		_checkSetContractApproved( 3, "accessManager", address( new TestAccessManager(dao) ) );
+		_checkSetContractApproved( 3, "accessManager", address( new AccessManager(dao) ) );
 		_checkSetContractApproved( 5, "stakingRewardsEmitter", address(0x1231233 ) );
 		_checkSetContractApproved( 7, "liquidityRewardsEmitter", address(0x1231234 ) );
 		_checkSetContractApproved( 9, "collateralRewardsEmitter", address(0x1231235 ) );
@@ -579,7 +579,7 @@ contract TestDAO is Test, Deployment
 		{
 		_checkSetContractDenied1( 1, "ArbitrageSearch", address(0x1231230 ) );
 		_checkSetContractDenied1( 2, "priceFeed", address(0x1231231 ) );
-		_checkSetContractDenied1( 3, "accessManager", address( new TestAccessManager(dao) ) );
+		_checkSetContractDenied1( 3, "accessManager", address( new AccessManager(dao) ) );
 		_checkSetContractDenied1( 4, "stakingRewardsEmitter", address(0x1231233 ) );
 		_checkSetContractDenied1( 5, "liquidityRewardsEmitter", address(0x1231234 ) );
 		_checkSetContractDenied1( 6, "collateralRewardsEmitter", address(0x1231235 ) );
@@ -606,7 +606,7 @@ contract TestDAO is Test, Deployment
 	function testSetContractDenied2() public
 		{
 		_checkSetContractDenied2( 1, "ArbitrageSearch", address(0x1231230 ) );
-		_checkSetContractDenied2( 3, "accessManager", address( new TestAccessManager(dao) ) );
+		_checkSetContractDenied2( 3, "accessManager", address( new AccessManager(dao) ) );
 		_checkSetContractDenied2( 5, "stakingRewardsEmitter", address(0x1231233 ) );
 		_checkSetContractDenied2( 7, "liquidityRewardsEmitter", address(0x1231234 ) );
 		_checkSetContractDenied2( 9, "collateralRewardsEmitter", address(0x1231235 ) );

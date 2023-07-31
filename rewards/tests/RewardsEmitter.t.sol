@@ -109,6 +109,13 @@ contract TestRewardsEmitter is Test, Deployment
 		for ( uint256 i = 0; i < 6; i++ )
 			rewardsConfig.changeRewardsEmitterDailyPercent(true);
 		vm.stopPrank();
+
+		vm.prank(alice);
+		accessManager.grantAccess();
+		vm.prank(bob);
+		accessManager.grantAccess();
+		vm.prank(charlie);
+		accessManager.grantAccess();
     	}
 
 
