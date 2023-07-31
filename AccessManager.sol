@@ -6,10 +6,10 @@ import "./dao/interfaces/IDAO.sol";
 
 
 // A simple AccessManager in which a user is confirmed to have access offchain in the browser and then verified user status is stored in the contract.
-// When geographic regions are later excluded, users are required to reverify (allowing avoiding storing countries for specifc wallets and potentially violating user privacy).
+// When geographic regions are later excluded, users are required to reverify (allowing avoiding storing countries for specific wallets and potentially violating user privacy).
 // Note that using ExchangeConfig.setAccessManager() this contract could be replaced by alternate AccessManager such as a decentralized ID service, KYC by region, or whatever else deemed necessary by the DAO to satisfy the changing regulatory landscape.
 // The AccessManager restricts users from adding liquidity, adding collateral and borrowing USDS on the contract level - but always allows existing assets to be removed (in case a user's region is restricted after depositing assets).
-// DAO interactino is not restricted on the contract level - in the case that the AccessManager mistakingly denies everyone access which woudl prevent it from being replaced by the DAO.
+// DAO interaction is not restricted on the contract level - in the case that the AccessManager mistakingly denies everyone access which woudl prevent it from being replaced by the DAO.
 // Swaps are regionally restricted in the browser rather than within the contract via AccessMananger in order to keep swap transaction costs to a minimal.
 
 contract AccessManager is IAccessManager

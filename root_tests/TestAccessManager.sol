@@ -24,6 +24,12 @@ contract TestAccessManager is IAccessManager
 		}
 
 
+	function geoVersion() public view returns (uint256)
+		{
+		return 0;
+		}
+
+
 	function grantAccess() public
 		{
 		}

@@ -8,5 +8,6 @@ interface IAccessManager
 	function grantAccess() external;
 
 	// Views
+	function geoVersion() external view returns (uint256);
 	function walletHasAccess(address wallet) external view returns (bool);
 	}
