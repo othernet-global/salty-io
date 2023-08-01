@@ -44,7 +44,8 @@ contract Parameters
 		ballotDuration,
 		baseProposalCost,
 		maxPendingTokensForWhitelisting,
-		upkeepRewardPercentTimes1000,
+		daoArbitragePercent,
+		upkeepRewardPercent,
 
 		// PriceAggregator
 		maximumPriceFeedPercentDifferenceTimes1000,
@@ -108,7 +109,9 @@ contract Parameters
 			daoConfig.changeBaseProposalCost(increase);
 		else if ( parameterType == ParameterTypes.maxPendingTokensForWhitelisting )
 			daoConfig.changeMaxPendingTokensForWhitelisting(increase);
-		else if ( parameterType == ParameterTypes.upkeepRewardPercentTimes1000 )
+		else if ( parameterType == ParameterTypes.daoArbitragePercent )
+			daoConfig.changeDaoArbitragePercent(increase);
+		else if ( parameterType == ParameterTypes.upkeepRewardPercent )
 			daoConfig.changeUpkeepRewardPercent(increase);
 
 		// PriceAggregator

@@ -25,6 +25,7 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
     {
 	using SafeERC20 for IERC20;
 
+	IPools immutable public pools;
 	IProposals immutable public proposals;
 	IExchangeConfig immutable public exchangeConfig;
 	IPoolsConfig immutable public poolsConfig;
@@ -44,8 +45,9 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
 	mapping(string=>bool) public excludedCountries;
 
 
-    constructor( IProposals _proposals, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IRewardsConfig _rewardsConfig, IStableConfig _stableConfig, IDAOConfig _daoConfig, IPriceAggregator _priceAggregator, ILiquidity _liquidity, IRewardsEmitter _liquidityRewardsEmitter )
+    constructor( IPools _pools, IProposals _proposals, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IRewardsConfig _rewardsConfig, IStableConfig _stableConfig, IDAOConfig _daoConfig, IPriceAggregator _priceAggregator, ILiquidity _liquidity, IRewardsEmitter _liquidityRewardsEmitter )
 		{
+		require( address(_pools) != address(0), "_pools cannot be address(0)" );
 		require( address(_proposals) != address(0), "_proposals cannot be address(0)" );
 		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
 		require( address(_poolsConfig) != address(0), "_poolsConfig cannot be address(0)" );
@@ -57,6 +59,7 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
 		require( address(_liquidity) != address(0), "_liquidity cannot be address(0)" );
 		require( address(_liquidityRewardsEmitter) != address(0), "_liquidityRewardsEmitter cannot be address(0)" );
 
+		pools = _pools;
 		proposals = _proposals;
 		exchangeConfig = _exchangeConfig;
 		poolsConfig = _poolsConfig;
@@ -232,10 +235,10 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
 
 
 
-	// Call UpkeepPerformer.performUpkeep which in turn calsl performUpkeep on various contracts in the protocol.
+	// Call UpkeepPerformer.performUpkeep which in turn calls performUpkeep on various contracts in the protocol.
 	function performUpkeep() public nonReentrant
 		{
-		_performUpkeep();
+		_performUpkeep( pools, priceAggregator, exchangeConfig, daoConfig );
 		}
 
 

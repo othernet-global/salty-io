@@ -58,7 +58,7 @@ contract TestDAO is Test, Deployment
 			proposals = new Proposals( staking, exchangeConfig, poolsConfig, stakingConfig, daoConfig );
 
 			address oldDAO = address(dao);
-			dao = new DAO( proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidity, liquidityRewardsEmitter );
+			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidity, liquidityRewardsEmitter );
 
 			accessManager = new AccessManager(dao);
 
@@ -161,8 +161,10 @@ contract TestDAO is Test, Deployment
 			return daoConfig.baseProposalCost();
 		else if ( parameter == Parameters.ParameterTypes.maxPendingTokensForWhitelisting )
 			return daoConfig.maxPendingTokensForWhitelisting();
-		else if ( parameter == Parameters.ParameterTypes.upkeepRewardPercentTimes1000 )
-			return daoConfig.upkeepRewardPercentTimes1000();
+		else if ( parameter == Parameters.ParameterTypes.daoArbitragePercent )
+			return daoConfig.daoArbitragePercent();
+		else if ( parameter == Parameters.ParameterTypes.upkeepRewardPercent )
+			return daoConfig.upkeepRewardPercent();
 
 		else if ( parameter == Parameters.ParameterTypes.maximumPriceFeedPercentDifferenceTimes1000 )
 			return priceAggregator.maximumPriceFeedPercentDifferenceTimes1000();
@@ -670,8 +672,9 @@ contract TestDAO is Test, Deployment
 	function testDAOConstructor() public {
 
         vm.startPrank(DEPLOYER);
-        DAO testDAO = new DAO(proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidity, liquidityRewardsEmitter);
+        DAO testDAO = new DAO(pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidity, liquidityRewardsEmitter);
 
+        assertEq(address(testDAO.pools()), address(pools), "Pools contract address mismatch");
         assertEq(address(testDAO.proposals()), address(proposals), "Proposals contract address mismatch");
         assertEq(address(testDAO.exchangeConfig()), address(exchangeConfig), "ExchangeConfig contract address mismatch");
         assertEq(address(testDAO.poolsConfig()), address(poolsConfig), "PoolsConfig contract address mismatch");

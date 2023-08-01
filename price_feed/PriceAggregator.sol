@@ -246,6 +246,7 @@ contract PriceAggregator is IPriceAggregator, Ownable
 
 
 	// Cache the current prices of BTC and ETH until the next performUpkeep
+	// Publicly callable without restriction as the function simply updates the BTC and ETH prices as read from the PriceFeed (which is a trusted source of price).
 	function performUpkeep() public
 		{
 		_updatePriceBTC();

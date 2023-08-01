@@ -50,9 +50,13 @@ contract DAOConfig is IDAOConfig, Ownable
 	// Range: 3 to 12 with an adjustment of 1
 	uint256 public maxPendingTokensForWhitelisting = 5;
 
-	// The share of the WETH arbitrage profits that are sent to the caller of Upkeep.performUpkeep()
-	// Range: 1% to 10% with an adjustment of 0.50%
-	uint256 public upkeepRewardPercentTimes1000 = 5 * 1000;
+	// The share of the WETH arbitrage profits that are sent to the DAO to form Protocol Owned Liquidity
+	// Range: 15% to 45% with an adjustment of 5%
+	uint256 public daoArbitragePercent = 30;
+
+	// The share of the WETH arbitrage profits sent to the DAO that are sent to the caller of Upkeep.performUpkeep()
+	// Range: 1% to 10% with an adjustment of 1%
+	uint256 public upkeepRewardPercent = 5;
 
 
 	function changeBootstrappingRewards(bool increase) public onlyOwner
@@ -144,17 +148,32 @@ contract DAOConfig is IDAOConfig, Ownable
 		}
 
 
+	function changeDaoArbitragePercent(bool increase) public onlyOwner
+        {
+        if (increase)
+            {
+            if (daoArbitragePercent < 45)
+                daoArbitragePercent += 5;
+            }
+        else
+            {
+            if (daoArbitragePercent > 15)
+                daoArbitragePercent -= 5;
+            }
+		}
+
+
 	function changeUpkeepRewardPercent(bool increase) public onlyOwner
         {
         if (increase)
             {
-            if (upkeepRewardPercentTimes1000 < 10 * 1000)
-                upkeepRewardPercentTimes1000 += 500;
+            if (upkeepRewardPercent < 10)
+                upkeepRewardPercent += 1;
             }
         else
             {
-            if (upkeepRewardPercentTimes1000 > 1000)
-                upkeepRewardPercentTimes1000 -= 500;
+            if (upkeepRewardPercent > 1)
+                upkeepRewardPercent -= 1;
             }
         }
     }

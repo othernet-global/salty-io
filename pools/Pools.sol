@@ -32,7 +32,6 @@ contract Pools is IPools, ReentrancyGuard, ArbitrageProfits
 	using SafeERC20 for IERC20;
 
 
-	IExchangeConfig immutable public exchangeConfig;
 	IPoolsConfig immutable public poolsConfig;
 	IDAO public dao;
 
@@ -59,11 +58,10 @@ contract Pools is IPools, ReentrancyGuard, ArbitrageProfits
 
 
 	constructor( IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig )
+	ArbitrageProfits( _exchangeConfig )
 		{
-		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
 		require( address(_poolsConfig) != address(0), "_poolsConfig cannot be address(0)" );
 
-		exchangeConfig = _exchangeConfig;
 		poolsConfig = _poolsConfig;
 
 		weth = exchangeConfig.weth();
@@ -365,6 +363,18 @@ contract Pools is IPools, ReentrancyGuard, ArbitrageProfits
 
 		// The user's swap has just been made - attempt atomic arbitrage to rebalance the pool and yield arbitrage profit
 		_attemptArbitrage( swapTokenIn, swapTokenOut, swapAmountIn, isWhitelistedPair );
+		}
+
+
+	// Withdraw the deposited WETH arbitrage profits and send them to the DAO
+	function performUpkeep() public
+		{
+		require( msg.sender == address(exchangeConfig.dao()), "Pools.withdrawArbitrageProfitsAndSendToDAO only callable from the DAO contract" );
+
+		uint256 depositedWETH = _userDeposits[ address(this) ][weth];
+		withdraw( weth, depositedWETH );
+
+		weth.safeTransfer( address(dao), depositedWETH );
 		}
 
 
