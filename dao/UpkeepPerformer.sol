@@ -3,6 +3,7 @@ pragma solidity =0.8.21;
 
 import "./interfaces/IDAOConfig.sol";
 import "../pools/interfaces/IPools.sol";
+import "../pools/interfaces/IPoolsConfig.sol";
 import "../interfaces/IExchangeConfig.sol";
 import "../price_feed/interfaces/IPriceAggregator.sol";
 
@@ -35,27 +36,49 @@ contract UpkeepPerformer
 		}
 
 
-	function _performUpkeep( IPools pools, IPriceAggregator priceAggregator, IExchangeConfig exchangeConfig, IDAOConfig daoConfig ) internal
+	// 1. Withdraw the WETH deposited in the Pools contract (from previous automatic arbitrage).
+	function _step1( IPools pools ) internal
+		{
+ 		try pools.performUpkeep() {}
+		catch (bytes memory error) { emit UpkeepError("Step 1", error); }
+		}
+
+
+	// 2. Update the prices of BTC and ETH in the PriceAggregator.
+	function _step2( IPriceAggregator priceAggregator ) internal
+		{
+ 		try priceAggregator.performUpkeep() {}
+		catch (bytes memory error) { emit UpkeepError("Step 2", error); }
+		}
+
+
+	// 3. Swap a default 70% of withdrawn WETH to SALT and send it to the relevant RewardsEmitters based on how much each pool contributed to the generated profit.
+	function _step3( IERC20 weth, IDAOConfig daoConfig ) internal
+		{
+		uint256 wethBalance = weth.balanceOf( address(this) );
+		uint256 wethToSwap = wethBalance * daoConfig.daoArbitragePercent() / 100;
+
+		// Send rewards to WBTC/WBTC liquidity providers first
+
+		}
+
+
+	function _performUpkeep( IPools pools, IPriceAggregator priceAggregator, IExchangeConfig exchangeConfig, IPoolsConfig poolsConfig, IDAOConfig daoConfig ) internal
 		{
 		uint256 timeSinceLastUpkeep = block.timestamp - lastUpkeepTime;
 
 		IERC20 weth = exchangeConfig.weth();
+		bytes32[] memory poolIDs = poolsConfig.whitelistedPools();
 
-		// Perform the multiple upkeep steps.
-		// Try/catch blocks are used so that if any of the steps reverts it won't halt the rest of the upkeep.
+		// Perform the multiple perform upkeep steps.
+		// Try/catch blocks are used within each one so that if any of the steps reverts it won't halt the rest of the upkeep.
 		// Upkeep steps do not require the previous steps in the process are successful.
 
-		// 1. Withdraw the WETH deposited in the Pools contract (from previous automatic arbitrage).
- 		try pools.performUpkeep() {}
-		catch (bytes memory error) { emit UpkeepError("Step 1", error); }
+		_step1(pools);
+		_step2(priceAggregator);
+		_step3(weth, daoConfig);
 
-		// 2. Updates the prices of BTC and ETH in the PriceAggregator.
- 		try priceAggregator.performUpkeep() {}
-		catch (bytes memory error) { emit UpkeepError("Step 2", error); }
-
-		// 3. Converts 70% of WETH to SALT and sends it to the relevant RewardsEmitters.
-		uint256 wethBalance = weth.balanceOf( address(this) );
-
+//		clear profitsForPools
 
 		lastUpkeepTime = block.timestamp;
 		}

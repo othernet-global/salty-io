@@ -85,7 +85,7 @@ contract StakingTest is Test, Deployment
     // Alice stakes 5 ether of SALT tokens
     vm.prank(alice);
     staking.stakeSALT(5 ether);
-    assertEq(staking.userFreeXSalt(alice), 5 ether);
+    assertEq(staking.userXSalt(alice), 5 ether);
     assertEq(staking.userShareForPool(alice, STAKED_SALT), 5 ether);
     assertEq(salt.balanceOf(address(staking)) - startingBalance, 5 ether);
 
@@ -93,21 +93,21 @@ contract StakingTest is Test, Deployment
     // Bob stakes 10 ether of SALT tokens
     vm.prank(bob);
     staking.stakeSALT(10 ether);
-    assertEq(staking.userFreeXSalt(bob), 10 ether);
+    assertEq(staking.userXSalt(bob), 10 ether);
     assertEq(staking.userShareForPool(bob, STAKED_SALT), 10 ether);
     assertEq(salt.balanceOf(address(staking)) - startingBalance, 15 ether);
 
     // Charlie stakes 20 ether of SALT tokens
     vm.prank(charlie);
     staking.stakeSALT(20 ether);
-    assertEq(staking.userFreeXSalt(charlie), 20 ether);
+    assertEq(staking.userXSalt(charlie), 20 ether);
     assertEq(staking.userShareForPool(charlie, STAKED_SALT), 20 ether);
     assertEq(salt.balanceOf(address(staking)) - startingBalance, 35 ether);
 
     // Alice stakes an additional 3 ether of SALT tokens
     vm.prank(alice);
     staking.stakeSALT(3 ether);
-    assertEq(staking.userFreeXSalt(alice), 8 ether);
+    assertEq(staking.userXSalt(alice), 8 ether);
     assertEq(staking.userShareForPool(alice, STAKED_SALT), 8 ether);
     assertEq(salt.balanceOf(address(staking)) - startingBalance, 38 ether);
     }
@@ -207,7 +207,7 @@ contract StakingTest is Test, Deployment
 	assertEq(unstake.unstakedXSALT, unstakeAmount);
 	assertEq(unstake.completionTime, block.timestamp + numWeeks * (1 weeks));
 
-	uint256 userFreeXSALT = staking.userFreeXSalt(alice);
+	uint256 userFreeXSALT = staking.userXSalt(alice);
 	assertEq(userFreeXSALT, stakeAmount - unstakeAmount);
 
 	uint256 totalStaked = totalStakedOnPlatform();
@@ -224,18 +224,18 @@ contract StakingTest is Test, Deployment
 
 	// Alice stakes 10 ether
 	staking.stakeSALT(10 ether);
-	assertEq(staking.userFreeXSalt(alice), 10 ether);
+	assertEq(staking.userXSalt(alice), 10 ether);
 	assertEq(totalStakedOnPlatform(), 10 ether);
 
 	// Alice creates an unstake request with 5 ether for 3 weeks
 	uint256 unstakeID = staking.unstake(5 ether, 3);
-	assertEq(staking.userFreeXSalt(alice), 5 ether);
+	assertEq(staking.userXSalt(alice), 5 ether);
 	assertEq(totalStakedOnPlatform(), 5 ether);
 
 	// Alice cancels the unstake request before the completion time
 	vm.warp(block.timestamp + 2 weeks);
 	staking.cancelUnstake(unstakeID);
-	assertEq(staking.userFreeXSalt(alice), 10 ether);
+	assertEq(staking.userXSalt(alice), 10 ether);
 	assertEq(totalStakedOnPlatform(), 10 ether);
 	assertTrue(uint256(staking.unstakeByID(unstakeID).status) == uint256(UnstakeState.CANCELLED));
 
@@ -245,7 +245,7 @@ contract StakingTest is Test, Deployment
 
 	// Alice creates another unstake request with 5 ether for 4 weeks
 	unstakeID = staking.unstake(5 ether, 4);
-	assertEq(staking.userFreeXSalt(alice), 5 ether);
+	assertEq(staking.userXSalt(alice), 5 ether);
 	assertEq(totalStakedOnPlatform(), 5 ether);
 
 	// Alice tries to cancel the unstake request after the completion time
@@ -254,7 +254,7 @@ contract StakingTest is Test, Deployment
 	staking.cancelUnstake(unstakeID);
 
 	// Alice's freeXSALT and total shares of STAKED_SALT remain the same
-	assertEq(staking.userFreeXSalt(alice), 5 ether);
+	assertEq(staking.userXSalt(alice), 5 ether);
 	assertEq(totalStakedOnPlatform(), 5 ether);
 	}
 
@@ -276,7 +276,7 @@ contract StakingTest is Test, Deployment
 	assertEq(uint256(u.status), uint256(UnstakeState.PENDING));
 
 	// Alice's xSALT balance should be 0
-	assertEq(staking.userFreeXSalt(alice), 0 ether);
+	assertEq(staking.userXSalt(alice), 0 ether);
 
 	// Advance time by 3 weeks
 	vm.warp(block.timestamp + 3 * 1 weeks);
@@ -298,98 +298,6 @@ contract StakingTest is Test, Deployment
 	uint256 burnedSalt = startingSaltSupply - salt.totalSupply();
 	assertEq( burnedSalt, earlyUnstakeFee);
 	}
-
-
-	// A unit test which tests a user depositing votes for various poolIDs and amounts of SALT tokens, and checks that the user's freeXSALT, total shares for the pool, and the user's pool shares are updated correctly.
-	function testDepositVotesForVariousPoolsAndAmounts() public {
-    vm.startPrank(alice);
-
-	uint256 initialStake = 10 ether;
-	uint256[] memory voteAmounts = new uint256[](2);
-	voteAmounts[0] = 8 ether;
-	voteAmounts[1] = 2 ether;
-
-	// Alice stakes 10 ether
-	staking.stakeSALT(initialStake);
-
-	// Check Alice's free xSALT balance
-	assertEq(staking.userFreeXSalt(alice), initialStake);
-
-	// Alice votes for pool[1] and pool[2]
-	uint256[] memory poolIDsToVote = new uint256[](2);
-	poolIDsToVote[0] = 1;
-	poolIDsToVote[1] = 2;
-
-	uint256 xsaltBalance = staking.userFreeXSalt(alice);
-	for(uint256 i = 0; i < poolIDsToVote.length; i++) {
-		staking.depositVotes(poolIDs[poolIDsToVote[i]], voteAmounts[i]);
-
-		// Check freeXSALT, total shares for the pool, and user's pool shares
-		assertEq(staking.userFreeXSalt(alice), xsaltBalance - voteAmounts[i]);
-		assertEq(totalStakedForPool(poolIDs[poolIDsToVote[i]]), voteAmounts[i]);
-		assertEq(staking.userShareForPool(alice, poolIDs[poolIDsToVote[i]]), voteAmounts[i]);
-
-		xsaltBalance = staking.userFreeXSalt(alice);
-	}
-
-	// After voting for both poolIDs, Alice should have no free xSALT left
-	assertEq(staking.userFreeXSalt(alice), 0);
-    }
-
-
-	// A unit test which tests a user trying to deposit more votes than their available freeXSALT balance, and checks that the transaction reverts with an appropriate error message.
-	function testDepositVotesExceedsFreeXSALT() public {
-		vm.startPrank(alice);
-
-        // Alice stakes 5 ether
-        staking.stakeSALT(5 ether);
-
-        // Check that the balance of xSALT for Alice is 5 ether
-        assertEq(staking.userFreeXSalt(alice), 5 ether);
-
-        // Try to deposit more votes than the available freeXSALT balance
-        // This should cause a revert
-        vm.expectRevert("Cannot vote with more than the available xSALT balance");
-        staking.depositVotes(poolIDs[1], 10 ether);
-    }
-
-
-	// A unit test which tests a user removing votes and claiming rewards for various poolIDs and amounts of SALT tokens, and checks that the user's freeXSALT, total shares for the pool, the user's pool shares, and the user's SALT balance are updated correctly.
-	function testUserRemovesVotesAndClaimsRewards() public {
-        // Set up initial staking for Alice in pool 1 and pool 2
-        vm.startPrank(alice);
-        staking.stakeSALT(5 ether);
-        staking.depositVotes(poolIDs[1], 3 ether);
-        staking.depositVotes(poolIDs[2], 2 ether);
-        vm.warp(block.timestamp + 1 days);  // Simulate one day passing
-
-        // Verify initial state
-        assertEq(staking.userFreeXSalt(alice), 0 ether);
-        assertEq(totalStakedForPool(poolIDs[1]), 3 ether);
-        assertEq(totalStakedForPool(poolIDs[2]), 2 ether);
-        assertEq(staking.userShareForPool(alice, poolIDs[1]), 3 ether);
-        assertEq(staking.userShareForPool(alice, poolIDs[2]), 2 ether);
-        assertEq(staking.userPendingReward(alice, poolIDs[1]), 0 ether);  // No rewards yet
-        assertEq(staking.userPendingReward(alice, poolIDs[2]), 0 ether);
-
-        // Alice removes votes and claims rewards from pool 1
-        staking.removeVotesAndClaim(poolIDs[1], 3 ether);
-
-        // Verify state after removing votes and claiming rewards from pool 1
-        assertEq(staking.userFreeXSalt(alice), 3 ether);
-        assertEq(totalStakedForPool(poolIDs[1]), 0 ether);
-        assertEq(staking.userShareForPool(alice, poolIDs[1]), 0 ether);
-        assertEq(staking.userPendingReward(alice, poolIDs[1]), 0 ether);  // Rewards should have been claimed
-
-        // Alice removes votes and claims rewards from pool 2
-        staking.removeVotesAndClaim(poolIDs[2], 2 ether);
-
-        // Verify state after removing votes and claiming rewards from pool 2
-        assertEq(staking.userFreeXSalt(alice), 5 ether);
-        assertEq(totalStakedForPool(poolIDs[2]), 0 ether);
-        assertEq(staking.userShareForPool(alice, poolIDs[2]), 0 ether);
-        assertEq(staking.userPendingReward(alice, poolIDs[2]), 0 ether);  // Rewards should have been claimed
-    }
 
 
 	// A unit test which tests the unstakesForUser function for a user with various numbers of unstake requests, and checks that the returned Unstake structs array is accurate.
@@ -432,43 +340,43 @@ contract StakingTest is Test, Deployment
     }
 
 
-	// A unit test which tests the userFreeXSalt function for various users and checks that the returned freeXSALT balance is accurate.
+	// A unit test which tests the userXSalt function for various users and checks that the returned freeXSALT balance is accurate.
 	function testUserBalanceXSALT2() public {
         // Alice stakes 5 ether
         vm.prank(alice);
         staking.stakeSALT(5 ether);
-        assertEq(staking.userFreeXSalt(alice), 5 ether);
+        assertEq(staking.userXSalt(alice), 5 ether);
 
         // Bob stakes 10 ether
         vm.prank(bob);
         staking.stakeSALT(10 ether);
-        assertEq(staking.userFreeXSalt(bob), 10 ether);
+        assertEq(staking.userXSalt(bob), 10 ether);
 
         // Charlie stakes 20 ether
         vm.prank(charlie);
         staking.stakeSALT(20 ether);
-        assertEq(staking.userFreeXSalt(charlie), 20 ether);
+        assertEq(staking.userXSalt(charlie), 20 ether);
 
         // Alice unstakes 2 ether
         vm.prank(alice);
         uint256 unstakeID = staking.unstake(2 ether, 5);
         Unstake memory unstakeInfo = staking.unstakeByID(unstakeID);
         assertEq(unstakeInfo.unstakedXSALT, 2 ether);
-        assertEq(staking.userFreeXSalt(alice), 3 ether);
+        assertEq(staking.userXSalt(alice), 3 ether);
 
         // Bob unstakes 5 ether
         vm.prank(bob);
         unstakeID = staking.unstake(5 ether, 5);
         unstakeInfo = staking.unstakeByID(unstakeID);
         assertEq(unstakeInfo.unstakedXSALT, 5 ether);
-        assertEq(staking.userFreeXSalt(bob), 5 ether);
+        assertEq(staking.userXSalt(bob), 5 ether);
 
         // Charlie unstakes 10 ether
         vm.prank(charlie);
         unstakeID = staking.unstake(10 ether, 5);
         unstakeInfo = staking.unstakeByID(unstakeID);
         assertEq(unstakeInfo.unstakedXSALT, 10 ether);
-        assertEq(staking.userFreeXSalt(charlie), 10 ether);
+        assertEq(staking.userXSalt(charlie), 10 ether);
     }
 
 
@@ -477,41 +385,41 @@ contract StakingTest is Test, Deployment
         // Alice stakes 50 ether (SALT)
         vm.prank(alice);
         staking.stakeSALT(50 ether);
-        assertEq(staking.userFreeXSalt(alice), 50 ether);
+        assertEq(staking.userXSalt(alice), 50 ether);
 
         // Bob stakes 70 ether (SALT)
         vm.prank(bob);
         staking.stakeSALT(70 ether);
-        assertEq(staking.userFreeXSalt(bob), 70 ether);
+        assertEq(staking.userXSalt(bob), 70 ether);
 
         // Charlie stakes 30 ether (SALT)
         vm.prank(charlie);
         staking.stakeSALT(30 ether);
-        assertEq(staking.userFreeXSalt(charlie), 30 ether);
+        assertEq(staking.userXSalt(charlie), 30 ether);
 
         // Alice unstakes 20 ether
         vm.prank(alice);
         uint256 aliceUnstakeID = staking.unstake(20 ether, 4);
         // Check Alice's new balance
-        assertEq(staking.userFreeXSalt(alice), 30 ether);
+        assertEq(staking.userXSalt(alice), 30 ether);
 
         // Bob unstakes 50 ether
         vm.prank(bob);
         staking.unstake(50 ether, 4);
         // Check Bob's new balance
-        assertEq(staking.userFreeXSalt(bob), 20 ether);
+        assertEq(staking.userXSalt(bob), 20 ether);
 
         // Charlie unstakes 10 ether
         vm.prank(charlie);
         staking.unstake(10 ether, 4);
         // Check Charlie's new balance
-        assertEq(staking.userFreeXSalt(charlie), 20 ether);
+        assertEq(staking.userXSalt(charlie), 20 ether);
 
         // Alice cancels unstake
         vm.prank(alice);
         staking.cancelUnstake(aliceUnstakeID);
         // Check Alice's new balance
-        assertEq(staking.userFreeXSalt(alice), 50 ether);
+        assertEq(staking.userXSalt(alice), 50 ether);
 
         uint256 totalStaked = totalStakedOnPlatform();
        	assertEq(totalStaked, 90 ether);
@@ -524,7 +432,7 @@ contract StakingTest is Test, Deployment
         // Alice stakes 10 ether
         vm.startPrank(alice);
         staking.stakeSALT(10 ether);
-        assertEq(staking.userFreeXSalt(alice), 10 ether);
+        assertEq(staking.userXSalt(alice), 10 ether);
 
         // Alice unstakes 5 ether for 3 weeks
         uint256 aliceUnstakeID1 = staking.unstake(5 ether, 3);
@@ -544,7 +452,7 @@ contract StakingTest is Test, Deployment
         // Bob stakes 20 ether
         vm.startPrank(bob);
         staking.stakeSALT(20 ether);
-        assertEq(staking.userFreeXSalt(bob), 20 ether);
+        assertEq(staking.userXSalt(bob), 20 ether);
 
         // Bob unstakes 10 ether for 4 weeks
         uint256 bobUnstakeID1 = staking.unstake(10 ether, 4);
@@ -579,69 +487,18 @@ contract StakingTest is Test, Deployment
         staking.stakeSALT(charlieStakeAmount);
 
         // Check that freeXSALT, totalShares and contract's SALT balance are updated correctly
-        assertEq(staking.userFreeXSalt(alice), aliceStakeAmount);
-        assertEq(staking.userFreeXSalt(bob), bobStakeAmount);
-        assertEq(staking.userFreeXSalt(charlie), charlieStakeAmount);
+        assertEq(staking.userXSalt(alice), aliceStakeAmount);
+        assertEq(staking.userXSalt(bob), bobStakeAmount);
+        assertEq(staking.userXSalt(charlie), charlieStakeAmount);
 
         assertEq(totalStakedForPool(STAKED_SALT), aliceStakeAmount + bobStakeAmount + charlieStakeAmount);
         assertEq(salt.balanceOf(address(staking)), initialSaltBalance + aliceStakeAmount + bobStakeAmount + charlieStakeAmount);
     }
 
 
-	// A unit test which tests multiple users depositing and removing votes simultaneously for various poolIDs and amounts of SALT tokens, and checks that the users' freeXSALT, total shares for the pool, and the user's pool shares are updated correctly without conflicts.
-	function testDepositAndRemoveVotes() public {
-        vm.startPrank(alice);
-        staking.stakeSALT(50 ether);
-        staking.depositVotes(poolIDs[1], 20 ether);
-        assertEq(staking.userFreeXSalt(alice), 30 ether);
-        assertEq(totalStakedForPool(poolIDs[1]), 20 ether);
-        assertEq(staking.userShareForPool(alice, poolIDs[1]), 20 ether);
-        vm.stopPrank();
-
-        vm.startPrank(bob);
-        staking.stakeSALT(40 ether);
-        staking.depositVotes(poolIDs[1], 15 ether);
-        assertEq(staking.userFreeXSalt(bob), 25 ether);
-        assertEq(totalStakedForPool(poolIDs[1]), 35 ether);
-        assertEq(staking.userShareForPool(bob, poolIDs[1]), 15 ether);
-        vm.stopPrank();
-
-        vm.startPrank(charlie);
-        staking.stakeSALT(60 ether);
-        staking.depositVotes(poolIDs[2], 30 ether);
-        assertEq(staking.userFreeXSalt(charlie), 30 ether);
-        assertEq(totalStakedForPool(poolIDs[2]), 30 ether);
-        assertEq(staking.userShareForPool(charlie, poolIDs[2]), 30 ether);
-        vm.stopPrank();
-
-        vm.warp(block.timestamp + 1 weeks);
-
-        vm.startPrank(alice);
-        staking.removeVotesAndClaim(poolIDs[1], 10 ether);
-        assertEq(staking.userFreeXSalt(alice), 40 ether);
-        assertEq(totalStakedForPool(poolIDs[1]), 25 ether);
-        assertEq(staking.userShareForPool(alice, poolIDs[1]), 10 ether);
-        vm.stopPrank();
-
-        vm.startPrank(bob);
-        staking.removeVotesAndClaim(poolIDs[1], 5 ether);
-        assertEq(staking.userFreeXSalt(bob), 30 ether);
-        assertEq(totalStakedForPool(poolIDs[1]), 20 ether);
-        assertEq(staking.userShareForPool(bob, poolIDs[1]), 10 ether);
-        vm.stopPrank();
-
-        vm.startPrank(charlie);
-        staking.removeVotesAndClaim(poolIDs[2], 10 ether);
-        assertEq(staking.userFreeXSalt(charlie), 40 ether);
-        assertEq(totalStakedForPool(poolIDs[2]), 20 ether);
-        assertEq(staking.userShareForPool(charlie, poolIDs[2]), 20 ether);
-        vm.stopPrank();
-    }
-
-
 	// A unit test which tests a user trying to stake a negative amount of SALT tokens and checks that the transaction reverts with an appropriate error message.
 	function testStakeNegativeAmount() public {
-        uint256 initialBalance = staking.userFreeXSalt(alice);
+        uint256 initialBalance = staking.userXSalt(alice);
         uint256 amountToStake = uint256(int256(-1));
 
         vm.expectRevert("ERC20: transfer amount exceeds balance");
@@ -649,7 +506,7 @@ contract StakingTest is Test, Deployment
         staking.stakeSALT(amountToStake);
 
         // Assert that Alice's balance remains unchanged
-        assertEq(staking.userFreeXSalt(alice), initialBalance);
+        assertEq(staking.userXSalt(alice), initialBalance);
     }
 
 
@@ -667,37 +524,6 @@ contract StakingTest is Test, Deployment
         }
 
 
-	// A unit test which tests a user trying to deposit a negative amount of votes and checks that the transaction reverts with an appropriate error message.
-	function testUserDepositNegativeVotes() public {
-		vm.startPrank(alice);
-        // Assume Alice has some free xSALT to vote with
-        staking.stakeSALT(10 ether);
-
-        // Attempt to deposit negative votes, expecting a revert
-        vm.expectRevert("Cannot vote with more than the available xSALT balance");
-        staking.depositVotes(poolIDs[1], uint256(int256(-1 ether)));
-    }
-
-
-	// A unit test which tests a user trying to remove a negative amount of votes and checks that the transaction reverts with an appropriate error message.
-	function testRemoveNegativeVotesRevert() public {
-        vm.startPrank(alice);
-
-        // Assuming alice initially staked some SALT to have xSALT
-        staking.stakeSALT(10 ether);
-
-        // Alice deposits votes to pool[1] with all xSALT
-        staking.depositVotes(poolIDs[1], 10 ether);
-
-        // Alice tries to remove negative votes
-        uint256 negativeVotes = uint256(int256(-5 ether));
-        vm.expectRevert("Cannot decrease more than existing user share");
-        staking.removeVotesAndClaim(poolIDs[1], negativeVotes);
-
-        vm.stopPrank();
-    }
-
-
 	// A unit test which tests multiple users trying to cancel each other's unstake requests and checks that only the original staker can cancel the request.
 	function testCancelUnstake2() public {
         uint256 amountToStake = 10 ether;
@@ -705,12 +531,12 @@ contract StakingTest is Test, Deployment
         // Alice stakes SALT
         vm.prank(alice);
         staking.stakeSALT(amountToStake);
-        assertEq(staking.userFreeXSalt(alice), amountToStake);
+        assertEq(staking.userXSalt(alice), amountToStake);
 
         // Alice unstakes
         vm.prank(alice);
         uint256 aliceUnstakeID = staking.unstake(amountToStake, 4);
-        assertEq(staking.userFreeXSalt(alice), 0);
+        assertEq(staking.userXSalt(alice), 0);
 
         // Bob tries to cancel Alice's unstake request, should revert
         vm.prank(bob);
@@ -725,7 +551,7 @@ contract StakingTest is Test, Deployment
         // Alice cancels her unstake request
         vm.prank(alice);
         staking.cancelUnstake(aliceUnstakeID);
-        assertEq(staking.userFreeXSalt(alice), amountToStake);
+        assertEq(staking.userXSalt(alice), amountToStake);
 
         // Verify unstake status is CANCELLED
         Unstake memory unstake = staking.unstakeByID(aliceUnstakeID);
@@ -744,9 +570,9 @@ contract StakingTest is Test, Deployment
             staking.stakeSALT(50 ether);
 
             // Ensure they have staked correctly
-            assertEq(staking.userFreeXSalt(alice), 50 ether);
-            assertEq(staking.userFreeXSalt(bob), 50 ether);
-            assertEq(staking.userFreeXSalt(charlie), 50 ether);
+            assertEq(staking.userXSalt(alice), 50 ether);
+            assertEq(staking.userXSalt(bob), 50 ether);
+            assertEq(staking.userXSalt(charlie), 50 ether);
 
             // They unstake after a week
             vm.prank(alice);
@@ -800,9 +626,9 @@ contract StakingTest is Test, Deployment
             assertEq(salt.balanceOf(charlie) - charlieSalt, 15 ether);
 
             // Check the final xSALT balances
-            assertEq(staking.userFreeXSalt(alice), 40 ether);
-            assertEq(staking.userFreeXSalt(bob), 30 ether);
-            assertEq(staking.userFreeXSalt(charlie), 20 ether);
+            assertEq(staking.userXSalt(alice), 40 ether);
+            assertEq(staking.userXSalt(bob), 30 ether);
+            assertEq(staking.userXSalt(charlie), 20 ether);
         }
 
 
@@ -871,19 +697,6 @@ contract StakingTest is Test, Deployment
         // Now Alice tries to recover the SALT from the cancelled unstake
         vm.expectRevert("Only PENDING unstakes can be claimed");
         staking.recoverSALT(unstakeID);
-    }
-
-
-	// A unit test to check if the contract reverts when trying to remove more votes than the current user share.
-	function testRemoveMoreVotesThanCurrentShare() public {
-        // Preparations
-        vm.startPrank(alice);
-        staking.stakeSALT(50 ether);
-        staking.depositVotes(poolIDs[1], 30 ether);
-
-        // Trying to remove more votes than available
-        vm.expectRevert("Cannot decrease more than existing user share");
-        staking.removeVotesAndClaim(poolIDs[1], 60 ether);
     }
 
 

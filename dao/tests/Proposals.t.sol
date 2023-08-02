@@ -48,7 +48,7 @@ contract TestProposals is Test, Deployment
 			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig );
 			liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig );
 
-			emissions = new Emissions( staking, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig );
+			emissions = new Emissions( exchangeConfig, rewardsConfig );
 
 			exchangeConfig.setDAO( dao );
 			exchangeConfig.setAccessManager( accessManager );

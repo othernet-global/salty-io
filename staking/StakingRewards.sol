@@ -17,18 +17,16 @@ import "../pools/interfaces/IPoolsConfig.sol";
 //
 // Some examples of what a user's share represents:
 // 1. Staking.sol: the amount of SALT staked (staked to the STAKED_SALT pool)
-//						 and the amount of xSALT staked (voting) for whitelisted pools
-// 2. Liquidity.sol: the amount of LP tokens deposited and staked to specific pools
-// 3. Collateral.sol: the amount of WBTC/WETH liquidity deposited as stablecoin collateral
+// 2. Liquidity.sol: the amount of liquidity deposited and staked to specific pools
 
 contract StakingRewards is IStakingRewards, ReentrancyGuard
     {
+	using SafeERC20 for ISalt;
+
 	event eIncreaseShare(address indexed wallet, bytes32 indexed poolID, uint256 amount);
 	event eDecreaseShareAndClaim(address indexed wallet, bytes32 indexed poolID, uint256 amount);
 	event eClaimRewards(address indexed wallet, bytes32 indexed poolID, uint256 amount);
 	event eClaimAllRewards(address indexed wallet, uint256 amount);
-
-	using SafeERC20 for ISalt;
 
 
 	ISalt immutable public salt;
@@ -183,7 +181,7 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 	// Adds SALT rewards for specific whitelisted pools.
 	// There is some risk of addSALTRewards being front run, but there are multiple mechanisms in place to prevent this from being effective.
 	// 1. There is a cooldown period of default one hour before shares can be modified once deposited.
-	// 2. Staked SALT (required for voting on pools and receiving staking rewards) has a default unstake period of 6 months.
+	// 2. Staked SALT has a default unstake period of 6 months.
 	// 3. Rewards are first placed into a RewardsEmitter which deposits rewards via addSALTRewards at the default rate of 1% per day.
 	// 4. Rewards are deposited fairly quickly, with outstanding rewards being transferred within the global performUpkeep function,
 	//      which will be called at least every 15 minutes - but likely more often.

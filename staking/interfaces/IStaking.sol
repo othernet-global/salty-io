@@ -28,12 +28,9 @@ interface IStaking is IStakingRewards
 	function unstake( uint256 amountUnstaked, uint256 numWeeks ) external returns (uint256 unstakeID);
 	function cancelUnstake( uint256 unstakeID ) external;
 	function recoverSALT( uint256 unstakeID ) external;
-	function depositVotes( bytes32 poolID, uint256 amountToVote ) external;
-	function removeVotesAndClaim( bytes32 poolID, uint256 amountRemoved ) external;
 
 	// Views
-	function userFreeXSalt( address wallet ) external view returns (uint256);
-
+	function userXSalt( address wallet ) external view returns (uint256);
 	function unstakesForUser( address wallet, uint256 start, uint256 end ) external view returns (Unstake[] calldata);
 	function unstakesForUser( address wallet ) external view returns (Unstake[] calldata);
 	function userUnstakeIDs( address user ) external view returns (uint256[] calldata);

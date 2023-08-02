@@ -53,7 +53,7 @@ contract TestDAO is Test, Deployment
 			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig );
 			liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig );
 
-			emissions = new Emissions( staking, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig );
+			emissions = new Emissions( exchangeConfig, rewardsConfig );
 
 			proposals = new Proposals( staking, exchangeConfig, poolsConfig, stakingConfig, daoConfig );
 
@@ -131,8 +131,8 @@ contract TestDAO is Test, Deployment
 			return rewardsConfig.rewardsEmitterDailyPercentTimes1000();
 		else if ( parameter == Parameters.ParameterTypes.emissionsWeeklyPercentTimes1000 )
 			return rewardsConfig.emissionsWeeklyPercentTimes1000();
-		else if ( parameter == Parameters.ParameterTypes.rewardsXSaltHoldersPercent )
-			return rewardsConfig.rewardsXSaltHoldersPercent();
+		else if ( parameter == Parameters.ParameterTypes.stakingRewardsPercent )
+			return rewardsConfig.stakingRewardsPercent();
 
 		else if ( parameter == Parameters.ParameterTypes.rewardPercentForCallingLiquidation )
 			return stableConfig.rewardPercentForCallingLiquidation();
@@ -149,8 +149,8 @@ contract TestDAO is Test, Deployment
 		else if ( parameter == Parameters.ParameterTypes.percentSwapToUSDS )
 			return stableConfig.percentSwapToUSDS();
 
-		else if ( parameter == Parameters.ParameterTypes.bootstrappingRewards )
-			return daoConfig.bootstrappingRewards();
+		else if ( parameter == Parameters.ParameterTypes.bootstrappingRewardsValueInUSDS )
+			return daoConfig.bootstrappingRewardsValueInUSDS();
 		else if ( parameter == Parameters.ParameterTypes.percentPolRewardsBurned )
 			return daoConfig.percentPolRewardsBurned();
 		else if ( parameter == Parameters.ParameterTypes.baseBallotQuorumPercentTimes1000 )
@@ -520,14 +520,14 @@ contract TestDAO is Test, Deployment
 			return address(exchangeConfig.stakingRewardsEmitter());
 		if ( nameHash == keccak256(bytes("liquidityRewardsEmitter" )))
 			return address(exchangeConfig.liquidityRewardsEmitter());
-		if ( nameHash == keccak256(bytes("collateralRewardsEmitter" )))
-			return address(exchangeConfig.collateralRewardsEmitter());
 		if ( nameHash == keccak256(bytes("priceFeed1" )))
 			return address(priceAggregator.priceFeed1());
 		if ( nameHash == keccak256(bytes("priceFeed2" )))
 			return address(priceAggregator.priceFeed2());
 		if ( nameHash == keccak256(bytes("priceFeed3" )))
 			return address(priceAggregator.priceFeed3());
+		if ( nameHash == keccak256(bytes("saltRewards" )))
+			return address(exchangeConfig.saltRewards());
 
 		return address(0);
 		}
@@ -556,12 +556,12 @@ contract TestDAO is Test, Deployment
 		_checkSetContractApproved( 3, "accessManager", address( new AccessManager(dao) ) );
 		_checkSetContractApproved( 5, "stakingRewardsEmitter", address(0x1231233 ) );
 		_checkSetContractApproved( 7, "liquidityRewardsEmitter", address(0x1231234 ) );
-		_checkSetContractApproved( 9, "collateralRewardsEmitter", address(0x1231235 ) );
-		_checkSetContractApproved( 11, "priceFeed1", address(0x1231236 ) );
+		_checkSetContractApproved( 9, "priceFeed1", address(0x1231236 ) );
 		vm.warp(block.timestamp + 60 days);
-		_checkSetContractApproved( 13, "priceFeed2", address(0x1231237 ) );
+		_checkSetContractApproved( 11, "priceFeed2", address(0x1231237 ) );
 		vm.warp(block.timestamp + 60 days);
-		_checkSetContractApproved( 15, "priceFeed3", address(0x1231238 ) );
+		_checkSetContractApproved( 13, "priceFeed3", address(0x1231238 ) );
+		_checkSetContractApproved( 15, "saltRewards", address(0x1231239 ) );
 		}
 
 
@@ -586,7 +586,10 @@ contract TestDAO is Test, Deployment
 		_checkSetContractDenied1( 3, "accessManager", address( new AccessManager(dao) ) );
 		_checkSetContractDenied1( 4, "stakingRewardsEmitter", address(0x1231233 ) );
 		_checkSetContractDenied1( 5, "liquidityRewardsEmitter", address(0x1231234 ) );
-		_checkSetContractDenied1( 6, "collateralRewardsEmitter", address(0x1231235 ) );
+		_checkSetContractDenied1( 6, "priceFeed1", address(0x1231236 ) );
+		_checkSetContractDenied1( 7, "priceFeed2", address(0x1231237 ) );
+		_checkSetContractDenied1( 8, "priceFeed3", address(0x1231238 ) );
+		_checkSetContractDenied1( 9, "saltRewards", address(0x1231239 ) );
 		}
 
 
@@ -613,10 +616,10 @@ contract TestDAO is Test, Deployment
 		_checkSetContractDenied2( 3, "accessManager", address( new AccessManager(dao) ) );
 		_checkSetContractDenied2( 5, "stakingRewardsEmitter", address(0x1231233 ) );
 		_checkSetContractDenied2( 7, "liquidityRewardsEmitter", address(0x1231234 ) );
-		_checkSetContractDenied2( 9, "collateralRewardsEmitter", address(0x1231235 ) );
-		_checkSetContractDenied2( 11, "priceFeed1", address(0x1231236 ) );
-		_checkSetContractDenied2( 13, "priceFeed2", address(0x1231237 ) );
-		_checkSetContractDenied2( 15, "priceFeed3", address(0x1231238 ) );
+		_checkSetContractDenied2( 9, "priceFeed1", address(0x1231236 ) );
+		_checkSetContractDenied2( 11, "priceFeed2", address(0x1231237 ) );
+		_checkSetContractDenied2( 13, "priceFeed3", address(0x1231238 ) );
+		_checkSetContractDenied2( 15, "saltRewards", address(0x1231239 ) );
 		}
 
 

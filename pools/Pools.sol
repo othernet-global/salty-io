@@ -14,12 +14,9 @@ import "../arbitrage/ArbitrageProfits.sol";
 
 contract Pools is IPools, ReentrancyGuard, ArbitrageProfits
 	{
-	struct PoolReserves
-		{
-		uint256 reserve0;					// The token reserves such that address(token0) < address(token1)
-		uint256 reserve1;
-		}
+	using SafeERC20 for IERC20;
 
+    event ArbitrageError(bytes error);
 	event eLiquidityAdded(address indexed user, bytes32 indexed poolID, uint256 addedLiquidity);
 	event eLiquidityRemoved(address indexed user, bytes32 indexed poolID, uint256 removedLiquidity);
 	event eTokensDeposited(address indexed user, IERC20 indexed token, uint256 amount);
@@ -29,7 +26,11 @@ contract Pools is IPools, ReentrancyGuard, ArbitrageProfits
 	// Unused for gas efficiency - saves 2.5k gas for each hop in the swap chain. As swaps include 3-4 hop arbitrage this becomes signifcant exceeding 10% of the transaction gas cost.
 	// event eTokensSwapped(address indexed user, IERC20 indexed tokenIn, IERC20 indexed tokenOut, uint256 amountIn, uint256 amountOut);
 
-	using SafeERC20 for IERC20;
+	struct PoolReserves
+		{
+		uint256 reserve0;					// The token reserves such that address(token0) < address(token1)
+		uint256 reserve1;
+		}
 
 
 	IPoolsConfig immutable public poolsConfig;
@@ -330,12 +331,19 @@ contract Pools is IPools, ReentrancyGuard, ArbitrageProfits
 			swapAmountInValueInETH = ( swapAmountIn * reservesWETH ) / reservesTokenIn;
 			}
 
-		// Determine the best arbitragePath (if any)
-   		(IERC20[] memory arbitrageSwapPath, uint256 arbitrageAmountIn) = poolsConfig.arbitrageSearch().findArbitrage(swapTokenIn, swapTokenOut, swapAmountInValueInETH, isWhitelistedPair );
-
-		// If arbitrage is viable, then perform it
-		if ( arbitrageAmountIn > 0 )
-			_arbitrage( arbitrageSwapPath, arbitrageAmountIn );
+		// Determine the best arbitragePath (if any).
+		// Wrap findArbitrage in a try/catch so as not to revert the swap if there is an error within it (as it is an updateable contract and could potentially include an error)
+		try poolsConfig.arbitrageSearch().findArbitrage(swapTokenIn, swapTokenOut, swapAmountInValueInETH, isWhitelistedPair)
+			returns (IERC20[] memory arbitrageSwapPath, uint256 arbitrageAmountIn)
+			{
+		    // If arbitrage is viable, then perform it
+		    if (arbitrageAmountIn > 0)
+		        _arbitrage(arbitrageSwapPath, arbitrageAmountIn);
+			}
+		catch (bytes memory error)
+			{
+		    emit ArbitrageError(error);
+			}
 		}
 
 

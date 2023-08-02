@@ -8,11 +8,11 @@ import "./interfaces/IDAOConfig.sol";
 // Contract owned by the DAO with parameters modifiable only by the DAO
 contract DAOConfig is IDAOConfig, Ownable
     {
-	// The amount of SALT provided as a bootstrapping reward when a new token is whitelisted.
-	// Note that new tokens will only be able to be whitelisted (even if the vote is favorable) once the DAO SALT balance is at least this amount.
-	// The DAO receives 15 million SALT (linearly over 10 years - about 29k per week) as well as default ~45% of the Protocol Owned Liquidity SALT rewards.
-	// Range: 50k ether to 500k ether with an adjustment of 50k ether
-	uint256 public bootstrappingRewards = 100000 ether;
+	// The USDS value of SALT provided as a bootstrapping reward when a new token is whitelisted.
+	// Note that new tokens will only be able to be whitelisted (even if the vote is favorable) once the DAO SALT value is at least this amount.
+	// The DAO receives 15 million SALT (linearly over 10 years - 29k per week) as well as default 45% of the Protocol Owned Liquidity SALT rewards.
+	// Range: 50k ether to 1000k ether with an adjustment of 50k ether
+	uint256 public bootstrappingRewardsValueInUSDS = 200000 ether;
 
 	// For rewards distributed to the DAO, the percentage of SALT that is burned with the remaining going to the DAO for later use
 	// Range: 25% to 75% with an adjustment of 5%
@@ -59,17 +59,17 @@ contract DAOConfig is IDAOConfig, Ownable
 	uint256 public upkeepRewardPercent = 5;
 
 
-	function changeBootstrappingRewards(bool increase) public onlyOwner
+	function changeBootstrappingRewardsValueInUSDS(bool increase) public onlyOwner
 		{
         if (increase)
         	{
-            if (bootstrappingRewards < 500000 * 1 ether)
-                bootstrappingRewards += 50000 * 1 ether;
+            if (bootstrappingRewardsValueInUSDS < 1000000 * 1 ether)
+                bootstrappingRewardsValueInUSDS += 50000 * 1 ether;
             }
        	 else
        	 	{
-            if (bootstrappingRewards > 50000 * 1 ether)
-                bootstrappingRewards -= 50000 * 1 ether;
+            if (bootstrappingRewardsValueInUSDS > 50000 * 1 ether)
+                bootstrappingRewardsValueInUSDS -= 50000 * 1 ether;
 	        }
     	}
 

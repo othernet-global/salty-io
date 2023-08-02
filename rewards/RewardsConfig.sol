@@ -10,7 +10,7 @@ contract RewardsConfig is IRewardsConfig, Ownable
     {
 	// The target daily percent rewards emitter distribution (from the SALT balance in each emitter contract).
 	// Rewards Emitters distribute SALT rewards over time to the SharedRewards contracts where the rewards can be claimed by users.
-	// Range: .50% to 2.5% with an adjustment of 0.25%
+	// Range: .25% to 2.5% with an adjustment of 0.25%
 	uint256 public rewardsEmitterDailyPercentTimes1000 = 1000;  // Defaults to 1.0% with a 1000x multiplier
 
 	// The weekly percent of SALT emissions that will be distributed from Emissions.sol to the Liquidity and xSALT Holder Reward Emitters.
@@ -19,7 +19,7 @@ contract RewardsConfig is IRewardsConfig, Ownable
 
 	// By default, xSALT holders get 50% and liquidity providers get 50% of emissions and arbitrage profits
 	// Range: 25% to 75% with an adjustment of 5%
-    uint256 public rewardsXSaltHoldersPercent = 50;
+    uint256 public stakingRewardsPercent = 50;
 
 
 	function changeRewardsEmitterDailyPercent(bool increase) public onlyOwner
@@ -31,7 +31,7 @@ contract RewardsConfig is IRewardsConfig, Ownable
             }
         else
             {
-            if (rewardsEmitterDailyPercentTimes1000 > 500)
+            if (rewardsEmitterDailyPercentTimes1000 > 250)
                 rewardsEmitterDailyPercentTimes1000 = rewardsEmitterDailyPercentTimes1000 - 250;
             }
         }
@@ -51,17 +51,17 @@ contract RewardsConfig is IRewardsConfig, Ownable
         }
 
 
-	function changeXSaltHoldersPercent(bool increase) public onlyOwner
+	function changeStakingRewardsPercent(bool increase) public onlyOwner
         {
         if (increase)
             {
-            if (rewardsXSaltHoldersPercent < 75)
-                rewardsXSaltHoldersPercent = rewardsXSaltHoldersPercent + 5;
+            if (stakingRewardsPercent < 75)
+                stakingRewardsPercent = stakingRewardsPercent + 5;
             }
         else
             {
-            if (rewardsXSaltHoldersPercent > 25)
-                rewardsXSaltHoldersPercent = rewardsXSaltHoldersPercent - 5;
+            if (stakingRewardsPercent > 25)
+                stakingRewardsPercent = stakingRewardsPercent - 5;
             }
         }
     }

@@ -110,8 +110,8 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
 			exchangeConfig.setStakingRewardsEmitter( IRewardsEmitter(ballot.address1) );
 		else if ( nameHash == keccak256(bytes( "setContract:liquidityRewardsEmitter_confirm" )) )
 			exchangeConfig.setLiquidityRewardsEmitter( IRewardsEmitter(ballot.address1) );
-		else if ( nameHash == keccak256(bytes( "setContract:collateralRewardsEmitter_confirm" )) )
-			exchangeConfig.setCollateralRewardsEmitter( IRewardsEmitter(ballot.address1) );
+		else if ( nameHash == keccak256(bytes( "setContract:saltRewards_confirm" )) )
+			exchangeConfig.setSaltRewards( ISaltRewards(ballot.address1) );
 		}
 
 
@@ -206,8 +206,8 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
 
 			// Send the initial bootstrappingRewards to promote initial liquidity on these two newly whitelisted pools
 			AddedReward[] memory addedRewards = new AddedReward[](2);
-			addedRewards[0] = AddedReward( pool1, daoConfig.bootstrappingRewards() );
-			addedRewards[1] = AddedReward( pool2, daoConfig.bootstrappingRewards() );
+			addedRewards[0] = AddedReward( pool1, daoConfig.bootstrappingRewardsValueInUSDS() );
+			addedRewards[1] = AddedReward( pool2, daoConfig.bootstrappingRewardsValueInUSDS() );
 
 			liquidityRewardsEmitter.addSALTRewards( addedRewards );
 			}
@@ -238,7 +238,7 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
 	// Call UpkeepPerformer.performUpkeep which in turn calls performUpkeep on various contracts in the protocol.
 	function performUpkeep() public nonReentrant
 		{
-		_performUpkeep( pools, priceAggregator, exchangeConfig, daoConfig );
+		_performUpkeep( pools, priceAggregator, exchangeConfig, poolsConfig, daoConfig );
 		}
 
 
@@ -250,7 +250,7 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
 		// Make sure that the DAO contracts holds the required amount of SALT for bootstrappingRewards.
 		// Twice the specified rewards are needed (for both the token/WBTC and token/WETH pools which will be whitelisted)
 		uint256 saltBalance = exchangeConfig.salt().balanceOf( address(this) );
-		if ( saltBalance < daoConfig.bootstrappingRewards() * 2 )
+		if ( saltBalance < daoConfig.bootstrappingRewardsValueInUSDS() * 2 )
 			return false;
 
 		return true;

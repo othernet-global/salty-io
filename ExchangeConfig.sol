@@ -4,6 +4,7 @@ pragma solidity =0.8.21;
 import "./openzeppelin/access/Ownable.sol";
 import "./interfaces/IExchangeConfig.sol";
 import "./rewards/interfaces/IRewardsEmitter.sol";
+import "./rewards/interfaces/ISaltRewards.sol";
 
 
 // Contract owned by the DAO with parameters modifiable only by the DAO
@@ -15,20 +16,10 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 	IERC20 public usdc;
 	IUSDS public usds;
 
-	// The Salty.IO DAO
-	// The DAO can only be set once
-	IDAO public dao;
-
-	// The rewards emitters
+	IDAO public dao; // can only be set once
 	IRewardsEmitter public stakingRewardsEmitter;
 	IRewardsEmitter public liquidityRewardsEmitter;
-	IRewardsEmitter public collateralRewardsEmitter;
-
-
-	// The contract that determines where or not a given wallet is given access to the exchange.
-	// Defaults to a simple AccessManager in which a user has access if their country is not only the DAO-controlled list of excluded countries.
-	// Note that this could be replaced by alternate AccessManager such as Polygon ID (if the DAO decided that they wanted to do so).
-	// Restricts users swaps, liquidity providing, staking and DAO voting - but always allows existing assets to be removed (in case a user is restricted after depositing assets)
+	ISaltRewards public saltRewards;
 	IAccessManager public accessManager;
 
 
@@ -65,6 +56,14 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 		}
 
 
+	function setSaltRewards( ISaltRewards _saltRewards ) public onlyOwner
+		{
+		require( address(_saltRewards) != address(0), "_saltRewards cannot be address(0)" );
+
+		saltRewards = _saltRewards;
+		}
+
+
 	function setStakingRewardsEmitter( IRewardsEmitter _rewardsEmitter ) public onlyOwner
 		{
 		require( address(_rewardsEmitter) != address(0), "_rewardsEmitter cannot be address(0)" );
@@ -78,14 +77,6 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 		require( address(_rewardsEmitter) != address(0), "_rewardsEmitter cannot be address(0)" );
 
 		liquidityRewardsEmitter = _rewardsEmitter;
-		}
-
-
-	function setCollateralRewardsEmitter( IRewardsEmitter _rewardsEmitter ) public onlyOwner
-		{
-		require( address(_rewardsEmitter) != address(0), "_rewardsEmitter cannot be address(0)" );
-
-		collateralRewardsEmitter = _rewardsEmitter;
 		}
 
 

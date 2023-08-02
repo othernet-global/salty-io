@@ -13,18 +13,16 @@ import "./interfaces/IStaking.sol";
 
 contract Staking is IStaking, StakingRewards
     {
+	using SafeERC20 for ISalt;
+
 	event eStake(address indexed wallet, uint256 amount);
 	event eUnstake(uint256 unstakedID, address indexed wallet, uint256 amount, uint256 numWeeks);
 	event eRecover(address indexed wallet, uint256 indexed unstakeID, uint256 amount);
 	event eCancelUnstake(address indexed wallet, uint256 indexed unstakeID);
-	event eDepositVotes(address indexed wallet, bytes32 pool, uint256 amount);
-	event eRemoveVotes(address indexed wallet, bytes32 pool, uint256 amount);
-
-	using SafeERC20 for ISalt;
 
 
-	// The free xSALT balance for each user: xSALT that hasn't been deposited yet for voting and can be unstaked.
-	mapping(address => uint256) public userFreeXSalt;
+	// The xSALT balance for each user
+	mapping(address => uint256) public userXSalt;
 
 	// The unstakeIDs for each user
 	mapping(address => uint256[]) private _userUnstakeIDs;
@@ -44,7 +42,7 @@ contract Staking is IStaking, StakingRewards
 	function stakeSALT( uint256 amountToStake ) public nonReentrant
 		{
 		// The SALT will be converted instantly to xSALT
-		userFreeXSalt[msg.sender] += amountToStake;
+		userXSalt[msg.sender] += amountToStake;
 
 		// Increase the user's staking share so that they will receive more future SALT rewards
 		// No cooldown as it takes default 6 months to unstake the xSALT to receive the full amount staked SALT back
@@ -61,7 +59,7 @@ contract Staking is IStaking, StakingRewards
 	function unstake( uint256 amountUnstaked, uint256 numWeeks ) public nonReentrant returns (uint256 unstakeID)
 		{
 		require( msg.sender != address(exchangeConfig.dao()), "DAO cannot unstake" );
-		require( amountUnstaked <= userFreeXSalt[msg.sender], "Cannot unstake more than the xSALT balance" );
+		require( amountUnstaked <= userXSalt[msg.sender], "Cannot unstake more than the xSALT balance" );
 
 		uint256 claimableSALT = calculateUnstake( amountUnstaked, numWeeks );
 		uint256 completionTime = block.timestamp + numWeeks * ( 1 weeks );
@@ -73,7 +71,7 @@ contract Staking is IStaking, StakingRewards
 		_userUnstakeIDs[msg.sender].push( unstakeID );
 
 		// Unstaking immediately reduces the user's xSALT balance even though there will be the specified delay to convert it back to SALT
-		userFreeXSalt[msg.sender] -= amountUnstaked;
+		userXSalt[msg.sender] -= amountUnstaked;
 
 		// Decrease the user's staking share so that they will receive less future SALT rewards
 		// This call will send any pending SALT rewards to msg.sender as well.
@@ -94,7 +92,7 @@ contract Staking is IStaking, StakingRewards
 		require( msg.sender == u.wallet, "Not the original staker" );
 
 		// User will be able to use the xSALT again immediately
-		userFreeXSalt[msg.sender] += u.unstakedXSALT;
+		userXSalt[msg.sender] += u.unstakedXSALT;
 
 		// Update the user's share of the rewards for staked SALT
 		_increaseUserShare( msg.sender, STAKED_SALT, u.unstakedXSALT, false );
@@ -142,44 +140,6 @@ contract Staking is IStaking, StakingRewards
 		salt.safeTransfer( msg.sender, claimableSALT );
 
 		emit eRecover( msg.sender, unstakeID, claimableSALT );
-		}
-
-
-	// ===== VOTING =====
-
-	// Deposit xSALT to vote for a given whitelisted pool.
-	function depositVotes( bytes32 poolID, uint256 amountToVote ) public nonReentrant
-		{
-		// Don't allow voting for the STAKED_SALT pool
-		require( poolID != STAKED_SALT, "Cannot vote for the STAKED_SALT pool" );
-
-		// Reduce the user's available free xSALT by the amount they are depositing
-   		require( amountToVote <= userFreeXSalt[msg.sender], "Cannot vote with more than the available xSALT balance" );
-   		userFreeXSalt[msg.sender] -= amountToVote;
-
-		// Update the user's share of the rewards for the pool.
-		// Cooldown is used to prevent reward hunting for pool voting.
-   		_increaseUserShare( msg.sender, poolID, amountToVote, true );
-
-   		emit eDepositVotes( msg.sender, poolID, amountToVote );
-		}
-
-
-	// Withdraw xSALT votes from a specified pool and claim any pending rewards.
-	function removeVotesAndClaim( bytes32 poolID, uint256 amountRemoved ) public nonReentrant
-		{
-		// Don't allow calling with pool 0
-		require( poolID != STAKED_SALT, "Cannot remove votes from the STAKED_SALT pool" );
-
-		// Increase the user's available xSALT by the amount they are withdrawing
-		// Note that user balance checks will be done within _decreaseUserShare below
-   		userFreeXSalt[msg.sender] += amountRemoved;
-
-		// Update the user's share of the rewards for the pool and claim any pending rewards.
-		// Cooldown is used to prevent reward hunting for pool voting.
-		_decreaseUserShare( msg.sender, poolID, amountRemoved, true );
-
-   		emit eRemoveVotes( msg.sender, poolID, amountRemoved );
 		}
 
 

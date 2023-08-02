@@ -10,8 +10,6 @@ contract Salt is ISalt, ERC20
 	uint256 public constant MILLION_ETHER = 1000000 ether;
 	uint256 public constant INITIAL_SUPPLY = 100 * MILLION_ETHER ;
 
-	uint256 public totalBurned = 0;
-
 
 	constructor()
 		ERC20( "testSALT", "SALT" )
@@ -27,9 +25,14 @@ contract Salt is ISalt, ERC20
     	uint256 balance = balanceOf( address(this) );
     	_burn( address(this), balance );
 
-		totalBurned = totalBurned + balance;
-
     	return balance;
+    	}
+
+
+    // === VIEWS ===
+    function totalBurned() public view returns (uint256)
+    	{
+    	return INITIAL_SUPPLY - totalSupply();
     	}
 	}
 

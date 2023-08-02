@@ -70,8 +70,8 @@ contract TestParametersOffchain is Test
 			return rewardsConfig.rewardsEmitterDailyPercentTimes1000();
 		else if ( parameter == Parameters.ParameterTypes.emissionsWeeklyPercentTimes1000 )
 			return rewardsConfig.emissionsWeeklyPercentTimes1000();
-		else if ( parameter == Parameters.ParameterTypes.rewardsXSaltHoldersPercent )
-			return rewardsConfig.rewardsXSaltHoldersPercent();
+		else if ( parameter == Parameters.ParameterTypes.stakingRewardsPercent )
+			return rewardsConfig.stakingRewardsPercent();
 
 		else if ( parameter == Parameters.ParameterTypes.rewardPercentForCallingLiquidation )
 			return stableConfig.rewardPercentForCallingLiquidation();
@@ -88,8 +88,8 @@ contract TestParametersOffchain is Test
 		else if ( parameter == Parameters.ParameterTypes.percentSwapToUSDS )
 			return stableConfig.percentSwapToUSDS();
 
-		else if ( parameter == Parameters.ParameterTypes.bootstrappingRewards )
-			return daoConfig.bootstrappingRewards();
+		else if ( parameter == Parameters.ParameterTypes.bootstrappingRewardsValueInUSDS )
+			return daoConfig.bootstrappingRewardsValueInUSDS();
 		else if ( parameter == Parameters.ParameterTypes.percentPolRewardsBurned )
 			return daoConfig.percentPolRewardsBurned();
 		else if ( parameter == Parameters.ParameterTypes.baseBallotQuorumPercentTimes1000 )
@@ -189,9 +189,9 @@ contract TestParametersOffchain is Test
 		{
 		vm.startPrank(address(parameters));
 
-		_checkParameter( Parameters.ParameterTypes.rewardsEmitterDailyPercentTimes1000, 500, 1000, 2500, 250 );
+		_checkParameter( Parameters.ParameterTypes.rewardsEmitterDailyPercentTimes1000, 250, 1000, 2500, 250 );
 		_checkParameter( Parameters.ParameterTypes.emissionsWeeklyPercentTimes1000, 250, 500, 1000, 250 );
-		_checkParameter( Parameters.ParameterTypes.rewardsXSaltHoldersPercent, 25, 50, 75, 5 );
+		_checkParameter( Parameters.ParameterTypes.stakingRewardsPercent, 25, 50, 75, 5 );
 		}
 
 
@@ -221,7 +221,7 @@ contract TestParametersOffchain is Test
 	function testDAOParameters() public
 		{
 		vm.startPrank(address(parameters));
-		_checkParameter( Parameters.ParameterTypes.bootstrappingRewards, 50000 ether, 100000 ether, 500000 ether, 50000 ether );
+		_checkParameter( Parameters.ParameterTypes.bootstrappingRewardsValueInUSDS, 50000 ether, 200000 ether, 1000000 ether, 50000 ether );
 		_checkParameter( Parameters.ParameterTypes.percentPolRewardsBurned, 25, 50, 75, 5 );
 		_checkParameter( Parameters.ParameterTypes.baseBallotQuorumPercentTimes1000, 5000, 10000, 20000, 1000 );
 		_checkParameter( Parameters.ParameterTypes.ballotDuration, 3 days, 10 days, 14 days, 1 days );

@@ -8,6 +8,7 @@ import "../stable/interfaces/IUSDS.sol";
 import "../interfaces/ISalt.sol";
 import "../rewards/interfaces/IRewardsEmitter.sol";
 import "../rewards/interfaces/IRewardsConfig.sol";
+import "../rewards/interfaces/ISaltRewards.sol";
 
 interface IExchangeConfig
 	{
@@ -15,7 +16,7 @@ interface IExchangeConfig
 	function setAccessManager( IAccessManager _accessManager ) external; // onlyOwner
 	function setStakingRewardsEmitter( IRewardsEmitter _rewardsEmitter ) external; // onlyOwner
 	function setLiquidityRewardsEmitter( IRewardsEmitter _rewardsEmitter ) external; // onlyOwner
-	function setCollateralRewardsEmitter( IRewardsEmitter _rewardsEmitter ) external; // onlyOwner
+	function setSaltRewards( ISaltRewards _saltRewards ) external; // onlyOwner
 
 	// Views
 	function salt() external view returns (ISalt);
@@ -28,7 +29,7 @@ interface IExchangeConfig
 	function dao() external view returns (IDAO);
 	function stakingRewardsEmitter() external view returns (IRewardsEmitter);
 	function liquidityRewardsEmitter() external view returns (IRewardsEmitter);
-	function collateralRewardsEmitter() external view returns (IRewardsEmitter);
+	function saltRewards() external view returns (ISaltRewards);
 
 	function walletHasAccess( address wallet ) external view returns (bool);
 	}

@@ -81,15 +81,7 @@ contract TestDeployment is Deployment, Test
         assertEq( getContract(address(liquidityRewardsEmitter), "stakingConfig()"), address(stakingConfig), "Incorrect liquidityRewardsEmitter.stakingConfig" );
 		assertEq( getContract(address(liquidityRewardsEmitter), "rewardsConfig()"), address(rewardsConfig), "Incorrect liquidityRewardsEmitter.rewardsConfig" );
 
-		assertEq( getContract(address(collateralRewardsEmitter), "stakingRewards()"), address(collateral), "Incorrect collateralRewardsEmitter.stakingRewards" );
-        assertEq( getContract(address(collateralRewardsEmitter), "poolsConfig()"), address(poolsConfig), "Incorrect collateralRewardsEmitter.poolsConfig" );
-        assertEq( getContract(address(collateralRewardsEmitter), "stakingConfig()"), address(stakingConfig), "Incorrect collateralRewardsEmitter.stakingConfig" );
-		assertEq( getContract(address(collateralRewardsEmitter), "rewardsConfig()"), address(rewardsConfig), "Incorrect collateralRewardsEmitter.rewardsConfig" );
-
-        assertEq( getContract(address(emissions), "staking()"), address(staking), "Incorrect emissions.staking" );
         assertEq( getContract(address(emissions), "exchangeConfig()"), address(exchangeConfig), "Incorrect emissions.exchangeConfig" );
-		assertEq( getContract(address(emissions), "stakingConfig()"), address(stakingConfig), "Incorrect emissions.stakingConfig" );
-		assertEq( getContract(address(emissions), "poolsConfig()"), address(poolsConfig), "Incorrect emissions.poolsConfig" );
         assertEq( getContract(address(emissions), "rewardsConfig()"), address(rewardsConfig), "Incorrect emissions.rewardsConfig" );
 
 		assertEq( getContract(address(dao), "proposals()"), address(proposals), "Incorrect dao.proposals" );
@@ -149,18 +141,11 @@ contract TestDeployment is Deployment, Test
 
         assertEq( getContract(address(arbitrageSearch), "pools()"), address(pools), "Incorrect arbitrageSearch.pools" );
         assertEq( getContract(address(arbitrageSearch), "exchangeConfig()"), address(exchangeConfig), "Incorrect arbitrageSearch.exchangeConfig" );
-//
+
 //        if ( DEBUG )
 //        	assertTrue( functionExists( address(accessManager), "isTest()" ), "For DEBUG: The AccessManager should be a TestAccessManager" );
 //        else
 //        	assertFalse( functionExists( address(accessManager), "isTest()" ), "For DEBUG: The AccessManager should not be a TestAccessManager" );
-//
-//        assertEq( getContract(address(optimizer), "weth()"), address(weth), "Incorrect optimizer.weth" );
-//        assertEq( getContract(address(optimizer), "stakingConfig()"), address(stakingConfig), "Incorrect optimizer.stakingConfig" );
-//        assertEq( getContract(address(optimizer), "exchangeConfig()"), address(exchangeConfig), "Incorrect optimizer.exchangeConfig" );
-//        assertEq( getContract(address(optimizer), "liquidityRewardsEmitter()"), address(liquidityRewardsEmitter), "Incorrect optimizer.liquidityRewardsEmitter" );
-//        assertEq( getContract(address(optimizer), "factory()"), address(factory), "Incorrect optimizer.factory" );
-//        assertEq( getContract(address(optimizer), "router()"), address(router), "Incorrect optimizer.router" );
     	}
 
 
@@ -195,7 +180,6 @@ contract TestDeployment is Deployment, Test
 		console.log( "" );
    		console.log( "stakingRewardsEmitter: ", address(stakingRewardsEmitter) );
    		console.log( "liquidityRewardsEmitter: ", address(liquidityRewardsEmitter) );
-   		console.log( "collateralRewardsEmitter: ", address(collateralRewardsEmitter) );
 		console.log( "" );
 //   		console.log( "optimizer: ", address(optimizer) );
    		console.log( "arbitrageSearch: ", address(arbitrageSearch) );

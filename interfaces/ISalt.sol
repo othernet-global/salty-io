@@ -7,4 +7,7 @@ import "../openzeppelin/token/ERC20/IERC20.sol";
 interface ISalt is IERC20
 	{
 	function burnTokensInContract() external returns (uint256);
+
+	// Views
+	function totalBurned() external returns (uint256);
 	}

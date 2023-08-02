@@ -26,7 +26,7 @@ contract Parameters
 		// RewardsConfig
     	rewardsEmitterDailyPercentTimes1000,
 		emissionsWeeklyPercentTimes1000,
-		rewardsXSaltHoldersPercent,
+		stakingRewardsPercent,
 
 		// StableConfig
 		rewardPercentForCallingLiquidation,
@@ -38,7 +38,7 @@ contract Parameters
 		percentSwapToUSDS,
 
 		// DAOConfig
-		bootstrappingRewards,
+		bootstrappingRewardsValueInUSDS,
 		percentPolRewardsBurned,
 		baseBallotQuorumPercentTimes1000,
 		ballotDuration,
@@ -77,8 +77,8 @@ contract Parameters
 			rewardsConfig.changeRewardsEmitterDailyPercent(increase);
 		else if ( parameterType == ParameterTypes.emissionsWeeklyPercentTimes1000 )
 			rewardsConfig.changeEmissionsWeeklyPercent(increase);
-		else if ( parameterType == ParameterTypes.rewardsXSaltHoldersPercent )
-			rewardsConfig.changeXSaltHoldersPercent(increase);
+		else if ( parameterType == ParameterTypes.stakingRewardsPercent )
+			rewardsConfig.changeStakingRewardsPercent(increase);
 
 		// StableConfig
 		else if ( parameterType == ParameterTypes.rewardPercentForCallingLiquidation )
@@ -97,8 +97,8 @@ contract Parameters
 			stableConfig.changePercentSwapToUSDS(increase);
 
 		// DAOConfig
-		else if ( parameterType == ParameterTypes.bootstrappingRewards )
-			daoConfig.changeBootstrappingRewards(increase);
+		else if ( parameterType == ParameterTypes.bootstrappingRewardsValueInUSDS )
+			daoConfig.changeBootstrappingRewardsValueInUSDS(increase);
 		else if ( parameterType == ParameterTypes.percentPolRewardsBurned )
 			daoConfig.changePercentPolRewardsBurned(increase);
 		else if ( parameterType == ParameterTypes.baseBallotQuorumPercentTimes1000 )

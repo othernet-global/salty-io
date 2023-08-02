@@ -13,10 +13,9 @@ import "../openzeppelin/security/ReentrancyGuard.sol";
 // Stores SALT rewards for later distribution at a default rate of 1% per day to those holding shares in the specified StakingRewards contract.
 // The gradual emissions rate is to help offset the natural rewards fluctuation and create a more stable yield.
 // This also creates an easy mechanism to see what the current yield is for any pool as the emitter acts like an exponential average of the incoming SALT rewards.
-// There will be one RewardsEmitter for each contract derived from StakingRewards.sol - namely Staking.sol, Liquidity.sol and Collateral.sol.
-// Staking.sol - allows users to stake SALT to acquire xSALT and stake xSALT to cast votes for specific pools.
+// There will be one RewardsEmitter for each contract derived from StakingRewards.sol - namely Staking.sol and Liquidity.sol
+// Staking.sol - allows users to stake SALT to acquire xSALT.
 // Liquidity.sol - allows liquidity providers to deposit and stake liquidity.
-// Collateral.sol - allows users to deposit and stake WBTC/WETH liquidity as collateral for borrowing USDS stablecoin.
 
 contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
     {

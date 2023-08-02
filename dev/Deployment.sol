@@ -25,8 +25,8 @@ contract Deployment
 
 	IForcedPriceFeed public forcedPriceFeed = IForcedPriceFeed(address(0x3B0Eb37f26b502bAe83df4eCc54afBDfb90B5d3a));
 
-	IDAO public dao = IDAO(address(0xfB7B55C603DE9c35b2fa8CA19745C04511f14858));
-	Emissions public emissions = Emissions(address(0x273C76135C08C07Bafd1864a5fc91a1C770977f7));
+	IDAO public dao = IDAO(address(0xb66B49d7674dC52207a09dd902401b64Cd14C716));
+	Emissions public emissions = Emissions(address(0x5bb846a251aa791308a9f4Ea21AF01EFF12CE633));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));
@@ -44,11 +44,10 @@ contract Deployment
 
 	IRewardsEmitter public stakingRewardsEmitter = IRewardsEmitter(getContract(address(exchangeConfig), "stakingRewardsEmitter()" ));
 	IRewardsEmitter public liquidityRewardsEmitter = IRewardsEmitter(getContract(address(exchangeConfig), "liquidityRewardsEmitter()" ));
-	IRewardsEmitter public collateralRewardsEmitter = IRewardsEmitter(getContract(address(exchangeConfig), "collateralRewardsEmitter()" ));
 
 	IStaking public staking = IStaking(getContract(address(stakingRewardsEmitter), "stakingRewards()" ));
 	ILiquidity public liquidity = ILiquidity(getContract(address(liquidityRewardsEmitter), "stakingRewards()" ));
-	ICollateral public collateral = ICollateral(getContract(address(collateralRewardsEmitter), "stakingRewards()" ));
+	ICollateral public collateral = ICollateral(getContract(address(usds), "collateral()" ));
 
 	IPools public pools = IPools(getContract(address(collateral), "pools()" ));
 

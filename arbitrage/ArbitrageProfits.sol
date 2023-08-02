@@ -9,9 +9,9 @@ contract ArbitrageProfits
 	IExchangeConfig immutable public exchangeConfig;
 
 	// The profits (in WETH) that were contributed by each pool since the last performUpkeep was called.
-	// These will be referenced on performUpkeep to send rewards to pools proportional to the contribution they made in generating the arbitrage profits.
+	// These will be referenced on UpkeepPerformer.performUpkeep() to send rewards to pools proportional to the contribution they made in generating the arbitrage profits.
 	// After the proportional rewards are sent, the mappings are cleared for all whitelisted poolIDs.
-	mapping(bytes32=>uint256) public profitsForPools;
+	mapping(bytes32=>uint256) private _profitsForPools;
 
 
 	constructor( IExchangeConfig _exchangeConfig )
@@ -31,7 +31,7 @@ contract ArbitrageProfits
 		uint256 profitPerPool = arbitrageProfit / arbitragePathPoolIDs.length;
 
 		for( uint256 i = 0; i < arbitragePathPoolIDs.length; i++ )
-			profitsForPools[ arbitragePathPoolIDs[i] ] += profitPerPool;
+			_profitsForPools[ arbitragePathPoolIDs[i] ] += profitPerPool;
 		}
 
 
@@ -40,6 +40,17 @@ contract ArbitrageProfits
 		require( msg.sender == address(exchangeConfig.dao()), "ArbitrageProfits.performUpkeep only callable from the DAO contract" );
 
 		for( uint256 i = 0; i < poolIDs.length; i++ )
-			profitsForPools[ poolIDs[i] ] = 0;
+			_profitsForPools[ poolIDs[i] ] = 0;
+		}
+
+
+	// === VIEWS ===
+
+	function profitsForPools( bytes32[] memory poolIDs ) public view returns (uint256[] memory profits)
+		{
+		profits = new uint256[]( poolIDs.length );
+
+		for( uint256 i = 0; i < profits.length; i++ )
+			profits[i] = _profitsForPools[ poolIDs[i] ];
 		}
 	}
