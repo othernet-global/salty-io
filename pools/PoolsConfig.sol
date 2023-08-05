@@ -24,8 +24,8 @@ contract PoolsConfig is IPoolsConfig, Ownable
     using EnumerableSet for EnumerableSet.Bytes32Set;
 
 
-	// For finding profitable circular arbitrage paths after swaps
 	IArbitrageSearch public arbitrageSearch;
+	ICounterswap public counterswap;
 
 	// Keeps track of what pools have been whitelisted
 	EnumerableSet.Bytes32Set private _whitelist;
@@ -33,6 +33,8 @@ contract PoolsConfig is IPoolsConfig, Ownable
 	// A mapping from poolIDs to the underlying TokenPair
 	mapping(bytes32=>TokenPair) public underlyingPoolTokens;
 
+	// A special pool that represents staked SALT that is not associated with any particular pool.
+    bytes32 public constant STAKED_SALT = bytes32(0);
 
 	// The maximum number of pools that can be whitelisted at any one time.
 	// If the maximum number of pools is reached, some tokens will need to be delisted before new ones can be whitelisted
@@ -42,10 +44,6 @@ contract PoolsConfig is IPoolsConfig, Ownable
 	// The percent of arbitrage profit that is sent to the DAO when _arbitrage() is called
 	// Range: 20% to 50% with an adjustment of 5%
 	uint256 public daoPercentShareArbitrage = 30;
-
-	// A special pool that represents staked SALT that is not associated with any particular pool.
-    bytes32 public constant STAKED_SALT = bytes32(0);
-
 
 
 	// Whitelist a given pair of tokens
@@ -77,6 +75,14 @@ contract PoolsConfig is IPoolsConfig, Ownable
 		require( address(_arbitrageSearch) != address(0), "_arbitrageSearch cannot be address(0)" );
 
 		arbitrageSearch = _arbitrageSearch;
+		}
+
+
+	function setCounterswap( ICounterswap _counterswap) public onlyOwner
+		{
+		require( address(_counterswap) != address(0), "_counterswap cannot be address(0)" );
+
+		counterswap = _counterswap;
 		}
 
 

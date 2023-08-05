@@ -6,79 +6,121 @@ import "../pools/interfaces/IPools.sol";
 import "../pools/interfaces/IPoolsConfig.sol";
 import "../interfaces/IExchangeConfig.sol";
 import "../price_feed/interfaces/IPriceAggregator.sol";
+import "../openzeppelin/token/ERC20/utils/SafeERC20.sol";
 
 
-// Performs upkeep on the exchange:
-// 1. Withdraws the WETH deposited in the Pools contract (from previous automatic arbitrage).
-// 2. Updates the prices of BTC and ETH in the PriceAggregator.
-// 3. Converts a default 70% of WETH to SALT and sends it to the relevant RewardsEmitters.
-// 4. Sends a default 5% of the remaining WETH to the caller of performUpkeep()
-// 5. Uses the remaining WETH in the contract to form the highest yield POL - choosing from the SALT/WBTC, SALT/WETH and SALT/USDS pools.
-// 6. Calls ArbitrageProfits.clearProfitsForPools (which was used in the above step).
-// 7. Sends SALT Emissions to the staking and liquidity RewardsEmitters.
-// 8. Distributes SALT from the staking, liquidity and collateral RewardsEmitters.
-// 9. Sells liquidated WBTC and WETH to burn the required amount of USDS from liquidated positions.
-// 10. Collects SALT rewards from Protocol Owned Liquidity (SALT/WBTC, SALT/WETH or SALT/USDS): burns 45% and sends 10% to the team.
-// 11. Releases SALT from the DAO vesting wallet (linear distribution over 10 years).
-// 12. Releases SALT from the team vesting wallet (linear distribution over 10 years).
+// Performs the following upkeep on the exchange for each call to DAO.performUpkeep():
+// 1. Updates the prices of BTC and ETH in the PriceAggregator.
+// 2. Withdraws the WETH deposited in the Pools contract (from previous automatic arbitrage).
+// 3. Sends a default 5% of the withdrawn WETH to the caller of performUpkeep().
+// 4. Send 85% of the remaining withdrawn WETH to the Pools.WETH_SALT_BUFFER so that it can gradually be converted to SALT without haveing to worry about frontrunning.
+// 5. Withdraw converted SALT from the Pools.WETH_SALT_BUFFER.
+// 5. Converts any remaining WETH to SALT and sends it to the SaltRewards contract (to be sent in a later step to the stakingRewardsEmitter and liquidityRewardsEmitter).
+// 6. Sends SALT Emissions to the SaltRewards contract.
+// 7. Distributes SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter using SaltRewards.performUpkeep();
+// 8. Sells liquidated WBTC and WETH to burn the required amount of USDS from liquidated collateral positions.
+// 9. Collects SALT rewards from Protocol Owned Liquidity (SALT/WBTC, SALT/WETH or SALT/USDS): burns 45% and sends 10% to the team.
+// 10. Releases SALT from the DAO vesting wallet (linear distribution over 10 years).
+// 11. Releases SALT from the Team vesting wallet (linear distribution over 10 years).
 
 
 contract UpkeepPerformer
     {
+	using SafeERC20 for ISalt;
+	using SafeERC20 for IERC20;
+
     event UpkeepError(string description, bytes error);
+
+	IExchangeConfig public exchangeConfig;
+	IERC20 public wbtc;
+	IERC20 public weth;
+	ISalt public salt;
+	IUSDS public usds;
 
 	uint256 public lastUpkeepTime;
 
 
-    constructor()
+    constructor( IExchangeConfig _exchangeConfig )
 		{
+		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
+
+		exchangeConfig = _exchangeConfig;
+
+		// Cached for efficiency
+		wbtc = exchangeConfig.wbtc();
+		weth = exchangeConfig.weth();
+		salt = exchangeConfig.salt();
+		usds = exchangeConfig.usds();
+
 		lastUpkeepTime = block.timestamp;
 		}
 
 
-	// 1. Withdraw the WETH deposited in the Pools contract (from previous automatic arbitrage).
-	function _step1( IPools pools ) internal
+	// 1. Update the prices of BTC and ETH in the PriceAggregator.
+	function step1( IPriceAggregator priceAggregator ) public
 		{
- 		try pools.performUpkeep() {}
-		catch (bytes memory error) { emit UpkeepError("Step 1", error); }
+		require( msg.sender == address(this), "Only callable from within the same contract" );
+
+ 		priceAggregator.performUpkeep();
 		}
 
 
-	// 2. Update the prices of BTC and ETH in the PriceAggregator.
-	function _step2( IPriceAggregator priceAggregator ) internal
+	// 2. Withdraw the WETH deposited in the Pools contract (from previous automatic arbitrage).
+	function step2( IPools pools ) public
 		{
- 		try priceAggregator.performUpkeep() {}
-		catch (bytes memory error) { emit UpkeepError("Step 2", error); }
+		require( msg.sender == address(this), "Only callable from within the same contract" );
+
+ 		pools.withdrawArbitrageProfitsAndSendToDAO();
 		}
 
 
-	// 3. Swap a default 70% of withdrawn WETH to SALT and send it to the relevant RewardsEmitters based on how much each pool contributed to the generated profit.
-	function _step3( IERC20 weth, IDAOConfig daoConfig ) internal
+	// 3. Send a default 5% of the withdrawn WETH to the caller of performUpkeep().
+	function step3( IDAOConfig daoConfig ) public
 		{
+		require( msg.sender == address(this), "Only callable from within the same contract" );
+
 		uint256 wethBalance = weth.balanceOf( address(this) );
-		uint256 wethToSwap = wethBalance * daoConfig.daoArbitragePercent() / 100;
+		uint256 rewardAmount = wethBalance * daoConfig.upkeepRewardPercent() / 100;
 
-		// Send rewards to WBTC/WBTC liquidity providers first
-
+		// Send the reward
+		weth.safeTransfer(msg.sender, rewardAmount);
 		}
 
 
-	function _performUpkeep( IPools pools, IPriceAggregator priceAggregator, IExchangeConfig exchangeConfig, IPoolsConfig poolsConfig, IDAOConfig daoConfig ) internal
+	// 4. Uses a default 30% of the remaining WETH to form the highest yield POL - choosing from the SALT/WBTC, SALT/WETH and SALT/USDS pools.
+	function step4( IDAOConfig daoConfig ) public
+		{
+		require( msg.sender == address(this), "Only callable from within the same contract" );
+
+		uint256 wethBalance = weth.balanceOf( address(this) );
+		uint256 saltAmountForPOL = wethBalance * daoConfig.daoArbitragePercent() / 100;
+
+
+//		incomplete
+		}
+
+
+	// Perform the various steps of performUpkeep as outlined at the top of the contract.
+	// Each step is wrapped in a try/catch and called using this.stepX() - with each stepX function requiring that the caller has to be this contract.
+	function _performUpkeep( IPools pools, IPriceAggregator priceAggregator, IPoolsConfig poolsConfig, IDAOConfig daoConfig ) internal
 		{
 		uint256 timeSinceLastUpkeep = block.timestamp - lastUpkeepTime;
 
-		IERC20 weth = exchangeConfig.weth();
 		bytes32[] memory poolIDs = poolsConfig.whitelistedPools();
 
-		// Perform the multiple perform upkeep steps.
-		// Try/catch blocks are used within each one so that if any of the steps reverts it won't halt the rest of the upkeep.
-		// Upkeep steps do not require the previous steps in the process are successful.
+		// Perform the multiple steps to perform upkeep.
+		// Try/catch blocks are used to prevent any of the steps (which are not independent from previosu steps) from reverting the transaction.
+ 		try this.step1(priceAggregator) {}
+		catch (bytes memory error) { emit UpkeepError("Step 1", error); }
 
-		_step1(pools);
-		_step2(priceAggregator);
-		_step3(weth, daoConfig);
+ 		try this.step2(pools) {}
+		catch (bytes memory error) { emit UpkeepError("Step 2", error); }
 
-//		clear profitsForPools
+ 		try this.step3(daoConfig) {}
+		catch (bytes memory error) { emit UpkeepError("Step 3", error); }
+
+ 		try this.step4(daoConfig) {}
+		catch (bytes memory error) { emit UpkeepError("Step 4", error); }
 
 		lastUpkeepTime = block.timestamp;
 		}

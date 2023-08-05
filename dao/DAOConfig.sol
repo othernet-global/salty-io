@@ -54,7 +54,7 @@ contract DAOConfig is IDAOConfig, Ownable
 	// Range: 15% to 45% with an adjustment of 5%
 	uint256 public daoArbitragePercent = 30;
 
-	// The share of the WETH arbitrage profits sent to the DAO that are sent to the caller of Upkeep.performUpkeep()
+	// The share of the WETH arbitrage profits sent to the DAO that are sent to the caller of DAO.performUpkeep()
 	// Range: 1% to 10% with an adjustment of 1%
 	uint256 public upkeepRewardPercent = 5;
 

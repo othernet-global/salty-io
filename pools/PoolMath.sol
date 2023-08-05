@@ -1,7 +1,8 @@
 pragma solidity =0.8.21;
 
 import "../openzeppelin/utils/math/Math.sol";
-
+import "../openzeppelin/token/ERC20/ERC20.sol";
+import "./interfaces/IPools.sol";
 
 /*
 	=== DERIVATION ===
@@ -195,17 +196,30 @@ library PoolMath
     	}
 
 
-    // Determine which token is in excess and how much of it needs to be swapped by calling _zapSwapAmount above
-    function determineZapSwapAmount( uint256 reserve0, uint256 reserve1, uint256 zapAmount0, uint256 zapAmount1, uint8 decimals0, uint8 decimals1 ) internal pure returns (uint256 swapAmount0, uint256 swapAmount1 )
-    	{
-    	// zapAmount0 / zapAmount1 exceeds the ratio of reserve0 / reserve1? - meaning too much zapAmount0
-		if ( zapAmount0 * reserve1 > reserve0 * zapAmount1 )
-			return (_zapSwapAmount( reserve0, reserve1, zapAmount0, zapAmount1, decimals0, decimals1 ), 0);
 
-    	// zapAmount0 / zapAmount1 is less than the ratio of reserve0 / reserve1? - meaning too much zapAmount1
-		if ( zapAmount0 * reserve1 < reserve0 * zapAmount1 )
-			return (0, _zapSwapAmount( reserve1, reserve0, zapAmount1, zapAmount0, decimals1, decimals0 ));
+	// Determine how much of either token needs to be swapped to give them a ratio equivalent to the reserves
+	function _determineZapSwapAmount( IPools pools, IERC20 tokenA, IERC20 tokenB, uint256 zapAmountA, uint256 zapAmountB ) internal view returns (uint256 swapAmountA, uint256 swapAmountB )
+		{
+		(uint256 reserveA, uint256 reserveB) = pools.getPoolReserves(tokenA, tokenB);
 
-		return (0, 0);
-    	}
+		uint8 decimalsA = ERC20(address(tokenA)).decimals();
+		uint8 decimalsB = ERC20(address(tokenB)).decimals();
+
+		// Placed in intermediate variable due to Foundry coverage glitch: https://github.com/foundry-rs/foundry/issues/4305
+		uint256 swapAmountA2;
+		uint256 swapAmountB2;
+
+		// zapAmountA / zapAmountB exceeds the ratio of reserveA / reserveB? - meaning too much zapAmountA
+		if ( zapAmountA * reserveB > reserveA * zapAmountB )
+			(swapAmountA2, swapAmountB2) = (_zapSwapAmount( reserveA, reserveB, zapAmountA, zapAmountB, decimalsA, decimalsB ), 0);
+
+		// zapAmountA / zapAmountB is less than the ratio of reserveA / reserveB? - meaning too much zapAmountB
+		if ( zapAmountA * reserveB < reserveA * zapAmountB )
+			(swapAmountA2, swapAmountB2) = (0, _zapSwapAmount( reserveB, reserveA, zapAmountB, zapAmountA, decimalsB, decimalsA ));
+
+		require( swapAmountA2 <= zapAmountA, "swapAmount cannot exceed zapAmount" );
+		require( swapAmountB2 <= zapAmountB, "swapAmount cannot exceed zapAmount" );
+
+		return (swapAmountA2, swapAmountB2);
+		}
 	}

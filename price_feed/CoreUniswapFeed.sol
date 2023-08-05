@@ -48,7 +48,7 @@ contract CoreUniswapFeed is IPriceFeedUniswap
 		}
 
 
-	// Returns amount of token0 given token1 * ( 10 ** 18 ) from the given pool
+	// Returns amount of token0 * (10**18) given token1
     function _getUniswapTwapWei( address pool, uint256 twapInterval ) public view returns (uint256)
     	{
 		IUniswapV3Pool _pool = IUniswapV3Pool( pool );

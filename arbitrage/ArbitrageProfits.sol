@@ -37,7 +37,7 @@ contract ArbitrageProfits
 
 	function clearProfitsForPools( bytes32[] memory poolIDs ) public
 		{
-		require( msg.sender == address(exchangeConfig.dao()), "ArbitrageProfits.performUpkeep only callable from the DAO contract" );
+		require( msg.sender == address(exchangeConfig.saltRewards()), "ArbitrageProfits.clearProfitsForPools only callable from the SaltRewards contract" );
 
 		for( uint256 i = 0; i < poolIDs.length; i++ )
 			_profitsForPools[ poolIDs[i] ] = 0;

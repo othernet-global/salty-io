@@ -29,6 +29,20 @@ library PoolUtils
     	}
 
 
+    // Transfer an ERC20 token from the sender to this contract, but revert if the token has a fee on transfer
+    function _transferFromUserNoFeeOnTransfer( IERC20 token, uint256 amount ) internal
+    	{
+		// Make sure there is no fee while transferring the token to this contract
+		uint256 beforeBalance = token.balanceOf( address(this) );
+
+		// User allowance and balance not checked to save gas - safeTransferFrom will revert if either is lacking
+		token.safeTransferFrom(msg.sender, address(this), amount );
+
+		uint256 afterBalance = token.balanceOf( address(this) );
+		require( afterBalance == ( beforeBalance + amount ), "Cannot deposit tokens with a fee on transfer" );
+    	}
+
+
 	// Determine the expected swap result for a given series of swaps and amountIn
 	function quoteAmountOut( IPools pools, IERC20[] memory tokens, uint256 amountIn ) internal view returns (uint256 amountOut)
 		{

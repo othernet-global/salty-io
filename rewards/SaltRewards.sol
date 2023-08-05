@@ -109,7 +109,10 @@ contract SaltRewards is ISaltRewards
 		stakingRewardsEmitter.addSALTRewards( addedRewards );
 
 		// Send the liquidity rewards to the liquidityRewardsEmitter
-		_sendLiquidityRewards( poolIDs );
+		_sendLiquidityRewards(poolIDs);
+
+		// Clear the profits for pools that was used to distribute the above rewards
+		IArbitrageProfits(address(pools)).clearProfitsForPools(poolIDs);
 
 		pendingStakingRewards = 0;
 		pendingLiquidityRewards = 0;

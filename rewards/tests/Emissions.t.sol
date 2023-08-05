@@ -24,7 +24,7 @@
 //		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 //			{
 //			vm.prank(DEPLOYER);
-//			emissions = new Emissions(staking, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig );
+//			emissions = new Emissions(exchangeConfig, rewardsConfig );
 //			}
 //
 //    	vm.startPrank( DEPLOYER );
@@ -85,7 +85,6 @@
 //
 //	// A unit test to check the performUpkeepForLiquidityHolderEmissions function when there are multiple whitelisted pools with different shares. Verify that the amount of SALT tokens sent to each RewardsEmitter is proportional to the votes received by each pool.
 //	function testPerformUpkeepForLiquidityHolderEmissions() public {
-//
 //        // Alice and Bob deposit votes for pools
 //        vm.startPrank(alice);
 //        staking.stakeSALT(5 ether);

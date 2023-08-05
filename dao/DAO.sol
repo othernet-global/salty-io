@@ -27,7 +27,6 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
 
 	IPools immutable public pools;
 	IProposals immutable public proposals;
-	IExchangeConfig immutable public exchangeConfig;
 	IPoolsConfig immutable public poolsConfig;
 	IStakingConfig immutable public stakingConfig;
 	IRewardsConfig immutable public rewardsConfig;
@@ -46,10 +45,10 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
 
 
     constructor( IPools _pools, IProposals _proposals, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IRewardsConfig _rewardsConfig, IStableConfig _stableConfig, IDAOConfig _daoConfig, IPriceAggregator _priceAggregator, ILiquidity _liquidity, IRewardsEmitter _liquidityRewardsEmitter )
+    UpkeepPerformer(_exchangeConfig)
 		{
 		require( address(_pools) != address(0), "_pools cannot be address(0)" );
 		require( address(_proposals) != address(0), "_proposals cannot be address(0)" );
-		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
 		require( address(_poolsConfig) != address(0), "_poolsConfig cannot be address(0)" );
 		require( address(_stakingConfig) != address(0), "_stakingConfig cannot be address(0)" );
 		require( address(_rewardsConfig) != address(0), "_rewardsConfig cannot be address(0)" );
@@ -61,7 +60,6 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
 
 		pools = _pools;
 		proposals = _proposals;
-		exchangeConfig = _exchangeConfig;
 		poolsConfig = _poolsConfig;
 		stakingConfig = _stakingConfig;
 		rewardsConfig = _rewardsConfig;
@@ -72,7 +70,7 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
         liquidityRewardsEmitter = _liquidityRewardsEmitter;
 
 		// Approve SALT to be sent to the liquidityRewardsEmitter as bootstrapping rewards for whitelisted tokens
-		exchangeConfig.salt().approve( address(liquidityRewardsEmitter), type(uint256).max );
+		salt.approve( address(liquidityRewardsEmitter), type(uint256).max );
         }
 
 
@@ -104,6 +102,8 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
 			priceAggregator.setPriceFeed( 3, IPriceFeed(ballot.address1) );
 		else if ( nameHash == keccak256(bytes( "setContract:arbitrageSearch_confirm" )) )
 			poolsConfig.setArbitrageSearch( IArbitrageSearch(ballot.address1) );
+		else if ( nameHash == keccak256(bytes( "setContract:counterswap_confirm" )) )
+			poolsConfig.setCounterswap( ICounterswap(ballot.address1) );
 		else if ( nameHash == keccak256(bytes( "setContract:accessManager_confirm" )) )
 			exchangeConfig.setAccessManager( IAccessManager(ballot.address1) );
 		else if ( nameHash == keccak256(bytes( "setContract:stakingRewardsEmitter_confirm" )) )
@@ -235,10 +235,10 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
 
 
 
-	// Call UpkeepPerformer.performUpkeep which in turn calls performUpkeep on various contracts in the protocol.
+	// Call UpkeepPerformer._performUpkeep which in turn performs multiple performUpkeep steps in sequence.
 	function performUpkeep() public nonReentrant
 		{
-		_performUpkeep( pools, priceAggregator, exchangeConfig, poolsConfig, daoConfig );
+		_performUpkeep( pools, priceAggregator, poolsConfig, daoConfig );
 		}
 
 

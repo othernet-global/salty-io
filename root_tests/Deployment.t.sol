@@ -52,6 +52,9 @@ contract TestDeployment is Deployment, Test
         assertEq( getContract(address(pools), "exchangeConfig()"), address(exchangeConfig), "Incorrect pools.exchangeConfig" );
         assertEq( getContract(address(pools), "dao()"), address(dao), "Incorrect pools.dao" );
 
+        assertEq( getContract(address(counterswap), "pools()"), address(pools), "Incorrect counterswap.pools" );
+        assertEq( getContract(address(counterswap), "exchangeConfig()"), address(exchangeConfig), "Incorrect counterswap.exchangeConfig" );
+
         assertEq( getContract(address(staking), "exchangeConfig()"), address(exchangeConfig), "Incorrect staking.exchangeConfig" );
         assertEq( getContract(address(staking), "poolsConfig()"), address(poolsConfig), "Incorrect staking.poolsConfig" );
         assertEq( getContract(address(staking), "stakingConfig()"), address(stakingConfig), "Incorrect staking.stakingConfig" );
@@ -110,6 +113,7 @@ contract TestDeployment is Deployment, Test
 		assertEq( getContract( address(priceAggregator), "owner()" ), address(dao), "priceAggregator owner is not dao" );
 
         assertEq( getContract(address(poolsConfig), "arbitrageSearch()"), address(arbitrageSearch), "Incorrect poolsConfig.arbitrageSearch" );
+        assertEq( getContract(address(poolsConfig), "counterswap()"), address(counterswap), "Incorrect poolsConfig.counterswap" );
 
         if ( DEBUG )
         	assertTrue( functionExists( address(priceAggregator.priceFeed1()), "forcedPriceBTCWith18Decimals()" ), "For DEBUG: The PriceFeed should be a ForcedPriceFeed" );
