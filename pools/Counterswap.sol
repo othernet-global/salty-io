@@ -3,21 +3,17 @@ pragma solidity =0.8.21;
 
 import "../openzeppelin/token/ERC20/IERC20.sol";
 import "./interfaces/IPools.sol";
-import "../openzeppelin/utils/math/Math.sol";
 import "../interfaces/IExchangeConfig.sol";
 import "../abdk/ABDKMathQuad.sol";
 import "./interfaces/ICounterswap.sol";
 
 
-// Keeps track of which trades the protocol would like to make and allows a counter swap to be performed after a user swap in order to swap tokens in the desired direction.
+// Keeps track of which trades the protocol would like to make and allows a counter swap to be performed immediately after a user swap.
 // The counter swaps are done at market rate and only when the rates are favorable compared against the 30 minute EMA (to avoid sandwich attacks and manipulated prices).
-// They essentially return the reserves to the state they were before the user swap and are used to swap WETH arbitrage profits to SALT for distribution, WETH to WBTC and USDS for protocol owned liquidity and WBTC and WETH to USDS for liquidated collateral.
+// They essentially return the reserves to the state they were before the user swap and are used to gradually swap WETH arbitrage profits to SALT for distribution, WETH to WBTC and USDS for protocol owned liquidity and WBTC and WETH to USDS for liquidated collateral.
 
 contract Counterswap is ICounterswap
 	{
-	// The amount of tokens that have been deposited for counter swapping to other certain tokens.
-	mapping(IERC20=>mapping(IERC20=>uint256)) private _depositedTokens;  // [depositedToken][desiredToken]
-
    	IPools immutable public pools;
 	IExchangeConfig immutable public exchangeConfig;
 
@@ -25,6 +21,9 @@ contract Counterswap is ICounterswap
 	IDAO immutable public dao;
 
 	bytes16 immutable public ZERO;
+
+	// The amount of tokens that have been deposited for counter swapping
+	mapping(IERC20=>mapping(IERC20=>uint256)) private _depositedTokens;  // [depositedToken][desiredToken]
 
 
 	constructor( IPools _pools, IExchangeConfig _exchangeConfig )
@@ -55,12 +54,12 @@ contract Counterswap is ICounterswap
 		// Deposit to the Pools contract
 		pools.deposit(tokenToDeposit, amountToDeposit);
 
-		// Update the buffer
+		// Keep track of the deposited tokens
 		_depositedTokens[tokenToDeposit][desiredToken] += amountToDeposit;
 		}
 
 
-	// Given that the user just swapped swapTokenIn->swapTokenOut, check to see if the protocol should counter swap
+	// Given that the user just swapped swapTokenIn->swapTokenOut, check to see if the protocol should counter swap (in exactly the opposite direction)
 	// and that the rate is reasonable compared to the 30 minute EMA of the reserves between the two tokens.
 	function shouldCounterswap( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 swapAmountOut ) public returns (bool _shouldCounterswap)
 		{
@@ -74,7 +73,7 @@ contract Counterswap is ICounterswap
 		if ( ABDKMathQuad.eq( averageRatio, ZERO ) )
 			return false;
 
-		// Calculate the ratio of swapAmountIn to swapAmountOut
+		// Calculate the ratio of swapAmountIn to swapAmountOut from the user's swap that they just made.
 		bytes16 swapRatio = ABDKMathQuad.div(ABDKMathQuad.fromUInt(swapAmountIn), ABDKMathQuad.fromUInt(swapAmountOut));
 
 		// We want the buffer to get a reasonable amount of swapTokenIn compared to the swapTokenOut that it will need to provide the user with.
@@ -82,7 +81,7 @@ contract Counterswap is ICounterswap
 		if (ABDKMathQuad.cmp(swapRatio, averageRatio) < 0)
 			return false;
 
-		// Update the amount of deposited swapTokenOut waiting to swap for swapTokenIn
+		// Reduce the deposited amount of swapTokenOut for swapTokenIn as the counterswap will take place (in Pools after seeing this function return true)
 		_depositedTokens[swapTokenOut][swapTokenIn] -= swapAmountOut;
 
 		return true;

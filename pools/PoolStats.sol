@@ -10,23 +10,24 @@ contract PoolStats
 	{
 	uint256 constant public MOVING_AVERAGE_PERIOD = 30 minutes;
 
+	// Token reserves less than dust are treated as if they don't exist at all.
+	// With the 18 decimals that are used for most tokens, DUST has a value of 0.0000000000000001
+	// For tokens with 6 decimal places (like USDC) DUST has a value of .0001
+	uint256 constant public DUST = 100;
+
+	bytes16 immutable public ONE;
+	bytes16 immutable public ZERO;
+
+	// The default alpha for the exponential average
+	bytes16 immutable public alpha;
+
+
 	// The last time stats were updated for a pool
 	mapping(bytes32=>uint256) public lastUpdateTimes;
 
 	// The exponential averages for pools of reserve0 / reserve1
 	// Stored as ABDKMathQuad
 	mapping(bytes32=>bytes16) public averageReserveRatios;
-
-	// The default alpha for the exponential average
-	bytes16 immutable public alpha;
-
-	bytes16 immutable public ONE;
-	bytes16 immutable public ZERO;
-
-	// Token reserves less than dust are treated as if they don't exist at all.
-	// With the 18 decimals that are used for most tokens, DUST has a value of 0.0000000000000001
-	// For tokens with 6 decimal places (like USDC) DUST has a value of .0001
-	uint256 constant public DUST = 100;
 
 
 	constructor()
@@ -38,13 +39,11 @@ contract PoolStats
 		}
 
 
-	// Update the exponential moving average of the pool reserve ratios for the given pool
+	// Update the exponential moving average of the pool reserve ratios for the given pool that was just involved in a direct swap.
+	// Only direct swaps update the stats as arbitrage would requires too many updates and increase gas costs prohibitively.
 	// Reserve ratio stored as reserve0 / reserve1
 	function _updatePoolStats( bytes32 poolID, uint256 reserve0, uint256 reserve1 ) internal
 		{
-		if ( ( reserve0 < DUST ) || ( reserve1 < DUST ) )
-			return;
-
 		// Update the exponential average
 		bytes16 reserveRatio = ABDKMathQuad.div( ABDKMathQuad.fromUInt(reserve0), ABDKMathQuad.fromUInt(reserve1) );
 

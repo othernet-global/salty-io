@@ -66,7 +66,7 @@ contract TestArbitrage is Test, Deployment
 
 		pools.deposit( tokenE, 100 ether );
 
-		// Initial transactions cost more gas
+		// Initial transactions cost more gas so perform the first ones here
 		pools.swap( tokenE, weth, 10 ether, 0, block.timestamp );
 		pools.depositSwapWithdraw( weth, tokenE, 10 ether, 0, block.timestamp );
 
