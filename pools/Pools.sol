@@ -19,7 +19,7 @@ contract Pools is IPools, ReentrancyGuard, ArbitrageProfits, PoolStats
 	{
 	using SafeERC20 for IERC20;
 
-    event ArbitrageError(bytes error);
+    event LogError(bytes error);
 	event eLiquidityAdded(address indexed user, bytes32 indexed poolID, uint256 addedLiquidity);
 	event eLiquidityRemoved(address indexed user, bytes32 indexed poolID, uint256 removedLiquidity);
 	event eTokensDeposited(address indexed user, IERC20 indexed token, uint256 amount);
@@ -327,7 +327,7 @@ contract Pools is IPools, ReentrancyGuard, ArbitrageProfits, PoolStats
 			}
 		catch (bytes memory error)
 			{
-		    emit ArbitrageError(error);
+		    emit LogError(error);
 			}
 		}
 
@@ -345,17 +345,32 @@ contract Pools is IPools, ReentrancyGuard, ArbitrageProfits, PoolStats
 			// Direct swap between the two tokens as they have a pool
 			( swapAmountOut,) = _adjustReservesForSwap( swapTokenIn, swapTokenOut, swapAmountIn );
 
+			// Make sure the swap meets the specified minimums
+			require( swapAmountOut >= minAmountOut, "Insufficient resulting token amount" );
+
 			// Check if a counterswap should be performed (for when the protocol itself wants to gradually swap some tokens at a reasonable price)
-			if ( poolsConfig.counterswap().shouldCounterswap( swapTokenIn, swapTokenOut, swapAmountIn, swapAmountOut ) )
+			ICounterswap counterswap = poolsConfig.counterswap();
+
+			try counterswap.shouldCounterswap( swapTokenIn, swapTokenOut, swapAmountIn, swapAmountOut )
+				returns (bool shouldCounterswap)
 				{
-				// Perform the counterswap
-				_adjustReservesForSwap( swapTokenOut, swapTokenIn, swapAmountOut );
+				if ( shouldCounterswap )
+					{
+					// Perform the counterswap (in the opposite direction of the user's swap)
+					_adjustReservesForSwap( swapTokenOut, swapTokenIn, swapAmountOut );
 
-				// Make sure the swap meets the specified minimums
-				require( swapAmountOut >= minAmountOut, "Insufficient resulting token amount" );
+					// Adjust the Counterswap contract's token deposits: from performing the swapTokenOut->swapTokenIn counterswap.
+					// This essentially returns the reserves to what they were before the user's swap.
+					_userDeposits[ address(counterswap)][ swapTokenOut ] -= swapAmountOut;
+					_userDeposits[ address(counterswap)][ swapTokenIn ] += swapAmountIn;
 
-				// No arbitrage with counterswap
-				return swapAmountOut;
+					// No arbitrage or updating pool stats with counterswap
+					return swapAmountOut;
+					}
+				}
+			catch (bytes memory error)
+				{
+				emit LogError(error);
 				}
 			}
 		else
@@ -363,10 +378,10 @@ contract Pools is IPools, ReentrancyGuard, ArbitrageProfits, PoolStats
 			// Swap with WETH as the intermediate between swapTokenIn and swapTokenOut (as every token is pooled with WETH)
 			( uint256 wethOut,) = _adjustReservesForSwap( swapTokenIn, weth, swapAmountIn );
 			( swapAmountOut,) = _adjustReservesForSwap( weth, swapTokenOut, wethOut );
-			}
 
-		// Make sure the swap meets the specified minimums
-		require( swapAmountOut >= minAmountOut, "Insufficient resulting token amount" );
+			// Make sure the swap meets the specified minimums
+			require( swapAmountOut >= minAmountOut, "Insufficient resulting token amount" );
+			}
 
 		// The user's swap has just been made - attempt atomic arbitrage to rebalance the pool and yield arbitrage profit
 		_attemptArbitrage( swapTokenIn, swapTokenOut, swapAmountIn, isWhitelistedPair );
@@ -495,7 +510,7 @@ contract Pools is IPools, ReentrancyGuard, ArbitrageProfits, PoolStats
 		}
 
 
-	// The 30 minute exponential average of the reserve ratios: reserve0 / reserve1
+	// The 30 minute exponential average of the reserve ratios: reserveA / reserveB
 	function averageReserveRatio( IERC20 tokenA, IERC20 tokenB ) public view returns (bytes16 averageRatio)
 		{
 		(bytes32 poolID, bool flipped) = PoolUtils.poolID(tokenA, tokenB);

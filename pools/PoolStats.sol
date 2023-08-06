@@ -15,11 +15,11 @@ contract PoolStats
 	// For tokens with 6 decimal places (like USDC) DUST has a value of .0001
 	uint256 constant public DUST = 100;
 
-	bytes16 immutable public ONE;
-	bytes16 immutable public ZERO;
+	bytes16 immutable public ZERO = ABDKMathQuad.fromUInt(0);
+	bytes16 immutable public ONE = ABDKMathQuad.fromUInt(1);
 
-	// The default alpha for the exponential average
-	bytes16 immutable public alpha;
+	// The exponential average alpha = 2 / (MOVING_AVERAGE_PERIOD + 1)
+	bytes16 immutable public alpha = ABDKMathQuad.div( ABDKMathQuad.fromUInt(2),  ABDKMathQuad.fromUInt(MOVING_AVERAGE_PERIOD + 1) );
 
 
 	// The last time stats were updated for a pool
@@ -28,15 +28,6 @@ contract PoolStats
 	// The exponential averages for pools of reserve0 / reserve1
 	// Stored as ABDKMathQuad
 	mapping(bytes32=>bytes16) public averageReserveRatios;
-
-
-	constructor()
-		{
-		// The exponential average alpha = 2 / (MOVING_AVERAGE_PERIOD + 1)
-		alpha = ABDKMathQuad.div( ABDKMathQuad.fromUInt(2),  ABDKMathQuad.fromUInt(MOVING_AVERAGE_PERIOD + 1) );
-		ONE = ABDKMathQuad.fromUInt(1);
-		ZERO = ABDKMathQuad.fromUInt(0);
-		}
 
 
 	// Update the exponential moving average of the pool reserve ratios for the given pool that was just involved in a direct swap.

@@ -8,7 +8,7 @@ import "../abdk/ABDKMathQuad.sol";
 import "./interfaces/ICounterswap.sol";
 
 
-// Keeps track of which trades the protocol would like to make and allows a counter swap to be performed immediately after a user swap.
+// Keeps track of which trades the exchange itself would like to make and allows a counter swap to be performed immediately after a user swap.
 // The counter swaps are done at market rate and only when the rates are favorable compared against the 30 minute EMA (to avoid sandwich attacks and manipulated prices).
 // They essentially return the reserves to the state they were before the user swap and are used to gradually swap WETH arbitrage profits to SALT for distribution, WETH to WBTC and USDS for protocol owned liquidity and WBTC and WETH to USDS for liquidated collateral.
 
@@ -20,7 +20,7 @@ contract Counterswap is ICounterswap
 	IERC20 immutable public usds;
 	IDAO immutable public dao;
 
-	bytes16 immutable public ZERO;
+	bytes16 public immutable ZERO = ABDKMathQuad.fromUInt(0);
 
 	// The amount of tokens that have been deposited for counter swapping
 	mapping(IERC20=>mapping(IERC20=>uint256)) private _depositedTokens;  // [depositedToken][desiredToken]
@@ -37,21 +37,19 @@ contract Counterswap is ICounterswap
 		// Cached for efficiency
 		usds = exchangeConfig.usds();
 		dao = exchangeConfig.dao();
-
-		ZERO = ABDKMathQuad.fromUInt(0);
 		}
 
 
-	// Transfer a specified token from the caller to this swap buffer and then deposit it into the Pools contract (and have that deposit owned by this contract).
+	// Transfer a specified token from the caller to this swap buffer and then deposit it into the Pools contract.
 	function depositToken( IERC20 tokenToDeposit, IERC20 desiredToken, uint256 amountToDeposit ) public
 		{
-		// Only callable from the DAO and the USDS contracts
 		require( (msg.sender == address(dao)) || (msg.sender == address(usds)), "Only callable from the DAO or USDS contracts" );
 
 		// Transfer from the caller
 		tokenToDeposit.transferFrom( msg.sender, address(this), amountToDeposit );
 
 		// Deposit to the Pools contract
+		tokenToDeposit.approve( address(pools), amountToDeposit );
 		pools.deposit(tokenToDeposit, amountToDeposit);
 
 		// Keep track of the deposited tokens
@@ -63,12 +61,14 @@ contract Counterswap is ICounterswap
 	// and that the rate is reasonable compared to the 30 minute EMA of the reserves between the two tokens.
 	function shouldCounterswap( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 swapAmountOut ) public returns (bool _shouldCounterswap)
 		{
+		require( msg.sender == address(pools), "Only callable from the Pools contract" );
+
 		// Make sure at least the swapAmountOut of swapTokenOut has been deposited (as it will need to be swapped for swapTokenIn)
 		uint256 amountDeposited = _depositedTokens[swapTokenOut][swapTokenIn];
 		if ( amountDeposited < swapAmountOut )
 			return false;
 
-		// Check that the price is favorable compared to the 30 minute reserve ratio EMA
+		// We'll be checking the averageRatio of reserveIn / reserveOut to see if the current opportunity to counterswap is more profitable than at the average ratio
 		bytes16 averageRatio = pools.averageReserveRatio(swapTokenIn, swapTokenOut);
 		if ( ABDKMathQuad.eq( averageRatio, ZERO ) )
 			return false;
@@ -85,5 +85,12 @@ contract Counterswap is ICounterswap
 		_depositedTokens[swapTokenOut][swapTokenIn] -= swapAmountOut;
 
 		return true;
+		}
+
+
+	// === VIEWS ===
+	function depositedTokens( IERC20 depositedToken, IERC20 desiredToken ) public view returns (uint256)
+		{
+		return _depositedTokens[depositedToken][desiredToken];
 		}
 	}
