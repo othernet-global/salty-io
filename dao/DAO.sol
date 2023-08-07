@@ -68,9 +68,6 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
 		priceAggregator = _priceAggregator;
         liquidity = _liquidity;
         liquidityRewardsEmitter = _liquidityRewardsEmitter;
-
-		// Approve SALT to be sent to the liquidityRewardsEmitter as bootstrapping rewards for whitelisted tokens
-		salt.approve( address(liquidityRewardsEmitter), type(uint256).max );
         }
 
 
@@ -204,11 +201,15 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
 			(bytes32 pool1,) = PoolUtils.poolID( IERC20(ballot.address1), exchangeConfig.wbtc() );
 			(bytes32 pool2,) = PoolUtils.poolID( IERC20(ballot.address1), exchangeConfig.weth() );
 
+
+			uint256 bootstrappingRewards = daoConfig.bootstrappingRewards();
+
 			// Send the initial bootstrappingRewards to promote initial liquidity on these two newly whitelisted pools
 			AddedReward[] memory addedRewards = new AddedReward[](2);
-			addedRewards[0] = AddedReward( pool1, daoConfig.bootstrappingRewardsValueInUSDS() );
-			addedRewards[1] = AddedReward( pool2, daoConfig.bootstrappingRewardsValueInUSDS() );
+			addedRewards[0] = AddedReward( pool1, bootstrappingRewards );
+			addedRewards[1] = AddedReward( pool2, bootstrappingRewards );
 
+			salt.approve( address(liquidityRewardsEmitter), bootstrappingRewards * 2 );
 			liquidityRewardsEmitter.addSALTRewards( addedRewards );
 			}
 
@@ -250,7 +251,7 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
 		// Make sure that the DAO contracts holds the required amount of SALT for bootstrappingRewards.
 		// Twice the specified rewards are needed (for both the token/WBTC and token/WETH pools which will be whitelisted)
 		uint256 saltBalance = exchangeConfig.salt().balanceOf( address(this) );
-		if ( saltBalance < daoConfig.bootstrappingRewardsValueInUSDS() * 2 )
+		if ( saltBalance < daoConfig.bootstrappingRewards() * 2 )
 			return false;
 
 		return true;

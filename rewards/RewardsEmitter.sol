@@ -48,9 +48,6 @@ contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
 		rewardsConfig = _rewardsConfig;
 
 		salt = _exchangeConfig.salt();
-
-		// Make sure to approve SALT so that SALT rewards can be added to the StakingRewards
-		salt.approve( address(stakingRewards), type(uint256).max );
 		}
 
 
@@ -100,6 +97,7 @@ contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
 		uint256 numeratorMult = timeSinceLastUpkeep * rewardsConfig.rewardsEmitterDailyPercentTimes1000();
 		uint256 denominatorMult = 100 days * 1000; // simplification of ( 100 percent ) * numberSecondsInOneDay * 1000
 
+		uint256 sum = 0;
 		for( uint256 i = 0; i < pools.length; i++ )
 			{
 			bytes32 poolID = pools[i];
@@ -111,9 +109,13 @@ contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
 			if ( amountToAddForPool != 0 )
 				pendingRewards[poolID] -= amountToAddForPool;
 
+			sum = sum + amountToAddForPool;
+
 			// Specify the rewards that will be added for the specific pool
 			addedRewards[i] = AddedReward( poolID, amountToAddForPool );
 			}
+
+		salt.approve( address(stakingRewards), sum );
 
 		// Add the rewards so that they can later be claimed by the users proportional to their share of the StakingRewards derived contract( Staking, Liquidity or Collateral)
 		stakingRewards.addSALTRewards( addedRewards );

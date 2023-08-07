@@ -25,8 +25,8 @@ contract Deployment
 
 	IForcedPriceFeed public forcedPriceFeed = IForcedPriceFeed(address(0x3B0Eb37f26b502bAe83df4eCc54afBDfb90B5d3a));
 
-	IDAO public dao = IDAO(address(0x2C135aAc03eC3Da5E91C22DaF7004971CdaFC2C5));
-	Emissions public emissions = Emissions(address(0xc5E8AAD4Fe405BBC6f31AE1761E6009095909033));
+	IDAO public dao = IDAO(address(0x37b66B7BD13666a88D1202066D970f017FCe5b3b));
+	Emissions public emissions = Emissions(address(0x01F405A747C5ba664faee5F0C2545DFA1931E644));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));

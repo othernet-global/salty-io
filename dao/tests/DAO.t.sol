@@ -41,7 +41,7 @@ contract TestDAO is Test, Deployment
 
 			// Because USDS already set the Collateral on deployment and it can only be done once, we have to recreate USDS as well
 			// That cascades into recreating multiple other contracts as well.
-			usds = new USDS( priceAggregator, stableConfig, wbtc, weth );
+			usds = new USDS( poolsConfig, wbtc, weth );
 
 			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, usds );
 			pools = new Pools( exchangeConfig, poolsConfig );
@@ -66,6 +66,7 @@ contract TestDAO is Test, Deployment
 			exchangeConfig.setAccessManager( accessManager );
 			usds.setPools( pools );
 			usds.setCollateral( collateral );
+			usds.setDAO( dao );
 
 			// Transfer ownership of the newly created config files to the DAO
 			Ownable(address(exchangeConfig)).transferOwnership( address(dao) );
@@ -144,13 +145,9 @@ contract TestDAO is Test, Deployment
 			return stableConfig.initialCollateralRatioPercent();
 		else if ( parameter == Parameters.ParameterTypes.minimumCollateralRatioPercent )
 			return stableConfig.minimumCollateralRatioPercent();
-		else if ( parameter == Parameters.ParameterTypes.maximumLiquidationSlippagePercentTimes1000 )
-			return stableConfig.maximumLiquidationSlippagePercentTimes1000();
-		else if ( parameter == Parameters.ParameterTypes.percentSwapToUSDS )
-			return stableConfig.percentSwapToUSDS();
 
-		else if ( parameter == Parameters.ParameterTypes.bootstrappingRewardsValueInUSDS )
-			return daoConfig.bootstrappingRewardsValueInUSDS();
+		else if ( parameter == Parameters.ParameterTypes.bootstrappingRewards )
+			return daoConfig.bootstrappingRewards();
 		else if ( parameter == Parameters.ParameterTypes.percentPolRewardsBurned )
 			return daoConfig.percentPolRewardsBurned();
 		else if ( parameter == Parameters.ParameterTypes.baseBallotQuorumPercentTimes1000 )
@@ -314,10 +311,12 @@ contract TestDAO is Test, Deployment
         vm.warp(block.timestamp + 11 days );
 
         // Test Parameter Ballot finalization
+		salt.transfer( address(dao), 199999 ether );
+
 		vm.expectRevert( "Whitelisting is not currently possible due to insufficient bootstrapping rewards" );
         dao.finalizeBallot(ballotID);
 
-		salt.transfer( address(dao), 1000000 ether );
+		salt.transfer( address(dao), 5 ether );
         dao.finalizeBallot(ballotID);
 
 		// Check for the effects of the vote

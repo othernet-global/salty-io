@@ -21,7 +21,7 @@ interface IPools
 	// Views
 	function totalLiquidity(bytes32 poolID) external view returns (uint256);
 	function getPoolReserves(IERC20 tokenA, IERC20 tokenB) external view returns (uint256 reserveA, uint256 reserveB);
-	function depositBalance(address user, IERC20 token) external view returns (uint256);
+	function depositedBalance(address user, IERC20 token) external view returns (uint256);
 	function getUserLiquidity(address user, IERC20 tokenA, IERC20 tokenB) external view returns (uint256);
 	function averageReserveRatio( IERC20 tokenA, IERC20 tokenB ) external view returns (bytes16);
 	}

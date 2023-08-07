@@ -4,7 +4,7 @@ pragma solidity =0.8.21;
 
 interface IDAOConfig
 	{
-	function changeBootstrappingRewardsValueInUSDS(bool increase) external; // onlyOwner
+	function changeBootstrappingRewards(bool increase) external; // onlyOwner
 	function changePercentPolRewardsBurned(bool increase) external; // onlyOwner
 	function changeBaseBallotQuorumPercent(bool increase) external; // onlyOwner
 	function changeBallotDuration(bool increase) external; // onlyOwner
@@ -14,7 +14,7 @@ interface IDAOConfig
 	function changeUpkeepRewardPercent(bool increase) external; // onlyOwner
 
 	// Views
-    function bootstrappingRewardsValueInUSDS() external view returns (uint256);
+    function bootstrappingRewards() external view returns (uint256);
     function percentPolRewardsBurned() external view returns (uint256);
     function baseBallotQuorumPercentTimes1000() external view returns (uint256);
     function ballotDuration() external view returns (uint256);

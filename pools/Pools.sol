@@ -495,7 +495,7 @@ contract Pools is IPools, ReentrancyGuard, ArbitrageProfits, PoolStats
 
 
 	// A user's deposited balance for a token
-	function depositBalance(address user, IERC20 token) public view returns (uint256)
+	function depositedBalance(address user, IERC20 token) public view returns (uint256)
 		{
 		return _userDeposits[user][token];
 		}

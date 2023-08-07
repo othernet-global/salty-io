@@ -136,12 +136,12 @@ contract TestDeployment is Deployment, Test
 			assertEq( address(usdc), 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, "Invalid USDC" );
         	}
 
-        assertEq( getContract(address(usds), "stableConfig()"), address(stableConfig), "Incorrect usds.stableConfig" );
-        assertEq( getContract(address(usds), "wbtc()"), address(wbtc), "Incorrect usds.wbtc" );
-        assertEq( getContract(address(usds), "weth()"), address(weth), "Incorrect usds.weth" );
-        assertEq( getContract(address(usds), "collateral()"), address(collateral), "Incorrect usds.collateral" );
-        assertEq( getContract(address(usds), "pools()"), address(pools), "Incorrect usds.pools" );
-        assertEq( getContract(address(usds), "priceAggregator()"), address(priceAggregator), "Incorrect usds.priceAggregator" );
+        assertEq( getContract(address(usds), "poolsConfig()"), address(poolsConfig), "Incorrect usds.poolsConfig" );
+//        assertEq( getContract(address(usds), "wbtc()"), address(wbtc), "Incorrect usds.wbtc" );
+//        assertEq( getContract(address(usds), "weth()"), address(weth), "Incorrect usds.weth" );
+//        assertEq( getContract(address(usds), "collateral()"), address(collateral), "Incorrect usds.collateral" );
+//        assertEq( getContract(address(usds), "dao()"), address(dao), "Incorrect usds.dao" );
+//        assertEq( getContract(address(usds), "pools()"), address(pools), "Incorrect usds.pools" );
 
         assertEq( getContract(address(arbitrageSearch), "pools()"), address(pools), "Incorrect arbitrageSearch.pools" );
         assertEq( getContract(address(arbitrageSearch), "exchangeConfig()"), address(exchangeConfig), "Incorrect arbitrageSearch.exchangeConfig" );

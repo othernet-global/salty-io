@@ -7,7 +7,10 @@ import "../stable/interfaces/IStableConfig.sol";
 import "./interfaces/IUSDS.sol";
 import "../pools/PoolUtils.sol";
 import "../pools/interfaces/IPools.sol";
+import "../pools/interfaces/ICounterswap.sol";
 import "../price_feed/interfaces/IPriceAggregator.sol";
+import "../pools/interfaces/IPoolsConfig.sol";
+import "../interfaces/IExchangeConfig.sol";
 
 
 // USDS can be borrowed by users who have deposited WBTC/WETH liquidity as collateral via Collateral.sol
@@ -17,17 +20,13 @@ import "../price_feed/interfaces/IPriceAggregator.sol";
 // If WBTC/WETH collateral is liquidated the reclaimed WBTC and WETH tokens are sent to this contract and swapped for USDS which is then burned (essentially "undoing" the user's original collateral deposit and USDS borrow).
 contract USDS is ERC20, IUSDS
     {
-    IPriceAggregator immutable public priceAggregator;
-    IStableConfig immutable public stableConfig;
+    IPoolsConfig immutable public poolsConfig;
     IERC20 immutable public wbtc;
     IERC20 immutable public weth;
 
     ICollateral public collateral;
+    IDAO public dao;
     IPools public pools;
-
-	// Cached for efficiency
-    uint256 immutable public wbtcDecimals;
-    uint256 immutable public wethDecimals;
 
 	// This corresponds to USDS that was borrowed by users who had their collateral liquidated.
 	// Because liquidated collateral no longer exists the borrowed USDS needs to be burned as well in order to
@@ -35,21 +34,16 @@ contract USDS is ERC20, IUSDS
 	uint256 public usdsThatShouldBeBurned;
 
 
-	constructor( IPriceAggregator _priceAggregator, IStableConfig _stableConfig, IERC20 _wbtc, IERC20 _weth )
+	constructor( IPoolsConfig _poolsConfig, IERC20 _wbtc, IERC20 _weth )
 		ERC20( "testUSDS", "USDS" )
 		{
-		require( address(_priceAggregator) != address(0), "_priceAggregator cannot be address(0)" );
-		require( address(_stableConfig) != address(0), "_stableConfig cannot be address(0)" );
+		require( address(_poolsConfig) != address(0), "_poolsConfig cannot be address(0)" );
 		require( address(_wbtc) != address(0), "_wbtc cannot be address(0)" );
 		require( address(_weth) != address(0), "_weth cannot be address(0)" );
 
-		priceAggregator = _priceAggregator;
-		stableConfig = _stableConfig;
+		poolsConfig = _poolsConfig;
 		wbtc = _wbtc;
 		weth = _weth;
-
-		wbtcDecimals = ERC20(address(wbtc)).decimals();
-		wethDecimals = ERC20(address(weth)).decimals();
         }
 
 
@@ -70,14 +64,21 @@ contract USDS is ERC20, IUSDS
 		require( address(pools) == address(0), "setPools can only be called once" );
 
 		pools = _pools;
-
-		// Approve WTBC and WETH for pools so that it can later be swapped
-		wbtc.approve( address(pools), type(uint256).max );
-		weth.approve( address(pools), type(uint256).max );
 		}
 
 
-	// Mint from the Collateral contract to allow users to borrow USDS after depositing their BTC/ETH liquidity as collateral
+	// The DAO contract will be set at deployment time and after that become immutable
+	function setDAO( IDAO _dao ) public
+		{
+		require( address(_dao) != address(0), "_dao cannot be address(0)" );
+		require( address(dao) == address(0), "setDAO can only be called once" );
+
+		dao = _dao;
+		}
+
+
+	// Mint from the Collateral contract to allow users to borrow USDS after depositing BTC/ETH liquidity as collateral
+	// Only callable by the Collateral contract.
 	function mintTo( address wallet, uint256 amount ) public
 		{
 		require( msg.sender == address(collateral), "Can only mint from the Collateral contract" );
@@ -88,7 +89,7 @@ contract USDS is ERC20, IUSDS
 
 
 	// Called when a user's collateral position has been liquidated to indicate that the borrowed USDS from the position needs to be burned.
-	// Only callable by the Collateral contract
+	// Only callable by the Collateral contract.
 	function shouldBurnMoreUSDS( uint256 usdsToBurn ) public
 		{
 		require( msg.sender == address(collateral), "Not the Collateral contract" );
@@ -97,83 +98,49 @@ contract USDS is ERC20, IUSDS
 		}
 
 
-	// Swap a percentage of the given token for USDS
-	// Make sure that the swap has less slippage (in comparison to the PriceAggregator price) than specified in stableConfig
-	function _swapPercentOfTokenForUSDS( IERC20 token, uint256 tokenDecimals, uint256 priceFeedTokenPrice, uint256 percentSwapToUSDS, uint256 maximumLiquidationSlippagePercentTimes1000 ) internal
+	// Send the specified token to Counterswap so that it is gradually converted to USDS
+	function _sendTokenToCounterswap( ICounterswap counterswap, IERC20 token ) internal
 		{
-		uint256 balance = token.balanceOf( address(this) );
-		uint256 amountToSwap = (balance * percentSwapToUSDS) / 100;
-
-		if ( amountToSwap == 0 )
+		uint256 tokenBalance = token.balanceOf( address(this) );
+		if ( tokenBalance == 0 )
 			return;
 
-		// Determine the minimum expected USDS based on the PriceAggregator price
-		// USDS has 18 decimals and PriceAggregator report prices in 18 decimals so divide by tokenDecimals
-		uint256 amountOutBasedOnPriceFeed = amountToSwap * priceFeedTokenPrice / 10**tokenDecimals;
-		uint256 minimumOut = ( amountOutBasedOnPriceFeed * ( 100 * 1000 - maximumLiquidationSlippagePercentTimes1000 ) ) / (100*1000);
+		token.approve( address(counterswap), tokenBalance );
 
-		// Check that the required amountOut will be returned before trying to swap (to avoid the revert on failure)
-		IERC20[] memory tokens = new IERC20[](2);
-		tokens[0] = token;
-		tokens[1] = this;
-
-		uint256 quoteOut = PoolUtils.quoteAmountOut( pools, tokens, amountToSwap );
-
-		if ( quoteOut < minimumOut )
-			return; // we'll try swapping again later
-
-		// Already established the minimumOut will be met so don't specify minAmountOut
-		pools.depositSwapWithdraw( token, this, amountToSwap, 0, block.timestamp );
+		// We want to convert the sent token to USDS (this contract)
+		counterswap.depositToken( token, this, tokenBalance );
 		}
 
 
-	// Check to see if there is usdsThatShouldBeBurned and if so burn USDS stored in this contract (which was sent here when users repaid their borrowed USDS in Collateral.sol).
-	// Additionally, any WBTC/WETH sent here when user collateral was liquidated can be swapped for USDS which is then burned as well.
-	// As the minimum collateral ratio defaults to 110% any excess WBTC/WETH that is not swapped for USDS will remain in this contract - in the case
-    // that future liquidated positions are undercollateralized during times of high market volatility and WBTC/WETH is needed to purchase more USDS to burn.
+	// Send all WBTC and WETH in this contract to the Counterswap contract so that it can gradually be swapped to USDS (which can then be burned).
+	// The WBTC and WETH is sent here on calls to Collateral.liquidateUser();
 	function performUpkeep() public
 		{
+		require( msg.sender == address(dao), "Only callable from the DAO" );
+
+		ICounterswap counterswap = poolsConfig.counterswap();
+
+		// Send any WBTC or WETH in this contract to the Counterswap contract for gradual conversion to USDS
+		_sendTokenToCounterswap(counterswap, wbtc);
+		_sendTokenToCounterswap(counterswap, weth);
+
 		if ( usdsThatShouldBeBurned == 0 )
 			return;
 
-		// See if there is enough USDS in this contract to burn - if so, just burn that
-		uint256 usdsBalance = balanceOf( address(this) );
+		// Determine how much USDS has been converted through counterswaps and should be withdrawn from the Pools contract (deposited there earlier by the Counterswap contract).
+		uint256 usdsToWithdraw = pools.depositedBalance( address(counterswap), this );
 
-		if ( usdsBalance >= usdsThatShouldBeBurned )
-			{
-			_burn( address(this), usdsThatShouldBeBurned );
+		// Don't withdraw more USDS than the amount to burn
+		if ( usdsToWithdraw > usdsThatShouldBeBurned )
+			usdsToWithdraw = usdsThatShouldBeBurned;
 
-			usdsThatShouldBeBurned = 0;
+		if ( usdsToWithdraw == 0 )
 			return;
-			}
 
-		// Cached for efficiency
-		uint256 percentSwapToUSDS = stableConfig.percentSwapToUSDS();
-		uint256 maximumLiquidationSlippagePercentTimes1000 = stableConfig.maximumLiquidationSlippagePercentTimes1000();
+		counterswap.withdrawToken( this, usdsToWithdraw );
 
-		// Prices will be used to determine minimum amountOuts
-		uint256 btcPrice = priceAggregator.getPriceBTC();
-        uint256 ethPrice = priceAggregator.getPriceETH();
-
-		// Swap a percent of the WBTC and WETH in the contract for USDS
-		_swapPercentOfTokenForUSDS( wbtc, wbtcDecimals, btcPrice, percentSwapToUSDS, maximumLiquidationSlippagePercentTimes1000 );
-		_swapPercentOfTokenForUSDS( weth, wethDecimals, ethPrice, percentSwapToUSDS, maximumLiquidationSlippagePercentTimes1000 );
-
-		// See how much USDS we have now
-		usdsBalance = balanceOf( address(this) );
-
-		// Enough USDS now to burn?
-		if ( usdsBalance >= usdsThatShouldBeBurned )
-			{
-			_burn( address(this), usdsThatShouldBeBurned );
-
-			usdsThatShouldBeBurned = 0;
-			return;
-			}
-
-		// Not enough USDS to burn - just burn the current balance and update usdsThatShouldBeBurned
-		_burn( address(this), usdsBalance );
-		usdsThatShouldBeBurned -= usdsBalance;
+		_burn( address(this), usdsToWithdraw );
+		usdsThatShouldBeBurned -= usdsToWithdraw;
 		}
 	}
 

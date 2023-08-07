@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSL 1.1
 pragma solidity =0.8.21;
 
-import "../openzeppelin/token/ERC20/IERC20.sol";
+import "../openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IPools.sol";
 import "../interfaces/IExchangeConfig.sol";
 import "../abdk/ABDKMathQuad.sol";
@@ -14,6 +14,8 @@ import "./interfaces/ICounterswap.sol";
 
 contract Counterswap is ICounterswap
 	{
+	using SafeERC20 for IERC20;
+
    	IPools immutable public pools;
 	IExchangeConfig immutable public exchangeConfig;
 
@@ -43,10 +45,10 @@ contract Counterswap is ICounterswap
 	// Transfer a specified token from the caller to this swap buffer and then deposit it into the Pools contract.
 	function depositToken( IERC20 tokenToDeposit, IERC20 desiredToken, uint256 amountToDeposit ) public
 		{
-		require( (msg.sender == address(dao)) || (msg.sender == address(usds)), "Only callable from the DAO or USDS contracts" );
+		require( (msg.sender == address(dao)) || (msg.sender == address(usds)), "Deposit only callable from the DAO or USDS contracts" );
 
 		// Transfer from the caller
-		tokenToDeposit.transferFrom( msg.sender, address(this), amountToDeposit );
+		tokenToDeposit.safeTransferFrom( msg.sender, address(this), amountToDeposit );
 
 		// Deposit to the Pools contract
 		tokenToDeposit.approve( address(pools), amountToDeposit );
@@ -54,6 +56,17 @@ contract Counterswap is ICounterswap
 
 		// Keep track of the deposited tokens
 		_depositedTokens[tokenToDeposit][desiredToken] += amountToDeposit;
+		}
+
+
+	// Withdraw a specified token that is deposited in the Pools contract and send it to the caller.
+	// This is used to withdraw the converted tokens that were deposited in the above function.
+	function withdrawToken( IERC20 tokenToWithdraw, uint256 amountToWithdraw ) public
+		{
+		require( (msg.sender == address(dao)) || (msg.sender == address(usds)), "Withdraw only callable from the DAO or USDS contracts" );
+
+		pools.withdraw( tokenToWithdraw, amountToWithdraw );
+		tokenToWithdraw.safeTransfer( msg.sender, amountToWithdraw );
 		}
 
 

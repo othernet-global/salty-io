@@ -172,7 +172,7 @@ contract Collateral is Liquidity, ICollateral
 		_decreaseUserShare( wallet, collateralPoolID, userCollateralAmount, true );
 
 		// The caller receives a default 5% of the value of the liquidated collateral so we can just send them default 10% of the reclaimedWETH (as WBTC/WETH is a 50/50 pool).
-		uint256 rewardedWETH = 2 * reclaimedWETH * stableConfig.rewardPercentForCallingLiquidation() / 100;
+		uint256 rewardedWETH = (2 * reclaimedWETH * stableConfig.rewardPercentForCallingLiquidation()) / 100;
 
 		// Make sure the value of the rewardAmount is not excessive
 		uint256 rewardValue = underlyingTokenValueInUSD( 0, rewardedWETH ); // in 18 decimals

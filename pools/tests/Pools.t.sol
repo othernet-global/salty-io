@@ -305,7 +305,7 @@ contract TestPools is Test, Deployment
    		vm.startPrank(DEPLOYER);
 
 		// Make sure the user starts with zero deposited tokens[4]
-		assertEq( pools.depositBalance( address(DEPLOYER), tokens[4] ), 0, "tokenOut should initial have zero deposits" );
+		assertEq( pools.depositedBalance( address(DEPLOYER), tokens[4] ), 0, "tokenOut should initial have zero deposits" );
 
         // Define the amount of the initial token to be used in the swap
         uint256 amountIn = 100 ether;
@@ -327,11 +327,11 @@ contract TestPools is Test, Deployment
         pools.swap(tokens[3], tokens[4], amountOut, minAmountOut, deadline);
 
 		// Check that the user's deposited amount of tokens[2] is zero
-		assertEq( pools.depositBalance( address(DEPLOYER), tokens[2] ), 0, "tokenIn deposited balance should now be zero" );
+		assertEq( pools.depositedBalance( address(DEPLOYER), tokens[2] ), 0, "tokenIn deposited balance should now be zero" );
 
         // Check that the deposited balance of token is correct
         // the reserves for all pools in the transfer will initially be 1000 for each token
-        assertEq(pools.depositBalance( address(DEPLOYER), tokens[4] ), 83.333333333333333334 ether , "Incorrect amountOut for final token in chain");
+        assertEq(pools.depositedBalance( address(DEPLOYER), tokens[4] ), 83.333333333333333334 ether , "Incorrect amountOut for final token in chain");
     }
 
 
@@ -413,7 +413,7 @@ contract TestPools is Test, Deployment
         IERC20 nonExistentToken = IERC20(address(0));
 
         // Test with invalid user address and non-existent token
-        assertEq(0, pools.depositBalance(address(0), nonExistentToken));
+        assertEq(0, pools.depositedBalance(address(0), nonExistentToken));
 
 //        assertEq(0, pools.getTotalReserveForToken(nonExistentToken)); // will fail on nonExistentToken.balanceOf
 
@@ -435,7 +435,7 @@ contract TestPools is Test, Deployment
         poolsConfig.whitelistPool(tokens[0], undepositedToken);
 
    		vm.startPrank(DEPLOYER);
-        assertEq(0, pools.depositBalance(address(DEPLOYER), undepositedToken));
+        assertEq(0, pools.depositedBalance(address(DEPLOYER), undepositedToken));
         assertEq(0, pools.getUserLiquidity(address(DEPLOYER), tokens[0], undepositedToken));
         (poolID,) = PoolUtils.poolID(tokens[0], undepositedToken);
         assertEq(0, pools.totalLiquidity(poolID));
@@ -587,7 +587,7 @@ contract TestPools is Test, Deployment
         pools.deposit(token, depositAmount);
 
         assertEq(token.balanceOf(address(DEPLOYER)), initialBalance - depositAmount);
-        assertEq(pools.depositBalance(address(DEPLOYER), token), depositAmount);
+        assertEq(pools.depositedBalance(address(DEPLOYER), token), depositAmount);
 
         // Test failure when trying to withdraw more than the deposited amount
         vm.expectRevert("Insufficient balance to withdraw specified amount");
@@ -605,17 +605,17 @@ contract TestPools is Test, Deployment
 
         pools.deposit(token, depositAmount);
         assertEq(token.balanceOf(address(DEPLOYER)), initialBalance - depositAmount);
-        assertEq(pools.depositBalance(address(DEPLOYER), token), depositAmount);
+        assertEq(pools.depositedBalance(address(DEPLOYER), token), depositAmount);
 
         uint256 withdrawAmount = 100 ether;
         pools.withdraw(token, withdrawAmount);
         assertEq(token.balanceOf(address(DEPLOYER)), initialBalance - depositAmount + withdrawAmount);
-        assertEq(pools.depositBalance(address(DEPLOYER), token), depositAmount - withdrawAmount);
+        assertEq(pools.depositedBalance(address(DEPLOYER), token), depositAmount - withdrawAmount);
 
         // Test withdrawing all remaining deposited tokens
         pools.withdraw(token, depositAmount - withdrawAmount);
         assertEq(token.balanceOf(address(DEPLOYER)), initialBalance);
-        assertEq(pools.depositBalance(address(DEPLOYER), token), 0);
+        assertEq(pools.depositedBalance(address(DEPLOYER), token), 0);
     }
 
 
@@ -633,7 +633,7 @@ contract TestPools is Test, Deployment
 
         // Test valid swap with two tokens
         pools.swap(tokens[5], tokens[6], 250 ether, 1 ether, block.timestamp + 60);
-        assertEq(pools.depositBalance(address(DEPLOYER), tokens[5]), 750 ether);
+        assertEq(pools.depositedBalance(address(DEPLOYER), tokens[5]), 750 ether);
     }
 
 
@@ -1187,8 +1187,8 @@ contract TestPools is Test, Deployment
 		(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves(token0, token1);
 
 		// After all of the swaps, the amount of each token should be the starting liquidity
-		assertEq( reserve0 + pools.depositBalance( alice, token0 ) + token0.balanceOf(alice) + token0.balanceOf(bob) + token0.balanceOf(charlie), 30000 * units0 );
-		assertEq( reserve1 + pools.depositBalance( alice, token1 ) + token1.balanceOf(alice) + token1.balanceOf(bob) + token1.balanceOf(charlie), 30000 * units1 );
+		assertEq( reserve0 + pools.depositedBalance( alice, token0 ) + token0.balanceOf(alice) + token0.balanceOf(bob) + token0.balanceOf(charlie), 30000 * units0 );
+		assertEq( reserve1 + pools.depositedBalance( alice, token1 ) + token1.balanceOf(alice) + token1.balanceOf(bob) + token1.balanceOf(charlie), 30000 * units1 );
 	    }
 
 

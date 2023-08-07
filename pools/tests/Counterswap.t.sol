@@ -31,7 +31,7 @@ contract TestCounterswap is Test, Deployment
 		IERC20 tokenA = new TestERC20(18);
 		IERC20 tokenB = new TestERC20(18);
 
-		vm.expectRevert("Only callable from the DAO or USDS contracts");
+		vm.expectRevert("Deposit only callable from the DAO or USDS contracts");
 		counterswap.depositToken(tokenA, tokenB, 5 ether);
 		}
 
@@ -71,7 +71,7 @@ contract TestCounterswap is Test, Deployment
 		// Check the deposited balances
 		assertEq( counterswap.depositedTokens(token0, token1), amountToDeposit );
         assertEq( token0.balanceOf( address(counterswap)), 0 );
-        assertEq( pools.depositBalance(address(counterswap), token0), amountToDeposit );
+        assertEq( pools.depositedBalance(address(counterswap), token0), amountToDeposit );
 
         // Checking shouldCounterswap when swapAmountOut is more than the deposited amount
         vm.prank(address(pools));

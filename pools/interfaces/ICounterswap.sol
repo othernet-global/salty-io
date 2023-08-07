@@ -7,6 +7,7 @@ import "../../openzeppelin/token/ERC20/IERC20.sol";
 interface ICounterswap
 	{
 	function depositToken( IERC20 tokenToDeposit, IERC20 desiredToken, uint256 amountToDeposit ) external;
+	function withdrawToken( IERC20 tokenToWithdraw, uint256 amountToWithdraw ) external;
 	function shouldCounterswap( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 swapAmountOut ) external returns (bool _shouldCounterswap);
 
 	// Views

@@ -96,10 +96,10 @@ contract TestPoolsAndCounterswap is Test, Deployment
 		assertEq( counterswap.depositedTokens(weth, salt), wethThatShouldStillBeDepositedInCounterswap );
 
 		// Check the updated token balances deposited into the Pools contract itself are correct
-		assertEq( pools.depositBalance( address(counterswap), weth), wethThatShouldStillBeDepositedInCounterswap );
+		assertEq( pools.depositedBalance( address(counterswap), weth), wethThatShouldStillBeDepositedInCounterswap );
 
 		// Counterswap should have acquire the SALT from the user's trade
-		assertEq( pools.depositBalance( address(counterswap), salt), 10 ether );
+		assertEq( pools.depositedBalance( address(counterswap), salt), 10 ether );
 
 		// Reserves should have remained essentially the same (as the counterswap undid the user's swap within the same transaction)
 		(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves( weth, salt );
@@ -131,8 +131,8 @@ contract TestPoolsAndCounterswap is Test, Deployment
 
 		uint256 usedWETHFromCounterswap = startingDeposited - counterswap.depositedTokens(weth, salt);
 		assertEq( usedWETHFromCounterswap, 0, "Counterswap should not have been used when token prices are not favorable" );
-		assertEq( pools.depositBalance( address(counterswap), weth), startingDeposited );
-		assertEq( pools.depositBalance( address(counterswap), salt), 0 );
+		assertEq( pools.depositedBalance( address(counterswap), weth), startingDeposited );
+		assertEq( pools.depositedBalance( address(counterswap), salt), 0 );
 		}
 
 
@@ -156,7 +156,7 @@ contract TestPoolsAndCounterswap is Test, Deployment
 		uint256 usedWETHFromCounterswap = startingDeposited - counterswap.depositedTokens(weth, salt);
 		assertEq( usedWETHFromCounterswap, 0, "Counterswap should not have been used for an excessively large swap" );
 
-		assertEq( pools.depositBalance( address(counterswap), weth), startingDeposited );
-		assertEq( pools.depositBalance( address(counterswap), salt), 0 );
+		assertEq( pools.depositedBalance( address(counterswap), weth), startingDeposited );
+		assertEq( pools.depositedBalance( address(counterswap), salt), 0 );
 		}
 	}

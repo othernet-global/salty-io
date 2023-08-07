@@ -83,13 +83,9 @@ contract TestParametersOffchain is Test
 			return stableConfig.initialCollateralRatioPercent();
 		else if ( parameter == Parameters.ParameterTypes.minimumCollateralRatioPercent )
 			return stableConfig.minimumCollateralRatioPercent();
-		else if ( parameter == Parameters.ParameterTypes.maximumLiquidationSlippagePercentTimes1000 )
-			return stableConfig.maximumLiquidationSlippagePercentTimes1000();
-		else if ( parameter == Parameters.ParameterTypes.percentSwapToUSDS )
-			return stableConfig.percentSwapToUSDS();
 
-		else if ( parameter == Parameters.ParameterTypes.bootstrappingRewardsValueInUSDS )
-			return daoConfig.bootstrappingRewardsValueInUSDS();
+		else if ( parameter == Parameters.ParameterTypes.bootstrappingRewards )
+			return daoConfig.bootstrappingRewards();
 		else if ( parameter == Parameters.ParameterTypes.percentPolRewardsBurned )
 			return daoConfig.percentPolRewardsBurned();
 		else if ( parameter == Parameters.ParameterTypes.baseBallotQuorumPercentTimes1000 )
@@ -213,15 +209,13 @@ contract TestParametersOffchain is Test
 		_checkParameter( Parameters.ParameterTypes.minimumCollateralValueForBorrowing, 1000 ether, 2500 ether, 5000 ether, 500 ether );
 		_checkParameter( Parameters.ParameterTypes.initialCollateralRatioPercent, 150, 200, 300, 25 );
 		_checkParameter( Parameters.ParameterTypes.minimumCollateralRatioPercent, 110, 110, 120, 1 );
-		_checkParameter( Parameters.ParameterTypes.maximumLiquidationSlippagePercentTimes1000, 500, 1000, 5000, 500 );
-		_checkParameter( Parameters.ParameterTypes.percentSwapToUSDS, 1, 5, 10, 1 );
 		}
 
 
 	function testDAOParameters() public
 		{
 		vm.startPrank(address(parameters));
-		_checkParameter( Parameters.ParameterTypes.bootstrappingRewardsValueInUSDS, 50000 ether, 200000 ether, 1000000 ether, 50000 ether );
+		_checkParameter( Parameters.ParameterTypes.bootstrappingRewards, 50000 ether, 100000 ether, 500000 ether, 50000 ether );
 		_checkParameter( Parameters.ParameterTypes.percentPolRewardsBurned, 25, 50, 75, 5 );
 		_checkParameter( Parameters.ParameterTypes.baseBallotQuorumPercentTimes1000, 5000, 10000, 20000, 1000 );
 		_checkParameter( Parameters.ParameterTypes.ballotDuration, 3 days, 10 days, 14 days, 1 days );

@@ -116,7 +116,7 @@ contract TestPriceAggreagator is Test, Deployment
 
 
 		// Test price1 and price2 the closest and out of range
-        priceFeed1.setBTCPrice(60100 ether);
+        priceFeed1.setBTCPrice(52600 ether);
         priceFeed2.setBTCPrice(50000 ether);
         priceFeed3.setBTCPrice(0 ether);
         priceAggregator.performUpkeep();  // This will internally call _aggregatePrices
@@ -126,15 +126,15 @@ contract TestPriceAggreagator is Test, Deployment
 
 		// Test price2 and price3 the closest and out of range
         priceFeed1.setBTCPrice(0 ether);
-        priceFeed2.setBTCPrice(50100 ether);
-        priceFeed3.setBTCPrice(60200 ether);
+        priceFeed2.setBTCPrice(50000 ether);
+        priceFeed3.setBTCPrice(52600 ether);
         priceAggregator.performUpkeep();  // This will internally call _aggregatePrices
 
         vm.expectRevert( "Invalid WBTC price" );
         priceAggregator.getPriceBTC();
 
 		// Test price1 and price3 the closest and out of range
-        priceFeed1.setBTCPrice(69000 ether);
+        priceFeed1.setBTCPrice(52600 ether);
         priceFeed2.setBTCPrice(0 ether);
         priceFeed3.setBTCPrice(50000 ether);
         priceAggregator.performUpkeep();  // This will internally call _aggregatePrices

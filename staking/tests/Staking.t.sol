@@ -160,7 +160,7 @@ contract StakingTest is Test, Deployment
 		uint256 expectedClaimableSALT0 = staking.calculateUnstake(unstakeAmount, duration);
 		uint256 expectedClaimableSALT;
 		if ( i == 0 )
-			expectedClaimableSALT =10 ether;
+			expectedClaimableSALT = (unstakeAmount * stakingConfig.minUnstakePercent()) / 100;
 		if ( i == 1 )
 			expectedClaimableSALT =15 ether;
 		if ( i == 2 )

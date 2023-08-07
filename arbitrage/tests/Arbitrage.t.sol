@@ -113,7 +113,7 @@ contract TestArbitrageGas is Test, Deployment
 	// arb: WETH->WBTC->SALT->WETH
 	function testArbitrage1() public
 		{
-		assertEq( pools.depositBalance( address(pools), weth ), 0, "starting deposited eth balance should be zero" );
+		assertEq( pools.depositedBalance( address(pools), weth ), 0, "starting deposited eth balance should be zero" );
 
 		vm.prank(alice);
 		IERC20 token = new TestERC20(18);
@@ -141,8 +141,8 @@ contract TestArbitrageGas is Test, Deployment
 		assertTrue( reservesC0 > (100 ether), "reservesC0 incorrect" );
 		assertTrue( reservesC1 < (1000 ether), "reservesC1 incorrect" );
 
-//		console.log( "profit: ", pools.depositBalance( address(pools), weth ) );
-		assertTrue( pools.depositBalance( address(pools), weth ) > 2* 10**15, "arbitrage profit too low" );
+//		console.log( "profit: ", pools.depositedBalance( address(pools), weth ) );
+		assertTrue( pools.depositedBalance( address(pools), weth ) > 2* 10**15, "arbitrage profit too low" );
 		}
 
 
@@ -150,7 +150,7 @@ contract TestArbitrageGas is Test, Deployment
 	// arb: WETH->SALT->WBTC->WETH
 	function testArbitrage2() public
 		{
-		assertEq( pools.depositBalance( address(pools), weth ), 0, "starting deposited eth balance should be zero" );
+		assertEq( pools.depositedBalance( address(pools), weth ), 0, "starting deposited eth balance should be zero" );
 
 		vm.prank(alice);
 		IERC20 token = new TestERC20(18);
@@ -178,8 +178,8 @@ contract TestArbitrageGas is Test, Deployment
 		assertTrue( reservesC0 > (1000 *10**8 - amountOut), "reservesC0 incorrect" );
 		assertTrue( reservesC1 < (1000 ether + 10 ether), "reservesC1 incorrect" );
 
-//		console.log( "profit: ", pools.depositBalance( address(pools), weth ) );
-		assertTrue( pools.depositBalance( address(pools), weth ) > 2* 10**15, "arbitrage profit too low" );
+//		console.log( "profit: ", pools.depositedBalance( address(pools), weth ) );
+		assertTrue( pools.depositedBalance( address(pools), weth ) > 2* 10**15, "arbitrage profit too low" );
 		}
 
 
@@ -187,7 +187,7 @@ contract TestArbitrageGas is Test, Deployment
 	// arb: WETH->WBTC->token->WETH
     function testArbitrage3() public
 		{
-		assertEq( pools.depositBalance( address(pools), weth ), 0, "starting deposited eth balance should be zero" );
+		assertEq( pools.depositedBalance( address(pools), weth ), 0, "starting deposited eth balance should be zero" );
 
 		vm.prank(alice);
 		IERC20 token = new TestERC20(18);
@@ -215,8 +215,8 @@ contract TestArbitrageGas is Test, Deployment
 		assertTrue( reservesC0 > (100 ether - amountOut), "reservesC0 incorrect" );
 		assertTrue( reservesC1 < (1000 ether + 10 ether), "reservesC1 incorrect" );
 
-//		console.log( "profit: ", pools.depositBalance( address(pools), weth ) );
-		assertTrue( pools.depositBalance( address(pools), weth ) > 2* 10**15, "arbitrage profit too low" );
+//		console.log( "profit: ", pools.depositedBalance( address(pools), weth ) );
+		assertTrue( pools.depositedBalance( address(pools), weth ) > 2* 10**15, "arbitrage profit too low" );
 		}
 
 
@@ -224,7 +224,7 @@ contract TestArbitrageGas is Test, Deployment
     // arb: WETH->token->WBTC->WETH
 	function testArbitrage4() public
 		{
-		assertEq( pools.depositBalance( address(pools), weth ), 0, "starting deposited eth balance should be zero" );
+		assertEq( pools.depositedBalance( address(pools), weth ), 0, "starting deposited eth balance should be zero" );
 
 		vm.prank(alice);
 		IERC20 token = new TestERC20(18);
@@ -253,7 +253,7 @@ contract TestArbitrageGas is Test, Deployment
 		assertTrue( reservesC0 > (100 * 10**8), "reservesC0 incorrect" );
 		assertTrue( reservesC1 < (1000 ether), "reservesC1 incorrect" );
 
-		assertTrue( pools.depositBalance( address(pools), weth ) > 2* 10**15, "arbitrage profit too low" );
+		assertTrue( pools.depositedBalance( address(pools), weth ) > 2* 10**15, "arbitrage profit too low" );
 		}
 
 
@@ -261,7 +261,7 @@ contract TestArbitrageGas is Test, Deployment
 	// arb: WETH->token2->token1->WETH
     function testArbitrage5() public
 		{
-		assertEq( pools.depositBalance( address(pools), weth ), 0, "starting deposited eth balance should be zero" );
+		assertEq( pools.depositedBalance( address(pools), weth ), 0, "starting deposited eth balance should be zero" );
 
 		vm.startPrank(alice);
 		IERC20 token1 = new TestERC20(18);
@@ -300,8 +300,8 @@ contract TestArbitrageGas is Test, Deployment
 		assertTrue( reservesC0 > (100 ether), "reservesC0 incorrect" );
 		assertTrue( reservesC1 < (100 ether), "reservesC1 incorrect" );
 
-//		console.log( "profit: ", pools.depositBalance( address(pools), weth ) );
-		assertTrue( pools.depositBalance( address(pools), weth ) > 2* 10**15, "arbitrage profit too low" );
+//		console.log( "profit: ", pools.depositedBalance( address(pools), weth ) );
+		assertTrue( pools.depositedBalance( address(pools), weth ) > 2* 10**15, "arbitrage profit too low" );
 		}
 
 
@@ -309,7 +309,7 @@ contract TestArbitrageGas is Test, Deployment
 	// arb: WETH->token1->WBTC->token2->WETH
     function testArbitrageIntermediateWETH() public
 		{
-		assertEq( pools.depositBalance( address(pools), weth ), 0, "starting deposited eth balance should be zero" );
+		assertEq( pools.depositedBalance( address(pools), weth ), 0, "starting deposited eth balance should be zero" );
 
 		vm.startPrank(alice);
 		IERC20 token1 = new TestERC20(18);
@@ -346,15 +346,15 @@ contract TestArbitrageGas is Test, Deployment
 		assertEq( reservesD0, 99504808686271375211, "reservesD0 incorrect" );
 		assertEq( reservesD1, 100497655661335838603, "reservesD1 incorrect" );
 
-//		console.log( "profit: ", pools.depositBalance( address(pools), weth ) );
-		assertEq( pools.depositBalance( address(pools), weth ), 9800715489962791, "arbitrage profit incorrect" );
+//		console.log( "profit: ", pools.depositedBalance( address(pools), weth ) );
+		assertEq( pools.depositedBalance( address(pools), weth ), 9800715489962791, "arbitrage profit incorrect" );
 		}
 
 
 	// A unit test to check that arbitrage doesn't happen when one of the pools in the arbitrage chain lacks liquidity
 	function testArbitrageFailed() public
 		{
-		assertEq( pools.depositBalance( address(pools), weth ), 0, "starting deposited eth balance should be zero" );
+		assertEq( pools.depositedBalance( address(pools), weth ), 0, "starting deposited eth balance should be zero" );
 
 		vm.prank(alice);
 		IERC20 token = new TestERC20(18);
@@ -372,13 +372,13 @@ contract TestArbitrageGas is Test, Deployment
 		(uint256 reservesA0,) = pools.getPoolReserves(weth, wbtc);
 
 		assertTrue( reservesA0 == (1000 ether - amountOut), "Arbitrage should not happen" );
-		assertEq( pools.depositBalance( address(pools), weth ), 0, "There should be no arbitrage profit" );
+		assertEq( pools.depositedBalance( address(pools), weth ), 0, "There should be no arbitrage profit" );
 		}
 
 
 	function testSeriesOfTrades() public
 		{
-		assertEq( pools.depositBalance( address(pools), weth ), 0, "starting deposited eth balance should be zero" );
+		assertEq( pools.depositedBalance( address(pools), weth ), 0, "starting deposited eth balance should be zero" );
 
 		vm.prank(alice);
 		IERC20 token = new TestERC20(18);
@@ -388,11 +388,11 @@ contract TestArbitrageGas is Test, Deployment
 
 		for( uint256 i = 0; i < 20; i++ )
 			{
-			uint256 startingDepositWeth = pools.depositBalance( address(pools), weth );
+			uint256 startingDepositWeth = pools.depositedBalance( address(pools), weth );
 
 			pools.depositSwapWithdraw( weth, wbtc, 1 ether, 0, block.timestamp );
 
-			uint256 profit = pools.depositBalance( address(pools), weth ) - startingDepositWeth;
+			uint256 profit = pools.depositedBalance( address(pools), weth ) - startingDepositWeth;
 			assertTrue( profit > 3*10**13, "Profit lower than expected" );
 
 //			console.log( i, profit );

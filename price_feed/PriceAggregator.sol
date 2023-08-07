@@ -26,6 +26,10 @@ contract PriceAggregator is IPriceAggregator, Ownable
 	// The last time at which setPriceFeed was called
 	uint256 public lastTimestampSetPriceFeed;
 
+	// The exponential average of the number of PriceFeeds that were used to aggregate prices on the last update.
+	// Can detect recent errors or PriceFeed failures and encourage further investigation.
+	uint256 public priceFeedInclusionAverage;
+
 	// The maximum percent difference between two non-zero PriceFeed prices when determining price.
 	// When the two closest PriceFeeds (out of the three) have prices further apart than this the aggregated price is considered invalid.
 	// Range: 2% to 7% with an adjustment of .50%
@@ -35,10 +39,6 @@ contract PriceAggregator is IPriceAggregator, Ownable
 	// Allows time to evaluate the performance of the recently update PriceFeed before other updates are made.
 	// Range: 30 to 45 days with an adjustment of 5 days
 	uint256 public setPriceFeedCooldown = 35 days;
-
-	// The exponential average of the number of PriceFeeds that were used to aggregate prices on the last update.
-	// Can detect recent errors or PriceFeed failures and encourage further investigation.
-	uint256 public priceFeedInclusionAverage;
 
 
 	function setInitialFeeds( IPriceFeed _priceFeed1, IPriceFeed _priceFeed2, IPriceFeed _priceFeed3 ) public

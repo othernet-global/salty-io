@@ -34,11 +34,9 @@ contract Parameters
 		minimumCollateralValueForBorrowing,
 		initialCollateralRatioPercent,
 		minimumCollateralRatioPercent,
-		maximumLiquidationSlippagePercentTimes1000,
-		percentSwapToUSDS,
 
 		// DAOConfig
-		bootstrappingRewardsValueInUSDS,
+		bootstrappingRewards,
 		percentPolRewardsBurned,
 		baseBallotQuorumPercentTimes1000,
 		ballotDuration,
@@ -91,14 +89,10 @@ contract Parameters
 			stableConfig.changeInitialCollateralRatioPercent(increase);
 		else if ( parameterType == ParameterTypes.minimumCollateralRatioPercent )
 			stableConfig.changeMinimumCollateralRatioPercent(increase);
-		else if ( parameterType == ParameterTypes.maximumLiquidationSlippagePercentTimes1000 )
-			stableConfig.changeMaximumLiquidationSlippagePercentTimes1000(increase);
-		else if ( parameterType == ParameterTypes.percentSwapToUSDS )
-			stableConfig.changePercentSwapToUSDS(increase);
 
 		// DAOConfig
-		else if ( parameterType == ParameterTypes.bootstrappingRewardsValueInUSDS )
-			daoConfig.changeBootstrappingRewardsValueInUSDS(increase);
+		else if ( parameterType == ParameterTypes.bootstrappingRewards )
+			daoConfig.changeBootstrappingRewards(increase);
 		else if ( parameterType == ParameterTypes.percentPolRewardsBurned )
 			daoConfig.changePercentPolRewardsBurned(increase);
 		else if ( parameterType == ParameterTypes.baseBallotQuorumPercentTimes1000 )

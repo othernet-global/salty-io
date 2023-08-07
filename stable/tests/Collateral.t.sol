@@ -33,7 +33,7 @@ contract TestCollateral is Test, Deployment
 
 			// Because USDS already set the Collateral on deployment and it can only be done once, we have to recreate USDS as well
 			// That cascades into recreating multiple other contracts as well.
-			usds = new USDS( priceAggregator, stableConfig, wbtc, weth );
+			usds = new USDS( poolsConfig, wbtc, weth );
 
 			IDAO dao = IDAO(getContract( address(exchangeConfig), "dao()" ));
 
@@ -53,6 +53,7 @@ contract TestCollateral is Test, Deployment
 			exchangeConfig.setAccessManager( accessManager );
 			usds.setPools( pools );
 			usds.setCollateral( collateral );
+			usds.setDAO( dao );
 
 			vm.stopPrank();
 			}
@@ -1147,6 +1148,11 @@ contract TestCollateral is Test, Deployment
 		priceAggregator.setPriceFeed(1, IPriceFeed(address(forcedPriceFeed)));
 		vm.warp( block.timestamp + 60 days);
 		priceAggregator.setPriceFeed(2, IPriceFeed(address(forcedPriceFeed)));
+
+		// Shouldn't return an error, but should actually set the price feed
+		priceAggregator.setPriceFeed(2, IPriceFeed(address(0x123)));
+		assertEq( address(priceAggregator.priceFeed2()), address(forcedPriceFeed), "Price feed should not have been set" );
+
 		vm.stopPrank();
 
 		priceAggregator.performUpkeep();

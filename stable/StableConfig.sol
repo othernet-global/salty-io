@@ -33,13 +33,6 @@ contract StableConfig is IStableConfig, Ownable
 	// Range: 110 to 120 with an adjustment of 1
 	uint256 public minimumCollateralRatioPercent = 110;
 
-	// The maximum allowable slippage when converting WBTC or WETH to USDS after liquidation
-	// Range: .50% to 5% with an adjustment of .50%
-	uint256 public maximumLiquidationSlippagePercentTimes1000 = 1 * 1000;
-
-	// In USDS.performUpkeep, the percent of WBTC or WETH that is swapped for USDS (which is then burned)
-	// Range: 1 to 10% with an adjustment of 1%
-	uint256 public percentSwapToUSDS = 5;
 
 
 	function changeRewardPercentForCallingLiquidation(bool increase) public onlyOwner
@@ -116,36 +109,6 @@ contract StableConfig is IStableConfig, Ownable
             {
             if (remainingRatioAfterReward >= 105 && minimumCollateralRatioPercent > 110)
                 minimumCollateralRatioPercent -= 1;
-            }
-        }
-
-
-	function changeMaximumLiquidationSlippagePercentTimes1000(bool increase) public onlyOwner
-        {
-        if (increase)
-            {
-            if (maximumLiquidationSlippagePercentTimes1000 < 5000)
-                maximumLiquidationSlippagePercentTimes1000 += 500;
-            }
-        else
-            {
-            if (maximumLiquidationSlippagePercentTimes1000 > 500)
-                maximumLiquidationSlippagePercentTimes1000 -= 500;
-            }
-        }
-
-
-	function changePercentSwapToUSDS(bool increase) public onlyOwner
-        {
-        if (increase)
-            {
-            if (percentSwapToUSDS < 10)
-                percentSwapToUSDS++;
-            }
-        else
-            {
-            if (percentSwapToUSDS > 1)
-                percentSwapToUSDS--;
             }
         }
 	}
