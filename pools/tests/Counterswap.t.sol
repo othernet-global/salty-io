@@ -197,6 +197,117 @@ contract TestCounterswap is Test, Deployment
     	vm.expectRevert("_exchangeConfig cannot be address(0)");
     	new Counterswap(validPools, zeroExchangeConfig);
     }
+
+
+	// A unit test to verify that the depositToken function correctly transfers the tokens from the caller to the contract, deposits them into the Pools contract, and updates the _depositedTokens mapping.
+	function testDepositToken() public {
+        // Creating new ERC20 tokens
+        IERC20 tokenToDeposit = new TestERC20(18);
+        IERC20 desiredToken = new TestERC20(18);
+
+        // Initial setup for transferring and approving tokens
+        uint256 amountToDeposit = 5 ether;
+        tokenToDeposit.transfer(address(dao), amountToDeposit);
+        vm.startPrank(address(dao));
+        tokenToDeposit.approve(address(counterswap), amountToDeposit);
+
+        // Check the initial balance of the Pools contract
+        uint256 initialPoolBalance = pools.depositedBalance(address(counterswap), tokenToDeposit);
+        assertEq(initialPoolBalance, 0);
+
+        // Check the initial _depositedTokens mapping
+        assertEq(counterswap.depositedTokens(tokenToDeposit, desiredToken), 0);
+
+        // Perform the depositToken operation
+        counterswap.depositToken(tokenToDeposit, desiredToken, amountToDeposit);
+
+        // Check the updated balance of the Pools contract
+        uint256 updatedPoolBalance = pools.depositedBalance(address(counterswap), tokenToDeposit);
+        assertEq(updatedPoolBalance, amountToDeposit);
+
+        // Check the updated _depositedTokens mapping
+        assertEq(counterswap.depositedTokens(tokenToDeposit, desiredToken), amountToDeposit);
+
+        // Ensure that the token balance of Counterswap contract is 0, as they should have been deposited to the Pools contract
+        assertEq(tokenToDeposit.balanceOf(address(counterswap)), 0);
+
+        vm.stopPrank();
+    }
+
+
+	// A unit test to verify that the withdrawToken function fails when called by an address other than the DAO or USDS contracts.
+    function testWithdrawTokenPermission() public {
+    	IERC20 tokenToWithdraw = new TestERC20(18);
+    	uint256 amountToWithdraw = 5 ether;
+
+    	// Attempting to withdraw tokens from an address that's not the DAO or USDS contract
+    	vm.expectRevert("Withdraw only callable from the DAO or USDS contracts");
+    	counterswap.withdrawToken(tokenToWithdraw, amountToWithdraw);
+    }
+
+
+	// A unit test to verify that the withdrawToken function correctly withdraws tokens from the Pools contract and transfers them to the caller.
+	function testWithdrawToken() public {
+    	uint256 amountToDeposit = 5 ether;
+    	uint256 amountToWithdraw = 3 ether;
+
+    	IERC20 tokenToWithdraw = new TestERC20(18);
+    	tokenToWithdraw.transfer( address(counterswap), amountToDeposit);
+
+		// Have counterswap deposit into pools to mimic counterswaps resulting in tokens
+		vm.startPrank(address(counterswap));
+		tokenToWithdraw.approve( address(pools), amountToDeposit );
+		pools.deposit( tokenToWithdraw, amountToDeposit);
+
+    	// Check the deposited balance before withdrawal
+    	assertEq(pools.depositedBalance( address(counterswap), tokenToWithdraw), amountToDeposit);
+    	vm.stopPrank();
+
+    	// Withdraw tokens
+    	vm.prank(address(dao));
+    	counterswap.withdrawToken(tokenToWithdraw, amountToWithdraw);
+
+    	// Verify that the tokens have been withdrawn from the Pools contract
+    	assertEq(pools.depositedBalance( address(counterswap), tokenToWithdraw), amountToDeposit - amountToWithdraw);
+
+    	// Verify that the tokens have been transferred to the caller
+    	assertEq(tokenToWithdraw.balanceOf(address(dao)), amountToWithdraw);
+    }
+
+
+	// A unit test in which the shouldCounterswap function is called with an average ratio of zero, ensuring it returns false.
+	function testShouldCounterswapWithZeroAverageRatio() public {
+        // Define some arbitrary ERC20 tokens
+        IERC20 tokenA = new TestERC20(18);
+        IERC20 tokenB = new TestERC20(18);
+
+        // Transfer and approve tokens to manipulate balances
+        tokenA.transfer(address(dao), 100000 ether);
+        tokenB.transfer(address(dao), 100000 ether);
+
+        // Prank the DAO and set up the environment
+        vm.startPrank(address(dao));
+        poolsConfig.whitelistPool(tokenA, tokenB);
+        tokenA.approve(address(counterswap), type(uint256).max);
+        tokenA.approve(address(pools), type(uint256).max);
+        tokenB.approve(address(pools), type(uint256).max);
+
+        // Add liquidity to the pool, but do not place a trade to keep average ratio at zero
+        uint256 liquidityA = 5000 ether;
+        uint256 liquidityB = 1000 ether;
+        pools.addLiquidity(tokenA, tokenB, liquidityA, liquidityB, 0, block.timestamp);
+
+        // Attempt to call shouldCounterswap with arbitrary values; it should return false due to average ratio being zero
+        uint256 swapAmountIn = 1 ether;
+        uint256 swapAmountOut = 1 ether; // arbitrary as it doesn't affect the outcome
+        vm.stopPrank();
+
+		vm.prank( address(pools) );
+        bool shouldCounterswapResult = counterswap.shouldCounterswap(tokenA, tokenB, swapAmountIn, swapAmountOut);
+        assertFalse(shouldCounterswapResult, "shouldCounterswap should return false with zero average ratio");
+
+    }
+
     }
 
 

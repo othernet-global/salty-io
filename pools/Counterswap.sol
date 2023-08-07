@@ -60,7 +60,7 @@ contract Counterswap is ICounterswap
 
 
 	// Withdraw a specified token that is deposited in the Pools contract and send it to the caller.
-	// This is used to withdraw the converted tokens that were deposited in the above function.
+	// This is to withdraw the resulting tokens from counterswaps - not for withdrawing tokens deposited using the above function.
 	function withdrawToken( IERC20 tokenToWithdraw, uint256 amountToWithdraw ) public
 		{
 		require( (msg.sender == address(dao)) || (msg.sender == address(usds)), "Withdraw only callable from the DAO or USDS contracts" );

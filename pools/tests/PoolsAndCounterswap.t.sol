@@ -67,7 +67,7 @@ contract TestPoolsAndCounterswap is Test, Deployment
 		vm.warp( block.timestamp + 5 minutes );
 		vm.stopPrank();
 
-		// Deposit into counterswap indicated the protocol's intention to place a weth->salt trade
+		// Deposit into counterswap inficating the protocol's intention to place a weth->salt trade
 		vm.startPrank(address(dao));
 		weth.approve( address(counterswap), 10000 ether);
 		counterswap.depositToken(weth, salt, 100 ether);
@@ -84,7 +84,7 @@ contract TestPoolsAndCounterswap is Test, Deployment
 		uint256 startingDeposited = counterswap.depositedTokens(weth, salt);
 		(uint256 startingReserve0, uint256 startingReserve1) = pools.getPoolReserves( weth, salt );
 
-		// Try a successful counterswap from SALT->WETH
+		// Try a successful counterswap from SALT->WETH (which will happen inside of the depositSwapWithdraw transaction)
 		vm.prank(alice);
 		uint256 wethOut = pools.depositSwapWithdraw( salt, weth, 10 ether, 0, block.timestamp );
 
