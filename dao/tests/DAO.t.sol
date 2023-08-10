@@ -44,18 +44,18 @@ contract TestDAO is Test, Deployment
 			usds = new USDS( poolsConfig, wbtc, weth );
 
 			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, usds );
-			pools = new Pools( exchangeConfig, poolsConfig );
+			pools = new Pools(exchangeConfig, rewardsConfig, poolsConfig);
 
 			staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
 			liquidity = new Liquidity( pools, exchangeConfig, poolsConfig, stakingConfig );
 			collateral = new Collateral(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
 
-			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig );
-			liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig );
+			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig );
+			liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, rewardsConfig );
 
-			emissions = new Emissions( exchangeConfig, rewardsConfig );
+			emissions = new Emissions( pools, exchangeConfig, rewardsConfig );
 
-			proposals = new Proposals( staking, exchangeConfig, poolsConfig, stakingConfig, daoConfig );
+			proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 
 			address oldDAO = address(dao);
 			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidity, liquidityRewardsEmitter );
@@ -511,10 +511,6 @@ contract TestDAO is Test, Deployment
 		{
 		bytes32 nameHash = keccak256(bytes(contractName));
 
-		if ( nameHash == keccak256(bytes("arbitrageSearch" )))
-			return address(poolsConfig.arbitrageSearch());
-		if ( nameHash == keccak256(bytes("counterswap" )))
-			return address(poolsConfig.counterswap());
 		if ( nameHash == keccak256(bytes("accessManager" )))
 			return address(exchangeConfig.accessManager());
 		if ( nameHash == keccak256(bytes("stakingRewardsEmitter" )))
@@ -527,8 +523,6 @@ contract TestDAO is Test, Deployment
 			return address(priceAggregator.priceFeed2());
 		if ( nameHash == keccak256(bytes("priceFeed3" )))
 			return address(priceAggregator.priceFeed3());
-		if ( nameHash == keccak256(bytes("saltRewards" )))
-			return address(exchangeConfig.saltRewards());
 
 		return address(0);
 		}
@@ -553,17 +547,14 @@ contract TestDAO is Test, Deployment
 	// A unit test to test that finalizing an approved setContract ballot works with all possible contract options
 	function testSetContractApproved() public
 		{
-		_checkSetContractApproved( 1, "arbitrageSearch", address(0x1231230 ) );
-		_checkSetContractApproved( 3, "accessManager", address( new AccessManager(dao) ) );
-		_checkSetContractApproved( 5, "stakingRewardsEmitter", address(0x1231233 ) );
-		_checkSetContractApproved( 7, "liquidityRewardsEmitter", address(0x1231234 ) );
-		_checkSetContractApproved( 9, "priceFeed1", address(0x1231236 ) );
+		_checkSetContractApproved( 1, "accessManager", address( new AccessManager(dao) ) );
+		_checkSetContractApproved( 3, "stakingRewardsEmitter", address(0x1231233 ) );
+		_checkSetContractApproved( 5, "liquidityRewardsEmitter", address(0x1231234 ) );
+		_checkSetContractApproved( 7, "priceFeed1", address(0x1231236 ) );
 		vm.warp(block.timestamp + 60 days);
-		_checkSetContractApproved( 11, "priceFeed2", address(0x1231237 ) );
+		_checkSetContractApproved( 9, "priceFeed2", address(0x1231237 ) );
 		vm.warp(block.timestamp + 60 days);
-		_checkSetContractApproved( 13, "priceFeed3", address(0x1231238 ) );
-		_checkSetContractApproved( 15, "saltRewards", address(0x1231239 ) );
-		_checkSetContractApproved( 17, "counterswap", address(0x1231249 ) );
+		_checkSetContractApproved( 11, "priceFeed3", address(0x1231238 ) );
 		}
 
 
@@ -583,16 +574,13 @@ contract TestDAO is Test, Deployment
 	// A unit test to test that  with all possible contract options, finalizing a setContract ballot has no effect when the initial ballot fails
 	function testSetContractDenied1() public
 		{
-		_checkSetContractDenied1( 1, "arbitrageSearch", address(0x1231230 ) );
-		_checkSetContractDenied1( 2, "priceFeed", address(0x1231231 ) );
-		_checkSetContractDenied1( 3, "accessManager", address( new AccessManager(dao) ) );
-		_checkSetContractDenied1( 4, "stakingRewardsEmitter", address(0x1231233 ) );
-		_checkSetContractDenied1( 5, "liquidityRewardsEmitter", address(0x1231234 ) );
-		_checkSetContractDenied1( 6, "priceFeed1", address(0x1231236 ) );
-		_checkSetContractDenied1( 7, "priceFeed2", address(0x1231237 ) );
-		_checkSetContractDenied1( 8, "priceFeed3", address(0x1231238 ) );
-		_checkSetContractDenied1( 9, "saltRewards", address(0x1231239 ) );
-		_checkSetContractDenied1( 10, "counterswap", address(0x1231249 ) );
+		_checkSetContractDenied1( 1, "priceFeed", address(0x1231231 ) );
+		_checkSetContractDenied1( 2, "accessManager", address( new AccessManager(dao) ) );
+		_checkSetContractDenied1( 3, "stakingRewardsEmitter", address(0x1231233 ) );
+		_checkSetContractDenied1( 4, "liquidityRewardsEmitter", address(0x1231234 ) );
+		_checkSetContractDenied1( 5, "priceFeed1", address(0x1231236 ) );
+		_checkSetContractDenied1( 6, "priceFeed2", address(0x1231237 ) );
+		_checkSetContractDenied1( 7, "priceFeed3", address(0x1231238 ) );
 		}
 
 
@@ -615,15 +603,12 @@ contract TestDAO is Test, Deployment
 	// A unit test to test that  with all possible contract options, finalizing a setContract ballot has no effect when the confirm ballot fails
 	function testSetContractDenied2() public
 		{
-		_checkSetContractDenied2( 1, "arbitrageSearch", address(0x1231230 ) );
-		_checkSetContractDenied2( 3, "accessManager", address( new AccessManager(dao) ) );
-		_checkSetContractDenied2( 5, "stakingRewardsEmitter", address(0x1231233 ) );
-		_checkSetContractDenied2( 7, "liquidityRewardsEmitter", address(0x1231234 ) );
-		_checkSetContractDenied2( 9, "priceFeed1", address(0x1231236 ) );
-		_checkSetContractDenied2( 11, "priceFeed2", address(0x1231237 ) );
-		_checkSetContractDenied2( 13, "priceFeed3", address(0x1231238 ) );
-		_checkSetContractDenied2( 15, "saltRewards", address(0x1231239 ) );
-		_checkSetContractDenied2( 17, "counterswap", address(0x1231249 ) );
+		_checkSetContractDenied2( 1, "accessManager", address( new AccessManager(dao) ) );
+		_checkSetContractDenied2( 3, "stakingRewardsEmitter", address(0x1231233 ) );
+		_checkSetContractDenied2( 5, "liquidityRewardsEmitter", address(0x1231234 ) );
+		_checkSetContractDenied2( 7, "priceFeed1", address(0x1231236 ) );
+		_checkSetContractDenied2( 9, "priceFeed2", address(0x1231237 ) );
+		_checkSetContractDenied2( 11, "priceFeed3", address(0x1231238 ) );
 		}
 
 

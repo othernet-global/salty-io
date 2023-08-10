@@ -5,6 +5,7 @@ import "../openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import "./StakingRewards.sol";
 import "../interfaces/ISalt.sol";
 import "./interfaces/IStaking.sol";
+import "../pools/PoolUtils.sol";
 
 
 // Staking SALT provides xSALT at a 1:1 ratio.
@@ -14,11 +15,6 @@ import "./interfaces/IStaking.sol";
 contract Staking is IStaking, StakingRewards
     {
 	using SafeERC20 for ISalt;
-
-	event eStake(address indexed wallet, uint256 amount);
-	event eUnstake(uint256 unstakedID, address indexed wallet, uint256 amount, uint256 numWeeks);
-	event eRecover(address indexed wallet, uint256 indexed unstakeID, uint256 amount);
-	event eCancelUnstake(address indexed wallet, uint256 indexed unstakeID);
 
 
 	// The xSALT balance for each user
@@ -46,12 +42,10 @@ contract Staking is IStaking, StakingRewards
 
 		// Increase the user's staking share so that they will receive more future SALT rewards
 		// No cooldown as it takes default 6 months to unstake the xSALT to receive the full amount staked SALT back
-		_increaseUserShare( msg.sender, STAKED_SALT, amountToStake, false );
+		_increaseUserShare( msg.sender, PoolUtils.STAKED_SALT, amountToStake, false );
 
 		// Transfer the SALT from the user's wallet
 		salt.safeTransferFrom( msg.sender, address(this), amountToStake );
-
-		emit eStake( msg.sender, amountToStake );
 		}
 
 
@@ -76,9 +70,7 @@ contract Staking is IStaking, StakingRewards
 		// Decrease the user's staking share so that they will receive less future SALT rewards
 		// This call will send any pending SALT rewards to msg.sender as well.
 		// Note: _decreaseUserShare checks to make sure that the user has the specified staking share balance.
-		_decreaseUserShare( msg.sender, STAKED_SALT, amountUnstaked, false );
-
-		emit eUnstake( unstakeID, msg.sender, amountUnstaked, numWeeks);
+		_decreaseUserShare( msg.sender, PoolUtils.STAKED_SALT, amountUnstaked, false );
 		}
 
 
@@ -95,11 +87,9 @@ contract Staking is IStaking, StakingRewards
 		userXSalt[msg.sender] += u.unstakedXSALT;
 
 		// Update the user's share of the rewards for staked SALT
-		_increaseUserShare( msg.sender, STAKED_SALT, u.unstakedXSALT, false );
+		_increaseUserShare( msg.sender, PoolUtils.STAKED_SALT, u.unstakedXSALT, false );
 
 		u.status = UnstakeState.CANCELLED;
-
-		emit eCancelUnstake( msg.sender, unstakeID );
 		}
 
 
@@ -138,8 +128,6 @@ contract Staking is IStaking, StakingRewards
 		require( salt.balanceOf(address(this)) >= claimableSALT, "Insufficient balance to send claimed SALT");
 
 		salt.safeTransfer( msg.sender, claimableSALT );
-
-		emit eRecover( msg.sender, unstakeID, claimableSALT );
 		}
 
 

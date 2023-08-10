@@ -4,23 +4,22 @@ pragma solidity =0.8.21;
 import "forge-std/Test.sol";
 import "../../dev/Deployment.sol";
 import "../../root_tests/TestERC20.sol";
-import "../Counterswap.sol";
+import "../Pools.sol";
+import "./TestPools.sol";
 
 
-contract TestCounterswap is Test, Deployment
+contract TestCounterswap2 is Test, Deployment
 	{
+	TestPools public _pools;
+	ICounterswap public _counterswap;
+
+
 	constructor()
 		{
-		// If $COVERAGE=yes, create an instance of the contract so that coverage testing can work
-		// Otherwise, what is tested is the actual deployed contract on the blockchain (as specified in Deployment.sol)
-		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
-			{
-			vm.prank(DEPLOYER);
-			counterswap = new Counterswap(pools, exchangeConfig );
+		_pools = new TestPools(exchangeConfig, rewardsConfig, poolsConfig);
+		_pools.setDAO(dao);
 
-			vm.prank(address(dao));
-			poolsConfig.setCounterswap(counterswap);
-			}
+		_counterswap = ICounterswap(address(_pools));
 		}
 
 
@@ -31,12 +30,12 @@ contract TestCounterswap is Test, Deployment
 		IERC20 tokenA = new TestERC20(18);
 		IERC20 tokenB = new TestERC20(18);
 
-		vm.expectRevert("Deposit only callable from the DAO or USDS contracts");
-		counterswap.depositToken(tokenA, tokenB, 5 ether);
+		vm.expectRevert("Counterswap.depositTokenForCounterswap only callable from the DAO or USDS contracts");
+		_counterswap.depositTokenForCounterswap(tokenA, tokenB, 5 ether);
 		}
 
 
-	// A unit test in which the current reserve ratio is favorable to compared to the averageRatio and different deposit amounts are attempted - causing shouldCounterswap to sometimes return true and sometimes return false.
+	// A unit test in which the current reserve ratio is favorable compared to the averageRatio and different deposit amounts are attempted - causing shouldCounterswap to sometimes return true and sometimes return false.
 	function _testChangeCounterswapAmounts( IERC20 token0, IERC20 token1, uint256 liquidityB) public {
 
 		if ( address(token0) == address(0))
@@ -50,46 +49,41 @@ contract TestCounterswap is Test, Deployment
 		token1.transfer( address(dao), 100000 ether);
 
         vm.startPrank(address(dao));
-		poolsConfig.whitelistPool(token0, token1);
-		token0.approve( address(counterswap), type(uint256).max );
-		token0.approve( address(pools), type(uint256).max );
-		token1.approve( address(pools), type(uint256).max );
+		poolsConfig.whitelistPool(_pools, token0, token1);
+		token0.approve( address(_counterswap), type(uint256).max );
+		token0.approve( address(_pools), type(uint256).max );
+		token1.approve( address(_pools), type(uint256).max );
 
 		// Add liquidity and place a trade to establish an initial average ratio
 		uint256 swapAmountIn = 1 ether;
 		uint256 liquidityA = 5000 ether;
-		pools.addLiquidity( token0, token1, liquidityA, liquidityB, 0, block.timestamp );
-		uint256 swapAmountOut = pools.depositSwapWithdraw( token1, token0, swapAmountIn, 0, block.timestamp);
+		_pools.addLiquidity( token0, token1, liquidityA, liquidityB, 0, block.timestamp );
+		uint256 swapAmountOut = _pools.depositSwapWithdraw( token1, token0, swapAmountIn, 0, block.timestamp);
 
 		// Deposit token0 for counterswapping to token1
 		// Deposit an amount that makes the ratio for counterswapping favorable compared to the average ratio
 		// when counterswapping amountToDeposit for swapAmountIn
 		uint256 amountToDeposit = swapAmountOut - 10000000000000000;
-        counterswap.depositToken(token0, token1, amountToDeposit);
+        _counterswap.depositTokenForCounterswap(token0, token1, amountToDeposit);
 		vm.stopPrank();
 
 		// Check the deposited balances
-		assertEq( counterswap.depositedTokens(token0, token1), amountToDeposit );
-        assertEq( token0.balanceOf( address(counterswap)), 0 );
-        assertEq( pools.depositedBalance(address(counterswap), token0), amountToDeposit );
+		assertEq( _counterswap.depositedTokens(token0, token1), amountToDeposit );
+        assertEq( _pools.depositedBalance(address(_counterswap), token0), amountToDeposit );
 
         // Checking shouldCounterswap when swapAmountOut is more than the deposited amount
-        vm.prank(address(pools));
-        bool shouldCounterswapMore = counterswap.shouldCounterswap(token1, token0, swapAmountIn, amountToDeposit + 100);
+        bool shouldCounterswapMore = _pools.shouldCounterswap(token1, token0, swapAmountIn, amountToDeposit + 100);
         assertFalse(shouldCounterswapMore, "shouldCounterswap should return false for swapAmountOut > deposit");
 
         // Checking shouldCounterswap when swapAmountOut is less than the deposited amount
-        vm.prank(address(pools));
-        bool shouldCounterswapLess = counterswap.shouldCounterswap(token1, token0, swapAmountIn, amountToDeposit - 100);
+        bool shouldCounterswapLess = _pools.shouldCounterswap(token1, token0, swapAmountIn, amountToDeposit - 100);
         assertTrue(shouldCounterswapLess, "shouldCounterswap should return true for swapAmountOut < deposit");
 
 		// Check the deposited balances
-		assertEq( counterswap.depositedTokens(token0, token1), 100 );
-        assertEq( token0.balanceOf( address(counterswap)), 0 );
+		assertEq( _counterswap.depositedTokens(token0, token1), 100 );
 
         // Checking shouldCounterswap when the deposited amount has already been depleted
-        vm.prank(address(pools));
-        bool shouldCounterswapDepleted = counterswap.shouldCounterswap(token1, token0, swapAmountIn, amountToDeposit / 2);
+        bool shouldCounterswapDepleted = _pools.shouldCounterswap(token1, token0, swapAmountIn, amountToDeposit / 2);
         assertFalse(shouldCounterswapDepleted, "shouldCounterswap should return false when the deposited tokens have been depleted");
     }
 
@@ -108,8 +102,6 @@ contract TestCounterswap is Test, Deployment
 		}
 
 
-
-
 	// A unit test in which the current reserve ratio is favorable to compared to the averageRatio and different deposit amounts are attempted - causing shouldCounterswap to sometimes return true and sometimes return false.
 	function _testSwapRatios( IERC20 token0, IERC20 token1, uint256 liquidityB) public {
 
@@ -124,31 +116,31 @@ contract TestCounterswap is Test, Deployment
 		token1.transfer( address(dao), 100000 ether);
 
         vm.startPrank(address(dao));
-		poolsConfig.whitelistPool(token0, token1);
-		token0.approve( address(counterswap), type(uint256).max );
-		token0.approve( address(pools), type(uint256).max );
-		token1.approve( address(pools), type(uint256).max );
+		poolsConfig.whitelistPool(_pools, token0, token1);
+		token0.approve( address(_counterswap), type(uint256).max );
+		token0.approve( address(_pools), type(uint256).max );
+		token1.approve( address(_pools), type(uint256).max );
 
 		// Add liquidity and place a trade to establish an initial average ratio
 		uint256 swapAmountIn = 1 ether;
 		uint256 liquidityA = 5000 ether;
-		pools.addLiquidity( token0, token1, liquidityA, liquidityB, 0, block.timestamp );
-		uint256 swapAmountOut = pools.depositSwapWithdraw( token1, token0, swapAmountIn, 0, block.timestamp);
+		_pools.addLiquidity( token0, token1, liquidityA, liquidityB, 0, block.timestamp );
+		uint256 swapAmountOut = _pools.depositSwapWithdraw( token1, token0, swapAmountIn, 0, block.timestamp);
 
 		// Deposit token0 for counterswapping to token1
 		// Sufficient amountToDeposit will be deposited and the swapRatio will be adjusted and checked for proper behavior of shouldCounterswap.
 		uint256 amountToDeposit = swapAmountOut * 2;
-        counterswap.depositToken(token0, token1, amountToDeposit);
+        _counterswap.depositTokenForCounterswap(token0, token1, amountToDeposit);
 		vm.stopPrank();
 
         // Checking shouldCounterswap with an unfavorable swap ratio
-        vm.prank(address(pools));
-        bool shouldCounterswapUnfavorable = counterswap.shouldCounterswap(token1, token0, swapAmountIn, swapAmountOut + 10000000000000000);
+        vm.prank(address(_pools));
+        bool shouldCounterswapUnfavorable = _pools.shouldCounterswap(token1, token0, swapAmountIn, swapAmountOut + 10000000000000000);
         assertFalse(shouldCounterswapUnfavorable, "shouldCounterswap should return false with an unfavorable swapRatio");
 
         // Checking shouldCounterswap with an favorable swap ratio
-        vm.prank(address(pools));
-        bool shouldCounterswapFavorable = counterswap.shouldCounterswap(token1, token0, swapAmountIn, swapAmountOut - 10000000000000000);
+        vm.prank(address(_pools));
+        bool shouldCounterswapFavorable = _pools.shouldCounterswap(token1, token0, swapAmountIn, swapAmountOut - 10000000000000000);
         assertTrue(shouldCounterswapFavorable, "shouldCounterswap should return true with a favorable swap ratio");
     }
 
@@ -167,14 +159,12 @@ contract TestCounterswap is Test, Deployment
 		}
 
 
-	// A unit test to ensure that the constructor correctly initializes the pools, exchangeConfig, usds, dao, and ZERO variables. The test should verify that these variables are correctly set after the contract is deployed.
+	// A unit test to ensure that the constructor correctly initializes the _pools, exchangeConfig, usds, dao, and ZERO variables. The test should verify that these variables are correctly set after the contract is deployed.
 	function test_constructor_initializes_variables() public {
-    	Counterswap counterswapInstance = new Counterswap(pools, exchangeConfig);
+    	Counterswap counterswapInstance = new Counterswap(_pools, exchangeConfig);
 
-    	assertEq(address(counterswapInstance.pools()), address(pools), "Pools address does not match");
-    	assertEq(address(counterswapInstance.exchangeConfig()), address(exchangeConfig), "ExchangeConfig address does not match");
+    	assertEq(address(counterswapInstance.pools()), address(_pools), "Pools address does not match");
     	assertEq(address(counterswapInstance.usds()), address(exchangeConfig.usds()), "USDS address does not match");
-    	assertEq(address(counterswapInstance.dao()), address(exchangeConfig.dao()), "DAO address does not match");
 
     	bytes16 zeroValue = ABDKMathQuad.fromUInt(0);
     	assertEq(ABDKMathQuad.cmp(counterswapInstance.ZERO(), zeroValue), 0, "ZERO value does not match");
@@ -184,18 +174,15 @@ contract TestCounterswap is Test, Deployment
 	// A unit test to verify that the constructor fails when the _pools or _exchangeConfig parameters are zero addresses. This should fail according to the requirements specified in the constructor.
 	function testConstructorFailsWithZeroAddresses() public {
     	IPools zeroPools = IPools(address(0));
-    	IExchangeConfig validExchangeConfig = exchangeConfig; // Assume this is a valid exchange config instance
+    	IExchangeConfig zeroExchangeConfig = IExchangeConfig(address(0));
 
     	// Test failure when _pools is the zero address
     	vm.expectRevert("_pools cannot be address(0)");
-    	new Counterswap(zeroPools, validExchangeConfig);
-
-    	IPools validPools = pools; // Assume this is a valid pools instance
-    	IExchangeConfig zeroExchangeConfig = IExchangeConfig(address(0));
+    	new Counterswap(zeroPools, exchangeConfig);
 
     	// Test failure when _exchangeConfig is the zero address
     	vm.expectRevert("_exchangeConfig cannot be address(0)");
-    	new Counterswap(validPools, zeroExchangeConfig);
+    	new Counterswap(_pools, zeroExchangeConfig);
     }
 
 
@@ -209,27 +196,24 @@ contract TestCounterswap is Test, Deployment
         uint256 amountToDeposit = 5 ether;
         tokenToDeposit.transfer(address(dao), amountToDeposit);
         vm.startPrank(address(dao));
-        tokenToDeposit.approve(address(counterswap), amountToDeposit);
+        tokenToDeposit.approve(address(_counterswap), amountToDeposit);
 
         // Check the initial balance of the Pools contract
-        uint256 initialPoolBalance = pools.depositedBalance(address(counterswap), tokenToDeposit);
+        uint256 initialPoolBalance = _pools.depositedBalance(address(_counterswap), tokenToDeposit);
         assertEq(initialPoolBalance, 0);
 
         // Check the initial _depositedTokens mapping
-        assertEq(counterswap.depositedTokens(tokenToDeposit, desiredToken), 0);
+        assertEq(_counterswap.depositedTokens(tokenToDeposit, desiredToken), 0);
 
         // Perform the depositToken operation
-        counterswap.depositToken(tokenToDeposit, desiredToken, amountToDeposit);
+        _counterswap.depositTokenForCounterswap(tokenToDeposit, desiredToken, amountToDeposit);
 
         // Check the updated balance of the Pools contract
-        uint256 updatedPoolBalance = pools.depositedBalance(address(counterswap), tokenToDeposit);
+        uint256 updatedPoolBalance = _pools.depositedBalance(address(_counterswap), tokenToDeposit);
         assertEq(updatedPoolBalance, amountToDeposit);
 
         // Check the updated _depositedTokens mapping
-        assertEq(counterswap.depositedTokens(tokenToDeposit, desiredToken), amountToDeposit);
-
-        // Ensure that the token balance of Counterswap contract is 0, as they should have been deposited to the Pools contract
-        assertEq(tokenToDeposit.balanceOf(address(counterswap)), 0);
+        assertEq(_counterswap.depositedTokens(tokenToDeposit, desiredToken), amountToDeposit);
 
         vm.stopPrank();
     }
@@ -241,8 +225,8 @@ contract TestCounterswap is Test, Deployment
     	uint256 amountToWithdraw = 5 ether;
 
     	// Attempting to withdraw tokens from an address that's not the DAO or USDS contract
-    	vm.expectRevert("Withdraw only callable from the DAO or USDS contracts");
-    	counterswap.withdrawToken(tokenToWithdraw, amountToWithdraw);
+    	vm.expectRevert("Counterswap.withdrawTokenFromCounterswap only callable from the DAO or USDS contracts");
+    	_counterswap.withdrawTokenFromCounterswap(tokenToWithdraw, amountToWithdraw);
     }
 
 
@@ -252,23 +236,23 @@ contract TestCounterswap is Test, Deployment
     	uint256 amountToWithdraw = 3 ether;
 
     	IERC20 tokenToWithdraw = new TestERC20(18);
-    	tokenToWithdraw.transfer( address(counterswap), amountToDeposit);
+    	tokenToWithdraw.transfer( address(_counterswap), amountToDeposit);
 
-		// Have counterswap deposit into pools to mimic counterswaps resulting in tokens
-		vm.startPrank(address(counterswap));
-		tokenToWithdraw.approve( address(pools), amountToDeposit );
-		pools.deposit( tokenToWithdraw, amountToDeposit);
+		// Have counterswap deposit into _pools to mimic counterswaps resulting in tokens
+		vm.startPrank(address(_counterswap));
+		tokenToWithdraw.approve( address(_pools), amountToDeposit );
+		_pools.deposit( tokenToWithdraw, amountToDeposit);
 
     	// Check the deposited balance before withdrawal
-    	assertEq(pools.depositedBalance( address(counterswap), tokenToWithdraw), amountToDeposit);
+    	assertEq(_pools.depositedBalance( address(_counterswap), tokenToWithdraw), amountToDeposit);
     	vm.stopPrank();
 
     	// Withdraw tokens
     	vm.prank(address(dao));
-    	counterswap.withdrawToken(tokenToWithdraw, amountToWithdraw);
+    	_counterswap.withdrawTokenFromCounterswap(tokenToWithdraw, amountToWithdraw);
 
     	// Verify that the tokens have been withdrawn from the Pools contract
-    	assertEq(pools.depositedBalance( address(counterswap), tokenToWithdraw), amountToDeposit - amountToWithdraw);
+    	assertEq(_pools.depositedBalance( address(_counterswap), tokenToWithdraw), amountToDeposit - amountToWithdraw);
 
     	// Verify that the tokens have been transferred to the caller
     	assertEq(tokenToWithdraw.balanceOf(address(dao)), amountToWithdraw);
@@ -287,23 +271,23 @@ contract TestCounterswap is Test, Deployment
 
         // Prank the DAO and set up the environment
         vm.startPrank(address(dao));
-        poolsConfig.whitelistPool(tokenA, tokenB);
-        tokenA.approve(address(counterswap), type(uint256).max);
-        tokenA.approve(address(pools), type(uint256).max);
-        tokenB.approve(address(pools), type(uint256).max);
+        poolsConfig.whitelistPool(_pools, tokenA, tokenB);
+        tokenA.approve(address(_counterswap), type(uint256).max);
+        tokenA.approve(address(_pools), type(uint256).max);
+        tokenB.approve(address(_pools), type(uint256).max);
 
         // Add liquidity to the pool, but do not place a trade to keep average ratio at zero
         uint256 liquidityA = 5000 ether;
         uint256 liquidityB = 1000 ether;
-        pools.addLiquidity(tokenA, tokenB, liquidityA, liquidityB, 0, block.timestamp);
+        _pools.addLiquidity(tokenA, tokenB, liquidityA, liquidityB, 0, block.timestamp);
 
         // Attempt to call shouldCounterswap with arbitrary values; it should return false due to average ratio being zero
         uint256 swapAmountIn = 1 ether;
         uint256 swapAmountOut = 1 ether; // arbitrary as it doesn't affect the outcome
         vm.stopPrank();
 
-		vm.prank( address(pools) );
-        bool shouldCounterswapResult = counterswap.shouldCounterswap(tokenA, tokenB, swapAmountIn, swapAmountOut);
+		vm.prank( address(_pools) );
+        bool shouldCounterswapResult = _pools.shouldCounterswap(tokenA, tokenB, swapAmountIn, swapAmountOut);
         assertFalse(shouldCounterswapResult, "shouldCounterswap should return false with zero average ratio");
 
     }

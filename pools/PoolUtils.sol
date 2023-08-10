@@ -13,7 +13,10 @@ library PoolUtils
 	// Token reserves less than dust are treated as if they don't exist at all.
 	// With the 18 decimals that are used for most tokens, DUST has a value of 0.0000000000000001
 	// For tokens with 6 decimal places (like USDC) DUST has a value of .0001
-	uint256 constant public _DUST = 100;
+	uint256 constant public DUST = 100;
+
+	// A special pool that represents staked SALT that is not associated with any particular pool.
+    bytes32 constant public STAKED_SALT = bytes32(0);
 
 
     // Return the unique poolID for the given two tokens.
@@ -26,20 +29,6 @@ library PoolUtils
             return (keccak256(abi.encodePacked(address(tokenB), address(tokenA))), true);
 
         return (keccak256(abi.encodePacked(address(tokenA), address(tokenB))), false);
-    	}
-
-
-    // Transfer an ERC20 token from the sender to this contract, but revert if the token has a fee on transfer
-    function _transferFromUserNoFeeOnTransfer( IERC20 token, uint256 amount ) internal
-    	{
-		// Make sure there is no fee while transferring the token to this contract
-		uint256 beforeBalance = token.balanceOf( address(this) );
-
-		// User allowance and balance not checked to save gas - safeTransferFrom will revert if either is lacking
-		token.safeTransferFrom(msg.sender, address(this), amount );
-
-		uint256 afterBalance = token.balanceOf( address(this) );
-		require( afterBalance == ( beforeBalance + amount ), "Cannot deposit tokens with a fee on transfer" );
     	}
 
 
@@ -57,7 +46,7 @@ library PoolUtils
 
 			(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves(tokenIn, tokenOut);
 
-			if ( reserve0 <= _DUST || reserve1 <= _DUST || amountIn <= _DUST )
+			if ( reserve0 <= DUST || reserve1 <= DUST || amountIn <= DUST )
 				return 0;
 
 			uint256 k = reserve0 * reserve1;
@@ -89,7 +78,7 @@ library PoolUtils
 
 			(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves(tokenIn, tokenOut);
 
-			if ( reserve0 <= _DUST || reserve1 <= _DUST || amountOut >= reserve1 || amountOut < _DUST)
+			if ( reserve0 <= DUST || reserve1 <= DUST || amountOut >= reserve1 || amountOut < DUST)
 				return 0;
 
 			uint256 k = reserve0 * reserve1;

@@ -6,13 +6,6 @@ import "../../staking/interfaces/IStakingRewards.sol";
 
 interface ICollateral is IStakingRewards
 	{
-	event eDepositCollateral(address indexed wallet, uint256 addedAmountWBTC, uint256 addedAmountWETH, uint256 amount);
-	event eWithdrawCollateral(address indexed wallet, uint256 amount, uint256 reclaimedWBTC, uint256 reclaimedWETH);
-	event eBorrow(address indexed wallet, uint256 amount);
-	event eRepay(address indexed wallet, uint256 amount);
-	event eLiquidatePosition(address indexed wallet, address indexed liquidator, uint256 collateralAmount);
-
-
 	function depositCollateralAndIncreaseShare( uint256 maxAmountWBTC, uint256 maxAmountWETH, uint256 minLiquidityReceived, uint256 deadline, bool bypassZapping ) external returns (uint256 addedAmountWBTC, uint256 addedAmountWETH, uint256 addedLiquidity);
 	function withdrawCollateralAndClaim( uint256 collateralToWithdraw, uint256 minReclaimedWBTC, uint256 minReclaimedWETH, uint256 deadline ) external returns (uint256 reclaimedWBTC, uint256 reclaimedWETH);
 	function borrowUSDS( uint256 amountBorrowed ) external;

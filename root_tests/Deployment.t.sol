@@ -49,11 +49,7 @@ contract TestDeployment is Deployment, Test
         assertEq( getContract(address(exchangeConfig), "accessManager()"), address(accessManager), "Incorrect exchangeConfig.accessManager" );
         assertEq( getContract(address(exchangeConfig), "dao()"), address(dao), "Incorrect exchangeConfig.dao" );
 
-        assertEq( getContract(address(pools), "exchangeConfig()"), address(exchangeConfig), "Incorrect pools.exchangeConfig" );
         assertEq( getContract(address(pools), "dao()"), address(dao), "Incorrect pools.dao" );
-
-        assertEq( getContract(address(counterswap), "pools()"), address(pools), "Incorrect counterswap.pools" );
-        assertEq( getContract(address(counterswap), "exchangeConfig()"), address(exchangeConfig), "Incorrect counterswap.exchangeConfig" );
 
         assertEq( getContract(address(staking), "exchangeConfig()"), address(exchangeConfig), "Incorrect staking.exchangeConfig" );
         assertEq( getContract(address(staking), "poolsConfig()"), address(poolsConfig), "Incorrect staking.poolsConfig" );
@@ -76,12 +72,10 @@ contract TestDeployment is Deployment, Test
 
 		assertEq( getContract(address(stakingRewardsEmitter), "stakingRewards()"), address(staking), "Incorrect stakingRewardsEmitter.stakingRewards" );
         assertEq( getContract(address(stakingRewardsEmitter), "poolsConfig()"), address(poolsConfig), "Incorrect stakingRewardsEmitter.poolsConfig" );
-        assertEq( getContract(address(stakingRewardsEmitter), "stakingConfig()"), address(stakingConfig), "Incorrect stakingRewardsEmitter.stakingConfig" );
 		assertEq( getContract(address(stakingRewardsEmitter), "rewardsConfig()"), address(rewardsConfig), "Incorrect stakingRewardsEmitter.rewardsConfig" );
 
 		assertEq( getContract(address(liquidityRewardsEmitter), "stakingRewards()"), address(liquidity), "Incorrect liquidityRewardsEmitter.stakingRewards" );
         assertEq( getContract(address(liquidityRewardsEmitter), "poolsConfig()"), address(poolsConfig), "Incorrect liquidityRewardsEmitter.poolsConfig" );
-        assertEq( getContract(address(liquidityRewardsEmitter), "stakingConfig()"), address(stakingConfig), "Incorrect liquidityRewardsEmitter.stakingConfig" );
 		assertEq( getContract(address(liquidityRewardsEmitter), "rewardsConfig()"), address(rewardsConfig), "Incorrect liquidityRewardsEmitter.rewardsConfig" );
 
         assertEq( getContract(address(emissions), "exchangeConfig()"), address(exchangeConfig), "Incorrect emissions.exchangeConfig" );
@@ -101,7 +95,6 @@ contract TestDeployment is Deployment, Test
 		assertEq( getContract(address(proposals), "staking()"), address(staking), "Incorrect proposals.staking" );
         assertEq( getContract(address(proposals), "exchangeConfig()"), address(exchangeConfig), "Incorrect proposals.exchangeConfig" );
         assertEq( getContract(address(proposals), "poolsConfig()"), address(poolsConfig), "Incorrect proposals.poolsConfig" );
-        assertEq( getContract(address(proposals), "stakingConfig()"), address(stakingConfig), "Incorrect proposals.stakingConfig" );
         assertEq( getContract(address(proposals), "daoConfig()"), address(daoConfig), "Incorrect proposals.daoConfig" );
 
 		assertEq( getContract( address(exchangeConfig), "owner()" ), address(dao), "exchangeConfig owner is not dao" );
@@ -112,8 +105,6 @@ contract TestDeployment is Deployment, Test
 		assertEq( getContract( address(daoConfig), "owner()" ), address(dao), "daoConfig owner is not dao" );
 		assertEq( getContract( address(priceAggregator), "owner()" ), address(dao), "priceAggregator owner is not dao" );
 
-        assertEq( getContract(address(poolsConfig), "arbitrageSearch()"), address(arbitrageSearch), "Incorrect poolsConfig.arbitrageSearch" );
-        assertEq( getContract(address(poolsConfig), "counterswap()"), address(counterswap), "Incorrect poolsConfig.counterswap" );
 
         if ( DEBUG )
         	assertTrue( functionExists( address(priceAggregator.priceFeed1()), "forcedPriceBTCWith18Decimals()" ), "For DEBUG: The PriceFeed should be a ForcedPriceFeed" );
@@ -137,14 +128,11 @@ contract TestDeployment is Deployment, Test
         	}
 
         assertEq( getContract(address(usds), "poolsConfig()"), address(poolsConfig), "Incorrect usds.poolsConfig" );
-//        assertEq( getContract(address(usds), "wbtc()"), address(wbtc), "Incorrect usds.wbtc" );
-//        assertEq( getContract(address(usds), "weth()"), address(weth), "Incorrect usds.weth" );
-//        assertEq( getContract(address(usds), "collateral()"), address(collateral), "Incorrect usds.collateral" );
-//        assertEq( getContract(address(usds), "dao()"), address(dao), "Incorrect usds.dao" );
-//        assertEq( getContract(address(usds), "pools()"), address(pools), "Incorrect usds.pools" );
-
-        assertEq( getContract(address(arbitrageSearch), "pools()"), address(pools), "Incorrect arbitrageSearch.pools" );
-        assertEq( getContract(address(arbitrageSearch), "exchangeConfig()"), address(exchangeConfig), "Incorrect arbitrageSearch.exchangeConfig" );
+        assertEq( getContract(address(usds), "wbtc()"), address(wbtc), "Incorrect usds.wbtc" );
+        assertEq( getContract(address(usds), "weth()"), address(weth), "Incorrect usds.weth" );
+        assertEq( getContract(address(usds), "collateral()"), address(collateral), "Incorrect usds.collateral" );
+        assertEq( getContract(address(usds), "dao()"), address(dao), "Incorrect usds.dao" );
+        assertEq( getContract(address(usds), "pools()"), address(pools), "Incorrect usds.pools" );
 
 //        if ( DEBUG )
 //        	assertTrue( functionExists( address(accessManager), "isTest()" ), "For DEBUG: The AccessManager should be a TestAccessManager" );
@@ -155,42 +143,39 @@ contract TestDeployment is Deployment, Test
 
    	function testPrint() public view
    		{
-   		console.log( "wbtc: ", address(wbtc) );
-   		console.log( "weth: ", address(weth) );
-   		console.log( "usdc: ", address(usdc) );
-   		console.log( "accessManager: ", address(accessManager) );
-		console.log( "" );
-   		console.log( "salt: ", address(salt) );
-   		console.log( "priceAggregator: ", address(priceAggregator) );
-   		console.log( "priceFeed1: ", address(priceAggregator.priceFeed1()) );
-   		console.log( "priceFeed2: ", address(priceAggregator.priceFeed2()) );
-   		console.log( "priceFeed3: ", address(priceAggregator.priceFeed3()) );
-//   		console.log( "util: ", address(util) );
-		console.log( "" );
-   		console.log( "stableConfig: ", address(stableConfig) );
-   		console.log( "usds: ", address(usds) );
+   		console.log( "dao: ", address(dao) );
+   		console.log( "emissions: ", address(emissions) );
 		console.log( "" );
    		console.log( "exchangeConfig: ", address(exchangeConfig) );
    		console.log( "poolsConfig: ", address(poolsConfig) );
    		console.log( "stakingConfig: ", address(stakingConfig) );
+   		console.log( "stableConfig: ", address(stableConfig) );
    		console.log( "rewardsConfig: ", address(rewardsConfig) );
    		console.log( "daoConfig: ", address(daoConfig) );
+   		console.log( "priceAggregator: ", address(priceAggregator) );
 		console.log( "" );
-   		console.log( "pools: ", address(pools) );
+   		console.log( "salt: ", address(salt) );
+   		console.log( "wbtc: ", address(wbtc) );
+   		console.log( "weth: ", address(weth) );
+   		console.log( "usdc: ", address(usdc) );
+   		console.log( "usds: ", address(usds) );
+		console.log( "" );
+   		console.log( "stakingRewardsEmitter: ", address(stakingRewardsEmitter) );
+   		console.log( "liquidityRewardsEmitter: ", address(liquidityRewardsEmitter) );
 		console.log( "" );
    		console.log( "staking: ", address(staking) );
    		console.log( "liquidity: ", address(liquidity) );
    		console.log( "collateral: ", address(collateral) );
 		console.log( "" );
-   		console.log( "stakingRewardsEmitter: ", address(stakingRewardsEmitter) );
-   		console.log( "liquidityRewardsEmitter: ", address(liquidityRewardsEmitter) );
+   		console.log( "pools: ", address(pools) );
 		console.log( "" );
-//   		console.log( "optimizer: ", address(optimizer) );
-   		console.log( "arbitrageSearch: ", address(arbitrageSearch) );
-////   		console.log( "emissions: ", address(emissions) );
-//   		console.log( "dao: ", address(dao) );
+   		console.log( "proposals: ", address(proposals) );
 		console.log( "" );
-//   		console.log( "initialSale: ", address(initialSale) );
+   		console.log( "accessManager: ", address(accessManager) );
+		console.log( "" );
+   		console.log( "priceFeed1: ", address(priceAggregator.priceFeed1()) );
+   		console.log( "priceFeed2: ", address(priceAggregator.priceFeed2()) );
+   		console.log( "priceFeed3: ", address(priceAggregator.priceFeed3()) );
    		}
     }
 

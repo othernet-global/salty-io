@@ -36,14 +36,14 @@ contract StakingTest is Test, Deployment
 		IERC20 token3 = new TestERC20( 18 );
 
         poolIDs = new bytes32[](3);
-        poolIDs[0] = STAKED_SALT;
+        poolIDs[0] = PoolUtils.STAKED_SALT;
         (poolIDs[1],) = PoolUtils.poolID(token1, token2);
         (poolIDs[2],) = PoolUtils.poolID(token2, token3);
 
         // Whitelist lp
 		vm.startPrank( address(dao) );
-        poolsConfig.whitelistPool(token1, token2);
-        poolsConfig.whitelistPool(token2, token3);
+        poolsConfig.whitelistPool(pools, token1, token2);
+        poolsConfig.whitelistPool(pools, token2, token3);
 		vm.stopPrank();
 
 		vm.prank(DEPLOYER);
@@ -86,7 +86,7 @@ contract StakingTest is Test, Deployment
     vm.prank(alice);
     staking.stakeSALT(5 ether);
     assertEq(staking.userXSalt(alice), 5 ether);
-    assertEq(staking.userShareForPool(alice, STAKED_SALT), 5 ether);
+    assertEq(staking.userShareForPool(alice, PoolUtils.STAKED_SALT), 5 ether);
     assertEq(salt.balanceOf(address(staking)) - startingBalance, 5 ether);
 
 
@@ -94,21 +94,21 @@ contract StakingTest is Test, Deployment
     vm.prank(bob);
     staking.stakeSALT(10 ether);
     assertEq(staking.userXSalt(bob), 10 ether);
-    assertEq(staking.userShareForPool(bob, STAKED_SALT), 10 ether);
+    assertEq(staking.userShareForPool(bob, PoolUtils.STAKED_SALT), 10 ether);
     assertEq(salt.balanceOf(address(staking)) - startingBalance, 15 ether);
 
     // Charlie stakes 20 ether of SALT tokens
     vm.prank(charlie);
     staking.stakeSALT(20 ether);
     assertEq(staking.userXSalt(charlie), 20 ether);
-    assertEq(staking.userShareForPool(charlie, STAKED_SALT), 20 ether);
+    assertEq(staking.userShareForPool(charlie, PoolUtils.STAKED_SALT), 20 ether);
     assertEq(salt.balanceOf(address(staking)) - startingBalance, 35 ether);
 
     // Alice stakes an additional 3 ether of SALT tokens
     vm.prank(alice);
     staking.stakeSALT(3 ether);
     assertEq(staking.userXSalt(alice), 8 ether);
-    assertEq(staking.userShareForPool(alice, STAKED_SALT), 8 ether);
+    assertEq(staking.userShareForPool(alice, PoolUtils.STAKED_SALT), 8 ether);
     assertEq(salt.balanceOf(address(staking)) - startingBalance, 38 ether);
     }
 
@@ -185,7 +185,7 @@ contract StakingTest is Test, Deployment
 	function totalStakedOnPlatform() internal view returns (uint256)
 		{
 		bytes32[] memory pools = new bytes32[](1);
-		pools[0] = STAKED_SALT;
+		pools[0] = PoolUtils.STAKED_SALT;
 	
 		return staking.totalSharesForPools(pools)[0];
 		}
@@ -491,7 +491,7 @@ contract StakingTest is Test, Deployment
         assertEq(staking.userXSalt(bob), bobStakeAmount);
         assertEq(staking.userXSalt(charlie), charlieStakeAmount);
 
-        assertEq(totalStakedForPool(STAKED_SALT), aliceStakeAmount + bobStakeAmount + charlieStakeAmount);
+        assertEq(totalStakedForPool(PoolUtils.STAKED_SALT), aliceStakeAmount + bobStakeAmount + charlieStakeAmount);
         assertEq(salt.balanceOf(address(staking)), initialSaltBalance + aliceStakeAmount + bobStakeAmount + charlieStakeAmount);
     }
 

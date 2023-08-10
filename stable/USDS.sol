@@ -3,14 +3,10 @@ pragma solidity =0.8.21;
 
 import "../openzeppelin/token/ERC20/ERC20.sol";
 import "../stable/interfaces/ICollateral.sol";
-import "../stable/interfaces/IStableConfig.sol";
 import "./interfaces/IUSDS.sol";
-import "../pools/PoolUtils.sol";
 import "../pools/interfaces/IPools.sol";
 import "../pools/interfaces/ICounterswap.sol";
-import "../price_feed/interfaces/IPriceAggregator.sol";
 import "../pools/interfaces/IPoolsConfig.sol";
-import "../interfaces/IExchangeConfig.sol";
 
 
 // USDS can be borrowed by users who have deposited WBTC/WETH liquidity as collateral via Collateral.sol
@@ -25,8 +21,8 @@ contract USDS is ERC20, IUSDS
     IERC20 immutable public weth;
 
     ICollateral public collateral;
-    IDAO public dao;
     IPools public pools;
+    IDAO public dao;
 
 	// This corresponds to USDS that was borrowed by users who had their collateral liquidated.
 	// Because liquidated collateral no longer exists the borrowed USDS needs to be burned as well in order to
@@ -108,7 +104,7 @@ contract USDS is ERC20, IUSDS
 		token.approve( address(counterswap), tokenBalance );
 
 		// We want to convert the sent token to USDS (this contract)
-		counterswap.depositToken( token, this, tokenBalance );
+//		counterswap.depositToken( token, this, tokenBalance );
 		}
 
 
@@ -116,31 +112,31 @@ contract USDS is ERC20, IUSDS
 	// The WBTC and WETH is sent here on calls to Collateral.liquidateUser();
 	function performUpkeep() public
 		{
-		require( msg.sender == address(dao), "Only callable from the DAO" );
-
-		ICounterswap counterswap = poolsConfig.counterswap();
-
-		// Send any WBTC or WETH in this contract to the Counterswap contract for gradual conversion to USDS
-		_sendTokenToCounterswap(counterswap, wbtc);
-		_sendTokenToCounterswap(counterswap, weth);
-
-		if ( usdsThatShouldBeBurned == 0 )
-			return;
-
-		// Determine how much USDS has been converted through counterswaps and should be withdrawn from the Pools contract (deposited there earlier by the Counterswap contract).
-		uint256 usdsToWithdraw = pools.depositedBalance( address(counterswap), this );
-
-		// Don't withdraw more USDS than the amount to burn
-		if ( usdsToWithdraw > usdsThatShouldBeBurned )
-			usdsToWithdraw = usdsThatShouldBeBurned;
-
-		if ( usdsToWithdraw == 0 )
-			return;
-
-		counterswap.withdrawToken( this, usdsToWithdraw );
-
-		_burn( address(this), usdsToWithdraw );
-		usdsThatShouldBeBurned -= usdsToWithdraw;
+//		require( msg.sender == address(dao), "Only callable from the DAO" );
+//
+//		ICounterswap counterswap = poolsConfig.counterswap();
+//
+//		// Send any WBTC or WETH in this contract to the Counterswap contract for gradual conversion to USDS
+//		_sendTokenToCounterswap(counterswap, wbtc);
+//		_sendTokenToCounterswap(counterswap, weth);
+//
+//		if ( usdsThatShouldBeBurned == 0 )
+//			return;
+//
+//		// Determine how much USDS has been converted through counterswaps and should be withdrawn from the Pools contract (deposited there earlier by the Counterswap contract).
+//		uint256 usdsToWithdraw = pools.depositedBalance( address(counterswap), this );
+//
+//		// Don't withdraw more USDS than the amount to burn
+//		if ( usdsToWithdraw > usdsThatShouldBeBurned )
+//			usdsToWithdraw = usdsThatShouldBeBurned;
+//
+//		if ( usdsToWithdraw == 0 )
+//			return;
+//
+//		counterswap.withdrawToken( this, usdsToWithdraw );
+//
+//		_burn( address(this), usdsToWithdraw );
+//		usdsThatShouldBeBurned -= usdsToWithdraw;
 		}
 	}
 

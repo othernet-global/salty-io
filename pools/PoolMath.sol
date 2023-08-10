@@ -3,6 +3,7 @@ pragma solidity =0.8.21;
 import "../openzeppelin/utils/math/Math.sol";
 import "../openzeppelin/token/ERC20/ERC20.sol";
 import "./interfaces/IPools.sol";
+import "./PoolUtils.sol";
 
 /*
 	=== DERIVATION ===
@@ -111,11 +112,6 @@ library PoolMath
 	// zapped in and the calculations did not overflow.  Dropping down to 6 will allow even larger amounts to be used without issue.
 	uint8 constant private REDUCED_DECIMALS = 6;
 
-	// Token balances less than _DUST are treated as if they don't exist at all.
-	// With the 18 decimals that are used for most tokens, DUST has a value of 0.0000000000000001
-	// For tokens with 6 decimal places (like USDC) DUST has a value of .0001
-	int256 constant private _DUST = 100;
-
 
 	// Reduce the precision of the decimals to avoid overflow / underflow and convert to int256
 	function _reducePrecision( uint256 n, uint8 decimals ) internal pure returns (int256)
@@ -162,14 +158,14 @@ library PoolMath
 
 		// In order to swap and zap, require that the reduced precision reserves and one of the zapAmounts exceed DUST.
 		// Otherwise their value was too small and was crushed by the above precision reduction and we should just return swapAmounts of zero so that default addLiquidity will be attempted without a preceding swap.
-        if ( r0 < _DUST )
+        if ( r0 < int256(int256(PoolUtils.DUST)) )
         	return 0;
 
-        if ( r1 < _DUST )
+        if ( r1 < int256(PoolUtils.DUST) )
         	return 0;
 
-        if ( z0 < _DUST )
-        if ( z1 < _DUST )
+        if ( z0 < int256(PoolUtils.DUST) )
+        if ( z1 < int256(PoolUtils.DUST) )
         	return 0;
 
         // Components of the above quadratic formula: x = [-B + sqrt(B^2 - 4AC)] / 2A
@@ -194,7 +190,6 @@ library PoolMath
         // Only use the positive sqrt of the discriminant from: x = (-B +/- sqrtDiscriminant) / 2A
 		swapAmount = _restorePrecision( ( sqrtDiscriminant - B ) / ( 2 * A ), decimals0 );
     	}
-
 
 
 	// Determine how much of either token needs to be swapped to give them a ratio equivalent to the reserves

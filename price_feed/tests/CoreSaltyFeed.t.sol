@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 import "../../dev/Deployment.sol";
 import "../CoreSaltyFeed.sol";
 import "../../ExchangeConfig.sol";
+import "../../pools/PoolUtils.sol";
 
 
 contract TestCoreSaltyFeed is Test, Deployment
@@ -87,8 +88,8 @@ contract TestCoreSaltyFeed is Test, Deployment
 
 		// Remove all liquidity except for DUST amount
 		vm.startPrank( DEPLOYER );
-		pools.removeLiquidity( wbtc, usds, pools.getUserLiquidity(DEPLOYER, wbtc, usds) - saltyFeed.DUST() + 1, 0, 0, block.timestamp );
-		pools.removeLiquidity( weth, usds, pools.getUserLiquidity(DEPLOYER, weth, usds) - saltyFeed.DUST() + 1, 0, 0, block.timestamp );
+		pools.removeLiquidity( wbtc, usds, pools.getUserLiquidity(DEPLOYER, wbtc, usds) - PoolUtils.DUST + 1, 0, 0, block.timestamp );
+		pools.removeLiquidity( weth, usds, pools.getUserLiquidity(DEPLOYER, weth, usds) - PoolUtils.DUST + 1, 0, 0, block.timestamp );
 		vm.stopPrank();
 
 		// Prices should be zero due to DUST limit

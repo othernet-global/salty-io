@@ -27,7 +27,7 @@ contract TestRewardsEmitter is Test, Deployment
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 			{
 			vm.prank(DEPLOYER);
-			liquidityRewardsEmitter = new RewardsEmitter(liquidity, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig );
+			liquidityRewardsEmitter = new RewardsEmitter(liquidity, exchangeConfig, poolsConfig, rewardsConfig );
 			}
 
     	token1 = new TestERC20( 18 );
@@ -43,8 +43,8 @@ contract TestRewardsEmitter is Test, Deployment
 
         // Whitelist
         vm.startPrank(address(dao));
-        poolsConfig.whitelistPool(token1, token2);
-        poolsConfig.whitelistPool(token2, token3);
+        poolsConfig.whitelistPool(pools, token1, token2);
+        poolsConfig.whitelistPool(pools, token2, token3);
         vm.stopPrank();
 
         vm.startPrank(DEPLOYER);

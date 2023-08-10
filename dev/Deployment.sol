@@ -5,6 +5,8 @@ import "../pools/interfaces/IPools.sol";
 import "../pools/interfaces/IPoolsConfig.sol";
 import "../interfaces/IExchangeConfig.sol";
 import "../stable/USDS.sol";
+import "../stable/interfaces/IStableConfig.sol";
+import "../price_feed/interfaces/IPriceAggregator.sol";
 import "../staking/interfaces/IStakingConfig.sol";
 import "../staking/interfaces/IStaking.sol";
 import "../staking/interfaces/ILiquidity.sol";
@@ -25,8 +27,8 @@ contract Deployment
 
 	IForcedPriceFeed public forcedPriceFeed = IForcedPriceFeed(address(0x3B0Eb37f26b502bAe83df4eCc54afBDfb90B5d3a));
 
-	IDAO public dao = IDAO(address(0xfF1ed28D1C1428A08FcF96489bE657f606E2d966));
-	Emissions public emissions = Emissions(address(0xF3e7b6Af4d958D773C5122fd78137338D8f98167));
+	IDAO public dao = IDAO(address(0xE50a6DFbCeCAAc5E7001f1248A8F147CF4Fd3eAF));
+	Emissions public emissions = Emissions(address(0x5126265584a297812e64df030869823F9060CD4b));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));
@@ -54,12 +56,6 @@ contract Deployment
 	IProposals public proposals = IProposals(getContract(address(dao), "proposals()" ));
 
 	IAccessManager public accessManager = exchangeConfig.accessManager();
-
-	IArbitrageSearch public arbitrageSearch = IArbitrageSearch(getContract(address(poolsConfig), "arbitrageSearch()" ));
-	ICounterswap public counterswap = ICounterswap(getContract(address(poolsConfig), "counterswap()" ));
-
-	// A special pool that represents staked SALT that is not associated with any particular pool.
-	bytes32 public constant STAKED_SALT = bytes32(0);
 
 
 	function getContract( address _contract, string memory _functionName ) public returns (address result) {

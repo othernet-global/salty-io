@@ -39,16 +39,16 @@ contract TestProposals is Test, Deployment
 			IDAO dao = IDAO(getContract( address(exchangeConfig), "dao()" ));
 
 			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, usds );
-			pools = new Pools( exchangeConfig, poolsConfig );
+			pools = new Pools(exchangeConfig, rewardsConfig, poolsConfig);
 
 			staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
 			liquidity = new Liquidity( pools, exchangeConfig, poolsConfig, stakingConfig );
 			collateral = new Collateral(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
 
-			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig );
-			liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig );
+			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig );
+			liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, rewardsConfig );
 
-			emissions = new Emissions( exchangeConfig, rewardsConfig );
+			emissions = new Emissions( pools, exchangeConfig, rewardsConfig );
 
 			exchangeConfig.setDAO( dao );
 			exchangeConfig.setAccessManager( accessManager );
@@ -56,7 +56,7 @@ contract TestProposals is Test, Deployment
 			usds.setCollateral( collateral );
 			usds.setDAO( dao );
 
-			proposals = new Proposals( staking, exchangeConfig, poolsConfig, stakingConfig, daoConfig );
+			proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 
 			// Transfer ownership of the config files to the DAO
 			Ownable(address(exchangeConfig)).transferOwnership( address(dao) );
@@ -363,7 +363,7 @@ contract TestProposals is Test, Deployment
 
         // User has voting power
         vm.startPrank(alice);
-        uint256 votingPower = staking.userShareForPool(alice, STAKED_SALT);
+        uint256 votingPower = staking.userShareForPool(alice, PoolUtils.STAKED_SALT);
         assertEq( votingPower, 0, "Alice should not have any initial xSALT" );
 
         // Vote.YES is invalid for a Parameter type ballot
@@ -478,7 +478,7 @@ contract TestProposals is Test, Deployment
 		// 10 million total staked. Default 10% will be 1 million which meets the 1% of total supply minimum quorum.
 		staking.stakeSALT( 5000000 ether );
 
-        uint256 stakedSALT = staking.totalSharesForPool(STAKED_SALT);
+        uint256 stakedSALT = staking.totalSharesForPool(PoolUtils.STAKED_SALT);
         uint256 baseBallotQuorumPercentTimes1000 = daoConfig.baseBallotQuorumPercentTimes1000();
 
         // Check quorum for Parameter ballot type
@@ -560,7 +560,7 @@ contract TestProposals is Test, Deployment
 //		console.log( "tokenHasBeenWhitelisted(): ", proposals.tokenHasBeenWhitelisted(wbtc) );
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool( wbtc, weth );
+		poolsConfig.whitelistPool(pools,  wbtc, weth );
 
         vm.startPrank(alice);
         vm.expectRevert( "The token has already been whitelisted" );
@@ -568,7 +568,7 @@ contract TestProposals is Test, Deployment
 		vm.stopPrank();
 
 		vm.prank(address(dao));
-		poolsConfig.unwhitelistPool(wbtc, weth );
+		poolsConfig.unwhitelistPool(pools, wbtc, weth );
 
         // Prepare a new whitelisting ballot
 		uint256 initialStake = 10000000 ether;
@@ -695,10 +695,10 @@ contract TestProposals is Test, Deployment
 		IERC20 usdc = exchangeConfig.usdc();
 
 		vm.startPrank(address(dao));
-		poolsConfig.whitelistPool( wbtc, weth );
-		poolsConfig.whitelistPool( wbtc, usdc );
-		poolsConfig.whitelistPool( wbtc, salt );
-		poolsConfig.whitelistPool( wbtc, usds );
+		poolsConfig.whitelistPool(pools,  wbtc, weth );
+		poolsConfig.whitelistPool(pools,  wbtc, usdc );
+		poolsConfig.whitelistPool(pools,  wbtc, salt );
+		poolsConfig.whitelistPool(pools,  wbtc, usds );
 		vm.stopPrank();
 
 		vm.startPrank(DEPLOYER);
@@ -736,9 +736,9 @@ contract TestProposals is Test, Deployment
 
         // Whitelist the token (which will be paired with WBTC and WETH)
         vm.prank(address(dao));
-		poolsConfig.whitelistPool( newToken, wbtc );
+		poolsConfig.whitelistPool(pools,  newToken, wbtc );
         vm.prank(address(dao));
-		poolsConfig.whitelistPool( newToken, weth );
+		poolsConfig.whitelistPool(pools,  newToken, weth );
 
         // Unwhitelist the token and expect no revert
 		vm.startPrank( DEPLOYER );
@@ -981,7 +981,7 @@ contract TestProposals is Test, Deployment
 		IERC20 weth = exchangeConfig.weth();
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool( wbtc, weth );
+		poolsConfig.whitelistPool(pools,  wbtc, weth );
 
         vm.expectRevert( "The token has already been whitelisted" );
 		vm.prank(DEPLOYER);

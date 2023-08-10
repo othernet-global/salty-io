@@ -6,6 +6,15 @@ import "../../dev/Deployment.sol";
 import "../../root_tests/TestERC20.sol";
 import "../PoolsConfig.sol";
 import "../PoolUtils.sol";
+import "../../dev/Deployment.sol";
+import "../../root_tests/TestERC20.sol";
+import "../../stable/Collateral.sol";
+import "../../ExchangeConfig.sol";
+import "../../pools/Pools.sol";
+import "../../staking/Staking.sol";
+import "../../rewards/RewardsEmitter.sol";
+import "../../price_feed/tests/IForcedPriceFeed.sol";
+import "../../price_feed/tests/ForcedPriceFeed.sol";
 
 
 contract PoolsConfigTest is Deployment, Test
@@ -23,8 +32,33 @@ contract PoolsConfigTest is Deployment, Test
 		// Otherwise, what is tested is the actual deployed contract on the blockchain (as specified in Deployment.sol)
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 			{
-			vm.prank(address(dao));
-			poolsConfig = new PoolsConfig();
+			vm.startPrank(DEPLOYER);
+
+			// Because USDS already set the Collateral on deployment and it can only be done once, we have to recreate USDS as well
+			// That cascades into recreating multiple other contracts as well.
+			usds = new USDS( poolsConfig, wbtc, weth );
+
+			IDAO dao = IDAO(getContract( address(exchangeConfig), "dao()" ));
+
+			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, usds );
+			pools = new Pools(exchangeConfig, rewardsConfig, poolsConfig);
+
+			staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
+			liquidity = new Liquidity( pools, exchangeConfig, poolsConfig, stakingConfig );
+			collateral = new Collateral(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
+
+			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig );
+			liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, rewardsConfig );
+
+			emissions = new Emissions( pools, exchangeConfig, rewardsConfig );
+
+			exchangeConfig.setDAO( dao );
+			exchangeConfig.setAccessManager( accessManager );
+			usds.setPools( pools );
+			usds.setCollateral( collateral );
+			usds.setDAO( dao );
+
+			vm.stopPrank();
 			}
 		}
 
@@ -36,8 +70,8 @@ contract PoolsConfigTest is Deployment, Test
 		originalNumWhitelisted = poolsConfig.numberOfWhitelistedPools();
 
         // Whitelist the pools
-        poolsConfig.whitelistPool(token1, token2);
-        poolsConfig.whitelistPool(token2, token3);
+        poolsConfig.whitelistPool(pools, token1, token2);
+        poolsConfig.whitelistPool(pools, token2, token3);
 		vm.stopPrank();
 		}
 
@@ -45,7 +79,7 @@ contract PoolsConfigTest is Deployment, Test
 	// A unit test which tests the default values for the contract
 	function testConstructor() public {
 		assertEq(poolsConfig.maximumWhitelistedPools(), 50, "Incorrect maximumWhitelistedPools");
-		assertEq(STAKED_SALT, bytes32(0), "Incorrect STAKED_SALT value");
+		assertEq(PoolUtils.STAKED_SALT, bytes32(0), "Incorrect STAKED_SALT value");
 	}
 
 
@@ -61,14 +95,14 @@ contract PoolsConfigTest is Deployment, Test
 		IERC20 tokenA = new TestERC20(18);
 		IERC20 tokenB = new TestERC20(18);
 
-        poolsConfig.whitelistPool(tokenA, tokenB);
+        poolsConfig.whitelistPool(pools, tokenA, tokenB);
 		}
 
 	(bytes32 poolID,) = PoolUtils.poolID(token1, token3);
     assertFalse(poolsConfig.isWhitelisted(poolID), "New pool should not be valid yet");
 
 	vm.expectRevert( "Maximum number of whitelisted pools already reached" );
-    poolsConfig.whitelistPool(token1, token3);
+    poolsConfig.whitelistPool(pools, token1, token3);
     assertEq( poolsConfig.numberOfWhitelistedPools(), poolsConfig.maximumWhitelistedPools());
     }
 
@@ -82,7 +116,7 @@ contract PoolsConfigTest is Deployment, Test
 	(bytes32 poolID,) = PoolUtils.poolID(token1, token3);
     assertFalse(poolsConfig.isWhitelisted(poolID), "New pool should not be valid yet");
 
-    poolsConfig.whitelistPool(token1, token3);
+    poolsConfig.whitelistPool(pools, token1, token3);
     assertTrue(poolsConfig.isWhitelisted(poolID), "New pool should be valid after whitelisting");
     }
 
@@ -95,7 +129,7 @@ contract PoolsConfigTest is Deployment, Test
     assertFalse(poolsConfig.isWhitelisted(poolID), "New pool should not be valid yet");
 
 	vm.expectRevert( "tokenA and tokenB cannot be the same token" );
-    poolsConfig.whitelistPool(token1, token1);
+    poolsConfig.whitelistPool(pools, token1, token1);
 
     assertFalse(poolsConfig.isWhitelisted(poolID), "New pool should still not be valid");
     }
@@ -107,19 +141,19 @@ contract PoolsConfigTest is Deployment, Test
 
     // Whitelist another pool for testing unwhitelist
 	(bytes32 poolID,) = PoolUtils.poolID(token1, token3);
-    poolsConfig.whitelistPool(token1, token3);
+    poolsConfig.whitelistPool(pools, token1, token3);
 
     // Ensure the pool is whitelisted
     assertTrue(poolsConfig.isWhitelisted(poolID));
 
     // Unwhitelist the test pool
-    poolsConfig.unwhitelistPool(token1, token3);
+    poolsConfig.unwhitelistPool(pools, token1, token3);
 
     // Ensure the pool is no longer whitelisted
     assertFalse(poolsConfig.isWhitelisted(poolID));
 
 	// Whitelist again
-    poolsConfig.whitelistPool(token1, token3);
+    poolsConfig.whitelistPool(pools, token1, token3);
     assertTrue(poolsConfig.isWhitelisted(poolID));
     }
 
@@ -129,7 +163,7 @@ contract PoolsConfigTest is Deployment, Test
 	vm.startPrank( address(dao) );
 
     // Whitelist another pool
-    poolsConfig.whitelistPool(token1, token3);
+    poolsConfig.whitelistPool(pools, token1, token3);
 
     // Test the numberOfWhitelistedPools function
     uint256 expectedNumberOfWhitelistedPools = originalNumWhitelisted + 3;
@@ -137,7 +171,7 @@ contract PoolsConfigTest is Deployment, Test
     assertEq(expectedNumberOfWhitelistedPools, actualNumberOfWhitelistedPools);
 
 	// Whitelist the same pool in reverse
-    poolsConfig.whitelistPool(token3, token1);
+    poolsConfig.whitelistPool(pools, token3, token1);
 
     actualNumberOfWhitelistedPools = poolsConfig.numberOfWhitelistedPools();
     assertEq(expectedNumberOfWhitelistedPools, actualNumberOfWhitelistedPools);
@@ -145,7 +179,7 @@ contract PoolsConfigTest is Deployment, Test
     // Whitelist another pool
     IERC20 token4 = new TestERC20(18);
 
-    poolsConfig.whitelistPool(token3, token4);
+    poolsConfig.whitelistPool(pools, token3, token4);
 
     expectedNumberOfWhitelistedPools = originalNumWhitelisted + 4;
     actualNumberOfWhitelistedPools = poolsConfig.numberOfWhitelistedPools();
@@ -172,7 +206,7 @@ contract PoolsConfigTest is Deployment, Test
 		vm.startPrank( address(dao) );
 
         // Whitelist a new pool
-    	poolsConfig.whitelistPool(token1, token3);
+    	poolsConfig.whitelistPool(pools, token1, token3);
 
         // Test valid pools
         (bytes32 pool1,) = PoolUtils.poolID(token1, token2);
@@ -180,7 +214,7 @@ contract PoolsConfigTest is Deployment, Test
 
         assertTrue(poolsConfig.isWhitelisted(pool1), "first pool should be valid");
         assertTrue(poolsConfig.isWhitelisted(extraPool), "extraPool should be valid");
-        assertTrue(poolsConfig.isWhitelisted(STAKED_SALT), "Staked SALT pool should be valid");
+        assertTrue(poolsConfig.isWhitelisted(PoolUtils.STAKED_SALT), "Staked SALT pool should be valid");
 
         // Test invalid pool
         bytes32 invalidPool = bytes32(uint256(0xDEAD));
@@ -197,7 +231,7 @@ contract PoolsConfigTest is Deployment, Test
     assertEq(initialPoolCount, originalNumWhitelisted + 2, "Initial whitelisted pool count is incorrect");
 
 	// Whitelist a new pool
-	poolsConfig.whitelistPool(token1, token3);
+	poolsConfig.whitelistPool(pools, token1, token3);
 
     // Check new state
     uint256 newPoolCount = poolsConfig.numberOfWhitelistedPools();
@@ -224,7 +258,7 @@ contract PoolsConfigTest is Deployment, Test
 	vm.startPrank( address(dao) );
 
 	// Whitelist a new pool
-	poolsConfig.whitelistPool(token1, token3);
+	poolsConfig.whitelistPool(pools, token1, token3);
 
     // Verify already whitelisted pools
 	(bytes32 pool1,) = PoolUtils.poolID(token1, token2);

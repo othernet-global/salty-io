@@ -9,6 +9,7 @@ import "./interfaces/IPriceAggregator.sol";
 // Compares three different price feeds to provide prices for BTC and ETH
 // The three price feeds are used so that if one is updated by the DAO and it fails to work properly, the other two can still correctly report price.
 // A singular PriceFeed can only be upgraded in this contract once every 35 days by default (to allow time to review performance of the most recently upgraded PriceFeed).
+// priceFeed1, priceFeed2, and priceFeed3 are updateable using DAO.proposeSetContractAddress( "priceFeed1" ), etc
 contract PriceAggregator is IPriceAggregator, Ownable
     {
     event PriceFeedError(address feed, string functionCall, bytes error);

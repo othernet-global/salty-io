@@ -11,7 +11,7 @@ import "./dao/interfaces/IDAO.sol";
 // The AccessManager restricts users from adding liquidity, adding collateral and borrowing USDS on the contract level - but always allows existing assets to be removed (in case a user's region is restricted after depositing assets).
 // DAO interaction is not restricted on the contract level - in the case that the AccessManager mistakingly denies everyone access which woudl prevent it from being replaced by the DAO.
 // Swaps are regionally restricted in the browser rather than within the contract via AccessMananger in order to keep swap transaction costs to a minimal.
-
+// Updateable using DAO.proposeSetContractAddress( "accessManager" )
 contract AccessManager is IAccessManager
 	{
     uint256 public geoVersion;

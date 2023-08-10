@@ -13,16 +13,19 @@ import "../rewards/interfaces/IRewardsConfig.sol";
 
 contract Emissions is IEmissions
     {
+    IPools immutable public pools;
 	IExchangeConfig immutable public exchangeConfig;
 	IRewardsConfig immutable public rewardsConfig;
 	ISalt immutable public salt;
 
 
-    constructor( IExchangeConfig _exchangeConfig, IRewardsConfig _rewardsConfig )
+    constructor( IPools _pools, IExchangeConfig _exchangeConfig, IRewardsConfig _rewardsConfig )
 		{
+		require( address(_pools) != address(0), "_pools cannot be address(0)" );
 		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
 		require( address(_rewardsConfig) != address(0), "_rewardsConfig cannot be address(0)" );
 
+		pools = _pools;
 		exchangeConfig = _exchangeConfig;
 		rewardsConfig = _rewardsConfig;
 
@@ -52,8 +55,7 @@ contract Emissions is IEmissions
 		if ( saltToSend == 0 )
 			return;
 
-		ISaltRewards saltRewards = exchangeConfig.saltRewards();
-		salt.approve( address(saltRewards), saltToSend );
-		saltRewards.addSALTRewards(saltToSend);
+		salt.approve( address(pools), saltToSend );
+		ISaltRewards(address(pools)).addSALTRewards(saltToSend);
 		}
 	}

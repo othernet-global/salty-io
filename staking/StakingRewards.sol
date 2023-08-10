@@ -43,9 +43,6 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
     // A mapping that stores the total shares for each poolID.
     mapping(bytes32=>uint256) public totalShares;
 
-	// A special pool that represents staked SALT that is not associated with any particular pool.
-	bytes32 public constant STAKED_SALT = bytes32(0);
-
 
 	// Constructs a new StakingRewards contract with providing configs
  	constructor( IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig )
@@ -94,8 +91,6 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 		// Update the cooldown expiration
 		if ( useCooldown )
 			user.cooldownExpiration = block.timestamp + stakingConfig.modificationCooldown();
-
-        emit eIncreaseShare( wallet, poolID, amountToIncrease );
 		}
 
 
@@ -142,8 +137,6 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 		// Update the cooldown expiration
 		if ( useCooldown )
 			user.cooldownExpiration = block.timestamp + stakingConfig.modificationCooldown();
-
-   	    emit eDecreaseShareAndClaim( wallet, poolID, actualRewards );
 		}
 
 
@@ -173,8 +166,6 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 
 		// Send the actual rewards
 		salt.safeTransfer( msg.sender, sum );
-
-   	    emit eClaimAllRewards( msg.sender, sum );
     	}
 
 

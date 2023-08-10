@@ -1,12 +1,8 @@
 // SPDX-License-Identifier: BSL 1.1
 pragma solidity =0.8.21;
 
-import "../openzeppelin/token/ERC20/ERC20.sol";
 import "./interfaces/IPriceFeed.sol";
 import "./interfaces/IPriceFeedUniswap.sol";
-import "../interfaces/IExchangeConfig.sol";
-import "./CoreChainlinkFeed.sol";
-import "./CoreUniswapFeed.sol";
 
 
 // DualPriceFeed.sol retrieves BTC and ETH price data from Chainlink and Uniswap V3.
@@ -15,8 +11,8 @@ import "./CoreUniswapFeed.sol";
 
 contract DualPriceFeed is IPriceFeed
     {
-	IPriceFeed public chainlinkFeed;
-	IPriceFeedUniswap public uniswapFeed;
+	IPriceFeed immutable public chainlinkFeed;
+	IPriceFeedUniswap immutable public uniswapFeed;
 
 	// If this restriction needs to be changed then a whole new DualPriceFeed.sol should be used and PriceAggregator.setPriceFeed() called with the updated version.
 	uint256 public constant MINIMUM_DEFAULT_PERCENT_DIFF_TIMES_1000 = 3000; // 3% maximum diff

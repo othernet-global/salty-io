@@ -5,15 +5,11 @@ import "../openzeppelin/access/Ownable.sol";
 import "../openzeppelin/utils/structs/EnumerableSet.sol";
 import "./interfaces/IPoolsConfig.sol";
 import "./PoolUtils.sol";
-import "../arbitrage/interfaces/IArbitrageSearch.sol";
 
 
 // Contract owned by the DAO and only modifiable by the DAO
 contract PoolsConfig is IPoolsConfig, Ownable
     {
-    event eWhitelistPool(IERC20 indexed tokenA, IERC20 indexed tokenB, bytes32 indexed poolID);
-    event eUnwhitelistPool(IERC20 indexed tokenA, IERC20 indexed tokenB, bytes32 indexed poolID);
-
 	struct TokenPair
 		{
 		// Note that these will be ordered as specified in whitelistPool() - rather than ordered such that address(tokenA) < address(tokenB) as with the reserves in Pools.sol
@@ -24,17 +20,11 @@ contract PoolsConfig is IPoolsConfig, Ownable
     using EnumerableSet for EnumerableSet.Bytes32Set;
 
 
-	IArbitrageSearch public arbitrageSearch;
-	ICounterswap public counterswap;
-
 	// Keeps track of what pools have been whitelisted
 	EnumerableSet.Bytes32Set private _whitelist;
 
 	// A mapping from poolIDs to the underlying TokenPair
 	mapping(bytes32=>TokenPair) public underlyingPoolTokens;
-
-	// A special pool that represents staked SALT that is not associated with any particular pool.
-    bytes32 public constant STAKED_SALT = bytes32(0);
 
 	// The maximum number of pools that can be whitelisted at any one time.
 	// If the maximum number of pools is reached, some tokens will need to be delisted before new ones can be whitelisted
@@ -47,7 +37,7 @@ contract PoolsConfig is IPoolsConfig, Ownable
 
 
 	// Whitelist a given pair of tokens
-	function whitelistPool( IERC20 tokenA, IERC20 tokenB ) public onlyOwner
+	function whitelistPool( IPools pools, IERC20 tokenA, IERC20 tokenB ) public onlyOwner
 		{
 		require( _whitelist.length() < maximumWhitelistedPools, "Maximum number of whitelisted pools already reached" );
 		require(tokenA != tokenB, "tokenA and tokenB cannot be the same token");
@@ -57,32 +47,16 @@ contract PoolsConfig is IPoolsConfig, Ownable
 		underlyingPoolTokens[poolID] = TokenPair(tokenA, tokenB);
 
 		if ( _whitelist.add(poolID) )
-			emit eWhitelistPool(tokenA, tokenB, poolID);
+			pools.whitelist(poolID);
 		}
 
 
-	function unwhitelistPool( IERC20 tokenA, IERC20 tokenB ) public onlyOwner
+	function unwhitelistPool( IPools pools, IERC20 tokenA, IERC20 tokenB ) public onlyOwner
 		{
 		(bytes32 poolID, ) = PoolUtils.poolID(tokenA,tokenB);
 
 		if ( _whitelist.remove(poolID) )
-			emit eUnwhitelistPool(tokenA, tokenB, poolID);
-		}
-
-
-	function setArbitrageSearch( IArbitrageSearch _arbitrageSearch ) public onlyOwner
-		{
-		require( address(_arbitrageSearch) != address(0), "_arbitrageSearch cannot be address(0)" );
-
-		arbitrageSearch = _arbitrageSearch;
-		}
-
-
-	function setCounterswap( ICounterswap _counterswap) public onlyOwner
-		{
-		require( address(_counterswap) != address(0), "_counterswap cannot be address(0)" );
-
-		counterswap = _counterswap;
+			pools.unwhitelist(poolID);
 		}
 
 
@@ -131,12 +105,18 @@ contract PoolsConfig is IPoolsConfig, Ownable
 		}
 
 
-	function isWhitelisted( bytes32 poolID ) public view returns (bool)
+	function _isWhitelisted( bytes32 poolID ) internal view returns (bool)
 		{
-		if ( poolID == STAKED_SALT )
+		if ( poolID == PoolUtils.STAKED_SALT )
 			return true;
 
 		return _whitelist.contains( poolID );
+		}
+
+
+	function isWhitelisted( bytes32 poolID ) public view returns (bool)
+		{
+		return _isWhitelisted(poolID);
 		}
 
 

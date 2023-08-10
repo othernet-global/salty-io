@@ -2,11 +2,12 @@
 pragma solidity =0.8.21;
 
 import "../openzeppelin/token/ERC20/utils/SafeERC20.sol";
+import "../openzeppelin/token/ERC20/ERC20.sol";
 import "../openzeppelin/utils/structs/EnumerableSet.sol";
-import "./USDS.sol";
 import "../pools/PoolUtils.sol";
 import "../staking/Liquidity.sol";
 import "./interfaces/ICollateral.sol";
+import "./interfaces/IStableConfig.sol";
 import "../price_feed/interfaces/IPriceAggregator.sol";
 
 
@@ -58,9 +59,9 @@ contract Collateral is Liquidity, ICollateral
 		priceAggregator = _priceAggregator;
         stableConfig = _stableConfig;
 
-		wbtc = exchangeConfig.wbtc();
-		weth = exchangeConfig.weth();
-		usds = exchangeConfig.usds();
+		wbtc = _exchangeConfig.wbtc();
+		weth = _exchangeConfig.weth();
+		usds = _exchangeConfig.usds();
 
 		wbtcDecimals = ERC20(address(wbtc)).decimals();
 		wethDecimals = ERC20(address(weth)).decimals();
@@ -78,8 +79,6 @@ contract Collateral is Liquidity, ICollateral
 
 		// Have the user deposit the specified WBTC/WETH liquidity and increase their collateral share
 		(addedAmountWBTC, addedAmountWETH, addedLiquidity) = addLiquidityAndIncreaseShare( wbtc, weth, maxAmountWBTC, maxAmountWETH, minLiquidityReceived, deadline, bypassZapping );
-
-		emit eDepositCollateral( msg.sender, addedAmountWBTC, addedAmountWETH, addedLiquidity );
 		}
 
 
@@ -93,8 +92,6 @@ contract Collateral is Liquidity, ICollateral
 
 		// Withdraw the WBTC/WETH liquidity from the liquidity pool (sending the reclaimed tokens back to the user)
 		(reclaimedWBTC, reclaimedWETH) = withdrawLiquidityAndClaim( wbtc, weth, collateralToWithdraw, minReclaimedWBTC, minReclaimedWETH, deadline );
-
-		emit eWithdrawCollateral( msg.sender, collateralToWithdraw, reclaimedWBTC, reclaimedWETH );
 		}
 
 
@@ -114,8 +111,6 @@ contract Collateral is Liquidity, ICollateral
 
 		// Mint USDS and send it to the user
 		usds.mintTo( msg.sender, amountBorrowed );
-
-		emit eBorrow( msg.sender, amountBorrowed );
 		}
 
 
@@ -137,8 +132,6 @@ contract Collateral is Liquidity, ICollateral
 		// Check if the user no longer has any borrowed USDS
 		if ( usdsBorrowedByUsers[msg.sender] == 0 )
 			_walletsWithBorrowedUSDS.remove(msg.sender);
-
-		emit eRepay( msg.sender, amountRepaid );
 		}
 
 
@@ -193,8 +186,6 @@ contract Collateral is Liquidity, ICollateral
 		// Clear the borrowedUSDS for the user who was liquidated so that they can simply keep the USDS they borrowed
 		usdsBorrowedByUsers[wallet] = 0;
 		_walletsWithBorrowedUSDS.remove(wallet);
-
-		emit eLiquidatePosition( wallet, msg.sender, userCollateralAmount );
 		}
 
 

@@ -6,7 +6,9 @@ import "../../root_tests/TestERC20.sol";
 import "../../pools/Pools.sol";
 import "../../dev/Deployment.sol";
 import "../../pools/PoolUtils.sol";
+import "../../pools/Counterswap.sol";
 import "../ArbitrageSearch.sol";
+import "../../rewards/SaltRewards.sol";
 
 
 contract TestArbitrage is Test, Deployment
@@ -24,14 +26,8 @@ contract TestArbitrage is Test, Deployment
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 			{
 			vm.prank(DEPLOYER);
-			pools = new Pools(exchangeConfig, poolsConfig);
-
-			pools.setDAO(dao);
-
-			IArbitrageSearch arbitrageSearch = new ArbitrageSearch(pools, exchangeConfig);
-
-			vm.prank(address(dao));
-			poolsConfig.setArbitrageSearch( arbitrageSearch );
+			pools = new Pools(exchangeConfig, rewardsConfig, poolsConfig);
+			ICounterswap(address(pools)).setDAO(dao);
 			}
 
 		priceAggregator.performUpkeep();
@@ -44,10 +40,10 @@ contract TestArbitrage is Test, Deployment
         vm.stopPrank();
 
         vm.startPrank(address(dao));
-        poolsConfig.whitelistPool(tokenE, wbtc);
-        poolsConfig.whitelistPool(tokenE, weth);
-        poolsConfig.whitelistPool(tokenB, wbtc);
-        poolsConfig.whitelistPool(tokenB, weth);
+        poolsConfig.whitelistPool(pools, tokenE, wbtc);
+        poolsConfig.whitelistPool(pools, tokenE, weth);
+        poolsConfig.whitelistPool(pools, tokenB, wbtc);
+        poolsConfig.whitelistPool(pools, tokenB, weth);
         vm.stopPrank();
 
 		vm.startPrank(DEPLOYER);
@@ -97,7 +93,7 @@ contract TestArbitrage is Test, Deployment
 //		console.log( "ending pools balance: ", pools.depositedBalance( address(pools), weth ) );
 
 		assertEq( amountOut, 9900223544648871298 );
-		assertEq( pools.depositedBalance( address(pools), weth ), 154279064741019952 );
+		assertEq( pools.depositedBalance( address(dao), weth ), 154279064741019952 );
 		}
 	}
 

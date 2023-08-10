@@ -25,7 +25,6 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
     {
 	using SafeERC20 for IERC20;
 
-	IPools immutable public pools;
 	IProposals immutable public proposals;
 	IPoolsConfig immutable public poolsConfig;
 	IStakingConfig immutable public stakingConfig;
@@ -45,9 +44,8 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
 
 
     constructor( IPools _pools, IProposals _proposals, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IRewardsConfig _rewardsConfig, IStableConfig _stableConfig, IDAOConfig _daoConfig, IPriceAggregator _priceAggregator, ILiquidity _liquidity, IRewardsEmitter _liquidityRewardsEmitter )
-    UpkeepPerformer(_exchangeConfig)
+    UpkeepPerformer(_pools, _exchangeConfig)
 		{
-		require( address(_pools) != address(0), "_pools cannot be address(0)" );
 		require( address(_proposals) != address(0), "_proposals cannot be address(0)" );
 		require( address(_poolsConfig) != address(0), "_poolsConfig cannot be address(0)" );
 		require( address(_stakingConfig) != address(0), "_stakingConfig cannot be address(0)" );
@@ -58,7 +56,6 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
 		require( address(_liquidity) != address(0), "_liquidity cannot be address(0)" );
 		require( address(_liquidityRewardsEmitter) != address(0), "_liquidityRewardsEmitter cannot be address(0)" );
 
-		pools = _pools;
 		proposals = _proposals;
 		poolsConfig = _poolsConfig;
 		stakingConfig = _stakingConfig;
@@ -97,18 +94,12 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
 			priceAggregator.setPriceFeed( 2, IPriceFeed(ballot.address1) );
 		else if ( nameHash == keccak256(bytes( "setContract:priceFeed3_confirm" )) )
 			priceAggregator.setPriceFeed( 3, IPriceFeed(ballot.address1) );
-		else if ( nameHash == keccak256(bytes( "setContract:arbitrageSearch_confirm" )) )
-			poolsConfig.setArbitrageSearch( IArbitrageSearch(ballot.address1) );
-		else if ( nameHash == keccak256(bytes( "setContract:counterswap_confirm" )) )
-			poolsConfig.setCounterswap( ICounterswap(ballot.address1) );
 		else if ( nameHash == keccak256(bytes( "setContract:accessManager_confirm" )) )
 			exchangeConfig.setAccessManager( IAccessManager(ballot.address1) );
 		else if ( nameHash == keccak256(bytes( "setContract:stakingRewardsEmitter_confirm" )) )
 			exchangeConfig.setStakingRewardsEmitter( IRewardsEmitter(ballot.address1) );
 		else if ( nameHash == keccak256(bytes( "setContract:liquidityRewardsEmitter_confirm" )) )
 			exchangeConfig.setLiquidityRewardsEmitter( IRewardsEmitter(ballot.address1) );
-		else if ( nameHash == keccak256(bytes( "setContract:saltRewards_confirm" )) )
-			exchangeConfig.setSaltRewards( ISaltRewards(ballot.address1) );
 		}
 
 
@@ -123,8 +114,8 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
 		if ( ballot.ballotType == BallotType.UNWHITELIST_TOKEN )
 			{
 			// All tokens are paired with both WBTC and WETH so unwhitelist those pools
-			poolsConfig.unwhitelistPool( IERC20(ballot.address1), exchangeConfig.wbtc() );
-			poolsConfig.unwhitelistPool( IERC20(ballot.address1), exchangeConfig.weth() );
+			poolsConfig.unwhitelistPool(pools,  IERC20(ballot.address1), exchangeConfig.wbtc() );
+			poolsConfig.unwhitelistPool(pools,  IERC20(ballot.address1), exchangeConfig.weth() );
 			}
 
 		else if ( ballot.ballotType == BallotType.SEND_SALT )
@@ -195,8 +186,8 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
 			require( bestWhitelistingBallotID == ballotID, "Only the token whitelisting ballot with the most votes can be finalized" );
 
 			// All tokens are paired with both WBTC and WETH, so whitelist both pairings
-			poolsConfig.whitelistPool( IERC20(ballot.address1), exchangeConfig.wbtc() );
-			poolsConfig.whitelistPool( IERC20(ballot.address1), exchangeConfig.weth() );
+			poolsConfig.whitelistPool(pools,  IERC20(ballot.address1), exchangeConfig.wbtc() );
+			poolsConfig.whitelistPool(pools,  IERC20(ballot.address1), exchangeConfig.weth() );
 
 			(bytes32 pool1,) = PoolUtils.poolID( IERC20(ballot.address1), exchangeConfig.wbtc() );
 			(bytes32 pool2,) = PoolUtils.poolID( IERC20(ballot.address1), exchangeConfig.weth() );
@@ -239,7 +230,7 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
 	// Call UpkeepPerformer._performUpkeep which in turn performs multiple performUpkeep steps in sequence.
 	function performUpkeep() public nonReentrant
 		{
-		_performUpkeep( pools, priceAggregator, poolsConfig, daoConfig );
+		_performUpkeep( priceAggregator, poolsConfig, daoConfig );
 		}
 
 

@@ -4,16 +4,16 @@ pragma solidity =0.8.21;
 import "../openzeppelin/utils/structs/EnumerableSet.sol";
 import "../openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import "../openzeppelin/token/ERC20/ERC20.sol";
-import "../staking/interfaces/IStakingConfig.sol";
 import "../staking/interfaces/IStaking.sol";
 import "../interfaces/IExchangeConfig.sol";
 import "./interfaces/IDAOConfig.sol";
 import "../openzeppelin/security/ReentrancyGuard.sol";
 import "./interfaces/IProposals.sol";
 import "../pools/interfaces/IPoolsConfig.sol";
-import "../pools/PoolUtils.sol";
 import "../openzeppelin/utils/Strings.sol";
 import "./interfaces/IDAO.sol";
+import "../pools/PoolUtils.sol";
+
 
 // Allows users to propose and vote on various types of ballots such as parameter changes, token whitelisting/unwhitelisting, sending tokens, calling contracts, and updating website URLs.
 // Ensures ballot uniqueness, tracks and validates user voting power, enforces quorums, and provides a mechanism for users to alter votes.
@@ -25,7 +25,6 @@ contract Proposals is IProposals, ReentrancyGuard
     IStaking immutable public staking;
     IExchangeConfig immutable public exchangeConfig;
     IPoolsConfig immutable public poolsConfig;
-    IStakingConfig immutable public stakingConfig;
     IDAOConfig immutable public daoConfig;
 
 	// Mapping from ballotName to the currently open ballotID (zero if none).
@@ -46,22 +45,17 @@ contract Proposals is IProposals, ReentrancyGuard
 	// Allows users to change their vote - so that the previous vote can be undone before casting the new vote.
 	mapping(uint256=>mapping(address=>UserVote)) private _lastUserVoteForBallot;
 
-	// A special pool that represents staked SALT that is not associated with any particular liquidity pool.
-	bytes32 public constant STAKED_SALT = bytes32(uint256(0));
 
-
-    constructor( IStaking _staking, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IDAOConfig _daoConfig )
+    constructor( IStaking _staking, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IDAOConfig _daoConfig )
 		{
 		require( address(_staking) != address(0), "_staking cannot be address(0)" );
 		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
 		require( address(_poolsConfig) != address(0), "_poolsConfig cannot be address(0)" );
-		require( address(_stakingConfig) != address(0), "_stakingConfig cannot be address(0)" );
 		require( address(_daoConfig) != address(0), "_daoConfig cannot be address(0)" );
 
 		staking = _staking;
 		exchangeConfig = _exchangeConfig;
 		poolsConfig = _poolsConfig;
-		stakingConfig = _stakingConfig;
 		daoConfig = _daoConfig;
         }
 
@@ -225,7 +219,7 @@ contract Proposals is IProposals, ReentrancyGuard
 		// Voting power is equal to their userShare of STAKED_SALT.
 		// If the user changes their stake after voting they will have to recast their vote.
 
-		uint256 userVotingPower = staking.userShareForPool( msg.sender, STAKED_SALT );
+		uint256 userVotingPower = staking.userShareForPool( msg.sender, PoolUtils.STAKED_SALT );
 		require( userVotingPower > 0, "Staked SALT required to vote" );
 
 		// Remove any previous votes made by the user on the ballot
@@ -267,7 +261,7 @@ contract Proposals is IProposals, ReentrancyGuard
 	function requiredQuorumForBallotType( BallotType ballotType ) public view returns (uint256 requiredQuorum)
 		{
 		// The quorum will be specified as a percentage of the total amount of SALT staked
-		uint256 totalStaked = staking.totalSharesForPool( STAKED_SALT );
+		uint256 totalStaked = staking.totalSharesForPool( PoolUtils.STAKED_SALT );
 		require( totalStaked != 0, "SALT staked cannot be zero to determine quorum" );
 
 		if ( ballotType == BallotType.PARAMETER )

@@ -2,23 +2,18 @@
 pragma solidity =0.8.21;
 
 import "../../openzeppelin/token/ERC20/IERC20.sol";
-import "../../arbitrage/interfaces/IArbitrageSearch.sol";
-import "../../pools/interfaces/ICounterswap.sol";
+import "./ICounterswap.sol";
+import "./IPools.sol";
 
 
 interface IPoolsConfig
 	{
-	function whitelistPool( IERC20 tokenA, IERC20 tokenB ) external; // onlyOwner
-	function unwhitelistPool( IERC20 tokenA, IERC20 tokenB ) external; // onlyOwner
-	function setArbitrageSearch( IArbitrageSearch _arbitrageSearch ) external; // onlyOwner
-	function setCounterswap( ICounterswap _counterswap ) external; // onlyOwner
+	function whitelistPool( IPools pools, IERC20 tokenA, IERC20 tokenB ) external; // onlyOwner
+	function unwhitelistPool( IPools pools, IERC20 tokenA, IERC20 tokenB ) external; // onlyOwner
 	function changeMaximumWhitelistedPools(bool increase) external; // onlyOwner
 	function changeDaoPercentShareArbitrage(bool increase) external; // onlyOwner
 
 	// Views
-	function arbitrageSearch() external view returns (IArbitrageSearch);
-	function counterswap() external view returns (ICounterswap);
-
     function maximumWhitelistedPools() external view returns (uint256);
 	function daoPercentShareArbitrage() external view returns (uint256);
 

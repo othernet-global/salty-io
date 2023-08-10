@@ -16,7 +16,7 @@ import "../openzeppelin/security/ReentrancyGuard.sol";
 // There will be one RewardsEmitter for each contract derived from StakingRewards.sol - namely Staking.sol and Liquidity.sol
 // Staking.sol - allows users to stake SALT to acquire xSALT.
 // Liquidity.sol - allows liquidity providers to deposit and stake liquidity.
-
+// Updateable using DAO.proposeSetContractAddress( "stakingRewardsEmitter" ) and DAO.proposeSetContractAddress( "liquidityRewardsEmitter" )
 contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
     {
 	using SafeERC20 for ISalt;
@@ -33,18 +33,16 @@ contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
    	mapping(bytes32=>uint256) public pendingRewards;
 
 
-    constructor( IStakingRewards _stakingRewards, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IRewardsConfig _rewardsConfig )
+    constructor( IStakingRewards _stakingRewards, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IRewardsConfig _rewardsConfig )
 		{
 		require( address(_stakingRewards) != address(0), "_stakingRewards cannot be address(0)" );
 		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
 		require( address(_poolsConfig) != address(0), "_poolsConfig cannot be address(0)" );
 		require( address(_rewardsConfig) != address(0), "_rewardsConfig cannot be address(0)" );
-		require( address(_stakingConfig) != address(0), "_stakingConfig cannot be address(0)" );
 
 		stakingRewards = _stakingRewards;
 		exchangeConfig = _exchangeConfig;
 		poolsConfig = _poolsConfig;
-		stakingConfig = _stakingConfig;
 		rewardsConfig = _rewardsConfig;
 
 		salt = _exchangeConfig.salt();

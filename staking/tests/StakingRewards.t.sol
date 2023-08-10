@@ -36,7 +36,7 @@ contract SharedRewardsTest is Test, Deployment
 		IERC20 token2 = new TestERC20( 18 );
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool(token1, token2);
+		poolsConfig.whitelistPool(pools, token1, token2);
 
 		vm.startPrank(DEPLOYER);
 		salt.transfer( address(this), salt.balanceOf(DEPLOYER));
@@ -44,7 +44,7 @@ contract SharedRewardsTest is Test, Deployment
 
 		// Pools for testing
         poolIDs = new bytes32[](2);
-        poolIDs[0] = STAKED_SALT;
+        poolIDs[0] = PoolUtils.STAKED_SALT;
         (poolIDs[1],) = PoolUtils.poolID(token1, token2);
 
         // This contract approves max so that SALT rewards can be added

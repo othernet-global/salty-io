@@ -10,16 +10,15 @@ import "./rewards/interfaces/ISaltRewards.sol";
 // Contract owned by the DAO with parameters modifiable only by the DAO
 contract ExchangeConfig is IExchangeConfig, Ownable
     {
-	ISalt public salt;
-	IERC20 public wbtc;
-	IERC20 public weth;
-	IERC20 public usdc;
-	IUSDS public usds;
+	ISalt immutable public salt;
+	IERC20 immutable public wbtc;
+	IERC20 immutable public weth;
+	IERC20 immutable public usdc;
+	IUSDS immutable public usds;
 
 	IDAO public dao; // can only be set once
 	IRewardsEmitter public stakingRewardsEmitter;
 	IRewardsEmitter public liquidityRewardsEmitter;
-	ISaltRewards public saltRewards;
 	IAccessManager public accessManager;
 
 
@@ -53,14 +52,6 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 		require( address(_accessManager) != address(0), "_accessManager cannot be address(0)" );
 
 		accessManager = _accessManager;
-		}
-
-
-	function setSaltRewards( ISaltRewards _saltRewards ) public onlyOwner
-		{
-		require( address(_saltRewards) != address(0), "_saltRewards cannot be address(0)" );
-
-		saltRewards = _saltRewards;
 		}
 
 

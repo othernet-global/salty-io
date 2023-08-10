@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: BSL 1.1
 pragma solidity =0.8.21;
 
-import "./interfaces/IDAOConfig.sol";
 import "../pools/interfaces/IPools.sol";
 import "../pools/interfaces/IPoolsConfig.sol";
 import "../interfaces/IExchangeConfig.sol";
 import "../price_feed/interfaces/IPriceAggregator.sol";
 import "../openzeppelin/token/ERC20/utils/SafeERC20.sol";
+import "./interfaces/IDAOConfig.sol";
 
 
 // Performs the following upkeep on the exchange for each call to DAO.performUpkeep():
@@ -31,26 +31,29 @@ contract UpkeepPerformer
 
     event UpkeepError(string description, bytes error);
 
-	IExchangeConfig public exchangeConfig;
-	IERC20 public wbtc;
-	IERC20 public weth;
-	ISalt public salt;
-	IUSDS public usds;
+	IPools immutable public pools;
+	IExchangeConfig  immutable public exchangeConfig;
+	IERC20  immutable public wbtc;
+	IERC20  immutable public weth;
+	ISalt  immutable public salt;
+	IUSDS  immutable public usds;
 
 	uint256 public lastUpkeepTime;
 
 
-    constructor( IExchangeConfig _exchangeConfig )
+    constructor( IPools _pools, IExchangeConfig _exchangeConfig )
 		{
+		require( address(_pools) != address(0), "_pools cannot be address(0)" );
 		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
 
+		pools = _pools;
 		exchangeConfig = _exchangeConfig;
 
 		// Cached for efficiency
-		wbtc = exchangeConfig.wbtc();
-		weth = exchangeConfig.weth();
-		salt = exchangeConfig.salt();
-		usds = exchangeConfig.usds();
+		wbtc = _exchangeConfig.wbtc();
+		weth = _exchangeConfig.weth();
+		salt = _exchangeConfig.salt();
+		usds = _exchangeConfig.usds();
 
 		lastUpkeepTime = block.timestamp;
 		}
@@ -66,11 +69,12 @@ contract UpkeepPerformer
 
 
 	// 2. Withdraw the WETH deposited in the Pools contract (from previous automatic arbitrage).
-	function step2( IPools pools ) public
+	function step2() public
 		{
 		require( msg.sender == address(this), "Only callable from within the same contract" );
 
- 		pools.withdrawArbitrageProfitsAndSendToDAO();
+		uint256 depositedWETH =  pools.depositedBalance(address(this), weth );
+		pools.withdraw( weth, depositedWETH );
 		}
 
 
@@ -102,7 +106,7 @@ contract UpkeepPerformer
 
 	// Perform the various steps of performUpkeep as outlined at the top of the contract.
 	// Each step is wrapped in a try/catch and called using this.stepX() - with each stepX function requiring that the caller has to be this contract.
-	function _performUpkeep( IPools pools, IPriceAggregator priceAggregator, IPoolsConfig poolsConfig, IDAOConfig daoConfig ) internal
+	function _performUpkeep( IPriceAggregator priceAggregator, IPoolsConfig poolsConfig, IDAOConfig daoConfig ) internal
 		{
 		uint256 timeSinceLastUpkeep = block.timestamp - lastUpkeepTime;
 
@@ -113,7 +117,7 @@ contract UpkeepPerformer
  		try this.step1(priceAggregator) {}
 		catch (bytes memory error) { emit UpkeepError("Step 1", error); }
 
- 		try this.step2(pools) {}
+ 		try this.step2() {}
 		catch (bytes memory error) { emit UpkeepError("Step 2", error); }
 
  		try this.step3(daoConfig) {}

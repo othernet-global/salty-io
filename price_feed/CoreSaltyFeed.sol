@@ -2,10 +2,10 @@
 pragma solidity =0.8.21;
 
 import "../openzeppelin/token/ERC20/IERC20.sol";
-import "../chainlink/AggregatorV3Interface.sol";
 import "./interfaces/IPriceFeed.sol";
 import "../pools/interfaces/IPools.sol";
 import "../interfaces/IExchangeConfig.sol";
+import "../pools/PoolUtils.sol";
 
 
 // Uses the Salty.IO pools to retrieve prices for BTC and ETH.
@@ -17,11 +17,6 @@ contract CoreSaltyFeed is IPriceFeed
 	IERC20 immutable public wbtc;
 	IERC20 immutable public weth;
 	IERC20 immutable public usds;
-
-	// Token reserves less than dust are treated as if they don't exist at all.
-	// With the 18 decimals that are used for most tokens, DUST has a value of 0.0000000000000001
-	// For tokens with 8 decimal places (like WBTC) DUST has a value of .000001
-	uint256 constant public DUST = 100;
 
 
 	constructor( IPools _pools, IExchangeConfig _exchangeConfig )
@@ -40,7 +35,7 @@ contract CoreSaltyFeed is IPriceFeed
 		{
         (uint256 reservesWBTC, uint256 reservesUSDS) = pools.getPoolReserves(wbtc, usds);
 
-		if ( ( reservesWBTC < DUST ) || ( reservesUSDS < DUST ) )
+		if ( ( reservesWBTC < PoolUtils.DUST ) || ( reservesUSDS < PoolUtils.DUST ) )
 			return 0;
 
 		// reservesWBTC has 8 decimals, keep the 18 decimals of reservesUSDS
@@ -52,7 +47,7 @@ contract CoreSaltyFeed is IPriceFeed
 		{
         (uint256 reservesWETH, uint256 reservesUSDS) = pools.getPoolReserves(weth, usds);
 
-		if ( ( reservesWETH < DUST ) || ( reservesUSDS < DUST ) )
+		if ( ( reservesWETH < PoolUtils.DUST ) || ( reservesUSDS < PoolUtils.DUST ) )
 			return 0;
 
 		return ( reservesUSDS * 10**18 ) / reservesWETH;
