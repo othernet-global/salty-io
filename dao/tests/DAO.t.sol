@@ -58,7 +58,7 @@ contract TestDAO is Test, Deployment
 			proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 
 			address oldDAO = address(dao);
-			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidity, liquidityRewardsEmitter );
+			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidity, liquidityRewardsEmitter, saltRewards );
 
 			accessManager = new AccessManager(dao);
 
@@ -664,7 +664,7 @@ contract TestDAO is Test, Deployment
 	function testDAOConstructor() public {
 
         vm.startPrank(DEPLOYER);
-        DAO testDAO = new DAO(pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidity, liquidityRewardsEmitter);
+        DAO testDAO = new DAO(pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidity, liquidityRewardsEmitter, saltRewards);
 
         assertEq(address(testDAO.pools()), address(pools), "Pools contract address mismatch");
         assertEq(address(testDAO.proposals()), address(proposals), "Proposals contract address mismatch");

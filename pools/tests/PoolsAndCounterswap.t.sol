@@ -76,7 +76,7 @@ contract TestPoolsAndCounterswap is Test, Deployment
 			proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 
 			address oldDAO = address(dao);
-			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidity, liquidityRewardsEmitter );
+			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidity, liquidityRewardsEmitter, saltRewards );
 
 			accessManager = new AccessManager(dao);
 
@@ -85,7 +85,7 @@ contract TestPoolsAndCounterswap is Test, Deployment
 			exchangeConfig.setLiquidityRewardsEmitter( liquidityRewardsEmitter);
 			exchangeConfig.setDAO( dao );
 
-			ICounterswap(address(pools)).setDAO(dao);
+			IPoolStats(address(pools)).setDAO(dao);
 
 			usds.setCollateral( collateral );
             usds.setPools( pools );

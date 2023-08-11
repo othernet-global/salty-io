@@ -8,11 +8,12 @@ import "../interfaces/ISalt.sol";
 import "../interfaces/IExchangeConfig.sol";
 import "./interfaces/ISaltRewards.sol";
 import "../pools/PoolUtils.sol";
+import "../openzeppelin/security/ReentrancyGuard.sol";
 
 
 // Temporarily holds SALT rewards from emissions and arbitrage profits during performUpkeep().
 // Sends them to the stakingRewardsEmitter and liquidityRewardsEmitter (with proportions for the latter based on a pool's share in generating the recent arbitrage profits).
-contract SaltRewards is ISaltRewards
+contract SaltRewards is ISaltRewards, ReentrancyGuard
     {
 	using SafeERC20 for ISalt;
 
@@ -39,7 +40,7 @@ contract SaltRewards is ISaltRewards
 
 
 	// Add SALT rewards and keep track of the amount pending for each pool based on RewardsConfig.stakingRewardsPercent
-	function addSALTRewards(uint256 amount) public
+	function addSALTRewards(uint256 amount) public nonReentrant
 		{
 		if ( amount == 0 )
 			return;
@@ -101,7 +102,7 @@ contract SaltRewards is ISaltRewards
 		}
 
 
-	function performUpkeep( bytes32[] memory poolIDs ) public
+	function performUpkeep( bytes32[] memory poolIDs, uint256[] memory profitsForPools ) public
 		{
 		require( msg.sender == address(exchangeConfig.dao()), "SaltRewards.performUpkeep only callable from the DAO contract" );
 
@@ -109,10 +110,6 @@ contract SaltRewards is ISaltRewards
 			return;
 
 		_sendStakingRewards();
-//		_sendLiquidityRewards(poolIDs);
-
-//		// Clear the profits for pools that was used to distribute the rewards
-//		for( uint256 i = 0; i < poolIDs.length; i++ )
-//			_profitsForPools[ poolIDs[i] ] = 0;
+		_sendLiquidityRewards(poolIDs, profitsForPools);
 		}
 	}

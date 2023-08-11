@@ -19,8 +19,6 @@ contract Counterswap is ICounterswap, PoolStats
 	IPools immutable public pools;
 	IERC20 immutable public usds;
 
-	IDAO public dao;
-
 	// The amount of tokens that have been deposited for counter swapping
 	mapping(IERC20=>mapping(IERC20=>uint256)) private _depositedTokens;  // [depositedToken][desiredToken]
 
@@ -34,15 +32,6 @@ contract Counterswap is ICounterswap, PoolStats
 
 		// Cached for efficiency
 		usds = _exchangeConfig.usds();
-		}
-
-
-	function setDAO( IDAO _dao ) public
-		{
-		require( address(dao) == address(0), "setDAO can only be called once" );
-		require( address(_dao) != address(0), "_dao cannot be address(0)" );
-
-		dao = _dao;
 		}
 
 

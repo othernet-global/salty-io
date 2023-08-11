@@ -27,8 +27,8 @@ contract Deployment
 
 	IForcedPriceFeed public forcedPriceFeed = IForcedPriceFeed(address(0x3B0Eb37f26b502bAe83df4eCc54afBDfb90B5d3a));
 
-	IDAO public dao = IDAO(address(0xE50a6DFbCeCAAc5E7001f1248A8F147CF4Fd3eAF));
-	Emissions public emissions = Emissions(address(0x5126265584a297812e64df030869823F9060CD4b));
+	IDAO public dao = IDAO(address(0xdFF092ca1c76c6370f978B3dc0764548D92EdECB));
+	Emissions public emissions = Emissions(address(0xCa25013E99AB4EaE641B339757713f2ac52C8bd5));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));
@@ -55,6 +55,7 @@ contract Deployment
 
 	IProposals public proposals = IProposals(getContract(address(dao), "proposals()" ));
 
+	ISaltRewards public saltRewards = ISaltRewards(getContract(address(dao), "saltRewards()" ));
 	IAccessManager public accessManager = exchangeConfig.accessManager();
 
 
@@ -84,8 +85,7 @@ contract Deployment
 
 		// Cast bytes to address
 		result = abi.decode(output, (address));
-	}
-
+		}
 	}
 
 

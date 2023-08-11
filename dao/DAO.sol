@@ -32,9 +32,9 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
 	IStableConfig immutable public stableConfig;
 	IDAOConfig immutable public daoConfig;
 	IPriceAggregator immutable public priceAggregator;
-
 	ILiquidity immutable public liquidity;
 	IRewardsEmitter immutable public liquidityRewardsEmitter;
+	ISaltRewards immutable public saltRewards;
 
 	// The default IPFS URL for the website content (can be changed with a setWebsiteURL proposal)
 	string public websiteURL;
@@ -43,7 +43,7 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
 	mapping(string=>bool) public excludedCountries;
 
 
-    constructor( IPools _pools, IProposals _proposals, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IRewardsConfig _rewardsConfig, IStableConfig _stableConfig, IDAOConfig _daoConfig, IPriceAggregator _priceAggregator, ILiquidity _liquidity, IRewardsEmitter _liquidityRewardsEmitter )
+    constructor( IPools _pools, IProposals _proposals, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IRewardsConfig _rewardsConfig, IStableConfig _stableConfig, IDAOConfig _daoConfig, IPriceAggregator _priceAggregator, ILiquidity _liquidity, IRewardsEmitter _liquidityRewardsEmitter, ISaltRewards _saltRewards )
     UpkeepPerformer(_pools, _exchangeConfig)
 		{
 		require( address(_proposals) != address(0), "_proposals cannot be address(0)" );
@@ -55,6 +55,7 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
 		require( address(_priceAggregator) != address(0), "_priceAggregator cannot be address(0)" );
 		require( address(_liquidity) != address(0), "_liquidity cannot be address(0)" );
 		require( address(_liquidityRewardsEmitter) != address(0), "_liquidityRewardsEmitter cannot be address(0)" );
+		require( address(_saltRewards) != address(0), "_saltRewards cannot be address(0)" );
 
 		proposals = _proposals;
 		poolsConfig = _poolsConfig;
@@ -65,6 +66,7 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
 		priceAggregator = _priceAggregator;
         liquidity = _liquidity;
         liquidityRewardsEmitter = _liquidityRewardsEmitter;
+        saltRewards = _saltRewards;
         }
 
 

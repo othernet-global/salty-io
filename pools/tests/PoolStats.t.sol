@@ -9,8 +9,10 @@ import "../PoolUtils.sol";
 import "../../root_tests/TestERC20.sol";
 
 
-contract TestPoolStats is Test, Deployment, PoolStats
+contract TestPoolStats is Test, PoolStats
 	{
+	Deployment public deployment = new Deployment();
+
 	IERC20 public tokenA = new TestERC20(6);
 	IERC20 public tokenB = new TestERC20(18);
 	IERC20 public tokenC = new TestERC20(18);

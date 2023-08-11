@@ -2,12 +2,9 @@
 pragma solidity =0.8.21;
 
 import "../../openzeppelin/token/ERC20/IERC20.sol";
-import "../../dao/interfaces/IDAO.sol";
 
 interface ICounterswap
 	{
-	function setDAO( IDAO _dao ) external;
-
 	function depositTokenForCounterswap( IERC20 tokenToDeposit, IERC20 desiredToken, uint256 amountToDeposit ) external;
 	function withdrawTokenFromCounterswap( IERC20 tokenToWithdraw, uint256 amountToWithdraw ) external;
 

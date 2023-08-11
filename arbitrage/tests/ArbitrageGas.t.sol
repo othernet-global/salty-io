@@ -27,7 +27,7 @@ contract TestArbitrage is Test, Deployment
 			{
 			vm.prank(DEPLOYER);
 			pools = new Pools(exchangeConfig, rewardsConfig, poolsConfig);
-			ICounterswap(address(pools)).setDAO(dao);
+			IPoolStats(address(pools)).setDAO(dao);
 			}
 
 		priceAggregator.performUpkeep();

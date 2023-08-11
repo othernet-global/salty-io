@@ -7,6 +7,7 @@ import "./interfaces/IUSDS.sol";
 import "../pools/interfaces/IPools.sol";
 import "../pools/interfaces/ICounterswap.sol";
 import "../pools/interfaces/IPoolsConfig.sol";
+import "../dao/interfaces/IDAO.sol";
 
 
 // USDS can be borrowed by users who have deposited WBTC/WETH liquidity as collateral via Collateral.sol
