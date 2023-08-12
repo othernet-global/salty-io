@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BSL 1.1
+// SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.21;
 
 import "../../openzeppelin/token/ERC20/utils/SafeERC20.sol";
@@ -15,6 +15,9 @@ interface IPools
 
 	function whitelist(bytes32 poolID) external;
 	function unwhitelist(bytes32 poolID) external;
+
+	function depositTokenForCounterswap( IERC20 tokenToDeposit, address counterswapAddress, uint256 amountToDeposit ) external;
+	function withdrawTokenFromCounterswap( IERC20 tokenToWithdraw, address counterswapAddress, uint256 amountToWithdraw ) external;
 
 	// Views
 	function totalLiquidity(bytes32 poolID) external view returns (uint256);

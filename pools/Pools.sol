@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BSL 1.1
+// SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.21;
 
 import "../openzeppelin/security/ReentrancyGuard.sol";
@@ -10,12 +10,12 @@ import "./interfaces/IPoolsConfig.sol";
 import "./PoolUtils.sol";
 import "./PoolMath.sol";
 import "./Counterswap.sol";
+import "./PoolStats.sol";
 import "../rewards/SaltRewards.sol";
 import "../arbitrage/ArbitrageSearch.sol";
 
 
-// While not as elegant and modular as it could be, having Pools derive from multiple contracts allows swap functionality with no external calls - bringing gas usage down about 27% for swaps.
-contract Pools is IPools, ReentrancyGuard, Counterswap, ArbitrageSearch
+contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch
 	{
 	using SafeERC20 for IERC20;
 
@@ -26,6 +26,7 @@ contract Pools is IPools, ReentrancyGuard, Counterswap, ArbitrageSearch
 		}
 
 	IPoolsConfig immutable public poolsConfig;
+	IUSDS immutable public usds;
 
 	// Keeps track of the pool reserves by poolID
 	mapping(bytes32=>PoolReserves) private _poolReserves;
@@ -44,12 +45,12 @@ contract Pools is IPools, ReentrancyGuard, Counterswap, ArbitrageSearch
 
 
 	constructor( IExchangeConfig _exchangeConfig, IRewardsConfig _rewardsConfig, IPoolsConfig _poolsConfig )
-	Counterswap(this, _exchangeConfig)
 	ArbitrageSearch(_exchangeConfig)
 		{
 		require( address(_poolsConfig) != address(0), "_poolsConfig cannot be address(0)" );
 
 		poolsConfig = _poolsConfig;
+		usds = _exchangeConfig.usds();
 		}
 
 
@@ -382,6 +383,7 @@ contract Pools is IPools, ReentrancyGuard, Counterswap, ArbitrageSearch
 
 				// Adjust the Counterswap contract's token deposits: from performing the swapTokenOut->swapTokenIn counterswap.
 				// This essentially returns the reserves to what they were before the user's swap.
+				// Counterswap deposits are actually owned by the Pools contract - as the Pools contract is derived from the Counterswap contract.
 				_userDeposits[ address(this)][swapTokenOut] -= swapAmountOut;
 				_userDeposits[ address(this)][swapTokenIn] += swapAmountIn;
 
@@ -476,6 +478,63 @@ contract Pools is IPools, ReentrancyGuard, Counterswap, ArbitrageSearch
 		// Assuming bypassSwap was false, the ratio of both tokens should now be the same as the ratio of the current reserves (within precision).
 		// Otherwise it will just be this normal addLiquidity call.
 		return addLiquidity(tokenA, tokenB, zapAmountA, zapAmountB, minLiquidityReceived, deadline );
+		}
+
+
+	// === COUNTERSWAPS ===
+
+	// Given that the user just swapped swapTokenIn->swapTokenOut, check to see if the protocol should counterswap (swap in exactly the opposite direction essentially undoing the original trade).
+	// Checks that the rate is reasonable compared to the 30 minute EMA of the reserves ratio for the swap.
+	function _shouldCounterswap( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 swapAmountOut ) internal returns (bool shouldCounterswap)
+		{
+		// We'll be trying to to counterswap in the opposite direction of the user's swap
+		address counterswapAddress = Counterswap._determineCounterswapAddress(swapTokenOut, swapTokenIn, wbtc, weth, salt, usds);
+
+		// Make sure at least the swapAmountOut of swapTokenOut has been deposited (as it will need to be swapped for swapTokenIn)
+		uint256 amountDeposited = _userDeposits[counterswapAddress][swapTokenOut];
+		if ( amountDeposited < swapAmountOut )
+			return false;
+
+		// Check the averageRatio of reserveIn / reserveOut to see if the current opportunity to counterswap is at least more profitable than at the average ratio (to help prevent exposure to manipulation).
+		bytes16 averageRatio = averageReserveRatio(swapTokenIn, swapTokenOut);
+		if ( ABDKMathQuad.eq( averageRatio, ZERO ) )
+			return false;
+
+		// Calculate the ratio of swapAmountIn to swapAmountOut from the user's swap that they just made.
+		bytes16 swapRatio = ABDKMathQuad.div(ABDKMathQuad.fromUInt(swapAmountIn), ABDKMathQuad.fromUInt(swapAmountOut));
+
+		// We want the buffer to get a reasonable amount of swapTokenIn compared to the swapTokenOut that it will need to provide the user with.
+		// So we want the swapRatio of swapAmountIn/swapAmountOut to be greater than the recent averageRatio.
+		if (ABDKMathQuad.cmp(swapRatio, averageRatio) < 0)
+			return false;
+
+		return true;
+		}
+
+
+	// Transfer a specified token from the caller to this swap buffer and then deposit it into the Pools contract.
+	function depositTokenForCounterswap( IERC20 tokenToDeposit, address counterswapAddress, uint256 amountToDeposit ) public
+		{
+		require( (msg.sender == address(dao)) || (msg.sender == address(usds)), "Pools.depositTokenForCounterswap only callable from the DAO or USDS contracts" );
+
+		// Transfer from the caller
+		tokenToDeposit.safeTransferFrom( msg.sender, address(this), amountToDeposit );
+
+		// Credit the counterswapAddress
+		_userDeposits[counterswapAddress][tokenToDeposit] += amountToDeposit;
+		}
+
+
+	// Withdraw a specified token that is deposited in the Pools contract and send it to the caller.
+	// This is to withdraw the resulting tokens resulting from counterswaps.
+	function withdrawTokenFromCounterswap( IERC20 tokenToWithdraw, address counterswapAddress, uint256 amountToWithdraw ) public
+		{
+		require( (msg.sender == address(dao)) || (msg.sender == address(usds)), "Pools.withdrawTokenFromCounterswap only callable from the DAO or USDS contracts" );
+
+		_userDeposits[counterswapAddress][tokenToWithdraw] -= amountToWithdraw;
+
+    	// Send the token to the caller
+    	tokenToWithdraw.safeTransfer( msg.sender, amountToWithdraw );
 		}
 
 

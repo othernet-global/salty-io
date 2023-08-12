@@ -1,8 +1,7 @@
-// SPDX-License-Identifier: BSL 1.1
+// SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.21;
 
 import "../../openzeppelin/token/ERC20/IERC20.sol";
-import "./ICounterswap.sol";
 import "./IPools.sol";
 
 

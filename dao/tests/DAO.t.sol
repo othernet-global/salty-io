@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BSL 1.1
+// SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.21;
 
 import "forge-std/Test.sol";
@@ -41,7 +41,7 @@ contract TestDAO is Test, Deployment
 
 			// Because USDS already set the Collateral on deployment and it can only be done once, we have to recreate USDS as well
 			// That cascades into recreating multiple other contracts as well.
-			usds = new USDS( poolsConfig, wbtc, weth );
+			usds = new USDS(wbtc, weth);
 
 			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, usds );
 			pools = new Pools(exchangeConfig, rewardsConfig, poolsConfig);

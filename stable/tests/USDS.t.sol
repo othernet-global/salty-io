@@ -1,19 +1,26 @@
-//// SPDX-License-Identifier: BSL 1.1
+//// SPDX-License-Identifier: BUSL 1.1
 //pragma solidity =0.8.21;
 //
 //import "forge-std/Test.sol";
-//import "../USDS.sol";
-//import "../../dev/Deployment.sol";
-//import "../../pools/Counterswap.sol";
-//import "../../dev/Deployment.sol";
 //import "../../root_tests/TestERC20.sol";
-//import "../Collateral.sol";
-//import "../../ExchangeConfig.sol";
+//import "../../dev/Deployment.sol";
+//import "../../pools/PoolUtils.sol";
 //import "../../pools/Pools.sol";
+//import "../../arbitrage/ArbitrageSearch.sol";
+//import "../../pools/Counterswap.sol";
+//import "../../rewards/SaltRewards.sol";
+//import "../../stable/Collateral.sol";
+//import "../../ExchangeConfig.sol";
 //import "../../staking/Staking.sol";
 //import "../../rewards/RewardsEmitter.sol";
 //import "../../price_feed/tests/IForcedPriceFeed.sol";
 //import "../../price_feed/tests/ForcedPriceFeed.sol";
+//import "../../pools/PoolsConfig.sol";
+//import "../../price_feed/PriceAggregator.sol";
+//import "../../dao/Proposals.sol";
+//import "../../dao/DAO.sol";
+//import "../../AccessManager.sol";
+//
 //
 //contract USDSTest is Test, Deployment
 //	{
@@ -25,15 +32,15 @@
 //			{
 //			vm.startPrank(DEPLOYER);
 //
-//			// Because USDS already set the Collateral on deployment and it can only be done once, we have to recreate USDS as well
-//			// That cascades into recreating multiple other contracts as well.
-//			usds = new USDS( poolsConfig, wbtc, weth );
-//
-//			IDAO dao = IDAO(getContract( address(exchangeConfig), "dao()" ));
+//			poolsConfig = new PoolsConfig();
+//			usds = new USDS(wbtc, weth);
 //
 //			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, usds );
-//			pools = new Pools(exchangeConfig, rewardsConfig, poolsConfig);
 //
+//			priceAggregator = new PriceAggregator();
+//			priceAggregator.setInitialFeeds( IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)) );
+//
+//			pools = new Pools(exchangeConfig, rewardsConfig, poolsConfig);
 //			staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
 //			liquidity = new Liquidity( pools, exchangeConfig, poolsConfig, stakingConfig );
 //			collateral = new Collateral(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
@@ -43,18 +50,47 @@
 //
 //			emissions = new Emissions( pools, exchangeConfig, rewardsConfig );
 //
-//			exchangeConfig.setDAO( dao );
+//			poolsConfig.whitelistPool(pools, salt, wbtc);
+//			poolsConfig.whitelistPool(pools, salt, weth);
+//			poolsConfig.whitelistPool(pools, salt, usds);
+//			poolsConfig.whitelistPool(pools, wbtc, usds);
+//			poolsConfig.whitelistPool(pools, weth, usds);
+//			poolsConfig.whitelistPool(pools, wbtc, usdc);
+//			poolsConfig.whitelistPool(pools, weth, usdc);
+//			poolsConfig.whitelistPool(pools, usds, usdc);
+//			poolsConfig.whitelistPool(pools, wbtc, weth);
+//
+//
+//			proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
+//
+//			address oldDAO = address(dao);
+//			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidity, liquidityRewardsEmitter, saltRewards );
+//
+//			accessManager = new AccessManager(dao);
+//
 //			exchangeConfig.setAccessManager( accessManager );
-//			usds.setPools( pools );
+//			exchangeConfig.setStakingRewardsEmitter( stakingRewardsEmitter);
+//			exchangeConfig.setLiquidityRewardsEmitter( liquidityRewardsEmitter);
+//			exchangeConfig.setDAO( dao );
+//
+//			IPoolStats(address(pools)).setDAO(dao);
+//
 //			usds.setCollateral( collateral );
+//            usds.setPools( pools );
 //			usds.setDAO( dao );
+//
+//			// Transfer ownership of the newly created config files to the DAO
+//			Ownable(address(exchangeConfig)).transferOwnership( address(dao) );
+//			Ownable(address(poolsConfig)).transferOwnership( address(dao) );
+//			Ownable(address(priceAggregator)).transferOwnership(address(dao));
 //			vm.stopPrank();
 //
-//			vm.prank(DEPLOYER);
-//			counterswap = new Counterswap(pools, exchangeConfig );
-//
-//			vm.prank(address(dao));
-//			poolsConfig.setCounterswap(counterswap);
+//			vm.startPrank(address(oldDAO));
+//			Ownable(address(stakingConfig)).transferOwnership( address(dao) );
+//			Ownable(address(rewardsConfig)).transferOwnership( address(dao) );
+//			Ownable(address(stableConfig)).transferOwnership( address(dao) );
+//			Ownable(address(daoConfig)).transferOwnership( address(dao) );
+//			vm.stopPrank();
 //			}
 //
 //		priceAggregator.performUpkeep();
@@ -67,7 +103,7 @@
 //		address secondAddress = address(0x6666);
 //
 //		// New USDS in case Collateral was set in the deployed version already
-//		usds = new USDS(poolsConfig, wbtc, weth);
+//		usds = new USDS(wbtc, weth);
 //
 //		// Initial set up
 //		assertEq(address(usds.collateral()), address(0));
@@ -91,7 +127,7 @@
 //		address secondAddress = address(0x6666);
 //
 //		// New USDS in case Colalteral was set in the deployed version already
-//		usds = new USDS(poolsConfig, wbtc, weth);
+//		usds = new USDS(wbtc, weth);
 //
 //		// Initial set up
 //		assertEq(address(usds.pools()), address(0));
@@ -115,7 +151,7 @@
 //		address secondAddress = address(0x6666);
 //
 //		// New USDS in case Colalteral was set in the deployed version already
-//		usds = new USDS(poolsConfig, wbtc, weth);
+//		usds = new USDS(wbtc, weth);
 //
 //		// Initial set up
 //		assertEq(address(usds.dao()), address(0));
@@ -145,7 +181,7 @@
 //        assertEq(usds.balanceOf(wallet), mintAmount);
 //
 //        // Try minting from a different address
-//        vm.expectRevert("Can only mint from the Collateral contract");
+//        vm.expectRevert("Can only call USDS.mintTo from the Collateral contract");
 //        vm.prank(otherAddress);
 //        usds.mintTo(wallet, mintAmount);
 //
@@ -179,7 +215,7 @@
 //		   assertEq(usds.usdsThatShouldBeBurned(), amountToBurn);
 //
 //		   // Try signalling burn from a non-collateral address
-//		   vm.expectRevert("Not the Collateral contract");
+//		   vm.expectRevert("Can only call USDS.shouldBurnMoreUSDS from the Collateral contract");
 //		   vm.prank(otherAddress);
 //		   usds.shouldBurnMoreUSDS(amountToBurn);
 //   }
@@ -189,7 +225,7 @@
 //    	address collateralAddress = address(0x5555);
 //
 //    	// New USDS instance in case Collateral was set in the deployed version already
-//    	USDS newUSDS = new USDS(poolsConfig, wbtc, weth);
+//    	USDS newUSDS = new USDS(wbtc, weth);
 //
 //    	// Initial set up
 //    	assertEq(address(newUSDS.collateral()), address(0));
@@ -215,7 +251,7 @@
 //        assertEq(usds.balanceOf(wallet), mintAmount);
 //
 //        // Attempt to mint from a different address
-//        vm.expectRevert("Can only mint from the Collateral contract");
+//        vm.expectRevert("Can only call USDS.mintTo from the Collateral contract");
 //        vm.prank(otherAddress);
 //        usds.mintTo(wallet, mintAmount);
 //
@@ -236,7 +272,7 @@
 //        assertEq(usds.usdsThatShouldBeBurned(), burnAmount);
 //
 //        // Attempt to signal burn from a different address
-//        vm.expectRevert("Not the Collateral contract");
+//        vm.expectRevert("Can only call USDS.shouldBurnMoreUSDS from the Collateral contract");
 //        vm.prank(otherAddress);
 //        usds.shouldBurnMoreUSDS(burnAmount);
 //    }
@@ -248,7 +284,7 @@
 //        uint256 mintAmount = 1 ether;
 //
 //        // Try minting without setting the collateral address first
-//        vm.expectRevert("Can only mint from the Collateral contract");
+//        vm.expectRevert("Can only call USDS.mintTo from the Collateral contract");
 //        usds.mintTo(wallet, mintAmount);
 //
 //        // Validate that the balance did not increase
@@ -261,10 +297,10 @@
 //        uint256 usdsToBurn = 1 ether;
 //
 //        // New USDS instance in case Collateral was set in the deployed version already
-//    	USDS newUSDS = new USDS(poolsConfig, wbtc, weth);
+//    	USDS newUSDS = new USDS(wbtc, weth);
 //
 //        // Expect revert as the Collateral contract is not set yet
-//        vm.expectRevert("Not the Collateral contract");
+//        vm.expectRevert("Can only call USDS.shouldBurnMoreUSDS from the Collateral contract");
 //        newUSDS.shouldBurnMoreUSDS(usdsToBurn);
 //    }
 //
@@ -274,17 +310,13 @@
 //        address wbtcAddress = address(0x1111); // Suppose this is a valid wbtc address
 //        address wethAddress = address(0x2222); // Suppose this is a valid weth address
 //
-//        // Test with zero address as priceAggregator
-//        vm.expectRevert("_poolsConfig cannot be address(0)");
-//        USDS newUSDS = new USDS(IPoolsConfig(zeroAddress), IERC20(wbtcAddress), IERC20(wethAddress));
-//
 //        // Test with zero address as wbtc
 //        vm.expectRevert("_wbtc cannot be address(0)");
-//        newUSDS = new USDS(poolsConfig, IERC20(zeroAddress), IERC20(wethAddress));
+//        USDS newUSDS = new USDS( IERC20(zeroAddress), IERC20(wethAddress));
 //
 //        // Test with zero address as weth
 //        vm.expectRevert("_weth cannot be address(0)");
-//        newUSDS = new USDS(poolsConfig, IERC20(wbtcAddress), IERC20(zeroAddress));
+//        newUSDS = new USDS( IERC20(wbtcAddress), IERC20(zeroAddress));
 //    }
 //
 //
@@ -322,7 +354,7 @@
 //	// A unit test that sets an invalid or zero address for the Pools contract.
 //    function testSetInvalidPoolsAddress() public {
 //        // New USDS in case Pools was set in the deployed version already
-//        usds = new USDS(poolsConfig, wbtc, weth);
+//        usds = new USDS(wbtc, weth);
 //
 //        // Attempt to set the pools address to an invalid or zero address
 //        vm.expectRevert("_pools cannot be address(0)");
@@ -355,6 +387,7 @@
 //        usds.shouldBurnMoreUSDS(1);
 //    }
 //
+//
 //	// A unit test that checks setting usdsToBurn to very small and very large values to test edge cases.
 //    function testSetUsdsToBurnEdgeCases() public {
 //        uint256 smallAmount = 1;  // smallest non-zero value
@@ -377,7 +410,7 @@
 //        address randomAddress = address(0x6666);
 //
 //        // New USDS in case Collateral was set in the deployed version already
-//        usds = new USDS(poolsConfig, wbtc, weth);
+//        usds = new USDS(wbtc, weth);
 //
 //        // Set up the correct address as the collateral address
 //        vm.prank(DEPLOYER);
@@ -400,7 +433,7 @@
 //        address secondAddress = address(0x6666);
 //
 //        // New USDS in case Pools was set in the deployed version already
-//        usds = new USDS(poolsConfig, wbtc, weth);
+//        usds = new USDS(wbtc, weth);
 //
 //        // Initial set up
 //        assertEq(address(usds.pools()), address(0));
@@ -430,7 +463,7 @@
 //
 //        // Perform upkeep which should burn the indicated amount
 //        vm.prank(address(dao));
-//        usds.performUpkeep();
+//        usds.performUpkeep( ICounterswap(address(pools)));
 //
 //        // Check that the total supply did not change
 //        assertEq(usds.totalSupply(), initialSupply);
@@ -475,9 +508,9 @@
 //
 //		// Deposit USDS directly to act like USDS that was a result of counterswaps
 //		vm.prank( address(collateral) );
-//		usds.mintTo( address(counterswap), depositedUSDS );
+//		usds.mintTo( address(pools), depositedUSDS );
 //
-//		vm.startPrank( address(counterswap) );
+//		vm.startPrank( address(pools) );
 //		usds.approve( address(pools), type(uint256).max);
 //		pools.deposit( usds, depositedUSDS );
 //		vm.stopPrank();
@@ -488,11 +521,11 @@
 //
 //        // Simulate the DAO address calling performUpkeep
 //        vm.prank(address(dao));
-//        usds.performUpkeep();
+//        usds.performUpkeep(ICounterswap(address(pools)));
 //
 //        // Check the WBTC and WETH balances sent to the counterswap contract
-//        assertEq(pools.depositedBalance(address(counterswap), wbtc), wbtcAmount);
-//        assertEq(pools.depositedBalance(address(counterswap), weth), wethAmount);
+//        assertEq(pools.depositedBalance(address(pools), wbtc), wbtcAmount);
+//        assertEq(pools.depositedBalance(address(pools), weth), wethAmount);
 //
 //        // Check that the USDS was burned
 //        assertEq(usds.totalSupply(), depositedUSDS - usdsToBurn);
@@ -515,9 +548,9 @@
 //
 //		// Deposit USDS directly to act like USDS that was a result of counterswaps
 //		vm.prank( address(collateral) );
-//		usds.mintTo( address(counterswap), depositedUSDS );
+//		usds.mintTo( address(pools), depositedUSDS );
 //
-//		vm.startPrank( address(counterswap) );
+//		vm.startPrank( address(pools) );
 //		usds.approve( address(pools), type(uint256).max);
 //		pools.deposit( usds, depositedUSDS );
 //		vm.stopPrank();
@@ -528,11 +561,11 @@
 //
 //        // Simulate the DAO address calling performUpkeep
 //        vm.prank(address(dao));
-//        usds.performUpkeep();
+//        usds.performUpkeep(ICounterswap(address(pools)));
 //
 //        // Check the WBTC and WETH balances sent to the counterswap contract
-//        assertEq(pools.depositedBalance(address(counterswap), wbtc), wbtcAmount);
-//        assertEq(pools.depositedBalance(address(counterswap), weth), wethAmount);
+//        assertEq(pools.depositedBalance(address(pools), wbtc), wbtcAmount);
+//        assertEq(pools.depositedBalance(address(pools), weth), wethAmount);
 //
 //        // Check that the USDS was burned
 //        assertEq(usds.totalSupply(), 0);
@@ -544,8 +577,8 @@
 //	function testPerformUpkeepOnlyByDAO() public {
 //        // Trying to call performUpkeep from an address that is not the DAO
 //        vm.startPrank(address(0xdeadbeef));
-//        vm.expectRevert("Only callable from the DAO");
-//        usds.performUpkeep();
+//        vm.expectRevert("USDS.performUpkeep is only callable from the DAO");
+//        usds.performUpkeep( ICounterswap(address(pools)));
 //        vm.stopPrank();
 //    }
 //	}

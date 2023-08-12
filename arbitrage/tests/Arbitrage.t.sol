@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BSL 1.1
+// SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.21;
 
 import "forge-std/Test.sol";
@@ -39,7 +39,7 @@ contract TestArbitrageGas is Test, Deployment
 			vm.startPrank(DEPLOYER);
 
 			poolsConfig = new PoolsConfig();
-			usds = new USDS( poolsConfig, wbtc, weth );
+			usds = new USDS(wbtc, weth);
 
 			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, usds );
 

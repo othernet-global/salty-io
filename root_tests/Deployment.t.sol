@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BSL 1.1
+// SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.21;
 
 import "forge-std/Test.sol";
@@ -91,11 +91,15 @@ contract TestDeployment is Deployment, Test
 		assertEq( getContract(address(dao), "priceAggregator()"), address(priceAggregator), "Incorrect dao.priceAggregator" );
         assertEq( getContract(address(dao), "liquidity()"), address(liquidity), "Incorrect dao.liquidity" );
         assertEq( getContract(address(dao), "liquidityRewardsEmitter()"), address(liquidityRewardsEmitter), "Incorrect dao.liquidityRewardsEmitter" );
+        assertEq( getContract(address(dao), "saltRewards()"), address(saltRewards), "Incorrect dao.saltRewards" );
 
 		assertEq( getContract(address(proposals), "staking()"), address(staking), "Incorrect proposals.staking" );
         assertEq( getContract(address(proposals), "exchangeConfig()"), address(exchangeConfig), "Incorrect proposals.exchangeConfig" );
         assertEq( getContract(address(proposals), "poolsConfig()"), address(poolsConfig), "Incorrect proposals.poolsConfig" );
         assertEq( getContract(address(proposals), "daoConfig()"), address(daoConfig), "Incorrect proposals.daoConfig" );
+
+		assertEq( getContract(address(saltRewards), "exchangeConfig()"), address(exchangeConfig), "Incorrect saltRewards.exchangeConfig" );
+        assertEq( getContract(address(saltRewards), "rewardsConfig()"), address(rewardsConfig), "Incorrect saltRewards.rewardsConfig" );
 
 		assertEq( getContract( address(exchangeConfig), "owner()" ), address(dao), "exchangeConfig owner is not dao" );
 		assertEq( getContract( address(poolsConfig), "owner()" ), address(dao), "poolsConfig owner is not dao" );
@@ -127,7 +131,6 @@ contract TestDeployment is Deployment, Test
 			assertEq( address(usdc), 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, "Invalid USDC" );
         	}
 
-        assertEq( getContract(address(usds), "poolsConfig()"), address(poolsConfig), "Incorrect usds.poolsConfig" );
         assertEq( getContract(address(usds), "wbtc()"), address(wbtc), "Incorrect usds.wbtc" );
         assertEq( getContract(address(usds), "weth()"), address(weth), "Incorrect usds.weth" );
         assertEq( getContract(address(usds), "collateral()"), address(collateral), "Incorrect usds.collateral" );
