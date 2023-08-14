@@ -490,14 +490,14 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch
 		// We'll be trying to to counterswap in the opposite direction of the user's swap
 		address counterswapAddress = Counterswap._determineCounterswapAddress(swapTokenOut, swapTokenIn, wbtc, weth, salt, usds);
 
-		// Make sure at least the swapAmountOut of swapTokenOut has been deposited (as it will need to be swapped for swapTokenIn)
+		// Make sure at least the swapAmountOut of swapTokenOut has been deposited (as it will need to be swapped for the user's swapTokenIn)
 		uint256 amountDeposited = _userDeposits[counterswapAddress][swapTokenOut];
 		if ( amountDeposited < swapAmountOut )
 			return false;
 
 		// Check the averageRatio of reserveIn / reserveOut to see if the current opportunity to counterswap is at least more profitable than at the average ratio (to help prevent exposure to manipulation).
 		bytes16 averageRatio = averageReserveRatio(swapTokenIn, swapTokenOut);
-		if ( ABDKMathQuad.eq( averageRatio, ZERO ) )
+		if ( ABDKMathQuad.eq(averageRatio, ZERO) )
 			return false;
 
 		// Calculate the ratio of swapAmountIn to swapAmountOut from the user's swap that they just made.
@@ -531,6 +531,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch
 		{
 		require( (msg.sender == address(dao)) || (msg.sender == address(usds)), "Pools.withdrawTokenFromCounterswap only callable from the DAO or USDS contracts" );
 
+		// Debit the counterswapAddress
 		_userDeposits[counterswapAddress][tokenToWithdraw] -= amountToWithdraw;
 
     	// Send the token to the caller

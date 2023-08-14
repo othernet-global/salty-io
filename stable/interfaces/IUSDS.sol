@@ -4,11 +4,12 @@ pragma solidity =0.8.21;
 import "../../openzeppelin/token/ERC20/IERC20.sol";
 import "./ICollateral.sol";
 import "../../pools/interfaces/IPools.sol";
+import "../../dao/interfaces/IDAO.sol";
+
 
 interface IUSDS is IERC20
 	{
-	function setCollateral( ICollateral _collateral ) external;
-	function setPools( IPools _pools ) external;
+	function setContracts( ICollateral _collateral, IPools _pools, IDAO _dao ) external;
 
 	function mintTo( address wallet, uint256 amount ) external;
 	function shouldBurnMoreUSDS( uint256 usdsToBurn ) external;

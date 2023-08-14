@@ -52,9 +52,8 @@ contract TestProposals is Test, Deployment
 
 			exchangeConfig.setDAO( dao );
 			exchangeConfig.setAccessManager( accessManager );
-			usds.setPools( pools );
-			usds.setCollateral( collateral );
-			usds.setDAO( dao );
+
+			usds.setContracts( collateral, pools, dao );
 
 			proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 

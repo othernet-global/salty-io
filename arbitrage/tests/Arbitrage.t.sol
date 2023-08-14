@@ -81,9 +81,7 @@ contract TestArbitrageGas is Test, Deployment
 
 			IPoolStats(address(pools)).setDAO(dao);
 
-			usds.setCollateral( collateral );
-            usds.setPools( pools );
-			usds.setDAO( dao );
+			usds.setContracts( collateral, pools, dao );
 
 			// Transfer ownership of the newly created config files to the DAO
 			Ownable(address(exchangeConfig)).transferOwnership( address(dao) );

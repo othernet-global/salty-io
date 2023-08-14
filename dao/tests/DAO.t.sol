@@ -64,9 +64,8 @@ contract TestDAO is Test, Deployment
 
 			exchangeConfig.setDAO( dao );
 			exchangeConfig.setAccessManager( accessManager );
-			usds.setPools( pools );
-			usds.setCollateral( collateral );
-			usds.setDAO( dao );
+
+			usds.setContracts( collateral, pools, dao );
 
 			// Transfer ownership of the newly created config files to the DAO
 			Ownable(address(exchangeConfig)).transferOwnership( address(dao) );

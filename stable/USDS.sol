@@ -25,7 +25,7 @@ contract USDS is ERC20, IUSDS
 
 	// This corresponds to USDS that was borrowed by users who had their collateral liquidated.
 	// Because liquidated collateral no longer exists the borrowed USDS needs to be burned as well in order to
-	// "undo" the collateralized position and return state back to where it was before the user deposited collateral and borrowed USDS.
+	// "undo" the collateralized position and return state back to where it was before the liquidated user deposited collateral and borrowed USDS.
 	uint256 public usdsThatShouldBeBurned;
 
 
@@ -40,32 +40,17 @@ contract USDS is ERC20, IUSDS
         }
 
 
-	// The Collateral contract will be set at deployment time and after that become immutable
-	function setCollateral( ICollateral _collateral ) public
+	// These contracts will be set at deployment time and after that become immutable
+	function setContracts( ICollateral _collateral, IPools _pools, IDAO _dao ) public
 		{
 		require( address(_collateral) != address(0), "_collateral cannot be address(0)" );
-		require( address(collateral) == address(0), "setCollateral can only be called once" );
+		require( address(_pools) != address(0), "_pools cannot be address(0)" );
+		require( address(_dao) != address(0), "_dao cannot be address(0)" );
+
+		require( address(collateral) == address(0), "setContracts can only be called once" );
 
 		collateral = _collateral;
-		}
-
-
-	// The Pools contract will be set at deployment time and after that become immutable
-	function setPools( IPools _pools ) public
-		{
-		require( address(_pools) != address(0), "_pools cannot be address(0)" );
-		require( address(pools) == address(0), "setPools can only be called once" );
-
 		pools = _pools;
-		}
-
-
-	// The DAO contract will be set at deployment time and after that become immutable
-	function setDAO( IDAO _dao ) public
-		{
-		require( address(_dao) != address(0), "_dao cannot be address(0)" );
-		require( address(dao) == address(0), "setDAO can only be called once" );
-
 		dao = _dao;
 		}
 
@@ -76,6 +61,7 @@ contract USDS is ERC20, IUSDS
 		{
 		require( msg.sender == address(collateral), "Can only call USDS.mintTo from the Collateral contract" );
 		require( address(wallet) != address(0), "Cannot mint to address(0)" );
+		require( amount > 0, "Cannot mint zero USDS" );
 
 		_mint( wallet, amount );
 		}
@@ -91,7 +77,7 @@ contract USDS is ERC20, IUSDS
 		}
 
 
-	// Send the specified token to Counterswap contract so that it will be gradually converted to USDS (when users swap in the opposite direction)
+	// Send the specified token to Counterswap contract so that it will be gradually converted to USDS (when users swap first in the opposite direction)
 	function _sendTokenToCounterswap( IERC20 token, address counterswapAddress ) internal
 		{
 		uint256 tokenBalance = token.balanceOf( address(this) );
@@ -100,7 +86,7 @@ contract USDS is ERC20, IUSDS
 
 		token.approve( address(pools), tokenBalance );
 
-		// We want to convert the sent token to USDS (this IERC20 contract)
+		// Deposit the token in the Pools contract for the specified counterswapAddress so that the proper counterswap will be made as users swap in the opposite direction.
 		pools.depositTokenForCounterswap( token, counterswapAddress, tokenBalance );
 		}
 
@@ -125,7 +111,7 @@ contract USDS is ERC20, IUSDS
 
 
 	// Send all WBTC and WETH in this contract to the Counterswap contract (same as the Pools contract as Pools derives from Counterswap) so that it can gradually be swapped to USDS (which can then be burned).
-	// The WBTC and WETH is sent here on calls to Collateral.liquidateUser();
+	// Also, withdraw and burn USDS which has already been obtained through previous counterswaps.
 	function performUpkeep() public
 		{
 		require( msg.sender == address(dao), "USDS.performUpkeep is only callable from the DAO" );
@@ -141,6 +127,7 @@ contract USDS is ERC20, IUSDS
 		uint256 amountRemainingUSDS = _withdrawUSDSFromCounterswap( Counterswap.WBTC_TO_USDS, usdsThatShouldBeBurned );
 		usdsThatShouldBeBurned = _withdrawUSDSFromCounterswap( Counterswap.WETH_TO_USDS, amountRemainingUSDS );
 
+		// Burn all the USDS that was jsut withdraw (and any other USDS in the contract - although there shouldn't normally be any)
 		_burn( address(this), balanceOf(address(this)) );
 		}
 	}
