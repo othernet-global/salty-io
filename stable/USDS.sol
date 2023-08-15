@@ -67,7 +67,7 @@ contract USDS is ERC20, IUSDS
 		}
 
 
-	// Called when a user's collateral position has been liquidated to indicate that the borrowed USDS from the position needs to be burned.
+	// Called when a user's collateral position has been liquidated to indicate that the borrowed USDS from that position needs to be burned.
 	// Only callable by the Collateral contract.
 	function shouldBurnMoreUSDS( uint256 usdsToBurn ) public
 		{
@@ -77,7 +77,7 @@ contract USDS is ERC20, IUSDS
 		}
 
 
-	// Send the specified token to Counterswap contract so that it will be gradually converted to USDS (when users swap first in the opposite direction)
+	// Send the full balance of the specified token to the Counterswap contract so that it will be gradually converted to USDS (when users swap first in the opposite direction)
 	function _sendTokenToCounterswap( IERC20 token, address counterswapAddress ) internal
 		{
 		uint256 tokenBalance = token.balanceOf( address(this) );
@@ -91,26 +91,26 @@ contract USDS is ERC20, IUSDS
 		}
 
 
-	function _withdrawUSDSFromCounterswap( address counterswapAddress, uint256 amountRemainingUSDS ) internal returns (uint256)
+	function _withdrawUSDSFromCounterswap( address counterswapAddress, uint256 remainingUSDSToBurn ) internal returns (uint256)
 		{
-		// Determine how much USDS has previously been converted through counterswaps and should be withdrawn from the Pools contract.
+		// Determine how much USDS has previously been converted through the specified counterswap and should be withdrawn from the Pools contract.
 		uint256 usdsToWithdraw = pools.depositedBalance( counterswapAddress, this );
 
-		// Don't withdraw more USDS than amountRemainingUSDS
-		if ( usdsToWithdraw > amountRemainingUSDS )
-			usdsToWithdraw = amountRemainingUSDS;
+		// Don't withdraw more USDS than remainingUSDSToBurn
+		if ( usdsToWithdraw > remainingUSDSToBurn )
+			usdsToWithdraw = remainingUSDSToBurn;
 
 		if ( usdsToWithdraw == 0 )
-			return amountRemainingUSDS;
+			return remainingUSDSToBurn;
 
 		// Withdraw USDS (this ERC20 contract) from Counterswap
 		pools.withdrawTokenFromCounterswap( this, counterswapAddress, usdsToWithdraw );
 
-		return amountRemainingUSDS - usdsToWithdraw;
+		return remainingUSDSToBurn - usdsToWithdraw;
 		}
 
 
-	// Send all WBTC and WETH in this contract to the Counterswap contract (same as the Pools contract as Pools derives from Counterswap) so that it can gradually be swapped to USDS (which can then be burned).
+	// Deposit all WBTC and WETH in this contract to the Pools contract under specific counterswap addresses so that the tokens can gradually be swapped to USDS (which can then be burned).
 	// Also, withdraw and burn USDS which has already been obtained through previous counterswaps.
 	function performUpkeep() public
 		{
@@ -123,11 +123,11 @@ contract USDS is ERC20, IUSDS
 		if ( usdsThatShouldBeBurned == 0 )
 			return;
 
-		// Withdraw up to usdsThatShouldBeBurned from WBTC and WETH -> USDS counterswaps
-		uint256 amountRemainingUSDS = _withdrawUSDSFromCounterswap( Counterswap.WBTC_TO_USDS, usdsThatShouldBeBurned );
-		usdsThatShouldBeBurned = _withdrawUSDSFromCounterswap( Counterswap.WETH_TO_USDS, amountRemainingUSDS );
+		// Withdraw up to usdsThatShouldBeBurned from previously done WBTC->USDS and WETH->USDS counterswaps
+		uint256 tempRemainingToBurn = _withdrawUSDSFromCounterswap( Counterswap.WBTC_TO_USDS, usdsThatShouldBeBurned );
+		usdsThatShouldBeBurned = _withdrawUSDSFromCounterswap( Counterswap.WETH_TO_USDS, tempRemainingToBurn );
 
-		// Burn all the USDS that was jsut withdraw (and any other USDS in the contract - although there shouldn't normally be any)
+		// Burn all the USDS that was just withdrawn (and any other USDS in the contract - although there shouldn't normally be any)
 		_burn( address(this), balanceOf(address(this)) );
 		}
 	}

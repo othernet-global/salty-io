@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.21;
 
+import "forge-std/Test.sol";
 import "../openzeppelin/security/ReentrancyGuard.sol";
 import "../openzeppelin/token/ERC20/IERC20.sol";
 import "./interfaces/IPools.sol";
@@ -375,17 +376,22 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch
 			// Make sure the swap meets the specified minimums
 			require( swapAmountOut >= minAmountOut, "Insufficient resulting token amount" );
 
+			// We'll be trying to to counterswap in the opposite direction of the user's swap
+			address counterswapAddress = Counterswap._determineCounterswapAddress(swapTokenOut, swapTokenIn, wbtc, weth, salt, usds);
+
 			// Check if a counterswap should be performed (for when the protocol itself wants to gradually swap some tokens at a reasonable price)
-			if ( _shouldCounterswap( swapTokenIn, swapTokenOut, swapAmountIn, swapAmountOut ) )
+			if ( _shouldCounterswap( swapTokenIn, swapTokenOut, counterswapAddress, swapAmountIn, swapAmountOut ) )
 				{
+				console.log( "SHOULD COUNTERSWAP" );
+
 				// Perform the counterswap (in the opposite direction of the user's swap)
 				_adjustReservesForSwap( swapTokenOut, swapTokenIn, swapAmountOut );
 
 				// Adjust the Counterswap contract's token deposits: from performing the swapTokenOut->swapTokenIn counterswap.
 				// This essentially returns the reserves to what they were before the user's swap.
 				// Counterswap deposits are actually owned by the Pools contract - as the Pools contract is derived from the Counterswap contract.
-				_userDeposits[ address(this)][swapTokenOut] -= swapAmountOut;
-				_userDeposits[ address(this)][swapTokenIn] += swapAmountIn;
+				_userDeposits[counterswapAddress][swapTokenOut] -= swapAmountOut;
+				_userDeposits[counterswapAddress][swapTokenIn] += swapAmountIn;
 
 				// No arbitrage or updating pool stats with counterswap
 				return swapAmountOut;
@@ -485,11 +491,8 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch
 
 	// Given that the user just swapped swapTokenIn->swapTokenOut, check to see if the protocol should counterswap (swap in exactly the opposite direction essentially undoing the original trade).
 	// Checks that the rate is reasonable compared to the 30 minute EMA of the reserves ratio for the swap.
-	function _shouldCounterswap( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 swapAmountOut ) internal returns (bool shouldCounterswap)
+	function _shouldCounterswap( IERC20 swapTokenIn, IERC20 swapTokenOut, address counterswapAddress, uint256 swapAmountIn, uint256 swapAmountOut ) internal returns (bool shouldCounterswap)
 		{
-		// We'll be trying to to counterswap in the opposite direction of the user's swap
-		address counterswapAddress = Counterswap._determineCounterswapAddress(swapTokenOut, swapTokenIn, wbtc, weth, salt, usds);
-
 		// Make sure at least the swapAmountOut of swapTokenOut has been deposited (as it will need to be swapped for the user's swapTokenIn)
 		uint256 amountDeposited = _userDeposits[counterswapAddress][swapTokenOut];
 		if ( amountDeposited < swapAmountOut )

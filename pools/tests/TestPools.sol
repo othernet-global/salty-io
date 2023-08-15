@@ -14,6 +14,8 @@ contract TestPools is Pools
 
 	function shouldCounterswap( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 swapAmountOut ) public returns (bool)
 		{
-		return _shouldCounterswap(swapTokenIn, swapTokenOut, swapAmountIn, swapAmountOut );
+		address counterswapAddress = Counterswap._determineCounterswapAddress(swapTokenOut, swapTokenIn, wbtc, weth, salt, usds);
+
+		return _shouldCounterswap(swapTokenIn, swapTokenOut, counterswapAddress, swapAmountIn, swapAmountOut );
 		}
     }

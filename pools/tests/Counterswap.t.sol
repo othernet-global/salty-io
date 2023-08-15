@@ -64,7 +64,6 @@ contract TestCounterswap2 is Test, Deployment
 		poolsConfig.whitelistPool(_pools, usds, usdc);
 		poolsConfig.whitelistPool(_pools, wbtc, weth);
 
-
 		proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 
 		address oldDAO = address(dao);
