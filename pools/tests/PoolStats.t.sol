@@ -13,15 +13,16 @@ contract TestPoolStats is Test, PoolStats
 	{
 	Deployment public deployment = new Deployment();
 
-	IERC20 public tokenA = new TestERC20(6);
-	IERC20 public tokenB = new TestERC20(18);
-	IERC20 public tokenC = new TestERC20(18);
+	IERC20 public tokenA = new TestERC20("TEST", 6);
+	IERC20 public tokenB = new TestERC20("TEST", 18);
+	IERC20 public tokenC = new TestERC20("TEST", 18);
 
 	bytes32 public poolID;
 	bytes32 public poolID2;
 
 
 	constructor()
+	PoolStats(deployment.exchangeConfig())
 		{
 		// Different decimals
 		(poolID,) = PoolUtils.poolID( tokenA, tokenB );

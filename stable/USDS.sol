@@ -7,6 +7,7 @@ import "./interfaces/IUSDS.sol";
 import "../pools/interfaces/IPools.sol";
 import "../dao/interfaces/IDAO.sol";
 import "../pools/Counterswap.sol";
+import "../interfaces/IExchangeConfig.sol";
 
 
 // USDS can be borrowed by users who have deposited WBTC/WETH liquidity as collateral via Collateral.sol
@@ -21,7 +22,7 @@ contract USDS is ERC20, IUSDS
 
     ICollateral public collateral;
     IPools public pools;
-    IDAO public dao;
+    IExchangeConfig public exchangeConfig;
 
 	// This corresponds to USDS that was borrowed by users who had their collateral liquidated.
 	// Because liquidated collateral no longer exists the borrowed USDS needs to be burned as well in order to
@@ -41,17 +42,17 @@ contract USDS is ERC20, IUSDS
 
 
 	// These contracts will be set at deployment time and after that become immutable
-	function setContracts( ICollateral _collateral, IPools _pools, IDAO _dao ) public
+	function setContracts( ICollateral _collateral, IPools _pools, IExchangeConfig _exchangeConfig ) public
 		{
+		require( address(collateral) == address(0), "setContracts can only be called once" );
+
 		require( address(_collateral) != address(0), "_collateral cannot be address(0)" );
 		require( address(_pools) != address(0), "_pools cannot be address(0)" );
-		require( address(_dao) != address(0), "_dao cannot be address(0)" );
-
-		require( address(collateral) == address(0), "setContracts can only be called once" );
+		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
 
 		collateral = _collateral;
 		pools = _pools;
-		dao = _dao;
+		exchangeConfig = _exchangeConfig;
 		}
 
 
@@ -87,7 +88,7 @@ contract USDS is ERC20, IUSDS
 		token.approve( address(pools), tokenBalance );
 
 		// Deposit the token in the Pools contract for the specified counterswapAddress so that the proper counterswap will be made as users swap in the opposite direction.
-		pools.depositTokenForCounterswap( token, counterswapAddress, tokenBalance );
+		pools.depositTokenForCounterswap( counterswapAddress, token, tokenBalance );
 		}
 
 
@@ -104,17 +105,17 @@ contract USDS is ERC20, IUSDS
 			return remainingUSDSToBurn;
 
 		// Withdraw USDS (this ERC20 contract) from Counterswap
-		pools.withdrawTokenFromCounterswap( this, counterswapAddress, usdsToWithdraw );
+		pools.withdrawTokenFromCounterswap( counterswapAddress, this, usdsToWithdraw );
 
 		return remainingUSDSToBurn - usdsToWithdraw;
 		}
 
 
-	// Deposit all WBTC and WETH in this contract to the Pools contract under specific counterswap addresses so that the tokens can gradually be swapped to USDS (which can then be burned).
+	// Deposit all WBTC and WETH in this contract to the Pools contract under the correct counterswap addresses so that the tokens can gradually be swapped to USDS (which can then be burned).
 	// Also, withdraw and burn USDS which has already been obtained through previous counterswaps.
 	function performUpkeep() public
 		{
-		require( msg.sender == address(dao), "USDS.performUpkeep is only callable from the DAO" );
+		require( msg.sender == address(exchangeConfig.upkeep()), "USDS.performUpkeep is only callable from the Upkeep contract" );
 
 		// Send any WBTC or WETH in this contract to the Counterswap contract for gradual conversion to USDS
 		_sendTokenToCounterswap(wbtc, Counterswap.WBTC_TO_USDS);

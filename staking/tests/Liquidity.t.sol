@@ -32,9 +32,9 @@ contract LiquidityTest is Test, Deployment
 			liquidity = new Liquidity(pools, exchangeConfig, poolsConfig, stakingConfig );
 			}
 
-    	token1 = new TestERC20( 18 );
-		token2 = new TestERC20( 18 );
-		token3 = new TestERC20( 18 );
+    	token1 = new TestERC20("TEST", 18);
+		token2 = new TestERC20("TEST", 18);
+		token3 = new TestERC20("TEST", 18);
 
         (pool1,) = PoolUtils.poolID(token1, token2);
         (pool2,) = PoolUtils.poolID(token2, token3);
@@ -387,8 +387,8 @@ contract LiquidityTest is Test, Deployment
         vm.startPrank(alice);
 
         // Assuming token4 and token5 form a non-whitelisted pool
-        IERC20 token4 = new TestERC20(18);
-        IERC20 token5 = new TestERC20(18);
+        IERC20 token4 = new TestERC20("TEST", 18);
+        IERC20 token5 = new TestERC20("TEST", 18);
 
         uint256 addedAmount1 = 10 ether;
         uint256 addedAmount2 = 20 ether;

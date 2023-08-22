@@ -18,7 +18,7 @@ struct UserShareInfo
 
 interface IStakingRewards
 	{
-	function claimAllRewards( bytes32[] calldata poolIDs ) external;
+	function claimAllRewards( bytes32[] calldata poolIDs ) external returns (uint256 rewardsAmount);
 	function addSALTRewards( AddedReward[] calldata addedRewards ) external;
 
 	// Views

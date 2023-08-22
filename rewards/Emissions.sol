@@ -13,19 +13,19 @@ import "../rewards/interfaces/IRewardsConfig.sol";
 
 contract Emissions is IEmissions
     {
-    IPools immutable public pools;
+    ISaltRewards immutable public saltRewards;
 	IExchangeConfig immutable public exchangeConfig;
 	IRewardsConfig immutable public rewardsConfig;
 	ISalt immutable public salt;
 
 
-    constructor( IPools _pools, IExchangeConfig _exchangeConfig, IRewardsConfig _rewardsConfig )
+    constructor( ISaltRewards _saltRewards, IExchangeConfig _exchangeConfig, IRewardsConfig _rewardsConfig )
 		{
-		require( address(_pools) != address(0), "_pools cannot be address(0)" );
+		require( address(_saltRewards) != address(0), "_saltRewards cannot be address(0)" );
 		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
 		require( address(_rewardsConfig) != address(0), "_rewardsConfig cannot be address(0)" );
 
-		pools = _pools;
+		saltRewards = _saltRewards;
 		exchangeConfig = _exchangeConfig;
 		rewardsConfig = _rewardsConfig;
 
@@ -38,7 +38,7 @@ contract Emissions is IEmissions
 	// The percentage to transfer is interpolated from how long it's been since the last performUpkeep() call.
 	function performUpkeep(uint256 timeSinceLastUpkeep) public
 		{
-		require( msg.sender == address(exchangeConfig.dao()), "Emissions.performUpkeep only callable from the DAO contract" );
+		require( msg.sender == address(exchangeConfig.upkeep()), "Emissions.performUpkeep is only callable from the Upkeep contract" );
 
 		if ( timeSinceLastUpkeep == 0 )
 			return;
@@ -55,7 +55,7 @@ contract Emissions is IEmissions
 		if ( saltToSend == 0 )
 			return;
 
-		salt.approve( address(pools), saltToSend );
-		ISaltRewards(address(pools)).addSALTRewards(saltToSend);
+		salt.approve( address(saltRewards), saltToSend );
+		saltRewards.addSALTRewards(saltToSend);
 		}
 	}

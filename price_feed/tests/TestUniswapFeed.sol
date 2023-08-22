@@ -15,8 +15,8 @@ contract TestUniswapFeed is CoreUniswapFeed
     uint256 public forcedTWAP_WETH_USDC;
 
 
-	constructor( address _UNISWAP_V3_WBTC_WETH, address _UNISWAP_V3_WETH_USDC, IExchangeConfig _exchangeConfig )
-	CoreUniswapFeed( _UNISWAP_V3_WBTC_WETH, _UNISWAP_V3_WETH_USDC, _exchangeConfig )
+	constructor( IERC20 _wbtc, IERC20 _weth, IERC20 _usdc, address _UNISWAP_V3_WBTC_WETH, address _UNISWAP_V3_WETH_USDC )
+	CoreUniswapFeed( _wbtc, _weth, _usdc, _UNISWAP_V3_WBTC_WETH, _UNISWAP_V3_WETH_USDC )
 		{
 		}
 

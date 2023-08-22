@@ -21,14 +21,8 @@ contract TestCoreFeeds is Test, Deployment
 
 	constructor()
 		{
-		// Test addresses on Sepolia
-		address CHAINLINK_BTC_USD = 0x1b44F3514812d835EB1BDB0acB33d3fA3351Ee43;
-		address CHAINLINK_ETH_USD = 0x694AA1769357215DE4FAC081bf1f309aDC325306;
-		address UNISWAP_V3_BTC_ETH = 0xC27D6ACC8560F24681BC475953F27C5F71668448;
-		address UNISWAP_V3_USDC_ETH = 0x9014aE623A76499A0f9F326e95f66fc800bF651d;
-
 		chainlinkFeed = new CoreChainlinkFeed( CHAINLINK_BTC_USD, CHAINLINK_ETH_USD );
-		uniswapFeed = new CoreUniswapFeed( UNISWAP_V3_BTC_ETH, UNISWAP_V3_USDC_ETH, exchangeConfig );
+		uniswapFeed = new CoreUniswapFeed( IERC20(testBTC), IERC20(testETH), IERC20(testUSDC), UNISWAP_V3_BTC_ETH, UNISWAP_V3_USDC_ETH );
 		saltyFeed = new CoreSaltyFeed( pools, exchangeConfig );
 		}
 

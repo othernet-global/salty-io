@@ -62,7 +62,7 @@ contract ArbitrageSearch
 
 	// Returns the arbitrage path to use based on swapTokenIn and swapTokenOut - where those two tokens don't form a whitelisted pair
 	// Swaps are circular and will start and end with WETH.
-	function _indirectArbitragePath( IERC20 swapTokenIn, IERC20 swapTokenOut ) internal view returns (IERC20 arbToken2, IERC20 arbToken3)
+	function _indirectArbitragePath( IERC20 swapTokenIn, IERC20 swapTokenOut ) internal pure returns (IERC20 arbToken2, IERC20 arbToken3)
 		{
 		// swap: arbToken2->WETH->arbToken3   (intermediate WETH used in swaps without direct pool on exchange)
 		// arb: WETH->arbToken2->WBTC->arbToken3->WETH

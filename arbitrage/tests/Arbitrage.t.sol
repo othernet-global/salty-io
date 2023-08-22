@@ -41,12 +41,12 @@ contract TestArbitrageGas is Test, Deployment
 			poolsConfig = new PoolsConfig();
 			usds = new USDS(wbtc, weth);
 
-			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, usds );
+			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, dai, usds, teamWallet );
 
 			priceAggregator = new PriceAggregator();
 			priceAggregator.setInitialFeeds( IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)) );
 
-			pools = new Pools(exchangeConfig, rewardsConfig, poolsConfig);
+			pools = new Pools(exchangeConfig, poolsConfig);
 			staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
 			liquidity = new Liquidity( pools, exchangeConfig, poolsConfig, stakingConfig );
 			collateral = new Collateral(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
@@ -54,23 +54,23 @@ contract TestArbitrageGas is Test, Deployment
 			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig );
 			liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, rewardsConfig );
 
-			emissions = new Emissions( pools, exchangeConfig, rewardsConfig );
+			emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
 			poolsConfig.whitelistPool(pools, salt, wbtc);
 			poolsConfig.whitelistPool(pools, salt, weth);
 			poolsConfig.whitelistPool(pools, salt, usds);
 			poolsConfig.whitelistPool(pools, wbtc, usds);
 			poolsConfig.whitelistPool(pools, weth, usds);
-			poolsConfig.whitelistPool(pools, wbtc, usdc);
-			poolsConfig.whitelistPool(pools, weth, usdc);
-			poolsConfig.whitelistPool(pools, usds, usdc);
+			poolsConfig.whitelistPool(pools, wbtc, dai);
+			poolsConfig.whitelistPool(pools, weth, dai);
+			poolsConfig.whitelistPool(pools, usds, dai);
 			poolsConfig.whitelistPool(pools, wbtc, weth);
 
 
 			proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 
 			address oldDAO = address(dao);
-			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidity, liquidityRewardsEmitter, saltRewards );
+			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidityRewardsEmitter);
 
 			accessManager = new AccessManager(dao);
 
@@ -79,9 +79,9 @@ contract TestArbitrageGas is Test, Deployment
 			exchangeConfig.setLiquidityRewardsEmitter( liquidityRewardsEmitter);
 			exchangeConfig.setDAO( dao );
 
-			IPoolStats(address(pools)).setDAO(dao);
+			pools.setDAO(dao);
 
-			usds.setContracts( collateral, pools, dao );
+			usds.setContracts( collateral, pools, exchangeConfig );
 
 			// Transfer ownership of the newly created config files to the DAO
 			Ownable(address(exchangeConfig)).transferOwnership( address(dao) );
@@ -182,7 +182,7 @@ contract TestArbitrageGas is Test, Deployment
 		assertEq( pools.depositedBalance( address(dao), weth ), 0, "starting deposited eth balance should be zero" );
 
 		vm.prank(alice);
-		IERC20 token = new TestERC20(18);
+		IERC20 token = new TestERC20("TEST", 18);
 
 		_setupTokenForTesting(token);
 		vm.startPrank(alice);
@@ -190,25 +190,25 @@ contract TestArbitrageGas is Test, Deployment
 		uint256 startingWETH = weth.balanceOf(alice);
 		uint256 amountOut = pools.depositSwapWithdraw( wbtc, weth, 10 *10**8, 0, block.timestamp );
 
-//		// Check the swap itself
-//		assertEq( amountOut, 9900990099009900991 );
-//        assertEq( weth.balanceOf(alice) - startingWETH, 9900990099009900991 );
-//
-//        // Check that the arbitrage swaps happened as expected
-//        (uint256 reservesA0, uint256 reservesA1) = pools.getPoolReserves(weth, wbtc);
-//        (uint256 reservesB0, uint256 reservesB1) = pools.getPoolReserves(wbtc, salt);
-//        (uint256 reservesC0, uint256 reservesC1) = pools.getPoolReserves(salt, weth);
-//
-//		assertFalse( reservesA0 == (1000 ether - amountOut), "Arbitrage did not happen" );
-//		assertTrue( reservesA0 > ( 1000 ether - amountOut), "reservesA0 incorrect" );
-//		assertTrue( reservesA1 < ( 100 ether + 1*10**8), "reservesA1 incorrect" );
-//		assertTrue( reservesB0 > (100 * 10**8), "reservesB0 incorrect" );
-//		assertTrue( reservesB1 < (100 ether), "reservesB1 incorrect" );
-//		assertTrue( reservesC0 > (100 ether), "reservesC0 incorrect" );
-//		assertTrue( reservesC1 < (1000 ether), "reservesC1 incorrect" );
-//
-////		console.log( "profit: ", pools.depositedBalance( address(dao), weth ) );
-//		assertTrue( pools.depositedBalance( address(dao), weth ) > 2* 10**15, "arbitrage profit too low" );
+		// Check the swap itself
+		assertEq( amountOut, 9900990099009900991 );
+        assertEq( weth.balanceOf(alice) - startingWETH, 9900990099009900991 );
+
+        // Check that the arbitrage swaps happened as expected
+        (uint256 reservesA0, uint256 reservesA1) = pools.getPoolReserves(weth, wbtc);
+        (uint256 reservesB0, uint256 reservesB1) = pools.getPoolReserves(wbtc, salt);
+        (uint256 reservesC0, uint256 reservesC1) = pools.getPoolReserves(salt, weth);
+
+		assertFalse( reservesA0 == (1000 ether - amountOut), "Arbitrage did not happen" );
+		assertTrue( reservesA0 > ( 1000 ether - amountOut), "reservesA0 incorrect" );
+		assertTrue( reservesA1 < ( 100 ether + 1*10**8), "reservesA1 incorrect" );
+		assertTrue( reservesB0 > (100 * 10**8), "reservesB0 incorrect" );
+		assertTrue( reservesB1 < (100 ether), "reservesB1 incorrect" );
+		assertTrue( reservesC0 > (100 ether), "reservesC0 incorrect" );
+		assertTrue( reservesC1 < (1000 ether), "reservesC1 incorrect" );
+
+//		console.log( "profit: ", pools.depositedBalance( address(dao), weth ) );
+		assertTrue( pools.depositedBalance( address(dao), weth ) > 2* 10**15, "arbitrage profit too low" );
 		}
 
 
@@ -219,7 +219,7 @@ contract TestArbitrageGas is Test, Deployment
 		assertEq( pools.depositedBalance( address(dao), weth ), 0, "starting deposited eth balance should be zero" );
 
 		vm.prank(alice);
-		IERC20 token = new TestERC20(18);
+		IERC20 token = new TestERC20("TEST", 18);
 
 		_setupTokenForTesting(token);
 		vm.startPrank(alice);
@@ -256,7 +256,7 @@ contract TestArbitrageGas is Test, Deployment
 		assertEq( pools.depositedBalance( address(dao), weth ), 0, "starting deposited eth balance should be zero" );
 
 		vm.prank(alice);
-		IERC20 token = new TestERC20(18);
+		IERC20 token = new TestERC20("TEST", 18);
 
 		_setupTokenForTesting(token);
 		vm.startPrank(alice);
@@ -293,7 +293,7 @@ contract TestArbitrageGas is Test, Deployment
 		assertEq( pools.depositedBalance( address(dao), weth ), 0, "starting deposited eth balance should be zero" );
 
 		vm.prank(alice);
-		IERC20 token = new TestERC20(18);
+		IERC20 token = new TestERC20("TEST", 18);
 
 		_setupTokenForTesting(token);
 		vm.startPrank(alice);
@@ -330,8 +330,8 @@ contract TestArbitrageGas is Test, Deployment
 		assertEq( pools.depositedBalance( address(dao), weth ), 0, "starting deposited eth balance should be zero" );
 
 		vm.startPrank(alice);
-		IERC20 token1 = new TestERC20(18);
-		IERC20 token2 = new TestERC20(18);
+		IERC20 token1 = new TestERC20("TEST", 18);
+		IERC20 token2 = new TestERC20("TEST", 18);
 		vm.stopPrank();
 
 		_setupTokenForTesting(token1);
@@ -378,8 +378,8 @@ contract TestArbitrageGas is Test, Deployment
 		assertEq( pools.depositedBalance( address(dao), weth ), 0, "starting deposited eth balance should be zero" );
 
 		vm.startPrank(alice);
-		IERC20 token1 = new TestERC20(18);
-		IERC20 token2 = new TestERC20(18);
+		IERC20 token1 = new TestERC20("TEST", 18);
+		IERC20 token2 = new TestERC20("TEST", 18);
 		vm.stopPrank();
 
 		_setupTokenForTesting(token1);
@@ -423,7 +423,7 @@ contract TestArbitrageGas is Test, Deployment
 		assertEq( pools.depositedBalance( address(dao), weth ), 0, "starting deposited eth balance should be zero" );
 
 		vm.prank(alice);
-		IERC20 token = new TestERC20(18);
+		IERC20 token = new TestERC20("TEST", 18);
 
 		_setupTokenForTestingNoLiquidity(token);
 		vm.startPrank(alice);
@@ -447,7 +447,7 @@ contract TestArbitrageGas is Test, Deployment
 		assertEq( pools.depositedBalance( address(dao), weth ), 0, "starting deposited eth balance should be zero" );
 
 		vm.prank(alice);
-		IERC20 token = new TestERC20(18);
+		IERC20 token = new TestERC20("TEST", 18);
 
 		_setupTokenForTesting(token);
 		vm.startPrank(alice);

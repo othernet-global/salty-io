@@ -31,23 +31,25 @@ contract TestDeployment is Deployment, Test
 		return success;
 	}
 
+
 	// Tests that the contract address variables within the various contracts are correct
-    function testDeployment() public
+    function testDeployment2() public
     	{
     	// Check token decimals
 		assertTrue( ERC20(address(wbtc)).decimals() == 8, "WBTC should have 8 decimals" );
 		assertTrue( ERC20(address(weth)).decimals() == 18, "WETH should have 18 decimals" );
-		assertTrue( ERC20(address(usdc)).decimals() == 6, "USDC should have 6 decimals" );
+		assertTrue( ERC20(address(dai)).decimals() == 18, "DAI should have 18 decimals" );
 		assertTrue( ERC20(address(salt)).decimals() == 18, "SALT should have 18 decimals" );
 		assertTrue( ERC20(address(usds)).decimals() == 18, "USDS should have 18 decimals" );
 
         assertEq( getContract(address(exchangeConfig), "salt()"), address(salt), "Incorrect exchangeConfig.salt" );
         assertEq( getContract(address(exchangeConfig), "wbtc()"), address(wbtc), "Incorrect exchangeConfig.wbtc" );
         assertEq( getContract(address(exchangeConfig), "weth()"), address(weth), "Incorrect exchangeConfig.weth" );
-        assertEq( getContract(address(exchangeConfig), "usdc()"), address(usdc), "Incorrect exchangeConfig.usdc" );
+        assertEq( getContract(address(exchangeConfig), "dai()"), address(dai), "Incorrect exchangeConfig.dai" );
         assertEq( getContract(address(exchangeConfig), "usds()"), address(usds), "Incorrect exchangeConfig.usds" );
         assertEq( getContract(address(exchangeConfig), "accessManager()"), address(accessManager), "Incorrect exchangeConfig.accessManager" );
         assertEq( getContract(address(exchangeConfig), "dao()"), address(dao), "Incorrect exchangeConfig.dao" );
+        assertEq( getContract(address(exchangeConfig), "upkeep()"), address(upkeep), "Incorrect exchangeConfig.upkeep" );
 
         assertEq( getContract(address(pools), "dao()"), address(dao), "Incorrect pools.dao" );
 
@@ -89,9 +91,19 @@ contract TestDeployment is Deployment, Test
         assertEq( getContract(address(dao), "stableConfig()"), address(stableConfig), "Incorrect dao.stableConfig" );
 		assertEq( getContract(address(dao), "daoConfig()"), address(daoConfig), "Incorrect dao.daoConfig" );
 		assertEq( getContract(address(dao), "priceAggregator()"), address(priceAggregator), "Incorrect dao.priceAggregator" );
-        assertEq( getContract(address(dao), "liquidity()"), address(liquidity), "Incorrect dao.liquidity" );
         assertEq( getContract(address(dao), "liquidityRewardsEmitter()"), address(liquidityRewardsEmitter), "Incorrect dao.liquidityRewardsEmitter" );
-        assertEq( getContract(address(dao), "saltRewards()"), address(saltRewards), "Incorrect dao.saltRewards" );
+
+        assertEq( getContract(address(upkeep), "pools()"), address(pools), "Incorrect upkeep.pools" );
+        assertEq( getContract(address(upkeep), "exchangeConfig()"), address(exchangeConfig), "Incorrect upkeep.exchangeConfig" );
+        assertEq( getContract(address(upkeep), "poolsConfig()"), address(poolsConfig), "Incorrect upkeep.poolsConfig" );
+        assertEq( getContract(address(upkeep), "daoConfig()"), address(daoConfig), "Incorrect upkeep.daoConfig" );
+        assertEq( getContract(address(upkeep), "priceAggregator()"), address(priceAggregator), "Incorrect upkeep.priceAggregator" );
+        assertEq( getContract(address(upkeep), "saltRewards()"), address(saltRewards), "Incorrect upkeep.saltRewards" );
+        assertEq( getContract(address(upkeep), "liquidity()"), address(liquidity), "Incorrect upkeep.liquidity" );
+        assertEq( getContract(address(upkeep), "emissions()"), address(emissions), "Incorrect upkeep.emissions" );
+        assertEq( getContract(address(upkeep), "weth()"), address(weth), "Incorrect upkeep.weth" );
+        assertEq( getContract(address(upkeep), "salt()"), address(salt), "Incorrect upkeep.salt" );
+        assertEq( getContract(address(upkeep), "usds()"), address(usds), "Incorrect upkeep.usds" );
 
 		assertEq( getContract(address(proposals), "staking()"), address(staking), "Incorrect proposals.staking" );
         assertEq( getContract(address(proposals), "exchangeConfig()"), address(exchangeConfig), "Incorrect proposals.exchangeConfig" );
@@ -128,19 +140,13 @@ contract TestDeployment is Deployment, Test
 
 			assertEq( address(wbtc), 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599, "Invalid WBTC" );
 			assertEq( address(weth), 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2, "Invalid WETH" );
-			assertEq( address(usdc), 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, "Invalid USDC" );
+			assertEq( address(dai), 0x6B175474E89094C44Da98b954EedeAC495271d0F, "Invalid DAI" );
         	}
 
         assertEq( getContract(address(usds), "wbtc()"), address(wbtc), "Incorrect usds.wbtc" );
         assertEq( getContract(address(usds), "weth()"), address(weth), "Incorrect usds.weth" );
         assertEq( getContract(address(usds), "collateral()"), address(collateral), "Incorrect usds.collateral" );
-        assertEq( getContract(address(usds), "dao()"), address(dao), "Incorrect usds.dao" );
         assertEq( getContract(address(usds), "pools()"), address(pools), "Incorrect usds.pools" );
-
-//        if ( DEBUG )
-//        	assertTrue( functionExists( address(accessManager), "isTest()" ), "For DEBUG: The AccessManager should be a TestAccessManager" );
-//        else
-//        	assertFalse( functionExists( address(accessManager), "isTest()" ), "For DEBUG: The AccessManager should not be a TestAccessManager" );
     	}
 
 
@@ -160,7 +166,7 @@ contract TestDeployment is Deployment, Test
    		console.log( "salt: ", address(salt) );
    		console.log( "wbtc: ", address(wbtc) );
    		console.log( "weth: ", address(weth) );
-   		console.log( "usdc: ", address(usdc) );
+   		console.log( "dai: ", address(dai) );
    		console.log( "usds: ", address(usds) );
 		console.log( "" );
    		console.log( "stakingRewardsEmitter: ", address(stakingRewardsEmitter) );

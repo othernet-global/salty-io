@@ -24,13 +24,13 @@ contract TestEmissions is Test, Deployment
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 			{
 			vm.prank(DEPLOYER);
-			emissions = new Emissions( pools, exchangeConfig, rewardsConfig );
+			emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 			}
 
     	vm.startPrank( DEPLOYER );
-    	IERC20 token1 = new TestERC20( 18 );
-		IERC20 token2 = new TestERC20( 18 );
-		IERC20 token3 = new TestERC20( 18 );
+    	IERC20 token1 = new TestERC20("TEST", 18);
+		IERC20 token2 = new TestERC20("TEST", 18);
+		IERC20 token3 = new TestERC20("TEST", 18);
 
         (pool1,) = PoolUtils.poolID(token1, token2);
         (pool2,) = PoolUtils.poolID(token2, token3);
@@ -85,10 +85,10 @@ contract TestEmissions is Test, Deployment
 
 	function testPerformUpkeepOnlyCallableFromDAO() public
 		{
-		vm.expectRevert( "Emissions.performUpkeep only callable from the DAO contract" );
+		vm.expectRevert( "Emissions.performUpkeep is only callable from the Upkeep contract" );
         emissions.performUpkeep(2 weeks);
 
-		vm.prank(address(dao));
+		vm.prank(address(upkeep));
         emissions.performUpkeep(2 weeks);
 		}
 
@@ -102,7 +102,7 @@ contract TestEmissions is Test, Deployment
         // Call _performUpkeep function
         uint256 initialSaltBalance = salt.balanceOf(address(this));
 
-		vm.prank(address(dao));
+		vm.prank(address(upkeep));
         emissions.performUpkeep(0);
 
         // Since timeSinceLastUpkeep was zero, no actions should be taken

@@ -11,7 +11,7 @@ import "../CoreUniswapFeed.sol";
 import "../../ExchangeConfig.sol";
 
 
-contract TestEthFeeds is Test
+contract TestEthFeeds is Test, Deployment
 	{
 	IPriceFeed public chainlinkFeed;
 	IPriceFeedUniswap public uniswapFeed;
@@ -31,12 +31,9 @@ contract TestEthFeeds is Test
 		address WBTC = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
 		address WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 		address USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-		address NONE = address(0x123);
-
-		IExchangeConfig exchangeConfig = new ExchangeConfig( ISalt(NONE), IERC20(WBTC), IERC20(WETH), IERC20(USDC), IUSDS(NONE) );
 
 		chainlinkFeed = new CoreChainlinkFeed( CHAINLINK_BTC_USD, CHAINLINK_ETH_USD );
-		uniswapFeed = new CoreUniswapFeed( UNISWAP_V3_BTC_ETH, UNISWAP_V3_USDC_ETH, exchangeConfig );
+		uniswapFeed = new CoreUniswapFeed( IERC20(WBTC), IERC20(WETH), IERC20(USDC), UNISWAP_V3_BTC_ETH, UNISWAP_V3_USDC_ETH );
 		}
 
 

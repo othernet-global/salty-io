@@ -144,11 +144,11 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 
 	// Claims all available SALT rewards from multiple pools for the user.
 	// The claimed rewards are added to the user's virtual rewards balance - so that they can't be claimed again later.
-     function claimAllRewards( bytes32[] memory poolIDs ) public nonReentrant
+     function claimAllRewards( bytes32[] memory poolIDs ) public nonReentrant returns (uint256 rewardsAmount)
     	{
 		mapping(bytes32=>UserShareInfo) storage userInfo = _userShareInfo[msg.sender];
 
-    	uint256 sum = 0;
+		rewardsAmount = 0;
 		for( uint256 i = 0; i < poolIDs.length; i++ )
 			{
 			bytes32 poolID = poolIDs[i];
@@ -158,14 +158,14 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 			// Increase the virtualRewards balance for the user to account for them receiving the rewards
 			userInfo[poolID].virtualRewards += pendingRewards;
 
-			sum = sum + pendingRewards;
+			rewardsAmount = rewardsAmount + pendingRewards;
 			}
 
 		// This error should never happen
-		require( salt.balanceOf(address(this)) >= sum, "Insufficient SALT balance to send claimed rewards" );
+		require( salt.balanceOf(address(this)) >= rewardsAmount, "Insufficient SALT balance to send claimed rewards" );
 
 		// Send the actual rewards
-		salt.safeTransfer( msg.sender, sum );
+		salt.safeTransfer( msg.sender, rewardsAmount );
     	}
 
 

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.21;
 
-import "forge-std/Test.sol";
 import "../openzeppelin/security/ReentrancyGuard.sol";
 import "../openzeppelin/token/ERC20/IERC20.sol";
 import "./interfaces/IPools.sol";
@@ -28,6 +27,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch
 
 	IPoolsConfig immutable public poolsConfig;
 	IUSDS immutable public usds;
+	IDAO public dao;
 
 	// Keeps track of the pool reserves by poolID
 	mapping(bytes32=>PoolReserves) private _poolReserves;
@@ -45,13 +45,23 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch
 	mapping(bytes32=>bool) private _whitelistedCache;
 
 
-	constructor( IExchangeConfig _exchangeConfig, IRewardsConfig _rewardsConfig, IPoolsConfig _poolsConfig )
+	constructor( IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig )
+	PoolStats(_exchangeConfig)
 	ArbitrageSearch(_exchangeConfig)
 		{
 		require( address(_poolsConfig) != address(0), "_poolsConfig cannot be address(0)" );
 
 		poolsConfig = _poolsConfig;
 		usds = _exchangeConfig.usds();
+		}
+
+
+	function setDAO( IDAO _dao ) public
+		{
+		require( address(dao) == address(0), "setDAO can only be called once" );
+		require( address(_dao) != address(0), "_dao cannot be address(0)" );
+
+		dao = _dao;
 		}
 
 
@@ -382,8 +392,6 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch
 			// Check if a counterswap should be performed (for when the protocol itself wants to gradually swap some tokens at a reasonable price)
 			if ( _shouldCounterswap( swapTokenIn, swapTokenOut, counterswapAddress, swapAmountIn, swapAmountOut ) )
 				{
-				console.log( "SHOULD COUNTERSWAP" );
-
 				// Perform the counterswap (in the opposite direction of the user's swap)
 				_adjustReservesForSwap( swapTokenOut, swapTokenIn, swapAmountOut );
 
@@ -491,7 +499,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch
 
 	// Given that the user just swapped swapTokenIn->swapTokenOut, check to see if the protocol should counterswap (swap in exactly the opposite direction essentially undoing the original trade).
 	// Checks that the rate is reasonable compared to the 30 minute EMA of the reserves ratio for the swap.
-	function _shouldCounterswap( IERC20 swapTokenIn, IERC20 swapTokenOut, address counterswapAddress, uint256 swapAmountIn, uint256 swapAmountOut ) internal returns (bool shouldCounterswap)
+	function _shouldCounterswap( IERC20 swapTokenIn, IERC20 swapTokenOut, address counterswapAddress, uint256 swapAmountIn, uint256 swapAmountOut ) internal view returns (bool shouldCounterswap)
 		{
 		// Make sure at least the swapAmountOut of swapTokenOut has been deposited (as it will need to be swapped for the user's swapTokenIn)
 		uint256 amountDeposited = _userDeposits[counterswapAddress][swapTokenOut];
@@ -516,9 +524,9 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch
 
 
 	// Transfer a specified token from the caller to this swap buffer and then deposit it into the Pools contract.
-	function depositTokenForCounterswap( IERC20 tokenToDeposit, address counterswapAddress, uint256 amountToDeposit ) public
+	function depositTokenForCounterswap( address counterswapAddress, IERC20 tokenToDeposit, uint256 amountToDeposit ) public
 		{
-		require( (msg.sender == address(dao)) || (msg.sender == address(usds)), "Pools.depositTokenForCounterswap only callable from the DAO or USDS contracts" );
+		require( (msg.sender == address(exchangeConfig.upkeep())) || (msg.sender == address(usds)), "Pools.depositTokenForCounterswap is only callable from the Upkeep or USDS contracts" );
 
 		// Transfer from the caller
 		tokenToDeposit.safeTransferFrom( msg.sender, address(this), amountToDeposit );
@@ -530,9 +538,9 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch
 
 	// Withdraw a specified token that is deposited in the Pools contract and send it to the caller.
 	// This is to withdraw the resulting tokens resulting from counterswaps.
-	function withdrawTokenFromCounterswap( IERC20 tokenToWithdraw, address counterswapAddress, uint256 amountToWithdraw ) public
+	function withdrawTokenFromCounterswap( address counterswapAddress, IERC20 tokenToWithdraw, uint256 amountToWithdraw ) public
 		{
-		require( (msg.sender == address(dao)) || (msg.sender == address(usds)), "Pools.withdrawTokenFromCounterswap only callable from the DAO or USDS contracts" );
+		require( (msg.sender == address(exchangeConfig.upkeep())) || (msg.sender == address(usds)), "Pools.withdrawTokenFromCounterswap is only callable from the Upkeep or USDS contracts" );
 
 		// Debit the counterswapAddress
 		_userDeposits[counterswapAddress][tokenToWithdraw] -= amountToWithdraw;

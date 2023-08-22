@@ -26,8 +26,8 @@ contract TestArbitrage is Test, Deployment
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 			{
 			vm.prank(DEPLOYER);
-			pools = new Pools(exchangeConfig, rewardsConfig, poolsConfig);
-			IPoolStats(address(pools)).setDAO(dao);
+			pools = new Pools(exchangeConfig, poolsConfig);
+			pools.setDAO(dao);
 			}
 
 		priceAggregator.performUpkeep();
@@ -35,8 +35,8 @@ contract TestArbitrage is Test, Deployment
 		uint256 priceETH = priceAggregator.getPriceETH();
 
 		vm.startPrank(alice);
-		tokenE = new TestERC20(18);
-        tokenB = new TestERC20(18);
+		tokenE = new TestERC20("TEST", 18);
+        tokenB = new TestERC20("TEST", 18);
         vm.stopPrank();
 
         vm.startPrank(address(dao));

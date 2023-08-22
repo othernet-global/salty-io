@@ -6,14 +6,14 @@ import "../openzeppelin/token/ERC20/ERC20.sol";
 
 contract TestERC20 is ERC20
     {
-    uint8 private _decimals = 6;
+    uint8 private _decimals;
 
 	uint256 public INITIAL_SUPPLY;
 
 
 
-	constructor( uint256 __decimals )
-		ERC20( "TestUSDC", "USDC" )
+	constructor( string memory name, uint256 __decimals )
+		ERC20( name, name )
 		{
 		_decimals = uint8(__decimals);
 

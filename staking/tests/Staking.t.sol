@@ -31,9 +31,9 @@ contract StakingTest is Test, Deployment
 
     function setUp() public
     	{
-    	IERC20 token1 = new TestERC20( 18 );
-		IERC20 token2 = new TestERC20( 18 );
-		IERC20 token3 = new TestERC20( 18 );
+    	IERC20 token1 = new TestERC20("TEST", 18);
+		IERC20 token2 = new TestERC20("TEST", 18);
+		IERC20 token3 = new TestERC20("TEST", 18);
 
         poolIDs = new bytes32[](3);
         poolIDs[0] = PoolUtils.STAKED_SALT;

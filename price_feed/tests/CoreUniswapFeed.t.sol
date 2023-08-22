@@ -16,7 +16,7 @@ contract TestCoreUniswapFeed is Test, Deployment
 
 	constructor()
 		{
-		testUniswapFeed = new TestUniswapFeed( 0xC27D6ACC8560F24681BC475953F27C5F71668448, 0x9014aE623A76499A0f9F326e95f66fc800bF651d, exchangeConfig  );
+		testUniswapFeed = new TestUniswapFeed( testBTC, testETH, testUSDC, UNISWAP_V3_BTC_ETH, UNISWAP_V3_USDC_ETH );
 		}
 
 
@@ -81,8 +81,7 @@ function testCoreUniswapFeedConstructor( address _wbtc, address _weth, address _
     if ( ( _wbtc == address(0) ) || ( _weth == address(0) ) || ( _usdc == address(0) ) )
     	return;
 
-    exchangeConfig = new ExchangeConfig( ISalt(address(0x1)), IERC20(_wbtc), IERC20(_weth), IERC20(_usdc), IUSDS(address(0x2)));
-	testUniswapFeed = new TestUniswapFeed( 0xC27D6ACC8560F24681BC475953F27C5F71668448, 0x9014aE623A76499A0f9F326e95f66fc800bF651d, exchangeConfig  );
+	testUniswapFeed = new TestUniswapFeed( IERC20(_wbtc), IERC20(_weth), IERC20(_usdc), UNISWAP_V3_BTC_ETH, UNISWAP_V3_USDC_ETH );
 
     // Check if WBTC/WETH order is correctly determined
     bool expectedWbtcWethFlipped = address(_weth) < address(_wbtc);
@@ -119,26 +118,20 @@ function testCoreUniswapFeedConstructor( address _wbtc, address _weth, address _
 
 	// A unit test that verifies the CoreUniswapFeed contract initialization with valid WBTC/WETH, WETH/USDC pool addresses and ExchangeConfig contract address. Check that the contract addresses are set correctly, and the address comparison for WBTC/WETH and WETH/USDC orders are done correctly.
 	function testCoreUniswapFeedInitialization() public {
-        // Addresses for WBTC/WETH and WETH/USDC pools and ExchangeConfig contract
-        address pool_WBTC_WETH = 0xC27D6ACC8560F24681BC475953F27C5F71668448;
-        address pool_WETH_USDC = 0x9014aE623A76499A0f9F326e95f66fc800bF651d;
-        address exchangeConfigAddr = address(exchangeConfig);
-
         // Create a new TestUniswapFeed contract
-        TestUniswapFeed newUniswapFeed = new TestUniswapFeed(pool_WBTC_WETH, pool_WETH_USDC, IExchangeConfig(exchangeConfigAddr));
+        TestUniswapFeed newUniswapFeed = new TestUniswapFeed(testBTC, testETH, testUSDC, UNISWAP_V3_BTC_ETH, UNISWAP_V3_USDC_ETH);
 
         // Check if the pool addresses are set correctly
-        assertEq(newUniswapFeed.UNISWAP_V3_WBTC_WETH(), pool_WBTC_WETH, "WBTC/WETH pool address not set correctly in constructor");
-        assertEq(newUniswapFeed.UNISWAP_V3_WETH_USDC(), pool_WETH_USDC, "WETH/USDC pool address not set correctly in constructor");
+        assertEq(newUniswapFeed.UNISWAP_V3_WBTC_WETH(), UNISWAP_V3_BTC_ETH, "WBTC/WETH pool address not set correctly in constructor");
+        assertEq(newUniswapFeed.UNISWAP_V3_WETH_USDC(), UNISWAP_V3_USDC_ETH, "WETH/USDC pool address not set correctly in constructor");
 
         // Check if the ExchangeConfig address is set correctly
         assertEq(address(newUniswapFeed.wbtc()), address(exchangeConfig.wbtc()), "WBTC token address not set correctly in constructor");
         assertEq(address(newUniswapFeed.weth()), address(exchangeConfig.weth()), "WETH token address not set correctly in constructor");
-        assertEq(address(newUniswapFeed.usdc()), address(exchangeConfig.usdc()), "USDC token address not set correctly in constructor");
 
         // Check if the WBTC/WETH and WETH/USDC orders are determined correctly
         bool expectedWbtcWethFlipped = address(exchangeConfig.weth()) < address(exchangeConfig.wbtc());
-        bool expectedWethUsdcFlipped = address(exchangeConfig.usdc()) < address(exchangeConfig.weth());
+        bool expectedWethUsdcFlipped = address(testUniswapFeed.usdc()) < address(exchangeConfig.weth());
 
         assertEq(newUniswapFeed.wbtc_wethFlipped(), expectedWbtcWethFlipped, "WBTC/WETH order incorrectly determined in constructor");
         assertEq(newUniswapFeed.weth_usdcFlipped(), expectedWethUsdcFlipped, "WETH/USDC order incorrectly determined in constructor");
@@ -150,17 +143,20 @@ function testCoreUniswapFeedConstructor( address _wbtc, address _weth, address _
         // Zero address
         address zeroAddress = address(0);
 
-        // Expect revert due to zero address for WBTC/WETH pool
+        vm.expectRevert("_wbtc cannot be address(0)");
+        new TestUniswapFeed(IERC20(zeroAddress), testETH, testUSDC, UNISWAP_V3_BTC_ETH, UNISWAP_V3_USDC_ETH);
+
+        vm.expectRevert("_weth cannot be address(0)");
+        new TestUniswapFeed(testBTC, IERC20(zeroAddress), testUSDC, UNISWAP_V3_BTC_ETH, UNISWAP_V3_USDC_ETH);
+
+        vm.expectRevert("_usdc cannot be address(0)");
+        new TestUniswapFeed( testBTC, testETH, IERC20(zeroAddress), UNISWAP_V3_BTC_ETH, UNISWAP_V3_USDC_ETH);
+
         vm.expectRevert("_UNISWAP_V3_WBTC_WETH cannot be address(0)");
-        new TestUniswapFeed(zeroAddress, 0x9014aE623A76499A0f9F326e95f66fc800bF651d, exchangeConfig);
+        new TestUniswapFeed(testBTC, testETH, testUSDC, zeroAddress, UNISWAP_V3_USDC_ETH);
 
-        // Expect revert due to zero address for WETH/USDC pool
         vm.expectRevert("_UNISWAP_V3_USDC_WETH cannot be address(0)");
-        new TestUniswapFeed(0xC27D6ACC8560F24681BC475953F27C5F71668448, zeroAddress, exchangeConfig);
-
-        // Expect revert due to zero address for ExchangeConfig contract
-        vm.expectRevert("_exchangeConfig cannot be address(0)");
-        new TestUniswapFeed(0xC27D6ACC8560F24681BC475953F27C5F71668448, 0x9014aE623A76499A0f9F326e95f66fc800bF651d, IExchangeConfig(zeroAddress));
+        new TestUniswapFeed(testBTC, testETH, testUSDC, UNISWAP_V3_BTC_ETH, zeroAddress);
     }
 	}
 

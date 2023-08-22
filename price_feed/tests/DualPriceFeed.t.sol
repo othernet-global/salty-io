@@ -10,7 +10,7 @@ import "../DualPriceFeed.sol";
 
 contract TestCoreUniswapFeed is Test, DualPriceFeed, Deployment
 	{
-	TestUniswapFeed public testUniswapFeed= new TestUniswapFeed( 0xC27D6ACC8560F24681BC475953F27C5F71668448, 0x9014aE623A76499A0f9F326e95f66fc800bF651d, exchangeConfig  );
+	TestUniswapFeed public testUniswapFeed= new TestUniswapFeed( testBTC, testETH, testUSDC, UNISWAP_V3_BTC_ETH, UNISWAP_V3_USDC_ETH  );
 	IForcedPriceFeed public testChainlinkFeed = new ForcedPriceFeed( 30000 ether, 50000 ether );
 
 	DualPriceFeed public dualPriceFeed;

@@ -14,27 +14,28 @@ import "./interfaces/IDAO.sol";
 import "../pools/PoolUtils.sol";
 import "./Parameters.sol";
 import "../price_feed/interfaces/IPriceAggregator.sol";
-import "./UpkeepPerformer.sol";
+import "../Upkeep.sol";
 import "../openzeppelin/security/ReentrancyGuard.sol";
 
 
 // Allows users to propose and vote on various governance actions such as changing parameters, whitelisting/unwhitelisting tokens, sending tokens, calling other contracts, and updating the website.
 // It handles proposing ballots, tracking votes, enforcing voting requirements, and executing approved proposals.
 // It also stores SALT in the contract for later use and WETH for forming Protocol Owned Liquidity of either SALT/WBTC, SALT/WETH or SALT/USDS.
-contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
+contract DAO is IDAO, Parameters, ReentrancyGuard
     {
+	using SafeERC20 for ISalt;
 	using SafeERC20 for IERC20;
 
+	IPools immutable public pools;
 	IProposals immutable public proposals;
+	IExchangeConfig immutable public exchangeConfig;
 	IPoolsConfig immutable public poolsConfig;
 	IStakingConfig immutable public stakingConfig;
 	IRewardsConfig immutable public rewardsConfig;
 	IStableConfig immutable public stableConfig;
 	IDAOConfig immutable public daoConfig;
 	IPriceAggregator immutable public priceAggregator;
-	ILiquidity immutable public liquidity;
 	IRewardsEmitter immutable public liquidityRewardsEmitter;
-	ISaltRewards immutable public saltRewards;
 
 	// The default IPFS URL for the website content (can be changed with a setWebsiteURL proposal)
 	string public websiteURL;
@@ -43,30 +44,29 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
 	mapping(string=>bool) public excludedCountries;
 
 
-    constructor( IPools _pools, IProposals _proposals, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IRewardsConfig _rewardsConfig, IStableConfig _stableConfig, IDAOConfig _daoConfig, IPriceAggregator _priceAggregator, ILiquidity _liquidity, IRewardsEmitter _liquidityRewardsEmitter, ISaltRewards _saltRewards )
-    UpkeepPerformer(_pools, _exchangeConfig)
+    constructor( IPools _pools, IProposals _proposals, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IRewardsConfig _rewardsConfig, IStableConfig _stableConfig, IDAOConfig _daoConfig, IPriceAggregator _priceAggregator, IRewardsEmitter _liquidityRewardsEmitter )
 		{
+		require( address(_pools) != address(0), "_pools cannot be address(0)" );
 		require( address(_proposals) != address(0), "_proposals cannot be address(0)" );
+		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
 		require( address(_poolsConfig) != address(0), "_poolsConfig cannot be address(0)" );
 		require( address(_stakingConfig) != address(0), "_stakingConfig cannot be address(0)" );
 		require( address(_rewardsConfig) != address(0), "_rewardsConfig cannot be address(0)" );
 		require( address(_stableConfig) != address(0), "_stableConfig cannot be address(0)" );
 		require( address(_daoConfig) != address(0), "_daoConfig cannot be address(0)" );
 		require( address(_priceAggregator) != address(0), "_priceAggregator cannot be address(0)" );
-		require( address(_liquidity) != address(0), "_liquidity cannot be address(0)" );
 		require( address(_liquidityRewardsEmitter) != address(0), "_liquidityRewardsEmitter cannot be address(0)" );
-		require( address(_saltRewards) != address(0), "_saltRewards cannot be address(0)" );
 
+		pools = _pools;
 		proposals = _proposals;
+		exchangeConfig = _exchangeConfig;
 		poolsConfig = _poolsConfig;
 		stakingConfig = _stakingConfig;
 		rewardsConfig = _rewardsConfig;
 		stableConfig = _stableConfig;
 		daoConfig = _daoConfig;
 		priceAggregator = _priceAggregator;
-        liquidity = _liquidity;
         liquidityRewardsEmitter = _liquidityRewardsEmitter;
-        saltRewards = _saltRewards;
         }
 
 
@@ -202,7 +202,7 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
 			addedRewards[0] = AddedReward( pool1, bootstrappingRewards );
 			addedRewards[1] = AddedReward( pool2, bootstrappingRewards );
 
-			salt.approve( address(liquidityRewardsEmitter), bootstrappingRewards * 2 );
+			exchangeConfig.salt().approve( address(liquidityRewardsEmitter), bootstrappingRewards * 2 );
 			liquidityRewardsEmitter.addSALTRewards( addedRewards );
 			}
 
@@ -228,11 +228,69 @@ contract DAO is IDAO, Parameters, UpkeepPerformer, ReentrancyGuard
 		}
 
 
-
-	// Call UpkeepPerformer._performUpkeep which in turn performs multiple performUpkeep steps in sequence.
-	function performUpkeep() public nonReentrant
+	// Withdraw the WETH arbitrage profits deposited in the Pools contract and send them to the caller (the Upkeep contract)
+	function withdrawArbitrageProfits( IERC20 weth ) public
 		{
-		_performUpkeep( priceAggregator, poolsConfig, daoConfig );
+		require( msg.sender == address(exchangeConfig.upkeep()), "DAO.withdrawArbitrageProfits is only callable from the Upkeep contract" );
+
+		uint256 depositedWETH =  pools.depositedBalance(address(this), weth );
+		if ( depositedWETH == 0 )
+			return;
+
+		pools.withdraw( weth, depositedWETH );
+
+		uint256 wethBalance = weth.balanceOf( address(this) );
+		weth.safeTransfer( msg.sender, wethBalance );
+		}
+
+
+	// Form Protocol Owned Liquidity with any SALT and USDS in the contract
+	function formPOL( ISalt salt, IUSDS usds ) public
+		{
+		require( msg.sender == address(exchangeConfig.upkeep()), "DAO.formPOL is only callable from the Upkeep contract" );
+
+		uint256 saltBalance = salt.balanceOf( address(this) );
+		uint256 usdsBalance = usds.balanceOf( address(this) );
+
+		salt.approve(address(pools), saltBalance);
+		usds.approve(address(pools), usdsBalance);
+
+		pools.addLiquidity( salt, usds, saltBalance, usdsBalance, 0, block.timestamp );
+		}
+
+
+	// Send SALT which was withdrawn from counterswap and not used for POL to SaltRewards
+	function sendSaltToSaltRewards( ISalt salt, ISaltRewards saltRewards, uint256 amountToSend) public
+		{
+		require( msg.sender == address(exchangeConfig.upkeep()), "DAO.sendSaltToSaltRewards is only callable from the Upkeep contract" );
+
+		salt.approve( address(saltRewards), amountToSend );
+		saltRewards.addSALTRewards(amountToSend);
+		}
+
+
+	function processRewardsFromPOL(ILiquidity liquidity, ISalt salt, IERC20 weth, IUSDS usds) public
+		{
+		require( msg.sender == address(exchangeConfig.upkeep()), "DAO.processRewardsFromPOL is only callable from the Upkeep contract" );
+
+		// The DAO owns SALT/WETH liquidity formed from the initial sale, and SALT/USDS which it forms on an ongoing basis
+		bytes32[] memory protocolOwnedLiquidityPoolIDs = new bytes32[](2);
+		(protocolOwnedLiquidityPoolIDs[0],) = PoolUtils.poolID(salt, weth);
+		(protocolOwnedLiquidityPoolIDs[1],) = PoolUtils.poolID(salt, usds);
+
+		uint256 claimedAmount = liquidity.claimAllRewards(protocolOwnedLiquidityPoolIDs);
+
+		// Send 10% of the rewards to the team
+		uint256 amountToSendToTeam = ( claimedAmount * 10 ) / 100;
+		salt.safeTransfer( exchangeConfig.teamWallet(), amountToSendToTeam );
+
+		uint256 remainingAmount = claimedAmount - amountToSendToTeam;
+
+		// Burn a default 75% of the remaining claimed SALT
+		uint256 saltToBurn = ( remainingAmount * daoConfig.percentPolRewardsBurned() ) / 100;
+
+		salt.safeTransfer( address(salt), saltToBurn );
+		salt.burnTokensInContract();
 		}
 
 

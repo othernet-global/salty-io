@@ -43,8 +43,8 @@ contract TestDAO is Test, Deployment
 			// That cascades into recreating multiple other contracts as well.
 			usds = new USDS(wbtc, weth);
 
-			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, usds );
-			pools = new Pools(exchangeConfig, rewardsConfig, poolsConfig);
+			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, dai, usds, teamWallet );
+			pools = new Pools(exchangeConfig, poolsConfig);
 
 			staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
 			liquidity = new Liquidity( pools, exchangeConfig, poolsConfig, stakingConfig );
@@ -53,19 +53,19 @@ contract TestDAO is Test, Deployment
 			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig );
 			liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, rewardsConfig );
 
-			emissions = new Emissions( pools, exchangeConfig, rewardsConfig );
+			emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
 			proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 
 			address oldDAO = address(dao);
-			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidity, liquidityRewardsEmitter, saltRewards );
+			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidityRewardsEmitter);
 
 			accessManager = new AccessManager(dao);
 
 			exchangeConfig.setDAO( dao );
 			exchangeConfig.setAccessManager( accessManager );
 
-			usds.setContracts( collateral, pools, dao );
+			usds.setContracts( collateral, pools, exchangeConfig );
 
 			// Transfer ownership of the newly created config files to the DAO
 			Ownable(address(exchangeConfig)).transferOwnership( address(dao) );
@@ -133,6 +133,8 @@ contract TestDAO is Test, Deployment
 			return rewardsConfig.emissionsWeeklyPercentTimes1000();
 		else if ( parameter == Parameters.ParameterTypes.stakingRewardsPercent )
 			return rewardsConfig.stakingRewardsPercent();
+		else if ( parameter == Parameters.ParameterTypes.percentRewardsSaltUSDS )
+			return rewardsConfig.percentRewardsSaltUSDS();
 
 		else if ( parameter == Parameters.ParameterTypes.rewardPercentForCallingLiquidation )
 			return stableConfig.rewardPercentForCallingLiquidation();
@@ -157,8 +159,8 @@ contract TestDAO is Test, Deployment
 			return daoConfig.baseProposalCost();
 		else if ( parameter == Parameters.ParameterTypes.maxPendingTokensForWhitelisting )
 			return daoConfig.maxPendingTokensForWhitelisting();
-		else if ( parameter == Parameters.ParameterTypes.daoArbitragePercent )
-			return daoConfig.daoArbitragePercent();
+		else if ( parameter == Parameters.ParameterTypes.arbitrageProfitsPercentPOL )
+			return daoConfig.arbitrageProfitsPercentPOL();
 		else if ( parameter == Parameters.ParameterTypes.upkeepRewardPercent )
 			return daoConfig.upkeepRewardPercent();
 
@@ -191,7 +193,7 @@ contract TestDAO is Test, Deployment
 
 		uint256 newValue = _parameterValue( Parameters.ParameterTypes( parameterNum ) );
 
-		if ( parameterNum != 9 )
+		if ( parameterNum != 10 )
 			assert( newValue > originalValue );
     }
 
@@ -239,8 +241,8 @@ contract TestDAO is Test, Deployment
 		uint256 newValue = _parameterValue( Parameters.ParameterTypes( parameterNum ) );
 
 		if ( parameterNum != 2 )
-		if ( parameterNum != 9 )
-		if ( parameterNum != 13 )
+		if ( parameterNum != 10 )
+		if ( parameterNum != 14 )
 			assert( newValue < originalValue );
     }
 
@@ -251,7 +253,7 @@ contract TestDAO is Test, Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 5000000 ether );
 
-    	for( uint256 i = 0; i < 23; i++ )
+    	for( uint256 i = 0; i < 25; i++ )
 	 		_checkFinalizeIncreaseParameterBallot( i );
     	}
 
@@ -262,7 +264,7 @@ contract TestDAO is Test, Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 5000000 ether );
 
-    	for( uint256 i = 0; i < 23; i++ )
+    	for( uint256 i = 0; i < 25; i++ )
 	 		_checkFinalizeDecreaseParameterBallot( i );
     	}
 
@@ -273,7 +275,7 @@ contract TestDAO is Test, Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 5000000 ether );
 
-    	for( uint256 i = 0; i < 23; i++ )
+    	for( uint256 i = 0; i < 25; i++ )
 	 		_checkFinalizeNoChangeParameterBallot( i );
     	}
 
@@ -299,7 +301,7 @@ contract TestDAO is Test, Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 1000000 ether );
 
-       	IERC20 token = new TestERC20(18);
+       	IERC20 token = new TestERC20("TEST", 18);
 
         proposals.proposeTokenWhitelisting( token, "", "" );
 
@@ -329,7 +331,7 @@ contract TestDAO is Test, Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 1000000 ether );
 
-       	IERC20 token = new TestERC20(18);
+       	IERC20 token = new TestERC20("TEST", 18);
 		salt.transfer( address(dao), 1000000 ether );
 
         proposals.proposeTokenWhitelisting( token, "", "description"  );
@@ -346,7 +348,7 @@ contract TestDAO is Test, Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 1000000 ether );
 
-       	IERC20 token = new TestERC20(18);
+       	IERC20 token = new TestERC20("TEST", 18);
 		salt.transfer( address(dao), 1000000 ether );
 
         proposals.proposeTokenWhitelisting( token, "", "" );
@@ -366,7 +368,7 @@ contract TestDAO is Test, Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 1000000 ether );
 
-       	IERC20 token = new TestERC20(18);
+       	IERC20 token = new TestERC20("TEST", 18);
 		salt.transfer( address(dao), 1000000 ether );
 
         proposals.proposeTokenWhitelisting( token, "", "" );
@@ -663,7 +665,7 @@ contract TestDAO is Test, Deployment
 	function testDAOConstructor() public {
 
         vm.startPrank(DEPLOYER);
-        DAO testDAO = new DAO(pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidity, liquidityRewardsEmitter, saltRewards);
+        DAO testDAO = new DAO(pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidityRewardsEmitter );
 
         assertEq(address(testDAO.pools()), address(pools), "Pools contract address mismatch");
         assertEq(address(testDAO.proposals()), address(proposals), "Proposals contract address mismatch");
@@ -674,7 +676,6 @@ contract TestDAO is Test, Deployment
         assertEq(address(testDAO.stableConfig()), address(stableConfig), "StableConfig contract address mismatch");
         assertEq(address(testDAO.daoConfig()), address(daoConfig), "DAOConfig contract address mismatch");
         assertEq(address(testDAO.priceAggregator()), address(priceAggregator), "PriceAggregator contract address mismatch");
-        assertEq(address(testDAO.liquidity()), address(liquidity), "Liquidity contract address mismatch");
         assertEq(address(testDAO.liquidityRewardsEmitter()), address(liquidityRewardsEmitter), "LiquidityRewardsEmitter contract address mismatch");
 
         vm.stopPrank();

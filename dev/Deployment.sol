@@ -25,10 +25,20 @@ contract Deployment
     bool public DEBUG = true;
 	address constant public DEPLOYER = 0x73107dA86708c2DAd0D91388fB057EeE3E2581aF;
 
+	// Test addresses on Sepolia for the Price Feeds
+	address public CHAINLINK_BTC_USD = 0x1b44F3514812d835EB1BDB0acB33d3fA3351Ee43;
+	address public CHAINLINK_ETH_USD = 0x694AA1769357215DE4FAC081bf1f309aDC325306;
+	address public UNISWAP_V3_BTC_ETH = 0xC27D6ACC8560F24681BC475953F27C5F71668448;
+	address public UNISWAP_V3_USDC_ETH = 0x9014aE623A76499A0f9F326e95f66fc800bF651d;
+	IERC20 public testBTC = IERC20(0xd4C3cc58E46C99fbA0c4e4d93C82AE32000cc4D4);
+	IERC20 public testETH = IERC20(0xcEBB1DB86DFc17563385b394CbD968CBd3B46F2A);
+	IERC20 public testUSDC = IERC20(0x9C65b1773A95d607f41fa205511cd3327cc39D9D);
 	IForcedPriceFeed public forcedPriceFeed = IForcedPriceFeed(address(0x3B0Eb37f26b502bAe83df4eCc54afBDfb90B5d3a));
 
-	IDAO public dao = IDAO(address(0x20Fc948490F456002f44f64773d39E687Da92D75));
-	Emissions public emissions = Emissions(address(0xfc503848C3279471a95Bfe9619d82D4174A7F024));
+
+	// The DAO contract can provide us with all other contract addresses in the protocol
+	IDAO public dao = IDAO(address(0x1Dd7e2522a9bb1d69dAEa8e3A3aAC545f349F8EC));
+
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));
@@ -38,10 +48,14 @@ contract Deployment
 	IDAOConfig public daoConfig = IDAOConfig(getContract(address(dao), "daoConfig()" ));
 	IPriceAggregator public priceAggregator = IPriceAggregator(getContract(address(dao), "priceAggregator()" ));
 
+	address public teamWallet = exchangeConfig.teamWallet();
+	IUpkeep public upkeep = exchangeConfig.upkeep();
+	IEmissions public emissions = IEmissions(getContract(address(upkeep), "emissions()" ));
+
 	ISalt public salt = exchangeConfig.salt();
     IERC20 public wbtc = exchangeConfig.wbtc();
     IERC20 public weth = exchangeConfig.weth();
-    IERC20 public usdc = exchangeConfig.usdc();
+    IERC20 public dai = exchangeConfig.dai();
     USDS public usds = USDS(address(exchangeConfig.usds()));
 
 	IRewardsEmitter public stakingRewardsEmitter = IRewardsEmitter(getContract(address(exchangeConfig), "stakingRewardsEmitter()" ));
@@ -55,7 +69,7 @@ contract Deployment
 
 	IProposals public proposals = IProposals(getContract(address(dao), "proposals()" ));
 
-	ISaltRewards public saltRewards = ISaltRewards(getContract(address(dao), "saltRewards()" ));
+	ISaltRewards public saltRewards = ISaltRewards(getContract(address(upkeep), "saltRewards()" ));
 	IAccessManager public accessManager = exchangeConfig.accessManager();
 
 

@@ -5,6 +5,7 @@ import "./openzeppelin/access/Ownable.sol";
 import "./interfaces/IExchangeConfig.sol";
 import "./rewards/interfaces/IRewardsEmitter.sol";
 import "./rewards/interfaces/ISaltRewards.sol";
+import "./interfaces/IUpkeep.sol";
 
 
 // Contract owned by the DAO with parameters modifiable only by the DAO
@@ -13,28 +14,36 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 	ISalt immutable public salt;
 	IERC20 immutable public wbtc;
 	IERC20 immutable public weth;
-	IERC20 immutable public usdc;
+	IERC20 immutable public dai;
 	IUSDS immutable public usds;
 
 	IDAO public dao; // can only be set once
+	IUpkeep public upkeep; // can only be set once
+
 	IRewardsEmitter public stakingRewardsEmitter;
 	IRewardsEmitter public liquidityRewardsEmitter;
 	IAccessManager public accessManager;
 
+	address public teamWallet;
+	address public teamVestingWallet;	// can only be set once
+	address public daoVestingWallet;		// can only be set once
 
-	constructor( ISalt _salt, IERC20 _wbtc, IERC20 _weth, IERC20 _usdc, IUSDS _usds )
+
+	constructor( ISalt _salt, IERC20 _wbtc, IERC20 _weth, IERC20 _dai, IUSDS _usds, address _teamWallet )
 		{
 		require( address(_salt) != address(0), "_salt cannot be address(0)" );
 		require( address(_wbtc) != address(0), "_wbtc cannot be address(0)" );
 		require( address(_weth) != address(0), "_weth cannot be address(0)" );
-		require( address(_usdc) != address(0), "_usdc cannot be address(0)" );
+		require( address(_dai) != address(0), "_dai cannot be address(0)" );
 		require( address(_usds) != address(0), "_usds cannot be address(0)" );
+		require( address(_teamWallet) != address(0), "_teamWallet cannot be address(0)" );
 
 		salt = _salt;
 		wbtc = _wbtc;
 		weth = _weth;
-		usdc = _usdc;
+		dai = _dai;
 		usds = _usds;
+		teamWallet = _teamWallet;
         }
 
 
@@ -44,6 +53,15 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 		require( address(_dao) != address(0), "_dao cannot be address(0)" );
 
 		dao = _dao;
+		}
+
+
+	function setUpkeep( IUpkeep _upkeep ) public onlyOwner
+		{
+		require( address(upkeep) == address(0), "setUpkeep can only be called once" );
+		require( address(_upkeep) != address(0), "_upkeep cannot be address(0)" );
+
+		upkeep = _upkeep;
 		}
 
 
@@ -68,6 +86,25 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 		require( address(_rewardsEmitter) != address(0), "_rewardsEmitter cannot be address(0)" );
 
 		liquidityRewardsEmitter = _rewardsEmitter;
+		}
+
+
+	function setTeamWallet( address _teamWallet ) public
+		{
+		require( msg.sender == teamWallet, "Only the current team can change the teamWallet" );
+
+		teamWallet = _teamWallet;
+		}
+
+
+	function setVestingWallets( address _teamVestingWallet, address _daoVestingWallet ) public
+		{
+		require( address(teamVestingWallet) == address(0), "setVestingWallets can only be called once" );
+		require( address(_teamVestingWallet) != address(0), "_teamVestingWallet cannot be address(0)" );
+		require( address(_daoVestingWallet) != address(0), "_daoVestingWallet cannot be address(0)" );
+
+		teamVestingWallet = _teamVestingWallet;
+		daoVestingWallet = _daoVestingWallet;
 		}
 
 

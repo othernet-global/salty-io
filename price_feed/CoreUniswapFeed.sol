@@ -26,18 +26,20 @@ contract CoreUniswapFeed is IPriceFeedUniswap
     bool immutable public weth_usdcFlipped;
 
 
-	constructor( address _UNISWAP_V3_WBTC_WETH, address _UNISWAP_V3_WETH_USDC, IExchangeConfig _exchangeConfig )
+	constructor( IERC20 _wbtc, IERC20 _weth, IERC20 _usdc, address _UNISWAP_V3_WBTC_WETH, address _UNISWAP_V3_WETH_USDC )
 		{
+		require( address(_wbtc) != address(0), "_wbtc cannot be address(0)" );
+		require( address(_weth) != address(0), "_weth cannot be address(0)" );
+		require( address(_usdc) != address(0), "_usdc cannot be address(0)" );
 		require( _UNISWAP_V3_WBTC_WETH != address(0), "_UNISWAP_V3_WBTC_WETH cannot be address(0)" );
 		require( _UNISWAP_V3_WETH_USDC != address(0), "_UNISWAP_V3_USDC_WETH cannot be address(0)" );
-		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
 
 		UNISWAP_V3_WBTC_WETH = _UNISWAP_V3_WBTC_WETH;
 		UNISWAP_V3_WETH_USDC = _UNISWAP_V3_WETH_USDC;
 
-		wbtc = _exchangeConfig.wbtc();
-		weth = _exchangeConfig.weth();
-		usdc = _exchangeConfig.usdc();
+		usdc = _usdc;
+		wbtc = _wbtc;
+		weth = _weth;
 
 		// Assume WBTC/WETH order
 		wbtc_wethFlipped = address(weth) < address(wbtc);

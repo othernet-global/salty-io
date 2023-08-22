@@ -75,7 +75,7 @@ contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
 	// The percentage to transfer is interpolated from how long it's been since the last performUpkeep().
 	function performUpkeep( uint256 timeSinceLastUpkeep ) public
 		{
-		require( msg.sender == address(exchangeConfig.dao()), "RewardsEmitter.performUpkeep only callable from the DAO contract" );
+		require( msg.sender == address(exchangeConfig.upkeep()), "RewardsEmitter.performUpkeep is only callable from the Upkeep contract" );
 
 		if ( timeSinceLastUpkeep == 0 )
 			return;

@@ -10,7 +10,7 @@ interface IDAOConfig
 	function changeBallotDuration(bool increase) external; // onlyOwner
 	function changeBaseProposalCost(bool increase) external; // onlyOwner
 	function changeMaxPendingTokensForWhitelisting(bool increase) external; // onlyOwner
-	function changeDaoArbitragePercent(bool increase) external; // onlyOwner
+	function changeArbitrageProfitsPercentPOL(bool increase) external; // onlyOwner
 	function changeUpkeepRewardPercent(bool increase) external; // onlyOwner
 
 	// Views
@@ -20,6 +20,6 @@ interface IDAOConfig
     function ballotDuration() external view returns (uint256);
     function baseProposalCost() external view returns (uint256);
     function maxPendingTokensForWhitelisting() external view returns (uint256);
-    function daoArbitragePercent() external view returns (uint256);
+    function arbitrageProfitsPercentPOL() external view returns (uint256);
     function upkeepRewardPercent() external view returns (uint256);
 	}

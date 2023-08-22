@@ -38,8 +38,8 @@ contract TestProposals is Test, Deployment
 
 			IDAO dao = IDAO(getContract( address(exchangeConfig), "dao()" ));
 
-			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, usds );
-			pools = new Pools(exchangeConfig, rewardsConfig, poolsConfig);
+			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, dai, usds, teamWallet );
+			pools = new Pools(exchangeConfig, poolsConfig);
 
 			staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
 			liquidity = new Liquidity( pools, exchangeConfig, poolsConfig, stakingConfig );
@@ -48,12 +48,12 @@ contract TestProposals is Test, Deployment
 			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig );
 			liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, rewardsConfig );
 
-			emissions = new Emissions( pools, exchangeConfig, rewardsConfig );
+			emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
 			exchangeConfig.setDAO( dao );
 			exchangeConfig.setAccessManager( accessManager );
 
-			usds.setContracts( collateral, pools, dao );
+			usds.setContracts( collateral, pools, exchangeConfig );
 
 			proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 
@@ -575,7 +575,7 @@ contract TestProposals is Test, Deployment
 		staking.stakeSALT( initialStake );
 
         vm.startPrank(alice);
-        IERC20 testToken = new TestERC20(18);
+        IERC20 testToken = new TestERC20("TEST", 18);
         staking.stakeSALT( 2222222 ether ); // less than minimum quorum for whitelisting (which is default 10% of the amount of staked SALT)
         proposals.proposeTokenWhitelisting(testToken, "https://tokenIconURL", "This is a test token");
 
@@ -609,7 +609,7 @@ contract TestProposals is Test, Deployment
 
 
         // Create a second whitelisting ballot
-        IERC20 testToken2 = new TestERC20(18);
+        IERC20 testToken2 = new TestERC20("TEST", 18);
         proposals.proposeTokenWhitelisting(testToken2, "https://tokenIconURL", "This is a test token");
         assertEq(proposals.numberOfOpenBallotsForTokenWhitelisting(), 2, "The number of open ballots for token whitelisting did not increase after a second proposal");
 
@@ -674,13 +674,13 @@ contract TestProposals is Test, Deployment
         // Create the maximum number of token whitelisting proposals
         for(uint256 i = 0; i < maxPendingTokensForWhitelisting; i++)
         	{
-        	token = new TestERC20(18);
+        	token = new TestERC20("TEST", 18);
 
             proposals.proposeTokenWhitelisting(token, tokenIconURL, tokenDescription);
             }
 
         // Attempt to create another token whitelisting proposal beyond the maximum limit
-		token = new TestERC20(18);
+		token = new TestERC20("TEST", 18);
 
         vm.expectRevert("The maximum number of token whitelisting proposals are already pending");
         proposals.proposeTokenWhitelisting(token, tokenIconURL, tokenDescription);
@@ -691,11 +691,11 @@ contract TestProposals is Test, Deployment
 	function testUnwhitelistingCoreTokens() public {
 		IERC20 wbtc = exchangeConfig.wbtc();
 		IERC20 weth = exchangeConfig.weth();
-		IERC20 usdc = exchangeConfig.usdc();
+		IERC20 dai = exchangeConfig.dai();
 
 		vm.startPrank(address(dao));
 		poolsConfig.whitelistPool(pools,  wbtc, weth );
-		poolsConfig.whitelistPool(pools,  wbtc, usdc );
+		poolsConfig.whitelistPool(pools,  wbtc, dai );
 		poolsConfig.whitelistPool(pools,  wbtc, salt );
 		poolsConfig.whitelistPool(pools,  wbtc, usds );
 		vm.stopPrank();
@@ -708,8 +708,8 @@ contract TestProposals is Test, Deployment
         vm.expectRevert("Cannot unwhitelist WETH");
         proposals.proposeTokenUnwhitelisting(weth, "test", "test");
 
-        vm.expectRevert("Cannot unwhitelist USDC");
-        proposals.proposeTokenUnwhitelisting(usdc, "test", "test");
+        vm.expectRevert("Cannot unwhitelist DAI");
+        proposals.proposeTokenUnwhitelisting(dai, "test", "test");
 
         vm.expectRevert("Cannot unwhitelist SALT");
         proposals.proposeTokenUnwhitelisting(salt, "test", "test");
@@ -725,7 +725,7 @@ contract TestProposals is Test, Deployment
 		vm.startPrank( DEPLOYER );
 
         // Trying to unwhitelist an unwhitelisted token should fail.
-        IERC20 newToken = new TestERC20(18);
+        IERC20 newToken = new TestERC20("TEST", 18);
         vm.expectRevert("Can only unwhitelist a whitelisted token");
         proposals.proposeTokenUnwhitelisting( newToken, "test", "test");
 

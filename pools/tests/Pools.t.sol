@@ -26,15 +26,15 @@ contract TestPools is Test, Deployment
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 			{
 			vm.prank(DEPLOYER);
-			pools = new Pools(exchangeConfig, rewardsConfig, poolsConfig);
+			pools = new Pools(exchangeConfig, poolsConfig);
 
-			IPoolStats(address(pools)).setDAO(dao);
+			pools.setDAO(dao);
 			}
 
 		vm.startPrank( DEPLOYER );
 		for( uint256 i = 0; i < 10; i++ )
 			{
-			tokens[i] = new TestERC20( 18 );
+			tokens[i] = new TestERC20("TEST", 18);
         	tokens[i].approve( address(pools), type(uint256).max );
 
         	tokens[i].transfer(address(this), 100000 ether );
@@ -257,9 +257,9 @@ contract TestPools is Test, Deployment
 		{
 		vm.startPrank(DEPLOYER);
 
-		IERC20 token0 = new TestERC20(6);
-		IERC20 token1 = new TestERC20(18);
-		IERC20 token2 = new TestERC20(6);
+		IERC20 token0 = new TestERC20("TEST", 6);
+		IERC20 token1 = new TestERC20("TEST", 18);
+		IERC20 token2 = new TestERC20("TEST", 6);
 
 			{
 			vm.stopPrank();
@@ -343,7 +343,7 @@ contract TestPools is Test, Deployment
         uint256 amountIn = 200 ether;
 
 		vm.startPrank( alice );
-		IERC20 token = new TestERC20( 18 );
+		IERC20 token = new TestERC20("TEST", 18);
 		token.transfer( address(DEPLOYER), amountIn - 1 );
 		vm.stopPrank();
 
@@ -430,7 +430,7 @@ contract TestPools is Test, Deployment
 //        pools.withdraw(nonExistentToken, 1000 ether);
 
         // Test with token that has not been deposited
-        IERC20 undepositedToken = new TestERC20( 18 );
+        IERC20 undepositedToken = new TestERC20("TEST", 18);
         vm.stopPrank();
 
         vm.prank(address(dao));
@@ -465,8 +465,8 @@ contract TestPools is Test, Deployment
 	function testAddLiquidity() public
     {
         vm.startPrank(DEPLOYER);
-        IERC20 tokenA = new TestERC20( 18 );
-        IERC20 tokenB = new TestERC20( 18 );
+        IERC20 tokenA = new TestERC20("TEST", 18);
+        IERC20 tokenB = new TestERC20("TEST", 18);
 		vm.stopPrank();
 
 		vm.prank(address(dao));
@@ -522,8 +522,8 @@ contract TestPools is Test, Deployment
 	function _testRemoveLiquidity() public
     {
    		vm.startPrank(DEPLOYER);
-        IERC20 token0 = new TestERC20(18);
-        IERC20 token1 = new TestERC20(6);
+        IERC20 token0 = new TestERC20("TEST", 18);
+        IERC20 token1 = new TestERC20("TEST", 6);
 		vm.stopPrank();
 
 		vm.prank(address(dao));
@@ -576,7 +576,7 @@ contract TestPools is Test, Deployment
 	function testDepositWithdraw() public {
    		vm.startPrank(DEPLOYER);
 
-        TestERC20 token = new TestERC20( 18 );
+        TestERC20 token = new TestERC20("TEST", 18);
 
         uint256 initialBalance = token.balanceOf(address(DEPLOYER));
 
@@ -763,8 +763,8 @@ contract TestPools is Test, Deployment
 	function testAddLiquidityReturnValues() public {
    		vm.startPrank(DEPLOYER);
 
-       	IERC20 token0 = new TestERC20( 18 );
-       	IERC20 token1 = new TestERC20( 18 );
+       	IERC20 token0 = new TestERC20("TEST", 18);
+       	IERC20 token1 = new TestERC20("TEST", 18);
        	vm.stopPrank();
 
        	vm.prank(address(dao));
@@ -835,8 +835,8 @@ contract TestPools is Test, Deployment
 	function testMultipleInteractions() public {
    		vm.startPrank(DEPLOYER);
 
-       	IERC20 token0 = new TestERC20( 18 );
-       	IERC20 token1 = new TestERC20( 18 );
+       	IERC20 token0 = new TestERC20("TEST", 18);
+       	IERC20 token1 = new TestERC20("TEST", 18);
        	vm.stopPrank();
 
 		vm.prank(address(dao));
@@ -963,8 +963,8 @@ contract TestPools is Test, Deployment
 	function testMultiAddRemoveLiquidity() public {
    		vm.startPrank(DEPLOYER);
 
-       	IERC20 token0 = new TestERC20( 18 );
-       	IERC20 token1 = new TestERC20( 18 );
+       	IERC20 token0 = new TestERC20("TEST", 18);
+       	IERC20 token1 = new TestERC20("TEST", 18);
        	vm.stopPrank();
 
 		vm.prank(address(dao));
@@ -1102,8 +1102,8 @@ contract TestPools is Test, Deployment
 	function _checkMultipleSwaps( uint8 decimals0, uint8 decimals1, uint256 units0, uint256 units1 ) internal {
 
    		vm.startPrank(DEPLOYER);
-       	IERC20 token0 = new TestERC20( decimals0 );
-       	IERC20 token1 = new TestERC20( decimals1 );
+       	IERC20 token0 = new TestERC20("TEST", decimals0);
+       	IERC20 token1 = new TestERC20("TEST", decimals1);
 
 		// alice, bob and charlie initially have 1000 of each token
     	token0.transfer(alice, 10000 * units0);
@@ -1212,9 +1212,9 @@ contract TestPools is Test, Deployment
 
         // Define the array of tokens to be used in the swap operation
         IERC20[] memory chain = new IERC20[](3);
-        chain[0] = new TestERC20(18);
-        chain[1] =new TestERC20(18);
-        chain[2] = new TestERC20(18);
+        chain[0] = new TestERC20("TEST", 18);
+        chain[1] = new TestERC20("TEST", 18);
+        chain[2] = new TestERC20("TEST", 18);
 
 		chain[0].approve(address(pools),type(uint256).max);
 		chain[1].approve(address(pools),type(uint256).max);
@@ -1258,9 +1258,9 @@ contract TestPools is Test, Deployment
 
         // Define the array of tokens to be used in the swap operation
         IERC20[] memory chain = new IERC20[](3);
-        chain[0] = new TestERC20(18);
-        chain[1] =new TestERC20(18);
-        chain[2] = new TestERC20(18);
+        chain[0] = new TestERC20("TEST", 18);
+        chain[1] = new TestERC20("TEST", 18);
+        chain[2] = new TestERC20("TEST", 18);
 
 //        console.log( "chain[0]: ", address(chain[0]) );
 //        console.log( "chain[1]: ", address(chain[1]) );
@@ -1299,9 +1299,9 @@ contract TestPools is Test, Deployment
 
         // Define the array of tokens to be used in the swap operation
         IERC20[] memory chain = new IERC20[](3);
-        chain[0] = new TestERC20(18);
-        chain[1] =new TestERC20(18);
-        chain[2] = new TestERC20(18);
+        chain[0] = new TestERC20("TEST", 18);
+        chain[1] = new TestERC20("TEST", 18);
+        chain[2] = new TestERC20("TEST", 18);
 
 		chain[0].approve(address(pools),type(uint256).max);
 		chain[1].approve(address(pools),type(uint256).max);
@@ -1356,9 +1356,9 @@ contract TestPools is Test, Deployment
 		{
         // Define the array of tokens to be used in the swap operation
         IERC20[] memory chain = new IERC20[](3);
-        chain[0] = new TestERC20(18);
-        chain[1] =new TestERC20(18);
-        chain[2] = new TestERC20(18);
+        chain[0] = new TestERC20("TEST", 18);
+        chain[1] = new TestERC20("TEST", 18);
+        chain[2] = new TestERC20("TEST", 18);
 
 		uint256 amountIn = PoolUtils.quoteAmountIn( pools, chain, 100 ether );
 		assertEq(amountIn, 0);
@@ -1388,8 +1388,8 @@ contract TestPools is Test, Deployment
 	function _checkZapping( uint8 decimals0, uint8 decimals1, uint256 initialLiquidity0, uint256 initialLiquidity1, uint256 zapAmount0, uint256 zapAmount1 ) internal
 		{
 		vm.startPrank(DEPLOYER);
-        IERC20 token0 = new TestERC20(decimals0);
-        IERC20 token1 = new TestERC20(decimals1);
+        IERC20 token0 = new TestERC20("TEST", decimals0);
+        IERC20 token1 = new TestERC20("TEST", decimals1);
 
 		token0.approve(address(pools),type(uint256).max);
 		token1.approve(address(pools),type(uint256).max);
@@ -1488,8 +1488,8 @@ contract TestPools is Test, Deployment
 		{
 		vm.startPrank(DEPLOYER);
 
-        IERC20 token0 = new TestERC20(decimals0);
-        IERC20 token1 = new TestERC20(decimals1);
+        IERC20 token0 = new TestERC20("TEST", decimals0);
+        IERC20 token1 = new TestERC20("TEST", decimals1);
 
 		token0.approve(address(pools),type(uint256).max);
 		token1.approve(address(pools),type(uint256).max);

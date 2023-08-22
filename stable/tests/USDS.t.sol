@@ -35,12 +35,12 @@ contract USDSTest is Test, Deployment
 			poolsConfig = new PoolsConfig();
 			usds = new USDS(wbtc, weth);
 
-			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, usds );
+			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, dai, usds, teamWallet );
 
 			priceAggregator = new PriceAggregator();
 			priceAggregator.setInitialFeeds( IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)) );
 
-			pools = new Pools(exchangeConfig, rewardsConfig, poolsConfig);
+			pools = new Pools(exchangeConfig, poolsConfig);
 			staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
 			liquidity = new Liquidity( pools, exchangeConfig, poolsConfig, stakingConfig );
 			collateral = new Collateral(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
@@ -48,23 +48,23 @@ contract USDSTest is Test, Deployment
 			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig );
 			liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, rewardsConfig );
 
-			emissions = new Emissions( pools, exchangeConfig, rewardsConfig );
+			emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
 			poolsConfig.whitelistPool(pools, salt, wbtc);
 			poolsConfig.whitelistPool(pools, salt, weth);
 			poolsConfig.whitelistPool(pools, salt, usds);
 			poolsConfig.whitelistPool(pools, wbtc, usds);
 			poolsConfig.whitelistPool(pools, weth, usds);
-			poolsConfig.whitelistPool(pools, wbtc, usdc);
-			poolsConfig.whitelistPool(pools, weth, usdc);
-			poolsConfig.whitelistPool(pools, usds, usdc);
+			poolsConfig.whitelistPool(pools, wbtc, dai);
+			poolsConfig.whitelistPool(pools, weth, dai);
+			poolsConfig.whitelistPool(pools, usds, dai);
 			poolsConfig.whitelistPool(pools, wbtc, weth);
 
 
 			proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 
 			address oldDAO = address(dao);
-			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidity, liquidityRewardsEmitter, saltRewards );
+			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidityRewardsEmitter);
 
 			accessManager = new AccessManager(dao);
 
@@ -73,9 +73,9 @@ contract USDSTest is Test, Deployment
 			exchangeConfig.setLiquidityRewardsEmitter( liquidityRewardsEmitter);
 			exchangeConfig.setDAO( dao );
 
-			IPoolStats(address(pools)).setDAO(dao);
+			pools.setDAO(dao);
 
-			usds.setContracts(collateral, pools, dao);
+			usds.setContracts(collateral, pools, exchangeConfig);
 
 			// Transfer ownership of the newly created config files to the DAO
 			Ownable(address(exchangeConfig)).transferOwnership( address(dao) );
@@ -100,7 +100,7 @@ contract USDSTest is Test, Deployment
 		{
 		address _collateral = address(0x5555);
 		address _pools = address(0x6666);
-		address _dao = address(0x7777);
+		address _exchangeConfig = address(0x7777);
 
 		// New USDS in case Collateral was set in the deployed version already
 		usds = new USDS(wbtc, weth);
@@ -108,23 +108,23 @@ contract USDSTest is Test, Deployment
 		// Initial set up
 		assertEq(address(usds.collateral()), address(0));
 		assertEq(address(usds.pools()), address(0));
-		assertEq(address(usds.dao()), address(0));
+		assertEq(address(usds.exchangeConfig()), address(0));
 
-		usds.setContracts( ICollateral(_collateral), IPools(_pools), IDAO(_dao) );
+		usds.setContracts( ICollateral(_collateral), IPools(_pools), IExchangeConfig(_exchangeConfig) );
 
 		assertEq(address(usds.collateral()), address(_collateral));
 		assertEq(address(usds.pools()), address(_pools));
-		assertEq(address(usds.dao()), address(_dao));
+		assertEq(address(usds.exchangeConfig()), address(_exchangeConfig));
 
 		address invalid = address(0xdead);
 
 		vm.expectRevert("setContracts can only be called once");
-		usds.setContracts( ICollateral(invalid), IPools(invalid), IDAO(invalid) );
+		usds.setContracts( ICollateral(invalid), IPools(invalid), IExchangeConfig(invalid) );
 
 		// Validate that the addresses did not change
 		assertEq(address(usds.collateral()), address(_collateral));
 		assertEq(address(usds.pools()), address(_pools));
-		assertEq(address(usds.dao()), address(_dao));
+		assertEq(address(usds.exchangeConfig()), address(_exchangeConfig));
 	}
 
 
@@ -345,7 +345,7 @@ contract USDSTest is Test, Deployment
         usds.shouldBurnMoreUSDS(burnAmount);
 
         // Perform upkeep which should burn the indicated amount
-        vm.prank(address(dao));
+        vm.prank(address(upkeep));
         usds.performUpkeep();
 
         // Check that the total supply did not change
@@ -378,9 +378,9 @@ contract USDSTest is Test, Deployment
 
 	// A unit test where a call is made to performUpkeep from an address that is not the DAO. This test should validate that only the DAO address can call this function.
 	function testPerformUpkeepOnlyByDAO() public {
-        // Trying to call performUpkeep from an address that is not the DAO
+        // Trying to call performUpkeep from an address that is not the Upkeep contract
         vm.startPrank(address(0xdeadbeef));
-        vm.expectRevert("USDS.performUpkeep is only callable from the DAO");
+        vm.expectRevert("USDS.performUpkeep is only callable from the Upkeep contract");
         usds.performUpkeep();
         vm.stopPrank();
     }
@@ -424,7 +424,7 @@ contract USDSTest is Test, Deployment
         usds.shouldBurnMoreUSDS(usdsToBurn);
 
         // Simulate the DAO address calling performUpkeep
-        vm.prank(address(dao));
+        vm.prank(address(upkeep));
         usds.performUpkeep();
 
         // performUpkeep should have transfer all WBTC and WETH in the contract to the correct counterswap addresses
@@ -480,7 +480,7 @@ contract USDSTest is Test, Deployment
         usds.shouldBurnMoreUSDS(usdsToBurn);
 
         // Simulate the DAO address calling performUpkeep
-        vm.prank(address(dao));
+        vm.prank(address(upkeep));
         usds.performUpkeep();
 
         // performUpkeep should have transfer all WBTC and WETH in the contract to the correct counterswap addresses

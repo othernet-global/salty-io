@@ -42,7 +42,7 @@ contract TestParametersOffchain is Test
 		stakingConfig = new StakingConfig();
 		rewardsConfig = new RewardsConfig();
 		stableConfig = new StableConfig();
-		exchangeConfig = new ExchangeConfig(deployment.salt(), deployment.wbtc(), deployment.weth(), deployment.usdc(), deployment.usds());
+		exchangeConfig = new ExchangeConfig(deployment.salt(), deployment.wbtc(), deployment.weth(), deployment.dai(), deployment.usds(), deployment.teamWallet());
 		daoConfig = new DAOConfig();
 		priceAggregator = new PriceAggregator();
 
@@ -72,6 +72,8 @@ contract TestParametersOffchain is Test
 			return rewardsConfig.emissionsWeeklyPercentTimes1000();
 		else if ( parameter == Parameters.ParameterTypes.stakingRewardsPercent )
 			return rewardsConfig.stakingRewardsPercent();
+		else if ( parameter == Parameters.ParameterTypes.percentRewardsSaltUSDS )
+			return rewardsConfig.percentRewardsSaltUSDS();
 
 		else if ( parameter == Parameters.ParameterTypes.rewardPercentForCallingLiquidation )
 			return stableConfig.rewardPercentForCallingLiquidation();
@@ -96,8 +98,8 @@ contract TestParametersOffchain is Test
 			return daoConfig.baseProposalCost();
 		else if ( parameter == Parameters.ParameterTypes.maxPendingTokensForWhitelisting )
 			return daoConfig.maxPendingTokensForWhitelisting();
-		else if ( parameter == Parameters.ParameterTypes.daoArbitragePercent )
-			return daoConfig.daoArbitragePercent();
+		else if ( parameter == Parameters.ParameterTypes.arbitrageProfitsPercentPOL )
+			return daoConfig.arbitrageProfitsPercentPOL();
 		else if ( parameter == Parameters.ParameterTypes.upkeepRewardPercent )
 			return daoConfig.upkeepRewardPercent();
 
@@ -188,6 +190,7 @@ contract TestParametersOffchain is Test
 		_checkParameter( Parameters.ParameterTypes.rewardsEmitterDailyPercentTimes1000, 250, 1000, 2500, 250 );
 		_checkParameter( Parameters.ParameterTypes.emissionsWeeklyPercentTimes1000, 250, 500, 1000, 250 );
 		_checkParameter( Parameters.ParameterTypes.stakingRewardsPercent, 25, 50, 75, 5 );
+		_checkParameter( Parameters.ParameterTypes.percentRewardsSaltUSDS, 10, 25, 40, 5 );
 		}
 
 
@@ -216,12 +219,12 @@ contract TestParametersOffchain is Test
 		{
 		vm.startPrank(address(parameters));
 		_checkParameter( Parameters.ParameterTypes.bootstrappingRewards, 50000 ether, 100000 ether, 500000 ether, 50000 ether );
-		_checkParameter( Parameters.ParameterTypes.percentPolRewardsBurned, 25, 50, 75, 5 );
+		_checkParameter( Parameters.ParameterTypes.percentPolRewardsBurned, 60, 75, 90, 5 );
 		_checkParameter( Parameters.ParameterTypes.baseBallotQuorumPercentTimes1000, 5000, 10000, 20000, 1000 );
 		_checkParameter( Parameters.ParameterTypes.ballotDuration, 3 days, 10 days, 14 days, 1 days );
 		_checkParameter( Parameters.ParameterTypes.baseProposalCost, 250 ether, 500 ether, 5000 ether, 250 ether );
 		_checkParameter( Parameters.ParameterTypes.maxPendingTokensForWhitelisting, 3, 5, 12, 1 );
-		_checkParameter( Parameters.ParameterTypes.daoArbitragePercent, 15, 30, 45, 5 );
+		_checkParameter( Parameters.ParameterTypes.arbitrageProfitsPercentPOL, 15, 30, 45, 5 );
 		_checkParameter( Parameters.ParameterTypes.upkeepRewardPercent, 1, 5, 10, 1 );
 		}
 

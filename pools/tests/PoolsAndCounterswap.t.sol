@@ -45,12 +45,12 @@ contract TestPoolsAndCounterswap is Test, Deployment
 			poolsConfig = new PoolsConfig();
 			usds = new USDS(wbtc, weth);
 	
-			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, usds );
+			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, dai, usds, teamWallet );
 	
 			priceAggregator = new PriceAggregator();
 			priceAggregator.setInitialFeeds( IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)) );
 	
-			pools = new Pools(exchangeConfig, rewardsConfig, poolsConfig);
+			pools = new Pools(exchangeConfig, poolsConfig);
 			staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
 			liquidity = new Liquidity( pools, exchangeConfig, poolsConfig, stakingConfig );
 			collateral = new Collateral(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
@@ -58,22 +58,22 @@ contract TestPoolsAndCounterswap is Test, Deployment
 			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig );
 			liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, rewardsConfig );
 	
-			emissions = new Emissions( pools, exchangeConfig, rewardsConfig );
+			emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 	
 			poolsConfig.whitelistPool(pools, salt, wbtc);
 			poolsConfig.whitelistPool(pools, salt, weth);
 			poolsConfig.whitelistPool(pools, salt, usds);
 			poolsConfig.whitelistPool(pools, wbtc, usds);
 			poolsConfig.whitelistPool(pools, weth, usds);
-			poolsConfig.whitelistPool(pools, wbtc, usdc);
-			poolsConfig.whitelistPool(pools, weth, usdc);
-			poolsConfig.whitelistPool(pools, usds, usdc);
+			poolsConfig.whitelistPool(pools, wbtc, dai);
+			poolsConfig.whitelistPool(pools, weth, dai);
+			poolsConfig.whitelistPool(pools, usds, dai);
 			poolsConfig.whitelistPool(pools, wbtc, weth);
 	
 			proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 	
 			address oldDAO = address(dao);
-			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidity, liquidityRewardsEmitter, saltRewards );
+			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidityRewardsEmitter);
 	
 			accessManager = new AccessManager(dao);
 	
@@ -82,9 +82,9 @@ contract TestPoolsAndCounterswap is Test, Deployment
 			exchangeConfig.setLiquidityRewardsEmitter( liquidityRewardsEmitter);
 			exchangeConfig.setDAO( dao );
 	
-			IPoolStats(address(pools)).setDAO(dao);
+			pools.setDAO(dao);
 	
-			usds.setContracts(collateral, pools, dao );
+			usds.setContracts(collateral, pools, exchangeConfig );
 	
 			// Transfer ownership of the newly created config files to the DAO
 			Ownable(address(exchangeConfig)).transferOwnership( address(dao) );
@@ -134,9 +134,12 @@ contract TestPoolsAndCounterswap is Test, Deployment
 		vm.warp( block.timestamp + 5 minutes );
 		vm.stopPrank();
 
-		vm.startPrank(address(dao));
-		weth.approve( address(pools), 10000 ether);
-		pools.depositTokenForCounterswap(weth, counterswapAddress, 100 ether);
+		vm.prank(address(dao));
+		weth.transfer(address(upkeep), 10000 ether);
+
+		vm.startPrank(address(upkeep));
+		weth.approve(address(pools), type(uint256).max);
+		pools.depositTokenForCounterswap(counterswapAddress, weth, 100 ether);
 		vm.stopPrank();
 		}
 

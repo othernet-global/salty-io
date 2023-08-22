@@ -19,9 +19,9 @@ import "../../price_feed/tests/ForcedPriceFeed.sol";
 
 contract PoolsConfigTest is Deployment, Test
 	{
-	IERC20 public token1 = new TestERC20(18);
-	IERC20 public token2 = new TestERC20(18);
-	IERC20 public token3 = new TestERC20(18);
+	IERC20 public token1 = new TestERC20("TEST", 18);
+	IERC20 public token2 = new TestERC20("TEST", 18);
+	IERC20 public token3 = new TestERC20("TEST", 18);
 
     uint256 public originalNumWhitelisted;
 
@@ -40,8 +40,8 @@ contract PoolsConfigTest is Deployment, Test
 
 			IDAO dao = IDAO(getContract( address(exchangeConfig), "dao()" ));
 
-			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, usds );
-			pools = new Pools(exchangeConfig, rewardsConfig, poolsConfig);
+			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, dai, usds, teamWallet );
+			pools = new Pools(exchangeConfig, poolsConfig);
 
 			staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
 			liquidity = new Liquidity( pools, exchangeConfig, poolsConfig, stakingConfig );
@@ -50,12 +50,12 @@ contract PoolsConfigTest is Deployment, Test
 			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig );
 			liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, rewardsConfig );
 
-			emissions = new Emissions( pools, exchangeConfig, rewardsConfig );
+			emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
 			exchangeConfig.setDAO( dao );
 			exchangeConfig.setAccessManager( accessManager );
 
-			usds.setContracts( collateral, pools, dao );
+			usds.setContracts( collateral, pools, exchangeConfig );
 
 			vm.stopPrank();
 			}
@@ -91,8 +91,8 @@ contract PoolsConfigTest is Deployment, Test
 	uint256 numToAdd = poolsConfig.maximumWhitelistedPools() - numWhitelistedPools;
 	for( uint256 i = 0; i < numToAdd; i++ )
 		{
-		IERC20 tokenA = new TestERC20(18);
-		IERC20 tokenB = new TestERC20(18);
+		IERC20 tokenA = new TestERC20("TEST", 18);
+		IERC20 tokenB = new TestERC20("TEST", 18);
 
         poolsConfig.whitelistPool(pools, tokenA, tokenB);
 		}
@@ -176,7 +176,7 @@ contract PoolsConfigTest is Deployment, Test
     assertEq(expectedNumberOfWhitelistedPools, actualNumberOfWhitelistedPools);
 
     // Whitelist another pool
-    IERC20 token4 = new TestERC20(18);
+    IERC20 token4 = new TestERC20("TEST", 18);
 
     poolsConfig.whitelistPool(pools, token3, token4);
 

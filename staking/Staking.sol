@@ -114,19 +114,11 @@ contract Staking is IStaking, StakingRewards
 		if ( earlyUnstakeFee > 0 )
 			{
 			// Send the earlyUnstakeFee to the SALT contract and burn it
-
-			// This error should never happen (as the user had their SALT staked in this contract)
-			require( salt.balanceOf(address(this)) >= earlyUnstakeFee, "Insufficient SALT balance to burn the earlyUnstakeFee");
-
 			salt.safeTransfer( address(salt), earlyUnstakeFee );
             salt.burnTokensInContract();
             }
 
 		// Send the reclaimed SALT back to the user
-
-		// This error should never happen (as the user had there SALT staked in this contract)
-		require( salt.balanceOf(address(this)) >= claimableSALT, "Insufficient balance to send claimed SALT");
-
 		salt.safeTransfer( msg.sender, claimableSALT );
 		}
 

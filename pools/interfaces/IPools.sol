@@ -2,9 +2,13 @@
 pragma solidity =0.8.21;
 
 import "../../openzeppelin/token/ERC20/utils/SafeERC20.sol";
+import "../../dao/interfaces/IDAO.sol";
+
 
 interface IPools
 	{
+	function setDAO( IDAO _dao ) external;
+
 	function addLiquidity( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 deadline ) external returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity);
 	function removeLiquidity( IERC20 tokenA, IERC20 tokenB, uint256 liquidityToRemove, uint256 minReclaimedA, uint256 minReclaimedB, uint256 deadline ) external returns (uint256 reclaimedA, uint256 reclaimedB);
 	function deposit( IERC20 token, uint256 amount ) external;
@@ -16,8 +20,8 @@ interface IPools
 	function whitelist(bytes32 poolID) external;
 	function unwhitelist(bytes32 poolID) external;
 
-	function depositTokenForCounterswap( IERC20 tokenToDeposit, address counterswapAddress, uint256 amountToDeposit ) external;
-	function withdrawTokenFromCounterswap( IERC20 tokenToWithdraw, address counterswapAddress, uint256 amountToWithdraw ) external;
+	function depositTokenForCounterswap( address counterswapAddress, IERC20 tokenToDeposit, uint256 amountToDeposit ) external;
+	function withdrawTokenFromCounterswap( address counterswapAddress, IERC20 tokenToWithdraw, uint256 amountToWithdraw ) external;
 
 	// Views
 	function totalLiquidity(bytes32 poolID) external view returns (uint256);

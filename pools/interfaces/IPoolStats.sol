@@ -2,15 +2,14 @@
 pragma solidity =0.8.21;
 
 import "../../openzeppelin/token/ERC20/IERC20.sol";
-import "../../dao/interfaces/IDAO.sol";
 
 
 interface IPoolStats
 	{
-	function setDAO( IDAO _dao ) external;
 	function clearProfitsForPools( bytes32[] memory poolIDs ) external;
 
 	// Views
 	function averageReserveRatio( IERC20 tokenA, IERC20 tokenB ) external returns (bytes16 averageRatio);
+	function profitsForPools( bytes32[] memory poolIDs ) external returns (uint256[] memory _profits);
 	}
 

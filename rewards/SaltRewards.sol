@@ -104,7 +104,7 @@ contract SaltRewards is ISaltRewards, ReentrancyGuard
 
 	function performUpkeep( bytes32[] memory poolIDs, uint256[] memory profitsForPools ) public
 		{
-		require( msg.sender == address(exchangeConfig.dao()), "SaltRewards.performUpkeep only callable from the DAO contract" );
+		require( msg.sender == address(exchangeConfig.upkeep()), "SaltRewards.performUpkeep is only callable from the Upkeep contract" );
 
 		if ( (pendingStakingRewards == 0) || (pendingLiquidityRewards == 0) )
 			return;

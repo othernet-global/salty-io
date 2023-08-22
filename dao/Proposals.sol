@@ -131,7 +131,7 @@ contract Proposals is IProposals, ReentrancyGuard
 		require( poolsConfig.tokenHasBeenWhitelisted(token, exchangeConfig.wbtc(), exchangeConfig.weth()), "Can only unwhitelist a whitelisted token" );
 		require( address(token) != address(exchangeConfig.wbtc()), "Cannot unwhitelist WBTC" );
 		require( address(token) != address(exchangeConfig.weth()), "Cannot unwhitelist WETH" );
-		require( address(token) != address(exchangeConfig.usdc()), "Cannot unwhitelist USDC" );
+		require( address(token) != address(exchangeConfig.dai()), "Cannot unwhitelist DAI" );
 		require( address(token) != address(exchangeConfig.usds()), "Cannot unwhitelist USDS" );
 		require( address(token) != address(exchangeConfig.salt()), "Cannot unwhitelist SALT" );
 

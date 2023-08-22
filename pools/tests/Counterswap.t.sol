@@ -39,12 +39,12 @@ contract TestCounterswap2 is Test, Deployment
 		poolsConfig = new PoolsConfig();
 		usds = new USDS(wbtc, weth);
 
-		exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, usds );
+		exchangeConfig = new ExchangeConfig(salt, wbtc, weth, dai, usds, teamWallet );
 
 		priceAggregator = new PriceAggregator();
 		priceAggregator.setInitialFeeds( IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)) );
 
-		_pools = new TestPools(exchangeConfig, rewardsConfig, poolsConfig);
+		_pools = new TestPools(exchangeConfig, poolsConfig);
 		staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
 		liquidity = new Liquidity( _pools, exchangeConfig, poolsConfig, stakingConfig );
 		collateral = new Collateral(_pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
@@ -52,22 +52,22 @@ contract TestCounterswap2 is Test, Deployment
 		stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig );
 		liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, rewardsConfig );
 
-		emissions = new Emissions( _pools, exchangeConfig, rewardsConfig );
+		emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
 		poolsConfig.whitelistPool(_pools, salt, wbtc);
 		poolsConfig.whitelistPool(_pools, salt, weth);
 		poolsConfig.whitelistPool(_pools, salt, usds);
 		poolsConfig.whitelistPool(_pools, wbtc, usds);
 		poolsConfig.whitelistPool(_pools, weth, usds);
-		poolsConfig.whitelistPool(_pools, wbtc, usdc);
-		poolsConfig.whitelistPool(_pools, weth, usdc);
-		poolsConfig.whitelistPool(_pools, usds, usdc);
+		poolsConfig.whitelistPool(_pools, wbtc, dai);
+		poolsConfig.whitelistPool(_pools, weth, dai);
+		poolsConfig.whitelistPool(_pools, usds, dai);
 		poolsConfig.whitelistPool(_pools, wbtc, weth);
 
 		proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 
 		address oldDAO = address(dao);
-		dao = new DAO( _pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidity, liquidityRewardsEmitter, saltRewards );
+		dao = new DAO( _pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidityRewardsEmitter);
 
 		accessManager = new AccessManager(dao);
 
@@ -75,10 +75,11 @@ contract TestCounterswap2 is Test, Deployment
 		exchangeConfig.setStakingRewardsEmitter( stakingRewardsEmitter);
 		exchangeConfig.setLiquidityRewardsEmitter( liquidityRewardsEmitter);
 		exchangeConfig.setDAO( dao );
+		exchangeConfig.setUpkeep(upkeep);
 
-		IPoolStats(address(_pools)).setDAO(dao);
+		_pools.setDAO(dao);
 
-		usds.setContracts(collateral, _pools, dao );
+		usds.setContracts(collateral, _pools, exchangeConfig );
 
 		// Transfer ownership of the newly created config files to the DAO
 		Ownable(address(exchangeConfig)).transferOwnership( address(dao) );
@@ -121,15 +122,15 @@ contract TestCounterswap2 is Test, Deployment
 		vm.stopPrank();
 		}
 
+
 	// A unit test in which a non-DAO, non-USDS contract attempts to deposit tokens. This should not be allowed, according to the requirements specified in the depositToken function.
 	function testNonDAOorUSDSDeposit() public
 		{
 		// Attempting to deposit tokens from an address that's not the DAO or USDS contract
-		IERC20 tokenA = new TestERC20(18);
-		IERC20 tokenB = new TestERC20(18);
+		IERC20 tokenA = new TestERC20("TEST", 18);
 
-		vm.expectRevert("Pools.depositTokenForCounterswap only callable from the DAO or USDS contracts");
-		pools.depositTokenForCounterswap(tokenA, Counterswap.WETH_TO_WBTC, 5 ether);
+		vm.expectRevert("Pools.depositTokenForCounterswap is only callable from the Upkeep or USDS contracts");
+		pools.depositTokenForCounterswap(Counterswap.WETH_TO_SALT, tokenA, 5 ether);
 		}
 
 
@@ -150,9 +151,12 @@ contract TestCounterswap2 is Test, Deployment
 		// when counterswapping amountToDeposit for swapAmountIn
 		uint256 amountToDeposit = swapAmountOut * 75 / 100;
 
-		vm.startPrank(address(dao));
+		vm.prank(address(dao));
+		token0.transfer(address(upkeep), amountToDeposit);
+
+		vm.startPrank(address(upkeep));
 		token0.approve( address(_pools), type(uint256).max );
-        _pools.depositTokenForCounterswap(token0, counterswapAddress, amountToDeposit);
+        _pools.depositTokenForCounterswap(counterswapAddress, token0, amountToDeposit);
         vm.stopPrank();
 
 		// Check the deposited balances
@@ -200,9 +204,12 @@ contract TestCounterswap2 is Test, Deployment
 		// Excessive amountToDeposit will be deposited and the swapRatio will be adjusted and checked for proper behavior of shouldCounterswap.
 		uint256 amountToDeposit = swapAmountOut * 2;
 
-		vm.startPrank(address(dao));
+		vm.prank(address(dao));
+		token0.transfer(address(upkeep), amountToDeposit);
+
+		vm.startPrank(address(upkeep));
 		token0.approve( address(_pools), type(uint256).max );
-        _pools.depositTokenForCounterswap(token0, counterswapAddress, amountToDeposit);
+        _pools.depositTokenForCounterswap(counterswapAddress, token0, amountToDeposit);
         vm.stopPrank();
 
 		// Check the deposited balances
@@ -235,12 +242,12 @@ contract TestCounterswap2 is Test, Deployment
 
 	// A unit test to verify that the withdrawToken function fails when called by an address other than the DAO or USDS contracts.
     function testWithdrawTokenPermission() public {
-    	IERC20 tokenToWithdraw = new TestERC20(18);
+    	IERC20 tokenToWithdraw = new TestERC20("TEST", 18);
     	uint256 amountToWithdraw = 5 ether;
 
     	// Attempting to withdraw tokens from an address that's not the DAO or USDS contract
-    	vm.expectRevert("Pools.withdrawTokenFromCounterswap only callable from the DAO or USDS contracts");
-    	pools.withdrawTokenFromCounterswap(tokenToWithdraw, address(0x123), amountToWithdraw);
+    	vm.expectRevert("Pools.withdrawTokenFromCounterswap is only callable from the Upkeep or USDS contracts");
+    	pools.withdrawTokenFromCounterswap(address(0x123), tokenToWithdraw, amountToWithdraw);
     }
 
 
@@ -252,30 +259,34 @@ contract TestCounterswap2 is Test, Deployment
 		assertEq( _pools.depositedBalance(counterswapAddress, token0), 0, "Initial token0 balance should be zero" );
 		assertEq( _pools.depositedBalance(counterswapAddress, token1), 0, "Initial token1 balance should be zero" );
 
-		uint256 daoBalance0 = token0.balanceOf( address(dao) );
 		uint256 poolsBalance0 = token0.balanceOf( address(_pools) );
 
-		vm.startPrank(address(dao));
+		vm.prank(address(dao));
+		token0.transfer(address(upkeep), amountToDeposit);
+
+		uint256 upkeepBalance0 = token0.balanceOf( address(upkeep) );
+
+		vm.startPrank(address(upkeep));
 		token0.approve( address(_pools), type(uint256).max );
-		_pools.depositTokenForCounterswap(token0, counterswapAddress, amountToDeposit);
+		_pools.depositTokenForCounterswap(counterswapAddress, token0, amountToDeposit);
 		vm.stopPrank();
 
 		assertEq( _pools.depositedBalance(counterswapAddress, token0), amountToDeposit );
 
-		uint256 daoBalance1 = token0.balanceOf( address(dao) );
+		uint256 upkeepBalance1 = token0.balanceOf( address(upkeep) );
 		uint256 poolsBalance1 = token0.balanceOf( address(_pools) );
 
-		assertEq( daoBalance1, daoBalance0 - amountToDeposit );
+		assertEq( upkeepBalance1, upkeepBalance0 - amountToDeposit );
 		assertEq( poolsBalance1, poolsBalance0 + amountToDeposit );
 
     	uint256 amountToWithdraw = amountToDeposit / 2;
-    	vm.prank( address(dao) );
-    	_pools.withdrawTokenFromCounterswap(token0, counterswapAddress, amountToWithdraw);
+    	vm.prank( address(upkeep) );
+    	_pools.withdrawTokenFromCounterswap(counterswapAddress, token0, amountToWithdraw);
 
-		uint256 daoBalance2 = token0.balanceOf( address(dao) );
+		uint256 upkeepBalance2 = token0.balanceOf( address(upkeep) );
 		uint256 poolsBalance2 = token0.balanceOf( address(_pools) );
 
-		assertEq( daoBalance2, daoBalance1 + amountToWithdraw );
+		assertEq( upkeepBalance2, upkeepBalance1 + amountToWithdraw );
 		assertEq( poolsBalance2, poolsBalance1 - amountToWithdraw );
     }
 
@@ -298,9 +309,12 @@ contract TestCounterswap2 is Test, Deployment
 		assertEq( _pools.depositedBalance(counterswapAddress, token0), 0, "Initial token0 balance should be zero" );
 		assertEq( _pools.depositedBalance(counterswapAddress, token1), 0, "Initial token1 balance should be zero" );
 
-		vm.startPrank(address(dao));
+		vm.prank(address(dao));
+		token0.transfer(address(upkeep), amountToDeposit);
+
+		vm.startPrank(address(upkeep));
 		token0.approve( address(_pools), type(uint256).max );
-        _pools.depositTokenForCounterswap(token0, counterswapAddress, amountToDeposit);
+        _pools.depositTokenForCounterswap(counterswapAddress, token0, amountToDeposit);
         vm.stopPrank();
 
 		// Check the deposited balances

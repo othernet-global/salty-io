@@ -32,8 +32,8 @@ contract SharedRewardsTest is Test, Deployment
 
     function setUp() public
     	{
-    	IERC20 token1 = new TestERC20( 18 );
-		IERC20 token2 = new TestERC20( 18 );
+    	IERC20 token1 = new TestERC20("TEST", 18);
+		IERC20 token2 = new TestERC20("TEST", 18);
 
 		vm.prank(address(dao));
 		poolsConfig.whitelistPool(pools, token1, token2);

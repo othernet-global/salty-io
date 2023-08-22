@@ -27,6 +27,7 @@ contract Parameters
     	rewardsEmitterDailyPercentTimes1000,
 		emissionsWeeklyPercentTimes1000,
 		stakingRewardsPercent,
+		percentRewardsSaltUSDS,
 
 		// StableConfig
 		rewardPercentForCallingLiquidation,
@@ -42,7 +43,7 @@ contract Parameters
 		ballotDuration,
 		baseProposalCost,
 		maxPendingTokensForWhitelisting,
-		daoArbitragePercent,
+		arbitrageProfitsPercentPOL,
 		upkeepRewardPercent,
 
 		// PriceAggregator
@@ -77,6 +78,8 @@ contract Parameters
 			rewardsConfig.changeEmissionsWeeklyPercent(increase);
 		else if ( parameterType == ParameterTypes.stakingRewardsPercent )
 			rewardsConfig.changeStakingRewardsPercent(increase);
+		else if ( parameterType == ParameterTypes.percentRewardsSaltUSDS )
+			rewardsConfig.changePercentRewardsSaltUSDS(increase);
 
 		// StableConfig
 		else if ( parameterType == ParameterTypes.rewardPercentForCallingLiquidation )
@@ -103,8 +106,8 @@ contract Parameters
 			daoConfig.changeBaseProposalCost(increase);
 		else if ( parameterType == ParameterTypes.maxPendingTokensForWhitelisting )
 			daoConfig.changeMaxPendingTokensForWhitelisting(increase);
-		else if ( parameterType == ParameterTypes.daoArbitragePercent )
-			daoConfig.changeDaoArbitragePercent(increase);
+		else if ( parameterType == ParameterTypes.arbitrageProfitsPercentPOL )
+			daoConfig.changeArbitrageProfitsPercentPOL(increase);
 		else if ( parameterType == ParameterTypes.upkeepRewardPercent )
 			daoConfig.changeUpkeepRewardPercent(increase);
 
