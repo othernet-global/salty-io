@@ -54,8 +54,6 @@ contract TestParametersOffchain is Test
 		{
 		if ( parameter == Parameters.ParameterTypes.maximumWhitelistedPools )
 			return poolsConfig.maximumWhitelistedPools();
-		else if ( parameter == Parameters.ParameterTypes.daoPercentShareArbitrage )
-			return poolsConfig.daoPercentShareArbitrage();
 
 		else if ( parameter == Parameters.ParameterTypes.minUnstakeWeeks )
 			return stakingConfig.minUnstakeWeeks();
@@ -168,7 +166,6 @@ contract TestParametersOffchain is Test
 		vm.startPrank(address(parameters));
 
 		_checkParameter( Parameters.ParameterTypes.maximumWhitelistedPools, 20, 50, 100, 10 );
-		_checkParameter( Parameters.ParameterTypes.daoPercentShareArbitrage, 20, 30, 50, 5 );
 		}
 
 
@@ -232,7 +229,7 @@ contract TestParametersOffchain is Test
 	function testPriceAggregatorParameters() public
 		{
 		vm.startPrank(address(parameters));
-		_checkParameter( Parameters.ParameterTypes.maximumPriceFeedPercentDifferenceTimes1000, 2000, 5000, 7000, 500 );
+		_checkParameter( Parameters.ParameterTypes.maximumPriceFeedPercentDifferenceTimes1000, 1000, 3000, 7000, 500 );
 		_checkParameter( Parameters.ParameterTypes.setPriceFeedCooldown, 30 days, 35 days, 45 days, 5 days );
 		}
     }
