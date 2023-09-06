@@ -102,6 +102,45 @@ contract SaltRewards is ISaltRewards, ReentrancyGuard
 		}
 
 
+	function _sendInitialLiquidityRewards( uint256 liquidityBootstrapAmount, bytes32[] memory poolIDs ) internal
+		{
+		// Divide the liquidityBootstrapAmount evenly across all the initial pools
+		uint256 amountPerPool = liquidityBootstrapAmount / poolIDs.length;
+
+		AddedReward[] memory addedRewards = new AddedReward[]( poolIDs.length );
+		for( uint256 i = 0; i < addedRewards.length; i++ )
+			addedRewards[i] = AddedReward( poolIDs[i], amountPerPool );
+
+		// Send the liquidity bootstrap rewards to the liquidityRewardsEmitter
+		IRewardsEmitter liquidityRewardsEmitter = exchangeConfig.liquidityRewardsEmitter();
+		salt.approve( address(liquidityRewardsEmitter), liquidityBootstrapAmount );
+
+		liquidityRewardsEmitter.addSALTRewards( addedRewards );
+		}
+
+
+	function _sendInitialStakingRewards( uint256 stakingBootstrapAmount ) internal
+		{
+		// Send the stakingBootstrapAmount to the stakingRewardsEmitter
+		AddedReward[] memory addedRewards = new AddedReward[](1);
+		addedRewards[0] = AddedReward( PoolUtils.STAKED_SALT, stakingBootstrapAmount );
+
+		IRewardsEmitter stakingRewardsEmitter = exchangeConfig.stakingRewardsEmitter();
+		salt.approve( address(stakingRewardsEmitter), stakingBootstrapAmount );
+		stakingRewardsEmitter.addSALTRewards( addedRewards );
+		}
+
+
+    // Sends 5 million SALT to the liquidityRewardsEmitter (evenly divided amongst the pools) and 3 million SALT to the stakingRewardsEmitter.
+	function sendInitialSaltRewards( uint256 liquidityBootstrapAmount, uint256 stakingBootstrapAmount, bytes32[] memory poolIDs ) public
+		{
+		require( msg.sender == address(exchangeConfig.initialDistribution()), "SaltRewards.sendInitialRewards is only callable from the InitialDistribution contract" );
+
+		_sendInitialLiquidityRewards(liquidityBootstrapAmount, poolIDs);
+		_sendInitialStakingRewards(stakingBootstrapAmount);
+		}
+
+
 	function performUpkeep( bytes32[] memory poolIDs, uint256[] memory profitsForPools ) public
 		{
 		require( msg.sender == address(exchangeConfig.upkeep()), "SaltRewards.performUpkeep is only callable from the Upkeep contract" );
