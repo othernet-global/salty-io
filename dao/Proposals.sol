@@ -160,6 +160,8 @@ contract Proposals is IProposals, ReentrancyGuard
 	// Proposes calling the callFromDAO(uint256) method on an arbitrary contract.
 	function proposeCallContract( address contractAddress, uint256 number, string memory description ) public nonReentrant
 		{
+		require( contractAddress != address(0), "Contract address cannot be address(0)" );
+
 		string memory ballotName = string.concat("callContract:", Strings.toHexString(address(contractAddress)) );
 		_possiblyCreateProposal( ballotName, BallotType.CALL_CONTRACT, contractAddress, number, description, "", 3 * daoConfig.baseProposalCost() );
 		}
@@ -167,7 +169,7 @@ contract Proposals is IProposals, ReentrancyGuard
 
 	function proposeCountryInclusion( string memory country, string memory description ) public nonReentrant
 		{
-		require( keccak256(abi.encodePacked(country)) != keccak256(abi.encodePacked("")), "country cannot be empty" );
+		require( keccak256(abi.encodePacked(country)) != keccak256(abi.encodePacked("")), "Country cannot be empty" );
 
 		string memory ballotName = string.concat("include:", country );
 		_possiblyCreateProposal( ballotName, BallotType.INCLUDE_COUNTRY, address(0), 0, country, description, 5 * daoConfig.baseProposalCost() );
@@ -176,7 +178,7 @@ contract Proposals is IProposals, ReentrancyGuard
 
 	function proposeCountryExclusion( string memory country, string memory description ) public nonReentrant
 		{
-		require( keccak256(abi.encodePacked(country)) != keccak256(abi.encodePacked("")), "country cannot be empty" );
+		require( keccak256(abi.encodePacked(country)) != keccak256(abi.encodePacked("")), "Country cannot be empty" );
 
 		string memory ballotName = string.concat("exclude:", country );
 		_possiblyCreateProposal( ballotName, BallotType.EXCLUDE_COUNTRY, address(0), 0, country, description, 5 * daoConfig.baseProposalCost() );
