@@ -26,6 +26,9 @@ contract StakingTest is Test, Deployment
 			vm.prank(DEPLOYER);
 			staking = new Staking(exchangeConfig, poolsConfig, stakingConfig);
 			}
+
+		vm.prank(address(initialDistribution));
+		salt.transfer(DEPLOYER, 100000000 ether);
 		}
 
 
