@@ -11,6 +11,7 @@ import "../../staking/Staking.sol";
 import "../../rewards/RewardsEmitter.sol";
 import "../../price_feed/tests/IForcedPriceFeed.sol";
 import "../../price_feed/tests/ForcedPriceFeed.sol";
+import "../../price_feed/PriceAggregator.sol";
 
 
 contract TestCollateral is Test, Deployment
@@ -56,6 +57,9 @@ contract TestCollateral is Test, Deployment
 
 			vm.stopPrank();
 			}
+
+		vm.prank(address(initialDistribution));
+		salt.transfer(DEPLOYER, 100000000 ether);
 
 		priceAggregator.performUpkeep();
 
@@ -1199,7 +1203,7 @@ contract TestCollateral is Test, Deployment
     }
 
 
-	// A user test to check that no liquidation is possible if the PriceFeed is returning two similar prices and once failure
+	// A user test to check that liquidation is possible if the PriceFeed is returning two similar prices and one failure
 	function testUserLiquidationWithTwoGoodFeeds() public {
         // Deposit and borrow for Alice
         _depositHalfCollateralAndBorrowMax(alice);
@@ -1211,9 +1215,10 @@ contract TestCollateral is Test, Deployment
         _crashCollateralPrice();
         vm.warp( block.timestamp + 1 days );
 
+		// Makimum error for a valid PriceAggregator price is 3%
 		IForcedPriceFeed forcedPriceFeed1 = new ForcedPriceFeed(0, 0 );
 		IForcedPriceFeed forcedPriceFeed2 = new ForcedPriceFeed(30000, 3000 );
-		IForcedPriceFeed forcedPriceFeed3 = new ForcedPriceFeed(31000, 3100 );
+		IForcedPriceFeed forcedPriceFeed3 = new ForcedPriceFeed(30899, 3089 );
 
 		vm.startPrank(address(dao));
 		priceAggregator.setPriceFeed(1, IPriceFeed(address(forcedPriceFeed1)));
