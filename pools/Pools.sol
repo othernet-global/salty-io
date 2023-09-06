@@ -42,7 +42,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch
 	mapping(address=>mapping(bytes32=>uint256)) private _userLiquidity;
 
 	// Cache of the whitelisted pools so we don't need an external call to access poolsConfig.isWhitelisted on swaps
-	mapping(bytes32=>bool) private _whitelistedCache;
+	mapping(bytes32=>bool) public _isWhitelistedCache;
 
 
 	constructor( IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig )
@@ -73,25 +73,26 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch
 
 
 	// Called by PoolsConfig to cache the whitelisted pool locally to avoid external calls to poolsConfig.isWhitelisted on swaps
-	function whitelist(bytes32 poolID) public
+	function setIsWhitelistedCache(bytes32 poolID) public
 		{
-		require(msg.sender == address(poolsConfig), "Pools.whitelist is only callable from the PoolsConfig contract" );
+		require(msg.sender == address(poolsConfig), "Pools.setIsWhitelistedCache is only callable from the PoolsConfig contract" );
 
-		_whitelistedCache[poolID] = true;
+		_isWhitelistedCache[poolID] = true;
 		}
 
 
 	// Called by PoolsConfig to cache the whitelisted pool locally to avoid external calls to poolsConfig.isWhitelisted on swaps
-	function unwhitelist(bytes32 poolID) public
+	function clearIsWhitelistedCache(bytes32 poolID) public
 		{
-		require(msg.sender == address(poolsConfig), "Pools.unwhitelist is only callable from the PoolsConfig contract" );
+		require(msg.sender == address(poolsConfig), "Pools.clearIsWhitelistedCache is only callable from the PoolsConfig contract" );
 
-		_whitelistedCache[poolID] = false;
+		_isWhitelistedCache[poolID] = false;
 		}
 
 
 	// Given two tokens and their maximum amounts for added liquidity, determine which amounts to actually add so that the added token ratio is the same as the existing reserve token ratio.
 	// The amounts returned are in reserve token order rather than in call token order.
+	// NOTE - this does not stake added liquidity. Liquidity.addLiquidityAndIncreaseShare() needs to be used instead to add liquidity, stake it and receive added rewards.
 	function _addLiquidity( bytes32 poolID, bool flipped, IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB ) internal returns(uint256 addedAmount0, uint256 addedAmount1, uint256 addedLiquidity)
 		{
 		// Ensure that tokenA/B and maxAmountA/B are ordered in reserve token order: such that address(tokenA) < address(tokenB)
@@ -376,7 +377,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch
 		{
 		// See if tokenIn and tokenOut are whitelisted and therefore can have direct liquidity in the pool
 		(bytes32 poolID,) = PoolUtils.poolID(swapTokenIn, swapTokenOut);
-		bool isWhitelistedPair = _whitelistedCache[poolID];
+		bool isWhitelistedPair = _isWhitelistedCache[poolID];
 
 		if ( isWhitelistedPair )
 			{
