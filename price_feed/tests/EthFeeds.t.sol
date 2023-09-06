@@ -3,7 +3,6 @@ pragma solidity =0.8.21;
 
 import "forge-std/Test.sol";
 import "../../dev/Deployment.sol";
-import "../interfaces/IPriceFeedUniswap.sol";
 import "../interfaces/IPriceFeed.sol";
 import "../CoreChainlinkFeed.sol";
 import "../CoreSaltyFeed.sol";
@@ -11,10 +10,10 @@ import "../CoreUniswapFeed.sol";
 import "../../ExchangeConfig.sol";
 
 
-contract TestEthFeeds is Test, Deployment
+contract TestEthFeeds is Test
 	{
 	IPriceFeed public chainlinkFeed;
-	IPriceFeedUniswap public uniswapFeed;
+	IPriceFeed public uniswapFeed;
 
 
 	constructor()
@@ -45,17 +44,17 @@ contract TestEthFeeds is Test, Deployment
 		console.log( "chainlink btc: ", chainlinkFeed.getPriceBTC() / 10**18 );
 		console.log( "chainlink eth: ", chainlinkFeed.getPriceETH() / 10**18 );
 
-		console.log( "uniswap btc: ", uniswapFeed.getTwapWBTC( 5 minutes ) / 10**18 );
-		console.log( "uniswap eth: ", uniswapFeed.getTwapWETH( 5 minutes ) / 10**18 );
+		console.log( "uniswap btc: ", uniswapFeed.getPriceBTC() / 10**18 );
+		console.log( "uniswap eth: ", uniswapFeed.getPriceETH() / 10**18 );
 
 		// Check prices are similar
-		int256 diff = int256(chainlinkFeed.getPriceBTC()) - int256(uniswapFeed.getTwapWBTC( 5 minutes ));
+		int256 diff = int256(chainlinkFeed.getPriceBTC()) - int256(uniswapFeed.getPriceBTC());
 		if ( diff < 0 )
 			diff = -diff;
 
 		assertTrue( (diff * 100 / int256(chainlinkFeed.getPriceBTC())) < 2, "BTC price difference too large" );
 
-		diff = int256(chainlinkFeed.getPriceETH()) - int256(uniswapFeed.getTwapWETH( 5 minutes ));
+		diff = int256(chainlinkFeed.getPriceETH()) - int256(uniswapFeed.getPriceETH());
 		if ( diff < 0 )
 			diff = -diff;
 		assertTrue( (diff * 100 / int256(chainlinkFeed.getPriceETH())) < 2, "ETH price difference too large" );
