@@ -110,12 +110,15 @@ library PoolMath
 	// The number of decimals that are used in the calculations for zapping in liquidity
 	// Note that REDUCED_DECIMALS = 7 was tested with 800 billion and 500 billion 18 decimal pools with 100 billion tokens being
 	// zapped in and the calculations did not overflow.  Dropping down to 6 will allow even larger amounts to be used without issue.
-	uint8 constant private REDUCED_DECIMALS = 6;
+	uint256 constant private REDUCED_DECIMALS = 6;
 
 
 	// Reduce the precision of the decimals to avoid overflow / underflow and convert to int256
 	function _reducePrecision( uint256 n, uint8 decimals ) internal pure returns (int256)
 		{
+		if ( n == 0 )
+			return 0;
+
 		// Decimals already at REDUCED_DECIMALS?
 		if ( decimals == REDUCED_DECIMALS )
 			return int256(n);
@@ -132,6 +135,9 @@ library PoolMath
 	// Convert from the reduced precision int back to uint256
 	function _restorePrecision( int256 n, uint8 decimals ) internal pure returns (uint256)
 		{
+		if ( n == 0 )
+			return 0;
+
 		// Original decimals already at REDUCED_DECIMALS?
 		if ( decimals == REDUCED_DECIMALS )
 			return uint256(n);
@@ -212,8 +218,11 @@ library PoolMath
 		if ( zapAmountA * reserveB < reserveA * zapAmountB )
 			(swapAmountA2, swapAmountB2) = (0, _zapSwapAmount( reserveB, reserveA, zapAmountB, zapAmountA, decimalsB, decimalsA ));
 
-		require( swapAmountA2 <= zapAmountA, "swapAmount cannot exceed zapAmount" );
-		require( swapAmountB2 <= zapAmountB, "swapAmount cannot exceed zapAmount" );
+		if ( swapAmountA2 > zapAmountA )
+			return (0, 0);
+
+		if ( swapAmountB2 > zapAmountB )
+			return (0, 0);
 
 		return (swapAmountA2, swapAmountB2);
 		}
