@@ -10,7 +10,6 @@ contract ForcedPriceFeed is IForcedPriceFeed, Ownable
     {
     bool public revertNext;
 
-
 	uint256 public forcedPriceBTCWith18Decimals;
 	uint256 public forcedPriceETHWith18Decimals;
 
@@ -37,6 +36,12 @@ contract ForcedPriceFeed is IForcedPriceFeed, Ownable
 	function setRevertNext() public
 		{
 		revertNext = true;
+		}
+
+
+	function clearRevertNext() public
+		{
+		revertNext = false;
 		}
 
 
