@@ -15,7 +15,6 @@ contract Parameters
 
 		// PoolsConfig
 		maximumWhitelistedPools,
-		daoPercentShareArbitrage,
 
 		// StakingConfig
 		minUnstakeWeeks,
@@ -58,8 +57,6 @@ contract Parameters
 		// PoolsConfig
 		if ( parameterType == ParameterTypes.maximumWhitelistedPools )
 			poolsConfig.changeMaximumWhitelistedPools( increase );
-		else if ( parameterType == ParameterTypes.daoPercentShareArbitrage )
-			poolsConfig.changeDaoPercentShareArbitrage( increase );
 
 		// StakingConfig
 		else if ( parameterType == ParameterTypes.minUnstakeWeeks )
