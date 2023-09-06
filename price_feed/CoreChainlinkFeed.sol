@@ -48,6 +48,9 @@ contract CoreChainlinkFeed is IPriceFeed
 			// In case of failure, price will remain 0
 			}
 
+		if ( price < 0 )
+			return 0;
+
 		// Convert the 8 decimals from the Chainlink price to 18 decimals
 		return uint256(price) * 10**10;
 		}
