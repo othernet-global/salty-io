@@ -72,6 +72,7 @@ contract USDSTest is Test, Deployment
 			exchangeConfig.setStakingRewardsEmitter( stakingRewardsEmitter);
 			exchangeConfig.setLiquidityRewardsEmitter( liquidityRewardsEmitter);
 			exchangeConfig.setDAO( dao );
+			exchangeConfig.setUpkeep(upkeep);
 
 			pools.setDAO(dao);
 
