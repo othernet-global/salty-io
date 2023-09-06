@@ -28,6 +28,8 @@ contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
 	IRewardsConfig immutable public rewardsConfig;
 	ISalt immutable public salt;
 
+	uint256 constant public MAX_TIME_SINCE_LAST_UPKEEP = 1 days;
+
     // The stored SALT rewards by poolID that need to be distributed to the specified StakingRewards.sol contract.
     // Only a percentage of these will be distributed per day (interpolated to a default of 1% per day).
    	mapping(bytes32=>uint256) public pendingRewards;
@@ -84,8 +86,8 @@ contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
 
 		// Cap the timeSinceLastUpkeep at one day (if for some reason it has been longer).
 		// This will cap the emitted rewards at a default of 1% in this transaction.
-		if ( timeSinceLastUpkeep >= 1 days )
-        	timeSinceLastUpkeep = 1 days;
+		if ( timeSinceLastUpkeep >= MAX_TIME_SINCE_LAST_UPKEEP )
+        	timeSinceLastUpkeep = MAX_TIME_SINCE_LAST_UPKEEP;
 
 		// These are the AddedRewards that will be sent to the specified StakingRewards contract
 		AddedReward[] memory addedRewards = new AddedReward[]( pools.length );
