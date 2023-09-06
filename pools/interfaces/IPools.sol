@@ -17,8 +17,8 @@ interface IPools
 	function depositSwapWithdraw(IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline) external returns (uint256 swapAmountOut);
 	function dualZapInLiquidity(IERC20 tokenA, IERC20 tokenB, uint256 zapAmountA, uint256 zapAmountB, uint256 minLiquidityReceived, uint256 deadline, bool bypassSwap ) external returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity);
 
-	function whitelist(bytes32 poolID) external;
-	function unwhitelist(bytes32 poolID) external;
+	function setIsWhitelistedCache(bytes32 poolID) external;
+	function clearIsWhitelistedCache(bytes32 poolID) external;
 
 	function depositTokenForCounterswap( address counterswapAddress, IERC20 tokenToDeposit, uint256 amountToDeposit ) external;
 	function withdrawTokenFromCounterswap( address counterswapAddress, IERC20 tokenToWithdraw, uint256 amountToWithdraw ) external;
