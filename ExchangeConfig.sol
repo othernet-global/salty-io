@@ -6,6 +6,7 @@ import "./interfaces/IExchangeConfig.sol";
 import "./rewards/interfaces/IRewardsEmitter.sol";
 import "./rewards/interfaces/ISaltRewards.sol";
 import "./interfaces/IUpkeep.sol";
+import "./launch/interfaces/IInitialDistribution.sol";
 
 
 // Contract owned by the DAO with parameters modifiable only by the DAO
@@ -23,6 +24,7 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 	IRewardsEmitter public stakingRewardsEmitter;
 	IRewardsEmitter public liquidityRewardsEmitter;
 	IAccessManager public accessManager;
+	IInitialDistribution public initialDistribution;
 
 	address public teamWallet;
 	address public teamVestingWallet;	// can only be set once
@@ -105,6 +107,15 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 
 		teamVestingWallet = _teamVestingWallet;
 		daoVestingWallet = _daoVestingWallet;
+		}
+
+
+	function setInitialDistribution( IInitialDistribution _initialDistribution ) public
+		{
+		require( address(initialDistribution) == address(0), "setInitialDistribution can only be called once" );
+		require( address(_initialDistribution) != address(0), "_initialDistribution cannot be address(0)" );
+
+		initialDistribution = _initialDistribution;
 		}
 
 
