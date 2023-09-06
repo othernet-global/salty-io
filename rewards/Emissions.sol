@@ -13,6 +13,8 @@ import "../rewards/interfaces/IRewardsConfig.sol";
 
 contract Emissions is IEmissions
     {
+    uint256 constant public MAX_TIME_SINCE_LAST_UPKEEP = 1 weeks;
+
     ISaltRewards immutable public saltRewards;
 	IExchangeConfig immutable public exchangeConfig;
 	IRewardsConfig immutable public rewardsConfig;
@@ -45,8 +47,8 @@ contract Emissions is IEmissions
 
 		// Cap the timeSinceLastUpkeep at one week (if for some reason it has been longer).
 		// This will cap the emitted rewards at a default of 0.50% in this transaction.
-		if ( timeSinceLastUpkeep >= 1 weeks )
-			timeSinceLastUpkeep = 1 weeks;
+		if ( timeSinceLastUpkeep >= MAX_TIME_SINCE_LAST_UPKEEP )
+			timeSinceLastUpkeep = MAX_TIME_SINCE_LAST_UPKEEP;
 
 		uint256 saltBalance = salt.balanceOf( address( this ) );
 
