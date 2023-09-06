@@ -9,6 +9,7 @@ import "../rewards/interfaces/IRewardsEmitter.sol";
 import "../rewards/interfaces/ISaltRewards.sol";
 import "../rewards/interfaces/IEmissions.sol";
 import "./IUpkeep.sol";
+import "../launch/interfaces/IInitialDistribution.sol";
 
 
 interface IExchangeConfig
@@ -21,6 +22,7 @@ interface IExchangeConfig
 
 	function setTeamWallet( address _teamWallet ) external;
 	function setVestingWallets( address _teamVestingWallet, address _daoVestingWallet ) external;
+	function setInitialDistribution( IInitialDistribution _initialDistribution ) external;
 
 	// Views
 	function salt() external view returns (ISalt);
@@ -32,6 +34,7 @@ interface IExchangeConfig
 	function teamWallet() external view returns (address);
 	function daoVestingWallet() external view returns (address);
     function teamVestingWallet() external view returns (address);
+    function initialDistribution() external view returns (IInitialDistribution);
 
 	function accessManager() external view returns (IAccessManager);
 	function dao() external view returns (IDAO);
