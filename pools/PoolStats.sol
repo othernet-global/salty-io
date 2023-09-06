@@ -30,7 +30,7 @@ contract PoolStats is IPoolStats
 	mapping(bytes32=>bytes16) public averageReserveRatios;
 
 	// The profits (in WETH) that were contributed by each pool as arbitrage profits since the last performUpkeep was called.
-	mapping(bytes32=>uint256) private _profitsForPools;
+	mapping(bytes32=>uint256) public _profitsForPools;
 
 
     constructor( IExchangeConfig _exchangeConfig )
@@ -45,6 +45,9 @@ contract PoolStats is IPoolStats
 	// Reserve ratio stored as reserve0 / reserve1
 	function _updatePoolStats( bytes32 poolID, uint256 reserve0, uint256 reserve1 ) internal
 		{
+		if ( ( reserve0 < PoolUtils.DUST ) || ( reserve1 < PoolUtils.DUST ) )
+			return;
+
 		// Update the exponential average
 		bytes16 reserveRatio = ABDKMathQuad.div( ABDKMathQuad.fromUInt(reserve0), ABDKMathQuad.fromUInt(reserve1) );
 
@@ -73,6 +76,9 @@ contract PoolStats is IPoolStats
 
 
 	// Keep track of the which pools contributed to a recent arbitrage profit so that they can be rewarded later on performUpkeep.
+	// As a gas optimization (as this is called in the user swap transaction) only one write corresponding to the poolID of arbToken2 and arbToken3 is written.
+	// On saltRewards.performUpkeep() arbToken2 and arbToken3 will be reconstituted from the poolID and then WETH/arbToken2, arbToken3/arbToken3 and WETH/arbToken3 will be rewarded.
+	// Unwhitelisted token pairs are a bit different as they have to incorporate WBTC and are described below.
 	function _updateProfitsFromArbitrage( bool isWhitelistedPair, IERC20 arbToken2, IERC20 arbToken3, IERC20 wbtc, uint256 arbitrageProfit ) internal
 		{
 		if ( arbitrageProfit == 0 )
@@ -81,7 +87,7 @@ contract PoolStats is IPoolStats
 		if ( isWhitelistedPair )
 			{
 			// The arb cycle was: WETH->arbToken2->arbToken3->WETH
-			// Pools that will be rewarded on performUpkeep: WETH/arbToken2, arbToken2/arbToken3, WETH/arbToken3
+			// Pools that will be rewarded on performUpkeep: WETH/arbToken2, arbToken2/arbToken3, and WETH/arbToken3
 			(bytes32 poolID,) = PoolUtils.poolID( arbToken2, arbToken3 );
 
 			_profitsForPools[poolID] += arbitrageProfit;
