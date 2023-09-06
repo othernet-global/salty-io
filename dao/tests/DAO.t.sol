@@ -17,6 +17,7 @@ import "../DAO.sol";
 import "./TestCallReceiver.sol";
 import "../../price_feed/PriceAggregator.sol";
 import "../../AccessManager.sol";
+import "../../launch/InitialDistribution.sol";
 
 
 contract TestDAO is Test, Deployment
@@ -28,6 +29,11 @@ contract TestDAO is Test, Deployment
 
 	constructor()
 		{
+		// Transfer the salt from the original initialDistribution to the DEPLOYER
+		vm.prank(address(initialDistribution));
+		salt.transfer(DEPLOYER, 100000000 ether);
+
+
 		// If $COVERAGE=yes, create an instance of the contract so that coverage testing can work
 		// Otherwise, what is tested is the actual deployed contract on the blockchain (as specified in Deployment.sol)
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
@@ -35,17 +41,14 @@ contract TestDAO is Test, Deployment
 			vm.startPrank(DEPLOYER);
 
 			poolsConfig = new PoolsConfig();
+			usds = new USDS(wbtc, weth);
+
+			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, dai, usds, teamWallet );
 
 			priceAggregator = new PriceAggregator();
 			priceAggregator.setInitialFeeds( IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)) );
 
-			// Because USDS already set the Collateral on deployment and it can only be done once, we have to recreate USDS as well
-			// That cascades into recreating multiple other contracts as well.
-			usds = new USDS(wbtc, weth);
-
-			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, dai, usds, teamWallet );
 			pools = new Pools(exchangeConfig, poolsConfig);
-
 			staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
 			liquidity = new Liquidity( pools, exchangeConfig, poolsConfig, stakingConfig );
 			collateral = new Collateral(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
@@ -55,6 +58,16 @@ contract TestDAO is Test, Deployment
 
 			emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
+			poolsConfig.whitelistPool(pools, salt, wbtc);
+			poolsConfig.whitelistPool(pools, salt, weth);
+			poolsConfig.whitelistPool(pools, salt, usds);
+			poolsConfig.whitelistPool(pools, wbtc, usds);
+			poolsConfig.whitelistPool(pools, weth, usds);
+			poolsConfig.whitelistPool(pools, wbtc, dai);
+			poolsConfig.whitelistPool(pools, weth, dai);
+			poolsConfig.whitelistPool(pools, usds, dai);
+			poolsConfig.whitelistPool(pools, wbtc, weth);
+
 			proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 
 			address oldDAO = address(dao);
@@ -62,10 +75,22 @@ contract TestDAO is Test, Deployment
 
 			accessManager = new AccessManager(dao);
 
-			exchangeConfig.setDAO( dao );
 			exchangeConfig.setAccessManager( accessManager );
+			exchangeConfig.setStakingRewardsEmitter( stakingRewardsEmitter);
+			exchangeConfig.setLiquidityRewardsEmitter( liquidityRewardsEmitter);
+			exchangeConfig.setDAO( dao );
 
-			usds.setContracts( collateral, pools, exchangeConfig );
+			saltRewards = new SaltRewards(exchangeConfig, rewardsConfig);
+
+			upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, liquidity, emissions);
+			exchangeConfig.setUpkeep(upkeep);
+
+			initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, liquidity);
+			exchangeConfig.setInitialDistribution(initialDistribution);
+
+			pools.setDAO(dao);
+
+			usds.setContracts(collateral, pools, exchangeConfig );
 
 			// Transfer ownership of the newly created config files to the DAO
 			Ownable(address(exchangeConfig)).transferOwnership( address(dao) );
@@ -87,10 +112,8 @@ contract TestDAO is Test, Deployment
 		usds.mintTo( alice, 1000000 ether );
 		vm.stopPrank();
 
-		vm.startPrank( DEPLOYER );
+		vm.prank( DEPLOYER );
 		salt.transfer( alice, 10000000 ether );
-		salt.transfer( DEPLOYER, 90000000 ether );
-		vm.stopPrank();
 		}
 
 
@@ -115,8 +138,6 @@ contract TestDAO is Test, Deployment
 		{
 		if ( parameter == Parameters.ParameterTypes.maximumWhitelistedPools )
 			return poolsConfig.maximumWhitelistedPools();
-		else if ( parameter == Parameters.ParameterTypes.daoPercentShareArbitrage )
-			return poolsConfig.daoPercentShareArbitrage();
 
 		else if ( parameter == Parameters.ParameterTypes.minUnstakeWeeks )
 			return stakingConfig.minUnstakeWeeks();
@@ -193,7 +214,7 @@ contract TestDAO is Test, Deployment
 
 		uint256 newValue = _parameterValue( Parameters.ParameterTypes( parameterNum ) );
 
-		if ( parameterNum != 10 )
+		if ( parameterNum != 9 )
 			assert( newValue > originalValue );
     }
 
@@ -240,9 +261,9 @@ contract TestDAO is Test, Deployment
 
 		uint256 newValue = _parameterValue( Parameters.ParameterTypes( parameterNum ) );
 
-		if ( parameterNum != 2 )
-		if ( parameterNum != 10 )
-		if ( parameterNum != 14 )
+		if ( parameterNum != 1 )
+		if ( parameterNum != 9 )
+		if ( parameterNum != 13 )
 			assert( newValue < originalValue );
     }
 
@@ -253,7 +274,7 @@ contract TestDAO is Test, Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 5000000 ether );
 
-    	for( uint256 i = 0; i < 25; i++ )
+    	for( uint256 i = 0; i < 24; i++ )
 	 		_checkFinalizeIncreaseParameterBallot( i );
     	}
 
@@ -264,7 +285,7 @@ contract TestDAO is Test, Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 5000000 ether );
 
-    	for( uint256 i = 0; i < 25; i++ )
+    	for( uint256 i = 0; i < 24; i++ )
 	 		_checkFinalizeDecreaseParameterBallot( i );
     	}
 
@@ -275,7 +296,7 @@ contract TestDAO is Test, Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 5000000 ether );
 
-    	for( uint256 i = 0; i < 25; i++ )
+    	for( uint256 i = 0; i < 24; i++ )
 	 		_checkFinalizeNoChangeParameterBallot( i );
     	}
 
@@ -318,10 +339,25 @@ contract TestDAO is Test, Deployment
         dao.finalizeBallot(ballotID);
 
 		salt.transfer( address(dao), 5 ether );
+
+    	uint256 startingBalanceDAO = salt.balanceOf(address(dao));
         dao.finalizeBallot(ballotID);
 
 		// Check for the effects of the vote
 		assertTrue( poolsConfig.tokenHasBeenWhitelisted(token, wbtc, weth), "Token not whitelisted" );
+
+		// Check to see that the bootstrapping rewards have been sent
+		bytes32[] memory poolIDs = new bytes32[](2);
+		(poolIDs[0],) = PoolUtils.poolID(token,wbtc);
+		(poolIDs[1],) = PoolUtils.poolID(token,weth);
+
+		uint256[] memory pendingRewards = liquidityRewardsEmitter.pendingRewardsForPools( poolIDs );
+
+		assertEq( pendingRewards[0], daoConfig.bootstrappingRewards() );
+		assertEq( pendingRewards[1], daoConfig.bootstrappingRewards() );
+
+		uint256 sentFromDAO = startingBalanceDAO - salt.balanceOf(address(dao));
+		assertEq( sentFromDAO, daoConfig.bootstrappingRewards() * 2 );
     	}
 
 
@@ -742,6 +778,166 @@ contract TestDAO is Test, Deployment
         }
 
 
-	// A unit test to test performUpkeep works correctly
+	// A unit test to test that withdrawArbitrageProfits works as expected and sends the correct amount to the Upkeep contract
+	function testWithdrawArbitrageProfits() public {
+        // Initial setup
+        uint256 initialBalance = weth.balanceOf(address(exchangeConfig.upkeep()));
+
+		vm.prank(address(DEPLOYER));
+		weth.transfer(address(dao), 1000 ether);
+
+        vm.startPrank(address(dao));
+        weth.approve(address(pools), 1000 ether);
+        pools.deposit(weth, 1000 ether);
+
+        uint256 depositedWETH = pools.depositedBalance(address(dao), weth);
+        assertEq( depositedWETH, 1000 ether, "DAO should have 1000 ether deposited" );
+        vm.stopPrank();
+
+        // Call the function
+        vm.prank(address(upkeep));
+        dao.withdrawArbitrageProfits(weth);
+
+        uint256 expectedBalance = initialBalance + depositedWETH;
+
+        // Check the result
+        uint256 finalBalance = weth.balanceOf(address(exchangeConfig.upkeep()));
+        assertEq(finalBalance, expectedBalance, "The final balance is not correct");
+    }
+
+
+	// A unit test to validate that formPOL works correctly and changes balances as expected
+	function testFormPOL() public {
+
+		assertEq( pools.getUserLiquidity(address(dao), salt, usds), 0 );
+
+		uint256 saltAmount = 10 ether;
+        uint256 usdsAmount = 5 ether;
+
+        uint256 initialDaoSaltBalance = salt.balanceOf(address(dao));
+        uint256 initialDaoUsdsBalance = usds.balanceOf(address(dao));
+
+		assertEq( initialDaoSaltBalance, 0 );
+		assertEq( initialDaoUsdsBalance, 0 );
+
+		vm.startPrank(DEPLOYER);
+        salt.transfer(address(dao), saltAmount);
+        usds.transfer(address(dao), usdsAmount);
+        vm.stopPrank();
+
+        vm.expectRevert( "DAO.formPOL is only callable from the Upkeep contract" );
+        dao.formPOL(liquidity, salt, usds);
+
+        vm.prank(address(upkeep));
+        dao.formPOL(liquidity, salt, usds);
+
+        assertEq(salt.balanceOf(address(dao)), 0, "DAO SALT balance incorrect after formPOL");
+        assertEq(usds.balanceOf(address(dao)), 0, "DAO USDS balance incorrect after formPOL");
+
+		(bytes32 poolID,) = PoolUtils.poolID(salt,usds);
+		assertTrue( liquidity.userShareForPool(address(dao), poolID) > 0 );
+    }
+
+
+	// A unit test to validate that unauthorized users cannot call functions restricted to the Upkeep contract
+	function testUnauthorizedAccessToUpkeepFunctions() public
+    	{
+    	vm.startPrank(bob);
+
+    	vm.expectRevert("DAO.withdrawArbitrageProfits is only callable from the Upkeep contract");
+    	dao.withdrawArbitrageProfits( weth );
+
+    	vm.expectRevert("DAO.formPOL is only callable from the Upkeep contract");
+    	dao.formPOL(liquidity, salt, usds);
+
+    	vm.expectRevert("DAO.sendSaltToSaltRewards is only callable from the Upkeep contract");
+    	dao.sendSaltToSaltRewards( salt, saltRewards, 1000 ether );
+
+    	vm.expectRevert("DAO.processRewardsFromPOL is only callable from the Upkeep contract");
+    	dao.processRewardsFromPOL( liquidity, salt, usds );
+
+    	vm.stopPrank();
+    	}
+
+
+    // A unit test to check if a non-excluded country, countryIsExcluded returns false
+    function testCountryIsExcluded() public
+        {
+        string memory nonExcludedCountry = "Canada";
+
+        bool result = dao.countryIsExcluded(nonExcludedCountry);
+
+        assertEq(result, false, "The country should not be excluded");
+        }
+
+
+    // A unit test to validate that SALT tokens are burned as expected by the processRewardsFromPOL function
+    function testProcessRewardsFromPOL() public {
+
+
+		// Alice and DEPLOYER need to send the 100million SALT back to the InitialDistribution contract
+		vm.prank(alice);
+		salt.transfer(address(DEPLOYER), 10000000 ether);
+
+		vm.prank(DEPLOYER);
+		salt.transfer(address(initialDistribution), 100000000 ether);
+
+		// Distribute to add SALT rewards to the liquidityRewardsEmitter
+		vm.prank(address(bootstrapBallot));
+		initialDistribution.distributionApproved();
+
+
+		// DAO needs to form some SALT/USDS liquidity to receive some rewards
+		vm.prank(address(daoVestingWallet));
+		salt.transfer(address(dao), 1000 ether);
+
+		vm.prank(address(collateral));
+		usds.mintTo(address(dao), 1000 ether);
+
+		assertEq( salt.balanceOf(address(dao)), 1000 ether );
+		assertEq( usds.balanceOf(address(dao)), 1000 ether );
+
+		// Have the DAO form SALT/USDS liquidity with the SALT and USDS that it has
+		vm.prank(address(upkeep));
+		dao.formPOL(liquidity, salt, usds);
+
+		// Pass time to allow the liquidityRewardsEmitter to emit rewards
+    	vm.warp( block.timestamp + 1 days );
+
+		bytes32[] memory poolIDs = new bytes32[](1);
+		(poolIDs[0],) = PoolUtils.poolID(salt, weth);
+
+		uint256[] memory pendingRewards = liquidityRewardsEmitter.pendingRewardsForPools(poolIDs);
+   		upkeep.performUpkeep();
+		uint256[] memory pendingRewards2 = liquidityRewardsEmitter.pendingRewardsForPools(poolIDs);
+
+		uint256 distributedRewards = pendingRewards[0] - pendingRewards2[0];
+
+//		console.log( "distributedRewards: ", distributedRewards );
+//		console.log( "totalSupply: ", salt.totalSupply() );
+//		console.log( "burned: ", salt.totalBurned() );
+//		console.log( "liquidity: ", address(liquidity) );
+//		console.log( "team: ", salt.balanceOf(teamWallet) );
+
+		assertEq( distributedRewards, 5555555555555555555555 );
+		assertEq( salt.balanceOf(teamWallet), 555555555555555555555 );
+		assertEq( salt.totalBurned(), 3750000000000000000000 );
+   		}
+
+
+	// A unit test to test that sending SALT to SaltRewards works as expected
+	function testSendSALTSaltRewards() public {
+        vm.prank(DEPLOYER);
+
+        salt.transfer(address(saltRewards), 10 ether);
+        assertEq(salt.balanceOf(address(saltRewards)), 10 ether, "Sending SALT to SaltRewards did not adequately adjust the SaltReward's SALT balance.");
+
+        vm.prank(alice);
+        salt.transfer(address(dao), 10 ether);
+
+		vm.prank(address(upkeep));
+        dao.sendSaltToSaltRewards(salt, saltRewards, 5 ether);
+        assertEq(salt.balanceOf(address(saltRewards)), 15 ether, "DAO sending SALT to SaltRewards did not adequately adjust the SaltRewards's SALT balance.");
+    }
     }
 
