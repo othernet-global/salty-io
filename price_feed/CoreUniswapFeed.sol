@@ -6,14 +6,17 @@ import "../uniswap_v3/IUniswapV3Pool.sol";
 import "../uniswap_v3/TickMath.sol";
 import "../uniswap_v3/FullMath.sol";
 import "../uniswap_v3/FixedPoint96.sol";
-import "./interfaces/IPriceFeedUniswap.sol";
-import "../interfaces/IExchangeConfig.sol";
+import "./interfaces/IPriceFeed.sol";
 
 
 // Returns TWAPs for WBTC and WETH for associated Uniswap v3 pools.
 // Prices are returned with 18 decimals.
-contract CoreUniswapFeed is IPriceFeedUniswap
+contract CoreUniswapFeed is IPriceFeed
     {
+    // 30 minute TWAP period to resist price manipulation
+    uint256 public constant TWAP_PERIOD = 30 minutes;
+
+
 	// Uniswap v3 pool addresses
     address immutable public UNISWAP_V3_WBTC_WETH;
 	address immutable public UNISWAP_V3_WETH_USDC;
@@ -131,5 +134,20 @@ contract CoreUniswapFeed is IPriceFeedUniswap
         	return 10**36 / uniswapWETH_USDC;
         else
         	return uniswapWETH_USDC;
+		}
+
+
+	// Returned price is the 30 minutes TWAP by default
+	function getPriceBTC() public view returns (uint256)
+		{
+		return getTwapWBTC( TWAP_PERIOD );
+		}
+
+
+	// Returned price is the 30 minutes TWAP by default.
+	// For this to be changed the DAO needs to use a new CoreUniswapFeed contract (or other contract that implements IPriceFeed.sol)
+	function getPriceETH() public view returns (uint256)
+		{
+		return getTwapWETH( TWAP_PERIOD );
 		}
     }

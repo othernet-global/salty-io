@@ -15,7 +15,7 @@ contract PriceAggregator is IPriceAggregator, Ownable
     event PriceFeedError(address feed, string functionCall, bytes error);
 
 
-	IPriceFeed public priceFeed1; // DualPriceFeed by default
+	IPriceFeed public priceFeed1; // CoreUniswapFeed by default
 	IPriceFeed public priceFeed2; // CoreChainlinkFeed by default
 	IPriceFeed public priceFeed3; // CoreSaltyFeed by default
 
@@ -29,12 +29,12 @@ contract PriceAggregator is IPriceAggregator, Ownable
 
 	// The exponential average of the number of PriceFeeds that were used to aggregate prices on the last update.
 	// Can detect recent errors or PriceFeed failures and encourage further investigation.
-	uint256 public priceFeedInclusionAverage;
+	uint256 public averageNumberValidFeeds;
 
 	// The maximum percent difference between two non-zero PriceFeed prices when determining price.
 	// When the two closest PriceFeeds (out of the three) have prices further apart than this the aggregated price is considered invalid.
-	// Range: 2% to 7% with an adjustment of .50%
-	uint256 public maximumPriceFeedPercentDifferenceTimes1000 = 5000; // 5%
+	// Range: 1% to 7% with an adjustment of .50%
+	uint256 public maximumPriceFeedPercentDifferenceTimes1000 = 3000; // 3%
 
 	// The required cooldown between calls to setPriceFeed.
 	// Allows time to evaluate the performance of the recently update PriceFeed before other updates are made.
@@ -42,7 +42,7 @@ contract PriceAggregator is IPriceAggregator, Ownable
 	uint256 public setPriceFeedCooldown = 35 days;
 
 
-	function setInitialFeeds( IPriceFeed _priceFeed1, IPriceFeed _priceFeed2, IPriceFeed _priceFeed3 ) public
+	function setInitialFeeds( IPriceFeed _priceFeed1, IPriceFeed _priceFeed2, IPriceFeed _priceFeed3 ) public onlyOwner
 		{
 		require( address(_priceFeed1) != address(0), "_priceFeed1 cannot be address(0)" );
 		require( address(_priceFeed2) != address(0), "_priceFeed2 cannot be address(0)" );
@@ -84,7 +84,7 @@ contract PriceAggregator is IPriceAggregator, Ownable
             }
         else
             {
-            if (maximumPriceFeedPercentDifferenceTimes1000 > 2000)
+            if (maximumPriceFeedPercentDifferenceTimes1000 > 1000)
                 maximumPriceFeedPercentDifferenceTimes1000 -= 500;
             }
 		}
@@ -120,26 +120,20 @@ contract PriceAggregator is IPriceAggregator, Ownable
 
 		if (price1 > 0)
 			numNonZero++;
-		else
-			price1 = type(uint256).max;
 
 		if (price2 > 0)
 			numNonZero++;
-		else
-			price2 = type(uint256).max;
 
 		if (price3 > 0)
 			numNonZero++;
-		else
-			price3 = type(uint256).max;
 
-		// Update the priceFeedInclusionAverage
-		if ( priceFeedInclusionAverage == 0 )
-			priceFeedInclusionAverage = numNonZero;
+		// Update the averageNumberValidFeeds
+		if ( averageNumberValidFeeds == 0 )
+			averageNumberValidFeeds = numNonZero * 10**18;
 		else
 			{
 			// Exponential average with a period of about 1000: 2 / (n+1)
-			priceFeedInclusionAverage = ( priceFeedInclusionAverage * 499 + numNonZero * 1 ) / 500;
+			averageNumberValidFeeds = ( averageNumberValidFeeds * 499 + (numNonZero * 10**18) ) / 500;
 			}
 
 		// If less than two price sources then return zero to indicate failure
@@ -170,39 +164,41 @@ contract PriceAggregator is IPriceAggregator, Ownable
 		}
 
 
+	function _getPriceBTC(IPriceFeed priceFeed) internal returns (uint256 price)
+		{
+		price = 0;
+
+ 		try priceFeed.getPriceBTC() returns (uint256 _price)
+			{
+			price = _price;
+			}
+		catch (bytes memory error)
+			{
+			emit PriceFeedError(address(priceFeed), "_getPriceBTC", error);
+			}
+		}
+
+
+	function _getPriceETH(IPriceFeed priceFeed) internal returns (uint256 price)
+		{
+		price = 0;
+
+ 		try priceFeed.getPriceETH() returns (uint256 _price)
+			{
+			price = _price;
+			}
+		catch (bytes memory error)
+			{
+			emit PriceFeedError(address(priceFeed), "_getPriceETH", error);
+			}
+		}
+
+
 	function _updatePriceBTC() internal
 		{
-		uint256 price1;
-		uint256 price2;
-		uint256 price3;
-
-		// Try blocks leave prices at zero (indicating failure) if anything foes wrong with them
- 		try priceFeed1.getPriceBTC() returns (uint256 price)
-			{
-			price1 = price;
-			}
-		catch (bytes memory error)
-			{
-			emit PriceFeedError(address(priceFeed1), "getPriceBTC", error);
-			}
-
- 		try priceFeed2.getPriceBTC() returns (uint256 price)
-			{
-			price2 = price;
-			}
-		catch (bytes memory error)
-			{
-			emit PriceFeedError(address(priceFeed1), "getPriceBTC", error);
-			}
-
- 		try priceFeed3.getPriceBTC() returns (uint256 price)
-			{
-			price3 = price;
-			}
-		catch (bytes memory error)
-			{
-			emit PriceFeedError(address(priceFeed1), "getPriceBTC", error);
-			}
+		uint256 price1 = _getPriceBTC(priceFeed1);
+		uint256 price2 = _getPriceBTC(priceFeed2);
+		uint256 price3 = _getPriceBTC(priceFeed3);
 
 		_lastPriceOnUpkeepBTC = _aggregatePrices(price1, price2, price3);
 		}
@@ -210,37 +206,9 @@ contract PriceAggregator is IPriceAggregator, Ownable
 
 	function _updatePriceETH() internal
 		{
-		uint256 price1;
-		uint256 price2;
-		uint256 price3;
-
-		// Try blocks leave prices at zero (indicating failure) if anything foes wrong with them
- 		try priceFeed1.getPriceETH() returns (uint256 price)
-			{
-			price1 = price;
-			}
-		catch (bytes memory error)
-			{
-			emit PriceFeedError(address(priceFeed1), "getPriceETH", error);
-			}
-
- 		try priceFeed2.getPriceETH() returns (uint256 price)
-			{
-			price2 = price;
-			}
-		catch (bytes memory error)
-			{
-			emit PriceFeedError(address(priceFeed1), "getPriceETH", error);
-			}
-
- 		try priceFeed3.getPriceETH() returns (uint256 price)
-			{
-			price3 = price;
-			}
-		catch (bytes memory error)
-			{
-			emit PriceFeedError(address(priceFeed1), "getPriceETH", error);
-			}
+		uint256 price1 = _getPriceETH(priceFeed1);
+		uint256 price2 = _getPriceETH(priceFeed2);
+		uint256 price3 = _getPriceETH(priceFeed3);
 
 		_lastPriceOnUpkeepETH = _aggregatePrices(price1, price2, price3);
 		}
