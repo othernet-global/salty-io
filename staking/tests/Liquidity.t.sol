@@ -32,6 +32,9 @@ contract LiquidityTest is Test, Deployment
 			liquidity = new Liquidity(pools, exchangeConfig, poolsConfig, stakingConfig );
 			}
 
+		vm.prank(address(initialDistribution));
+		salt.transfer(DEPLOYER, 100000000 ether);
+
     	token1 = new TestERC20("TEST", 18);
 		token2 = new TestERC20("TEST", 18);
 		token3 = new TestERC20("TEST", 18);
