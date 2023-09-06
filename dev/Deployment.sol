@@ -16,6 +16,9 @@ import "../dao/interfaces/IDAOConfig.sol";
 import "../dao/interfaces/IDAO.sol";
 import "../dao/interfaces/IProposals.sol";
 import "../price_feed/tests/IForcedPriceFeed.sol";
+import "../launch/interfaces/IBootstrapBallot.sol";
+import "../openzeppelin/finance/VestingWallet.sol";
+import "../launch/interfaces/IAirdrop.sol";
 
 
 // Stores the contract addresses for the various parts of the exchange and allows the unit tests to be run on them.
@@ -30,14 +33,14 @@ contract Deployment
 	address public CHAINLINK_ETH_USD = 0x694AA1769357215DE4FAC081bf1f309aDC325306;
 	address public UNISWAP_V3_BTC_ETH = 0xC27D6ACC8560F24681BC475953F27C5F71668448;
 	address public UNISWAP_V3_USDC_ETH = 0x9014aE623A76499A0f9F326e95f66fc800bF651d;
-	IERC20 public testBTC = IERC20(0xd4C3cc58E46C99fbA0c4e4d93C82AE32000cc4D4);
-	IERC20 public testETH = IERC20(0xcEBB1DB86DFc17563385b394CbD968CBd3B46F2A);
-	IERC20 public testUSDC = IERC20(0x9C65b1773A95d607f41fa205511cd3327cc39D9D);
+	IERC20 public _testBTC = IERC20(0xd4C3cc58E46C99fbA0c4e4d93C82AE32000cc4D4);
+	IERC20 public _testETH = IERC20(0xcEBB1DB86DFc17563385b394CbD968CBd3B46F2A);
+	IERC20 public _testUSDC = IERC20(0x9C65b1773A95d607f41fa205511cd3327cc39D9D);
 	IForcedPriceFeed public forcedPriceFeed = IForcedPriceFeed(address(0x3B0Eb37f26b502bAe83df4eCc54afBDfb90B5d3a));
 
 
 	// The DAO contract can provide us with all other contract addresses in the protocol
-	IDAO public dao = IDAO(address(0x1Dd7e2522a9bb1d69dAEa8e3A3aAC545f349F8EC));
+	IDAO public dao = IDAO(address(0x504494f00b57Ed660ec35c89284C07D1d9500E97));
 
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
@@ -71,6 +74,13 @@ contract Deployment
 
 	ISaltRewards public saltRewards = ISaltRewards(getContract(address(upkeep), "saltRewards()" ));
 	IAccessManager public accessManager = exchangeConfig.accessManager();
+
+	VestingWallet public daoVestingWallet = VestingWallet(payable(exchangeConfig.daoVestingWallet()));
+	VestingWallet public teamVestingWallet = VestingWallet(payable(exchangeConfig.teamVestingWallet()));
+
+	IInitialDistribution public initialDistribution = exchangeConfig.initialDistribution();
+	IAirdrop public airdrop = IAirdrop(getContract(address(initialDistribution), "airdrop()" ));
+	IBootstrapBallot public bootstrapBallot = IBootstrapBallot(getContract(address(initialDistribution), "bootstrapBallot()" ));
 
 
 	function getContract( address _contract, string memory _functionName ) public returns (address result) {
