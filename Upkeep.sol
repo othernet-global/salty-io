@@ -19,7 +19,7 @@ import "./openzeppelin/finance/VestingWallet.sol";
 // 1. Updates the prices of BTC and ETH in the PriceAggregator.
 // 2. Sends WBTC and WETH from the USDS contract to the counterswap addresses (for conversion to USDS) and withdraws USDS from counterswap for burning.
 // 3. Withdraws the remaining USDS already counterswapped from WBTC and WETH (for later formation of SALT/USDS liquidity).
-// 4. Have the DAO withdraw the WETH arbitrage profits from the Pools contract.
+// 4. Has the DAO withdraw the WETH arbitrage profits from the Pools contract.
 // 5. Sends a default 5% of the withdrawn WETH to the caller of performUpkeep().
 // 6. Sends a default 15% of the remaining WETH to counterswap for conversion to USDS (for later formation of SALT/USDS liquidity).
 // 7. Sends all remaining WETH to counterswap for conversion to SALT (for later SALT/USDS POL formation and SaltRewards).
@@ -29,7 +29,7 @@ import "./openzeppelin/finance/VestingWallet.sol";
 // 11. Sends SALT Emissions to the SaltRewards contract.
 // 12. Distributes SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter and call clearProfitsForPools.
 // 13. Distributes SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
-// 14. Collects SALT rewards from the DAO's Protocol Owned Liquidity (SALT/WETH from the initial sale and SALT/USDS from formed POL): sends 10% to the team and burns a default 75% of the remaining.
+// 14. Collects SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): sends 10% to the team and burns a default 75% of the remaining.
 // 15. Sends SALT from the DAO vesting wallet to the DAO (linear distribution over 10 years).
 // 16. Sends SALT from the team vesting wallet to the team (linear distribution over 10 years).
 
@@ -186,7 +186,7 @@ contract Upkeep is IUpkeep
 		salt.safeTransfer(address(dao), saltBalance);
 		usds.safeTransfer(address(dao), usdsBalance);
 
-		dao.formPOL(salt, usds);
+		dao.formPOL(liquidity, salt, usds);
 		}
 
 
@@ -239,10 +239,10 @@ contract Upkeep is IUpkeep
 		}
 
 
-	// 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/WETH from the initial sale and SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
+	// 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
 	function step14() public onlySameContract
 		{
-		exchangeConfig.dao().processRewardsFromPOL(liquidity, salt, weth, usds);
+		exchangeConfig.dao().processRewardsFromPOL(liquidity, salt, usds);
 		}
 
 
