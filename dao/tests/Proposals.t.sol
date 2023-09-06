@@ -64,6 +64,9 @@ contract TestProposals is Test, Deployment
 			vm.stopPrank();
 			}
 
+		vm.prank(address(initialDistribution));
+		salt.transfer(DEPLOYER, 100000000 ether);
+
 		vm.startPrank( DEPLOYER );
 		salt.transfer( alice, 10000000 ether );
 		salt.transfer( DEPLOYER, 90000000 ether );
@@ -252,6 +255,9 @@ contract TestProposals is Test, Deployment
 
         // Use a valid address
         newAddress = address(0x1111111111111111111111111111111111111112);
+        proposals.proposeSetContractAddress("contractName", newAddress, "description" );
+
+       vm.expectRevert("Cannot create a proposal similar to a ballot that is still open");
         proposals.proposeSetContractAddress("contractName", newAddress, "description" );
 
         // Check if a new proposal is created
@@ -743,10 +749,15 @@ contract TestProposals is Test, Deployment
 		vm.startPrank( DEPLOYER );
         proposals.proposeTokenUnwhitelisting(newToken, "test", "test");
 
+        vm.expectRevert("Cannot create a proposal similar to a ballot that is still open");
+        proposals.proposeTokenUnwhitelisting( newToken, "test", "test");
+
         // Get the ballot id
         uint256 ballotID = 1;
         assertEq(uint256(proposals.ballotForID(ballotID).ballotType), uint256(BallotType.UNWHITELIST_TOKEN));
         assertEq(proposals.ballotForID(ballotID).address1, address(newToken));
+
+
     }
 
 
@@ -1076,5 +1087,309 @@ contract TestProposals is Test, Deployment
         vm.expectRevert("newWebsiteURL cannot be empty");
         proposals.proposeWebsiteUpdate(newWebsiteURL, "description" );
     }
+
+
+	// A unit test that verifies if the createConfirmationProposal function creates a new proposal from the DAO and checks all necessary state changes.
+	function testCreateConfirmationProposal() public {
+        vm.startPrank(DEPLOYER);
+
+        // Define a ballotName
+        string memory ballotName = "setContract:1";
+        BallotType ballotType = BallotType.SET_CONTRACT;
+        address address1 = address(0x3333);
+        uint256 number1 = 0;
+        string memory string1 = "newContractAddress";
+        string memory description = "description";
+
+        // Ensure ballot with ballotName doesn't exist before proposing
+        assertEq(proposals.openBallotsByName(ballotName), 0);
+
+        // Call createConfirmationProposal
+        vm.expectRevert( "Only the DAO can create a confirmation proposal" );
+        proposals.createConfirmationProposal(ballotName, ballotType, address1, string1, description);
+
+		vm.prank(address(dao));
+        proposals.createConfirmationProposal(ballotName, ballotType, address1, string1, description);
+
+
+        // Check that the new ballot has been saved correctly
+        uint256 ballotID = proposals.openBallotsByName(ballotName);
+        Ballot memory ballot = proposals.ballotForID(ballotID);
+
+        // Check that the proposed ballot parameters are correct
+        assertTrue(ballot.ballotIsLive);
+        assertEq(uint256(ballot.ballotType), uint256(ballotType));
+        assertEq(ballot.ballotName, ballotName);
+        assertEq(ballot.address1, address1);
+        assertEq(ballot.number1, number1);
+        assertEq(ballot.string1, string1);
+        assertEq(ballot.description, description);
+        assertEq(ballot.ballotMinimumEndTime, block.timestamp + daoConfig.ballotDuration());
     }
+
+
+   // A unit test that checks if proposeWebsiteUpdate function does not allow proposal with the same web URL to be updated.
+   function testProposeDuplicateWebsiteUpdate() public {
+       vm.startPrank( DEPLOYER );
+
+       // Propose a website update with a unique url
+       string memory uniqueURL = "http://test.mysite.com";
+       string memory description = "Test for proposeWebsiteUpdate function";
+       proposals.proposeWebsiteUpdate(uniqueURL,description);
+
+       // Trying to propose the same website URL should fail
+       vm.expectRevert("Cannot create a proposal similar to a ballot that is still open");
+       proposals.proposeWebsiteUpdate(uniqueURL, description);
+
+       // Propose a new website update with a different URL
+       string memory uniqueURL2 = "http://test2.mysite.com";
+       proposals.proposeWebsiteUpdate(uniqueURL2, description);
+
+       vm.stopPrank();
+   }
+
+
+   // A unit test that checks if the proposeTokenWhitelisting function creates proposals correctly, verifies that the proposal address is unique and different from address(0) and that the proposal's state changes appropriately.
+   function testProposeTokenWhitelisting() public {
+       vm.startPrank(DEPLOYER);
+
+       // Get initial state before proposing the ballot
+       uint256 initialNextBallotId = proposals.nextBallotID();
+
+       // Define a ballotName
+       address testTokenAddress = 0x1909B107ce8E4E1b43838371a290E13Bed3a1001;
+       address testTokenAddress2 = 0x1909B107CE8e4e1b43838371a290E13BEd3a1002;
+       string memory ballotName = "whitelist:0x1909b107ce8e4e1b43838371a290e13bed3a1001";
+
+       // Ensure ballot with ballotName doesn't exist before proposing
+       assertEq(proposals.openBallotsByName(ballotName), 0);
+
+       // Call proposeTokenWhitelisting
+       proposals.proposeTokenWhitelisting(TestERC20(testTokenAddress), "abc", "def");
+
+       // Check that the next ballot ID has been incremented
+       assertEq(proposals.nextBallotID(), initialNextBallotId + 1);
+
+       // Check that the ballot with ballotName now exists
+       assert(proposals.openBallotsByName(ballotName) == 1);
+
+       // Check that the proposed ballot is in the correct state
+       uint256 ballotID = proposals.openBallotsByName(ballotName);
+       Ballot memory ballot = proposals.ballotForID(ballotID);
+
+       // Check that the proposed ballot parameters are correct
+       assertTrue(ballot.ballotIsLive);
+       assertEq(uint256(ballot.ballotType), uint256(BallotType.WHITELIST_TOKEN));
+       assertEq(ballot.ballotName, ballotName);
+       assertEq(ballot.address1, testTokenAddress);
+       assertEq(ballot.string1, "abc");
+       assertEq(ballot.description, "def");
+       assertEq(ballot.ballotMinimumEndTime, block.timestamp + daoConfig.ballotDuration());
+
+       // Try proposing a ballot for the same token again - should fail
+       vm.expectRevert("Cannot create a proposal similar to a ballot that is still open");
+       proposals.proposeTokenWhitelisting(TestERC20(testTokenAddress), "", "");
+
+       // Verify proposing a new ballot with a new token
+       string memory ballotNameTwo = "whitelist:0x1909b107ce8e4e1b43838371a290e13bed3a1002";
+       assertEq(proposals.openBallotsByName(ballotNameTwo), 0);
+       proposals.proposeTokenWhitelisting(TestERC20(testTokenAddress2), "", "");
+       assertEq(proposals.openBallotsByName(ballotNameTwo), 2);
+       vm.stopPrank();
+
+       // mark ballot as finalized
+       vm.prank(address(dao));
+       proposals.markBallotAsFinalized(1);
+
+       vm.startPrank(DEPLOYER);
+
+       // Verify ballot has been marked as finalized
+       Ballot memory finalizedBallot = proposals.ballotForID(1);
+       assertFalse(finalizedBallot.ballotIsLive);
+
+       // Try proposing a ballot for the same token again - should pass as it has been marked finalized
+       proposals.proposeTokenWhitelisting(TestERC20(testTokenAddress), "", "");
+
+       console.log( "proposals.openBallotsByName(ballotName): ", proposals.openBallotsByName(ballotName) );
+       assertEq(proposals.openBallotsByName(ballotName), 3);
+
+       vm.stopPrank();
+		}
+
+
+   // A unit test to verify that the winningParameterVote function correctly returns the vote with the highest count among Increase, Decrease, and No Change votes.
+   function testWinningParameterVote() public {
+
+   	   // Propose a new parameter ballot
+       vm.startPrank( DEPLOYER );
+       proposals.proposeParameterBallot(1, "description");
+       salt.transfer(alice, 100 ether);
+       salt.transfer(bob, 100 ether);
+       vm.stopPrank();
+
+       uint256 ballotID = 1;
+
+
+       // Alice stakes some SALT
+       vm.startPrank(alice);
+       staking.stakeSALT(1 ether);
+       vm.stopPrank();
+
+
+       // Alice votes to INCREASE
+       vm.startPrank(alice);
+       proposals.castVote(ballotID, Vote.INCREASE);
+       vm.stopPrank();
+
+       // Assert the winning vote is INCREASE
+       assertEq(uint(proposals.winningParameterVote(ballotID)), uint(Vote.INCREASE));
+
+       // Bob stakes some SALT
+       vm.startPrank(bob);
+       staking.stakeSALT(2 ether);
+       vm.stopPrank();
+
+       // Bob votes to DECREASE
+       vm.startPrank(bob);
+       proposals.castVote(ballotID, Vote.DECREASE);
+       vm.stopPrank();
+
+       // Assert the winning vote is DECREASE
+       assertEq(uint(proposals.winningParameterVote(ballotID)), uint(Vote.DECREASE));
+
+       // Bob changes his vote to NO_CHANGE
+       vm.startPrank(bob);
+       proposals.castVote(ballotID, Vote.NO_CHANGE);
+       vm.stopPrank();
+
+       // Assert the winning vote is now NO_CHANGE
+       assertEq(uint(proposals.winningParameterVote(ballotID)), uint(Vote.NO_CHANGE));
+
+       // DEPLOYER stakes some SALT
+       vm.startPrank(DEPLOYER);
+       staking.stakeSALT(3 ether);
+       vm.stopPrank();
+
+       // DEPLOYER votes to DECREASE
+       vm.startPrank(DEPLOYER);
+       proposals.castVote(ballotID, Vote.DECREASE);
+       vm.stopPrank();
+
+       // Assert the winning vote is DECREASE
+       assertEq(uint(proposals.winningParameterVote(ballotID)), uint(Vote.DECREASE));
+   }
+
+
+   // A unit test that checks the ballotIsApproved function to verify if it correctly decides if the ballot is approved or not based on the number of yes and no votes.
+   	function testBallotIsApproved() public {
+   		// Initialize some parameters
+   		uint256 ballotID = 1;
+   		uint256 stakeAmount = 1000000 ether;
+
+   		// Stake some SALT from Alice's account
+   		vm.prank(alice);
+   		staking.stakeSALT(stakeAmount);
+
+   		// Propose a ballot
+   		vm.prank(DEPLOYER);
+   		proposals.proposeCountryInclusion("usa", "proposed ballot");
+
+   		// Casting a vote YES
+   		vm.prank(alice);
+   		proposals.castVote( ballotID, Vote.YES );
+
+   		// Now, we allow some time to pass in order to finalize the ballot
+   		vm.warp(block.timestamp + daoConfig.ballotDuration());
+
+   		// We finalize the ballot
+   		vm.prank( address(dao) );
+   		proposals.markBallotAsFinalized(ballotID);
+
+   		// Check if the ballot is approved
+   		bool approved = proposals.ballotIsApproved(ballotID);
+
+   		// The ballot should be approved
+   		assertTrue(approved);
+   	}
+
+
+    // A unit test for the proposeCountryInclusion and proposeCountryExclusion functions to verify they don't allow an empty country name.
+    function testProposeCountryInclusionExclusionEmptyName() public {
+        string memory emptyCountryName = "";
+
+        // Proposing country inclusion with empty country name should fail
+        vm.startPrank(alice);
+        vm.expectRevert("Country cannot be empty");
+        proposals.proposeCountryInclusion(emptyCountryName, "description");
+        vm.stopPrank();
+
+        // Proposing country exclusion with empty country name should fail
+        vm.startPrank(alice);
+        vm.expectRevert("Country cannot be empty");
+        proposals.proposeCountryExclusion(emptyCountryName, "description");
+        vm.stopPrank();
+    }
+
+
+    // A unit test that checks if the requiredQuorumForBallotType function gives an error when the amount of SALT staked is zero.
+    function testRequiredQuorumForBallotTypeWithZeroStakedSalt() public {
+
+        uint256 totalStaked = staking.totalSharesForPool(PoolUtils.STAKED_SALT);
+
+        // Assert that total staked SALT is zero
+        assertEq(totalStaked, 0);
+
+        // expect a revert on getting required quorum for any ballot
+        vm.expectRevert("SALT staked cannot be zero to determine quorum");
+        proposals.requiredQuorumForBallotType(BallotType.PARAMETER);
+    }
+
+
+    // A unit test to verify that the ballotForID function correctly returns the ballot for a given ballot ID.
+    function testBallotForID() public {
+        // Propose a ballot
+        vm.startPrank(DEPLOYER);
+        proposals.proposeParameterBallot(2, "testBallotForID");
+        uint256 expectedBallotID = 1; // The original test setup function nextBallotID = 1
+        assertEq(proposals.nextBallotID(), expectedBallotID + 1);
+
+        // Retrieve the ballot
+        Ballot memory retrievedBallot = proposals.ballotForID(expectedBallotID);
+
+        // Assert the retrieved ballot
+        assertTrue(retrievedBallot.ballotIsLive);
+        assertEq(retrievedBallot.ballotID, expectedBallotID);
+        assertEq(uint256(retrievedBallot.ballotType), uint256(BallotType.PARAMETER));
+        assertEq(retrievedBallot.ballotName, "parameter:2");
+        assertEq(retrievedBallot.address1, address(0));
+        assertEq(retrievedBallot.number1, 2);
+        assertEq(retrievedBallot.string1, "");
+        assertEq(retrievedBallot.description, "testBallotForID");
+        assertEq(retrievedBallot.ballotMinimumEndTime, block.timestamp + daoConfig.ballotDuration());
+
+        // Clear the ballot
+        vm.startPrank(address(dao));
+        proposals.markBallotAsFinalized(expectedBallotID);
+        vm.stopPrank();
+
+        // Finalized ballots still exist
+        Ballot memory retrievedBallot2 = proposals.ballotForID(expectedBallotID);
+        assertEq(retrievedBallot2.ballotID, expectedBallotID);
+    }
+
+
+    // A unit test to verify that proposeCallContract function refuses any proposals to call a contract at address(0).
+    function testProposeCallContractZeroAddressRejection() public {
+        vm.startPrank(DEPLOYER);
+
+        // Try to propose a contract call to address(0)
+        vm.expectRevert("Contract address cannot be address(0)");
+        proposals.proposeCallContract(address(0), 10, "Should Fail");
+        vm.stopPrank();
+    }
+   }
+
+
+
+
 
