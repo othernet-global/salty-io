@@ -34,6 +34,9 @@ contract TestCounterswap2 is Test, Deployment
 
 	constructor()
 		{
+		vm.prank(address(initialDistribution));
+		salt.transfer(DEPLOYER, 100000000 ether);
+
 		vm.startPrank(DEPLOYER);
 
 		poolsConfig = new PoolsConfig();
@@ -94,6 +97,7 @@ contract TestCounterswap2 is Test, Deployment
 		Ownable(address(daoConfig)).transferOwnership( address(dao) );
 		vm.stopPrank();
 		}
+
 
 	function setUp() public
 		{
@@ -336,6 +340,37 @@ contract TestCounterswap2 is Test, Deployment
     		_testShouldNotCounterswapWithZeroAverageRatio(wbtc, usds, 1 * 10**8);
     		}
 
+	// A unit test to verify that withdrawTokenFromCounterswap reverts when called by any other address than the specified ones.
+	function testWithdrawTokenFromCounterswap() public {
+
+		address counterswapAddress = Counterswap.WETH_TO_USDS;
+
+      // Expect the function to revert to protect against unauthorized withdrawals
+      vm.expectRevert("Pools.withdrawTokenFromCounterswap is only callable from the Upkeep or USDS contracts");
+      _pools.withdrawTokenFromCounterswap(counterswapAddress, usds, 1 ether);
     }
+
+
+
+	// A unit test to verify that the _determineCounterswapAddress function returns address zero when tokenToCounterswap and/or desiredToken do not match any of the pre-defined counterswap pairs.
+	function testCheckCounterswapAddressReturnZero() public {
+        IERC20 tokenNotMatched = new TestERC20("TEST", 18); // or any other token that is not in the pre-defined counterswap pairs
+
+        // when tokenToCounterswap does not match
+        address counterswapAddress = Counterswap._determineCounterswapAddress( tokenNotMatched, wbtc, wbtc, weth, salt, usds );
+        assertEq(counterswapAddress, address(0), "Test failed when tokenToCounterswap does not match");
+
+        // when desiredToken does not match
+        counterswapAddress = Counterswap._determineCounterswapAddress( wbtc, tokenNotMatched, wbtc, weth, salt, usds );
+        assertEq(counterswapAddress, address(0), "Test failed when desiredToken does not match");
+
+        // when both tokenToCounterswap and desiredToken do not match
+        counterswapAddress = Counterswap._determineCounterswapAddress( tokenNotMatched, tokenNotMatched, wbtc, weth, salt, usds );
+        assertEq(counterswapAddress, address(0), "Test failed when both tokens do not match");
+    }
+
+
+   }
+
 
 

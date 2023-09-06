@@ -13,6 +13,8 @@ contract TestPoolStats is Test, PoolStats
 	{
 	Deployment public deployment = new Deployment();
 
+	IERC20 public wbtc = deployment.wbtc();
+
 	IERC20 public tokenA = new TestERC20("TEST", 6);
 	IERC20 public tokenB = new TestERC20("TEST", 18);
 	IERC20 public tokenC = new TestERC20("TEST", 18);
@@ -141,5 +143,172 @@ contract TestPoolStats is Test, PoolStats
     	}
 
 
+
+	// A unit test for `_updatePoolStats` that checks the function does not update stats for pools with reserve0 or reserve1 below the dust limit
+	function testUpdatePoolStatsIgnored() public
+    {
+        // Reserves below dust limit
+        _updatePoolStats(poolID, 0, PoolUtils.DUST);
+        assertEq( lastUpdateTimes[poolID], 0 );
+
+		vm.warp(block.timestamp + 1 hours);
+
+        // Reserves equal to dust limit
+        _updatePoolStats(poolID, PoolUtils.DUST, PoolUtils.DUST);
+        assertEq( lastUpdateTimes[poolID], block.timestamp );
+
+        // Reserves just above dust limit
+        _updatePoolStats(poolID, PoolUtils.DUST+1, PoolUtils.DUST+1);
+        assertEq( lastUpdateTimes[poolID], block.timestamp );
     }
+
+
+    // A unit test for `_updateProfitsFromArbitrage` that verifies the function ignores cases without arbitrage profit
+    function testUpdateProfitsFromArbitrage_IgnoreNoProfitCase() public
+    	{
+        bool isWhitelistedPair = true;
+        IERC20 arbToken2 = tokenA;
+        IERC20 arbToken3 = tokenB;
+        uint256 initialProfit;
+        uint256 arbitrageProfit = 0;  // no profit
+
+        (poolID,) = PoolUtils.poolID( arbToken2, arbToken3 );
+        initialProfit = _profitsForPools[poolID];
+
+        _updateProfitsFromArbitrage(isWhitelistedPair, arbToken2, arbToken3, wbtc, arbitrageProfit);
+
+        assertEq(_profitsForPools[poolID], initialProfit, "Profit should not increase when arbitrage profit is zero");
+    	}
+
+
+	// A unit test for `_updateProfitsFromArbitrage` that verifies the function updates profits for whitelisted pairs correctly
+	function testUpdateProfitsFromArbitrage_WhitelistedPair() public {
+        bool isWhitelistedPair = true;
+        IERC20 arbToken2 = tokenA;
+        IERC20 arbToken3 = tokenB;
+        uint256 arbitrageProfit = 1 ether;
+
+        (poolID,) = PoolUtils.poolID( arbToken2, arbToken3 );
+
+        uint256 initialProfit = _profitsForPools[poolID];
+
+        _updateProfitsFromArbitrage(isWhitelistedPair, arbToken2, arbToken3, wbtc, arbitrageProfit);
+
+        assertEq(_profitsForPools[poolID], initialProfit + arbitrageProfit, "Profit didn't increase as expected for whitelisted pair");
+    }
+
+
+	// A unit test for `_updateProfitsFromArbitrage` that checks the function updates profits for non-whitelisted pairs correctly
+	 function testUpdateProfitsFromArbitrage_UpdateNonWhitelistedPairs() public
+     {
+        bool isWhitelistedPair = false;
+        uint256 arbitrageProfit = 1 ether;  // profit
+
+        _updateProfitsFromArbitrage(isWhitelistedPair, tokenA, tokenC, wbtc, arbitrageProfit);
+
+        (bytes32 poolIDA,) = PoolUtils.poolID( tokenA, wbtc );
+        (bytes32 poolIDB,) = PoolUtils.poolID( tokenC, wbtc );
+
+        // Check that the profits for the non-whitelisted pairs are updated correctly
+        assertEq(_profitsForPools[poolIDA], arbitrageProfit, "Profit for the second pair should be updated");
+        assertEq(_profitsForPools[poolIDB], arbitrageProfit, "Profit for the second pair should be updated");
+    }
+
+
+	// A unit test for `clearProfitsForPools` that verifies the function clears the profits for given pool IDs correctly
+	function testClearProfitsForPools() public {
+        // Assume initial profits
+        _profitsForPools[poolID] = 1 ether;
+        _profitsForPools[poolID2] = 2 ether;
+
+        // Check initial profits
+        assertEq(_profitsForPools[poolID], 1 ether);
+        assertEq(_profitsForPools[poolID2], 2 ether);
+
+        // Clear profits for the first pool
+        bytes32[] memory poolIDs = new bytes32[](1);
+        poolIDs[0] = poolID;
+		vm.prank(address(deployment.upkeep()));
+        this.clearProfitsForPools(poolIDs);
+
+        // Check that the profits for the first pool are cleared
+        assertEq(_profitsForPools[poolID], 0);
+        assertEq(_profitsForPools[poolID2], 2 ether);
+
+        // Clear profits for the second pool
+        poolIDs[0] = poolID2;
+		vm.prank(address(deployment.upkeep()));
+        this.clearProfitsForPools(poolIDs);
+
+        // Check that the profits for the second pool are cleared
+        assertEq(_profitsForPools[poolID], 0);
+        assertEq(_profitsForPools[poolID2], 0);
+    }
+
+
+	// A unit test for `clearProfitsForPools` that verifies an exception is thrown when an unauthorized account tries to call it
+	function testClearProfitsForPoolsNotAuthorized() public {
+        bytes32[] memory poolIDs = new bytes32[](1);
+        (poolIDs[0],) = PoolUtils.poolID(tokenA, tokenB);
+
+        vm.expectRevert("PoolStats.clearProfitsForPools is only callable from the Upkeep contract");
+        this.clearProfitsForPools(poolIDs);
+    }
+
+
+	// A unit test for `clearProfitsForPools` that verifies the function does not clear profits for non-provided pool ids
+		function testClearProfitsForNonProvidedPools() public {
+    		bytes32[] memory poolIDs = new bytes32[](2);
+    		poolIDs[0] = poolID;
+    		poolIDs[1] = poolID2;
+
+    		_profitsForPools[poolID] = 100 ether;
+    		_profitsForPools[poolID2] = 50 ether;
+
+    		bytes32[] memory providedPools = new bytes32[](1);
+    		providedPools[0] = poolID;
+
+			vm.prank(address(deployment.upkeep()));
+    		this.clearProfitsForPools(providedPools);
+
+    		uint256 pool1profit = _profitsForPools[poolID];
+    		uint256 pool2profit = _profitsForPools[poolID2];
+
+    		assertEq(pool1profit, 0, "Expect clearProfitsForPools to clear profits for the supplied pool ID");
+    		assertEq(pool2profit, 50 ether, "Expect clearProfitsForPools to leave profits unchanged for not supplied pool ID");
+    	}
+
+
+	// A unit test for `profitsForPools` that verifies it returns profits correctly for given pool IDs
+	function testProfitsForPools() public {
+
+		_updateProfitsFromArbitrage(true, tokenA, tokenB, wbtc, 10 ether); // 10 ether profit for arbToken2 to arbToken3 pool
+		_updateProfitsFromArbitrage(true, tokenB, tokenC, wbtc, 5 ether); // 5 ether profit for arbToken2 to arbToken3 pool
+
+		bytes32[] memory poolIDs = new bytes32[](2);
+		(poolIDs[0],) = PoolUtils.poolID(tokenA, tokenB);
+		(poolIDs[1],) = PoolUtils.poolID(tokenB, tokenC);
+
+		uint256[] memory profits = this.profitsForPools(poolIDs);
+
+		assertEq(profits[0], 10 ether, "Incorrect profit for pool 0");
+		assertEq(profits[1], 5 ether, "Incorrect profit for pool 1");
+
+		// Clear the profits
+		vm.prank(address(deployment.upkeep()));
+		this.clearProfitsForPools(poolIDs);
+
+		profits = this.profitsForPools(poolIDs);
+		assertEq(profits[0], 0, "Profit for pool 0 not cleared");
+		assertEq(profits[1], 0, "Profit for pool 1 not cleared");
+	}
+
+	// A unit test for `profitsForPools` that verifies it returns zero for pools without profits
+	function testPoolWithoutProfits() public
+	{
+		(bytes32 _poolID2,) = PoolUtils.poolID( tokenA, tokenB );
+		// Checking initial profit of pool to be zero
+		assertEq(_profitsForPools[_poolID2], 0, "Initial profit should be zero");
+	}
+	}
 

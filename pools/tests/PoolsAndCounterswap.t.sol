@@ -81,7 +81,8 @@ contract TestPoolsAndCounterswap is Test, Deployment
 			exchangeConfig.setStakingRewardsEmitter( stakingRewardsEmitter);
 			exchangeConfig.setLiquidityRewardsEmitter( liquidityRewardsEmitter);
 			exchangeConfig.setDAO( dao );
-	
+			exchangeConfig.setUpkeep(upkeep);
+
 			pools.setDAO(dao);
 	
 			usds.setContracts(collateral, pools, exchangeConfig );
@@ -99,6 +100,9 @@ contract TestPoolsAndCounterswap is Test, Deployment
 			Ownable(address(daoConfig)).transferOwnership( address(dao) );
 			vm.stopPrank();
 			}
+
+		vm.prank(address(initialDistribution));
+		salt.transfer(DEPLOYER, 100000000 ether);
 		}
 
 

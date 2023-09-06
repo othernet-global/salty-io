@@ -60,7 +60,7 @@ contract TestCoreSaltyFeed is Test, Deployment
         assertEq(saltyFeed.getPriceBTC(), wbtcPrice, "Incorrect WBTC price returned");
         assertEq(saltyFeed.getPriceETH(), wethPrice, "Incorrect WETH price returned");
 
-		// Remove all liquidity befor echaning price
+		// Remove all liquidity before changing price
 		vm.startPrank( DEPLOYER );
 		pools.removeLiquidity( wbtc, usds, pools.getUserLiquidity(DEPLOYER, wbtc, usds), 0, 0, block.timestamp );
 		pools.removeLiquidity( weth, usds, pools.getUserLiquidity(DEPLOYER, weth, usds), 0, 0, block.timestamp );
@@ -132,4 +132,120 @@ contract TestCoreSaltyFeed is Test, Deployment
 		assertEq(address(saltyFeed.weth()), address(weth), "WETH address not correctly initialized");
 		assertEq(address(saltyFeed.usds()), address(usds), "USDS address not correctly initialized");
 		}
+
+	// A unit test that validates that getPriceBTC function does not revert in case of zero reserves for WBTC and USDS.
+	function testGetPriceBTCDoesNotRevertWithZeroReserves() public
+    {
+        // Call getPriceBTC, should not revert and should return 0
+        assertEq(saltyFeed.getPriceBTC(), 0, "Price for WBTC should be zero when reserves are zero");
+    }
+
+
+    // A unit test that validates that getPriceETH function does not revert in case of zero reserves for WETH and USDS.
+	function testGetPriceETHDoesNotRevertWithZeroReserves() public
+    {
+        // Call getPriceETH, should not revert and should return 0
+        assertEq(saltyFeed.getPriceETH(), 0, "Price for WETH should be zero when reserves are zero");
+    }
+
+
+    // A unit test to verify the getPriceBTC functions return a non-zero value when reserves of WBTC/WETH are just above the DUST limit and USDS reserves are substantially high.
+    function testLargeUSDSReservesBTC() public
+        {
+        uint256 btcPrice = 30000 ether;  // BTC price in terms of USDS
+
+		vm.startPrank(DEPLOYER);
+		pools.addLiquidity( wbtc, usds, PoolUtils.DUST + 1, btcPrice * (PoolUtils.DUST + 1), 0, block.timestamp );
+		vm.stopPrank();
+
+        // Prices should match those set in the pools
+        assertEq(saltyFeed.getPriceBTC(), btcPrice * 10**8, "Incorrect WBTC price returned");
+        }
+
+
+    // A unit test to verify the getPriceETH functions return a non-zero value when reserves of WBTC/WETH are just above the DUST limit and USDS reserves are substantially high.
+    function testLargeUSDSReservesETH() public
+        {
+        uint256 ethPrice = 3000 ether;  // ETH price in terms of USDS
+
+		vm.startPrank(DEPLOYER);
+		pools.addLiquidity( weth, usds, PoolUtils.DUST + 1, ethPrice * (PoolUtils.DUST + 1), 0, block.timestamp );
+		vm.stopPrank();
+
+        // Prices should match those set in the pools
+        assertEq(saltyFeed.getPriceETH(), ethPrice * 10**18, "Incorrect WETH price returned");
+        }
+
+
+    // A unit test that checks whether getPriceBTC and getPriceETH functions can handle a division by zero error.
+    function testDivisionByZero() public
+    {
+        // Set prices in the pools with dust reserve
+        this.setPriceInPoolsWBTC(1 ether);
+        this.setPriceInPoolsWETH(1 ether);
+
+        // Remove all liquidity except for 1, which is less than DUST
+        vm.startPrank( DEPLOYER );
+        pools.removeLiquidity( wbtc, usds, pools.getUserLiquidity(DEPLOYER, wbtc, usds) - 1, 0, 0, block.timestamp );
+        pools.removeLiquidity( weth, usds, pools.getUserLiquidity(DEPLOYER, weth, usds) - 1, 0, 0, block.timestamp );
+        vm.stopPrank();
+
+        // Prices should be zero due to DUST limit
+        assertEq(saltyFeed.getPriceBTC(), 0, "Price for WBTC should be zero when reserves are less than DUST");
+        assertEq(saltyFeed.getPriceETH(), 0, "Price for WETH should be zero when reserves are less than DUST");
+    }
+
+
+    // A unit test to confirm that getPriceBTC and getPriceETH function returns are consistent if reserves do not change.
+    function testGetPriceConsistency() public
+    		{
+    			// Set known reserves in pools
+    			uint256 wbtcPrice = 40000 ether; // WBTC price in terms of USDS
+            	uint256 wethPrice = 2000 ether;  // WETH price in terms of USDS
+
+    			this.setPriceInPoolsWBTC(wbtcPrice);
+    			this.setPriceInPoolsWETH(wethPrice);
+
+    			uint256 initialPriceBTC = saltyFeed.getPriceBTC();
+    			uint256 initialPriceETH = saltyFeed.getPriceETH();
+
+    			assertEq(initialPriceBTC, wbtcPrice, "Price BTC changed over time without reserve changes");
+    			assertEq(initialPriceETH, wethPrice, "Price ETH changed over time without reserve changes");
+
+    			// Simulate passing of time without changing reserves
+    		    vm.warp(block.timestamp + 60 * 60 * 24);
+
+    			// Prices should be consistant over time if reserves do not change
+    			assertEq(initialPriceBTC, saltyFeed.getPriceBTC(), "Price BTC changed over time without reserve changes");
+    			assertEq(initialPriceETH, saltyFeed.getPriceETH(), "Price ETH changed over time without reserve changes");
+    		}
+
+
+    // A unit test that verifies if the getPriceBTC and getPriceETH functions handle accurately when reserves of WBTC/WETH or USDS are excessively small.
+    function testGetPriceWithExcessivelySmallReserves() public
+    		{
+    		// Set prices in the pools with very small reserve
+    		this.setPriceInPoolsWBTC(1);
+    		this.setPriceInPoolsWETH(1);
+
+			// Remove all liquidity except for 1, which is less than DUST
+			vm.startPrank( DEPLOYER );
+			pools.removeLiquidity( wbtc, usds, pools.getUserLiquidity(DEPLOYER, wbtc, usds) - 1, 0, 0, block.timestamp );
+			pools.removeLiquidity( weth, usds, pools.getUserLiquidity(DEPLOYER, weth, usds) - 1, 0, 0, block.timestamp );
+			vm.stopPrank();
+
+    		// Prices should be zero due to small reserves
+    		assertEq(saltyFeed.getPriceBTC(), 0, "Price for WBTC should be zero when reserves are too small");
+    		assertEq(saltyFeed.getPriceETH(), 0, "Price for WETH should be zero when reserves are too small");
+
+    		// Remove all liquidity
+    		vm.startPrank( DEPLOYER );
+    		pools.removeLiquidity( wbtc, usds, pools.getUserLiquidity(DEPLOYER, wbtc, usds), 0, 0, block.timestamp );
+    		pools.removeLiquidity( weth, usds, pools.getUserLiquidity(DEPLOYER, weth, usds), 0, 0, block.timestamp );
+    		vm.stopPrank();
+
+    		// Prices should still be zero
+    		assertEq(saltyFeed.getPriceBTC(), 0, "Price for WBTC should still be zero after removing liquidity");
+    		assertEq(saltyFeed.getPriceETH(), 0, "Price for WETH should still be zero after removing liquidity");
+    		}
 	}

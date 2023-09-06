@@ -8,9 +8,10 @@ import "../../dev/Deployment.sol";
 import "../PoolUtils.sol";
 import "../../pools/Counterswap.sol";
 import "../../rewards/SaltRewards.sol";
+import "./TestPools.sol";
 
 
-contract TestPools is Test, Deployment
+contract TestPools2 is Test, Deployment
 	{
 	TestERC20[] private tokens = new TestERC20[](10);
 
@@ -1630,5 +1631,135 @@ function testMinLiquidityAndReclaimedAmounts() public {
     vm.expectRevert("Insufficient underlying tokens returned");
     pools.removeLiquidity(token0, token1, liquidityBefore, excessiveMinReclaimedA, excessiveMinReclaimedB, block.timestamp);
 }
+
+
+	// A unit test that checks if the dualZapInLiquidity correctly switches to the zapping function bypassing the swap when needed.
+	    function testDualZapInLiquidityWithBypassSwap() public {
+            // setup
+            TestERC20 tokenA = new TestERC20( "TEST", 18 );
+            TestERC20 tokenB = new TestERC20( "TEST", 18 );
+
+            uint256 zapAmountA = 1000 ether;
+            uint256 zapAmountB = 1000 ether;
+
+			vm.prank(address(dao));
+			poolsConfig.whitelistPool(pools, tokenA, tokenB);
+
+            // make initial deposits
+            tokenA.approve(address(pools),type(uint256).max);
+            tokenB.approve(address(pools),type(uint256).max);
+            pools.dualZapInLiquidity(tokenA, tokenB, zapAmountA, zapAmountB, 0, block.timestamp, true);
+
+            // get actual reserves
+            (uint256 actualAddedAmountA, uint256 actualAddedAmountB) = pools.getPoolReserves(tokenA, tokenB);
+
+            // assert actual result equals expected result
+            assertEq(zapAmountA, actualAddedAmountA);
+            assertEq(zapAmountB, actualAddedAmountB);
+
+
+			// Add more liquidity
+            pools.dualZapInLiquidity(tokenA, tokenB, 500 ether, 2000 ether, 0, block.timestamp, true);
+
+            // get actual reserves
+            (uint256 reservesA, uint256 reservesB) = pools.getPoolReserves(tokenA, tokenB);
+
+            // assert actual result equals expected result
+            assertEq(reservesA, 1500 ether);
+            assertEq(reservesB, 1500 ether);
+
+
+			uint256 startingBalanceA = tokenA.balanceOf(address(this));
+			uint256 startingBalanceB = tokenB.balanceOf(address(this));
+
+			// Add more liquidity
+            pools.dualZapInLiquidity(tokenA, tokenB, 100 ether, 300 ether, 0, block.timestamp, false);
+
+            // get actual reserves
+            (reservesA, reservesB) = pools.getPoolReserves(tokenA, tokenB);
+
+            // assert actual result equals expected result
+            assertEq(reservesA, 1600000000000000000000);
+            assertEq(reservesB, 1799999998484569634844);
+
+            assertEq(startingBalanceA - tokenA.balanceOf(address(this)), 100000000000000000000);
+            assertEq(startingBalanceB - tokenB.balanceOf(address(this)), 299999998484569634844);
+
+
+			// Check that we hold all the liquidity
+			(bytes32 poolID,) = PoolUtils.poolID(tokenA, tokenB);
+			assertEq( pools.totalLiquidity(poolID), pools.getUserLiquidity(address(this), tokenA, tokenB) );
+
+        }
+
+
+	// A unit test that checks deposit function when the deposit amount is exactly equal to the user balance
+	function testDepositFullBalance() public {
+
+		vm.prank(DEPLOYER);
+		tokens[5].transfer(alice, 1000 ether);
+
+        uint256 userBalance = tokens[5].balanceOf(alice);
+
+        vm.startPrank(alice);
+
+        // Deposit the whole balance
+        tokens[5].approve(address(pools), userBalance);
+        pools.deposit(tokens[5], userBalance);
+
+        // Assert that the deposited amount is reflected correctly
+        assertEq(pools.depositedBalance(alice, tokens[5]), userBalance);
+
+        // Assert user token balance is now zero
+        assertEq(tokens[5].balanceOf(alice), 0);
+    }
+
+
+	// A unit test that validates "unwhitelist" function's modification of '_whitelistedCache' variable.
+	function testUnwhitelist() public {
+		TestPools _pools = new TestPools(exchangeConfig, poolsConfig);
+
+      // Begin closure-based prank on the defined DAO address
+      vm.startPrank(address(poolsConfig));
+
+      // Whitelist tokens[0] and tokens[1] by calling setIsWhitelistedCache() function
+      (bytes32 tokenPairID,) = PoolUtils.poolID(tokens[0], tokens[1]);
+      _pools.setIsWhitelistedCache(tokenPairID);
+
+      // Check that the tokens are whitelisted as expected
+      assertEq(_pools.isWhitelistedCache(tokenPairID), true);
+
+      // Call the clearIsWhitelistedCache() function to unwhitelist the tokens[0] and tokens[1] pair
+      _pools.clearIsWhitelistedCache(tokenPairID);
+
+      // Assert that the tokens are no longer whitelisted
+      assertEq(_pools.isWhitelistedCache(tokenPairID), false);
+
+      // Stop the closure-based prank
+      vm.stopPrank();
+    }
+
+
+	// A unit test that checks that "setDAO" can only be called once
+	function testSetDAO() public {
+		pools = new Pools(exchangeConfig, poolsConfig);
+
+        // Set the DAO for the first time
+        pools.setDAO(dao);
+
+        // Try to set the DAO again and expect a revert
+        vm.expectRevert("setDAO can only be called once");
+        pools.setDAO(dao);
+    }
+
+
+	// A unit test that checks and validates the "setDAO" function when it is called with DAO set to address(0)
+	function testSetDAOWithZeroAddress() public {
+		pools = new Pools(exchangeConfig, poolsConfig);
+
+        vm.startPrank(DEPLOYER);
+        vm.expectRevert("_dao cannot be address(0)");
+        pools.setDAO(IDAO(address(0)));
+    }
     }
 

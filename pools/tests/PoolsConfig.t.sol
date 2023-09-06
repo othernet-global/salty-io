@@ -279,4 +279,123 @@ contract PoolsConfigTest is Deployment, Test
 	assertEq(address(tokenB), address(token3));
     }
 
+
+	// A unit test that tests the tokenHasBeenWhitelisted function when the token has not been whitelisted.
+	function testTokenNotWhitelisted() public {
+    	vm.startPrank( address(dao) );
+
+    	IERC20 tokenNotWhitelisted = new TestERC20("TEST", 18);
+
+        bool hasWhitelisted = poolsConfig.tokenHasBeenWhitelisted(tokenNotWhitelisted, wbtc, weth);
+        assertFalse(hasWhitelisted, "Token should not be whitelisted");
+    }
+
+
+	// A unit test that tests the underlyingTokenPair function when one of the token addresses is 0x0
+	function testUnderlyingTokenPairInvalidToken() public {
+        vm.startPrank( address(dao) );
+
+        // Generate a pool id with one of the tokens being 0x0
+        (bytes32 poolID,) = PoolUtils.poolID(token1, IERC20(address(0)));
+
+        // Expect revert due to invalid pool id
+        vm.expectRevert("This poolID does not exist");
+        poolsConfig.underlyingTokenPair(poolID);
+
+        vm.stopPrank();
+    }
+
+
+
+	// A unit test to ensure only owners can change the maximum number of pools that can be whitelisted
+    function testChangeMaximumWhitelistedPools() public {
+        uint256 initialMaxPools = poolsConfig.maximumWhitelistedPools();
+
+        // Non-owner tries to increase the limit - should revert
+        address nonOwner = address(0xDEAD);
+        vm.startPrank(nonOwner);
+        vm.expectRevert("Ownable: caller is not the owner");
+        poolsConfig.changeMaximumWhitelistedPools(true);
+        vm.stopPrank();
+        assertEq(poolsConfig.maximumWhitelistedPools(), initialMaxPools, "Non-owner should not be able to increase the limit");
+
+        // Non-owner tries to decrease the limit - should revert
+        vm.startPrank(nonOwner);
+        vm.expectRevert("Ownable: caller is not the owner");
+        poolsConfig.changeMaximumWhitelistedPools(false);
+        vm.stopPrank();
+        assertEq(poolsConfig.maximumWhitelistedPools(), initialMaxPools, "Non-owner should not be able to decrease the limit");
+
+        // Owner increases the limit
+        vm.startPrank(address(dao));
+        poolsConfig.changeMaximumWhitelistedPools(true);
+        vm.stopPrank();
+        assertEq(poolsConfig.maximumWhitelistedPools(), initialMaxPools + 10, "Owner should be able to increase the limit");
+
+        // Owner decreases the limit
+        vm.startPrank(address(dao));
+        poolsConfig.changeMaximumWhitelistedPools(false);
+        vm.stopPrank();
+        assertEq(poolsConfig.maximumWhitelistedPools(), initialMaxPools, "Owner should be able to decrease the limit");
+    }
+
+
+
+    // A unit test that tests the unwhitelist function without proper permissions
+    function testUnwhitelistPoolWithoutPermissions() public {
+    	vm.startPrank( address(dao) );
+        (bytes32 poolID,) = PoolUtils.poolID(token1, token3);
+        poolsConfig.whitelistPool(pools, token1, token3);
+        assertTrue(poolsConfig.isWhitelisted(poolID), "New pool should be valid after whitelisting by owner");
+    	 vm.stopPrank();
+
+    	vm.expectRevert("Ownable: caller is not the owner");
+        poolsConfig.unwhitelistPool(pools, token1, token3);
+        assertTrue(poolsConfig.isWhitelisted(poolID), "Whitelisted pool should still be valid after attempted non-owner unwhitelisting");
+    }
+
+
+	// A unit test to confirm that tokenHasBeenWhitelisted returns false for both values if the pair ID doesn't reflect a whitelisted pair
+    function testTokenHasBeenWhitelisted() public {
+    	IERC20 fakeToken = new TestERC20("FAKE", 18);
+
+    	// Check if the function returns false when the token is not whitelisted
+    	assertFalse(poolsConfig.tokenHasBeenWhitelisted(fakeToken, wbtc, weth), "Function should return false when the token is not whitelisted");
+
+    	// Whitelist the fake token with WBTC, and check if the function returns true
+    	vm.prank(address(dao));
+    	poolsConfig.whitelistPool(pools, fakeToken, wbtc);
+    	assertTrue(poolsConfig.tokenHasBeenWhitelisted(fakeToken, wbtc, weth), "Function should return true when the token is whitelisted with WBTC");
+
+    	// Unwhitelist the fake token from WBTC, and check if the function returns false now
+    	vm.prank(address(dao));
+    	poolsConfig.unwhitelistPool(pools, fakeToken, wbtc);
+    	assertFalse(poolsConfig.tokenHasBeenWhitelisted(fakeToken, wbtc, weth), "Function should return false when the token is unwhitelisted from WBTC");
+
+    	// Whitelist the fake token with WETH, and check if the function returns true
+    	vm.prank(address(dao));
+    	poolsConfig.whitelistPool(pools, fakeToken, weth);
+    	assertTrue(poolsConfig.tokenHasBeenWhitelisted(fakeToken, wbtc, weth), "Function should return true when the token is whitelisted with WETH");
+
+    	// Unwhitelist the fake token from WETH, and check if the function returns false now
+    	vm.prank(address(dao));
+    	poolsConfig.unwhitelistPool(pools, fakeToken, weth);
+    	assertFalse(poolsConfig.tokenHasBeenWhitelisted(fakeToken, wbtc, weth), "Function should return false when the token is unwhitelisted from WETH");
+    }
+
+
+	// A unit test that checks that underlyingTokenPair reverts for unwhitelisted poolID
+	    function testUnderlyingTokenPairReverts() public {
+            vm.expectRevert("This poolID does not exist");
+            poolsConfig.underlyingTokenPair(bytes32(0x0));
+        }
+
+
+	// A unit test that tests tokenHasBeenWhitelisted function when tokenA or tokenB is wbtc or weth
+	function testTokenHasBeenWhitelisted2() public {
+
+        // Test tokens that have been whitelisted
+        assertTrue(poolsConfig.tokenHasBeenWhitelisted(weth, wbtc, weth), "newTokenA should be whitelisted");
+        assertTrue(poolsConfig.tokenHasBeenWhitelisted(wbtc, wbtc, weth), "newTokenB should be whitelisted");
+    }
 }

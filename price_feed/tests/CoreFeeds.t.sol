@@ -3,7 +3,6 @@ pragma solidity =0.8.21;
 
 import "forge-std/Test.sol";
 import "../../dev/Deployment.sol";
-import "../interfaces/IPriceFeedUniswap.sol";
 import "../interfaces/IPriceFeed.sol";
 import "../CoreChainlinkFeed.sol";
 import "../CoreSaltyFeed.sol";
@@ -13,7 +12,7 @@ import "../CoreUniswapFeed.sol";
 contract TestCoreFeeds is Test, Deployment
 	{
 	IPriceFeed public chainlinkFeed;
-	IPriceFeedUniswap public uniswapFeed;
+	IPriceFeed public uniswapFeed;
 	IPriceFeed public saltyFeed;
 
 	address public alice = address(0x1111);
@@ -22,7 +21,7 @@ contract TestCoreFeeds is Test, Deployment
 	constructor()
 		{
 		chainlinkFeed = new CoreChainlinkFeed( CHAINLINK_BTC_USD, CHAINLINK_ETH_USD );
-		uniswapFeed = new CoreUniswapFeed( IERC20(testBTC), IERC20(testETH), IERC20(testUSDC), UNISWAP_V3_BTC_ETH, UNISWAP_V3_USDC_ETH );
+		uniswapFeed = new CoreUniswapFeed( IERC20(_testBTC), IERC20(_testETH), IERC20(_testUSDC), UNISWAP_V3_BTC_ETH, UNISWAP_V3_USDC_ETH );
 		saltyFeed = new CoreSaltyFeed( pools, exchangeConfig );
 		}
 
@@ -32,8 +31,8 @@ contract TestCoreFeeds is Test, Deployment
 		console.log( "chainlink btc: ", chainlinkFeed.getPriceBTC() / 10**18 );
 		console.log( "chainlink eth: ", chainlinkFeed.getPriceETH() / 10**18 );
 
-		console.log( "uniswap btc: ", uniswapFeed.getTwapWBTC( 5 minutes ) / 10**18 );
-		console.log( "uniswap eth: ", uniswapFeed.getTwapWETH( 5 minutes ) / 10**18 );
+		console.log( "uniswap btc: ", uniswapFeed.getPriceBTC() / 10**18 );
+		console.log( "uniswap eth: ", uniswapFeed.getPriceETH() / 10**18 );
 
 		vm.prank(address(collateral));
 		usds.mintTo(DEPLOYER, 100000000 ether );
