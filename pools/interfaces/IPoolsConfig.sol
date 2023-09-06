@@ -10,11 +10,9 @@ interface IPoolsConfig
 	function whitelistPool( IPools pools, IERC20 tokenA, IERC20 tokenB ) external; // onlyOwner
 	function unwhitelistPool( IPools pools, IERC20 tokenA, IERC20 tokenB ) external; // onlyOwner
 	function changeMaximumWhitelistedPools(bool increase) external; // onlyOwner
-	function changeDaoPercentShareArbitrage(bool increase) external; // onlyOwner
 
 	// Views
     function maximumWhitelistedPools() external view returns (uint256);
-	function daoPercentShareArbitrage() external view returns (uint256);
 
 	function numberOfWhitelistedPools() external view returns (uint256);
 	function whitelistedPoolAtIndex( uint256 index ) external view returns (bytes32);
