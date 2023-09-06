@@ -31,10 +31,6 @@ contract PoolsConfig is IPoolsConfig, Ownable
 	// Range: 20 to 100 with an adjustment of 10
 	uint256 public maximumWhitelistedPools = 50;
 
-	// The percent of arbitrage profit that is sent to the DAO when _arbitrage() is called
-	// Range: 20% to 50% with an adjustment of 5%
-	uint256 public daoPercentShareArbitrage = 30;
-
 
 	// Whitelist a given pair of tokens
 	function whitelistPool( IPools pools, IERC20 tokenA, IERC20 tokenB ) public onlyOwner
@@ -47,7 +43,7 @@ contract PoolsConfig is IPoolsConfig, Ownable
 		underlyingPoolTokens[poolID] = TokenPair(tokenA, tokenB);
 
 		if ( _whitelist.add(poolID) )
-			pools.whitelist(poolID);
+			pools.setIsWhitelistedCache(poolID);
 		}
 
 
@@ -56,7 +52,7 @@ contract PoolsConfig is IPoolsConfig, Ownable
 		(bytes32 poolID, ) = PoolUtils.poolID(tokenA,tokenB);
 
 		if ( _whitelist.remove(poolID) )
-			pools.unwhitelist(poolID);
+			pools.clearIsWhitelistedCache(poolID);
 		}
 
 
@@ -71,21 +67,6 @@ contract PoolsConfig is IPoolsConfig, Ownable
             {
             if (maximumWhitelistedPools > 20)
                 maximumWhitelistedPools -= 10;
-            }
-        }
-
-
-	function changeDaoPercentShareArbitrage(bool increase) public onlyOwner
-        {
-        if (increase)
-            {
-            if (daoPercentShareArbitrage < 50)
-                daoPercentShareArbitrage += 5;
-            }
-        else
-            {
-            if (daoPercentShareArbitrage > 20)
-                daoPercentShareArbitrage -= 5;
             }
         }
 
