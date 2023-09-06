@@ -64,7 +64,7 @@ contract ArbitrageSearch
 	// Swaps are circular and will start and end with WETH.
 	function _indirectArbitragePath( IERC20 swapTokenIn, IERC20 swapTokenOut ) internal pure returns (IERC20 arbToken2, IERC20 arbToken3)
 		{
-		// swap: arbToken2->WETH->arbToken3   (intermediate WETH used in swaps without direct pool on exchange)
+		// swap: swapTokenIn->WETH->swapTokenOut   (intermediate WETH used in swaps without direct pool on exchange)
 		// arb: WETH->arbToken2->WBTC->arbToken3->WETH
 		return (swapTokenIn, swapTokenOut);
 		}
@@ -81,7 +81,7 @@ contract ArbitrageSearch
 		uint256 amountOut = reservesA1 - kA / ( reservesA0 + midpoint );
 		amountOut = reservesB1 - kB / ( reservesB0 + amountOut );
 		amountOut = reservesC1 - kC / ( reservesC0 + amountOut );
-		if ( reservesD0 > 0 )
+		if ( reservesD0 > PoolUtils.DUST )
 			amountOut = reservesD1 - ( reservesD0 * reservesD1 ) / ( reservesD0 + amountOut );
 
 		profitMidpoint = int256(amountOut) - int256(midpoint);
@@ -90,7 +90,7 @@ contract ArbitrageSearch
 		amountOut = reservesA1 - kA / ( reservesA0 + (midpoint + MIDPOINT_PRECISION) );
 		amountOut = reservesB1 - kB / ( reservesB0 + amountOut );
 		amountOut = reservesC1 - kC / ( reservesC0 + amountOut );
-		if ( reservesD0 > 0 )
+		if ( reservesD0 > PoolUtils.DUST )
 			amountOut = reservesD1 - ( reservesD0 * reservesD1 ) / ( reservesD0 + amountOut );
 
 		profitRightOfMidpoint = int256(amountOut) - int256(midpoint + MIDPOINT_PRECISION);
