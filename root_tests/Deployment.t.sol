@@ -51,6 +51,12 @@ contract TestDeployment is Deployment, Test
         assertEq( getContract(address(exchangeConfig), "dao()"), address(dao), "Incorrect exchangeConfig.dao" );
         assertEq( getContract(address(exchangeConfig), "upkeep()"), address(upkeep), "Incorrect exchangeConfig.upkeep" );
 
+        assertEq( getContract(address(pools), "wbtc()"), address(wbtc), "Incorrect pools.wbtc" );
+        assertEq( getContract(address(pools), "weth()"), address(weth), "Incorrect pools.weth" );
+        assertEq( getContract(address(pools), "salt()"), address(salt), "Incorrect pools.salt" );
+        assertEq( getContract(address(pools), "exchangeConfig()"), address(exchangeConfig), "Incorrect pools.exchangeConfig" );
+        assertEq( getContract(address(pools), "poolsConfig()"), address(poolsConfig), "Incorrect pools.poolsConfig" );
+        assertEq( getContract(address(pools), "usds()"), address(usds), "Incorrect pools.usds" );
         assertEq( getContract(address(pools), "dao()"), address(dao), "Incorrect pools.dao" );
 
         assertEq( getContract(address(staking), "exchangeConfig()"), address(exchangeConfig), "Incorrect staking.exchangeConfig" );
@@ -83,6 +89,7 @@ contract TestDeployment is Deployment, Test
         assertEq( getContract(address(emissions), "exchangeConfig()"), address(exchangeConfig), "Incorrect emissions.exchangeConfig" );
         assertEq( getContract(address(emissions), "rewardsConfig()"), address(rewardsConfig), "Incorrect emissions.rewardsConfig" );
 
+		assertEq( getContract(address(dao), "pools()"), address(pools), "Incorrect dao.pools" );
 		assertEq( getContract(address(dao), "proposals()"), address(proposals), "Incorrect dao.proposals" );
         assertEq( getContract(address(dao), "exchangeConfig()"), address(exchangeConfig), "Incorrect dao.exchangeConfig" );
         assertEq( getContract(address(dao), "poolsConfig()"), address(poolsConfig), "Incorrect dao.poolsConfig" );
@@ -121,22 +128,41 @@ contract TestDeployment is Deployment, Test
 		assertEq( getContract( address(daoConfig), "owner()" ), address(dao), "daoConfig owner is not dao" );
 		assertEq( getContract( address(priceAggregator), "owner()" ), address(dao), "priceAggregator owner is not dao" );
 
+		assertEq( getContract(address(initialDistribution), "salt()"), address(salt), "Incorrect initialDistribution.salt" );
+		assertEq( getContract(address(initialDistribution), "poolsConfig()"), address(poolsConfig), "Incorrect initialDistribution.poolsConfig" );
+		assertEq( getContract(address(initialDistribution), "emissions()"), address(emissions), "Incorrect initialDistribution.emissions" );
+		assertEq( getContract(address(initialDistribution), "bootstrapBallot()"), address(bootstrapBallot), "Incorrect initialDistribution.bootstrapBallot" );
+		assertEq( getContract(address(initialDistribution), "dao()"), address(dao), "Incorrect initialDistribution.dao" );
+		assertEq( getContract(address(initialDistribution), "daoVestingWallet()"), address(daoVestingWallet), "Incorrect initialDistribution.daoVestingWallet" );
+		assertEq( getContract(address(initialDistribution), "teamVestingWallet()"), address(teamVestingWallet), "Incorrect initialDistribution.teamVestingWallet" );
+		assertEq( getContract(address(initialDistribution), "airdrop()"), address(airdrop), "Incorrect initialDistribution.airdrop" );
+		assertEq( getContract(address(initialDistribution), "saltRewards()"), address(saltRewards), "Incorrect initialDistribution.saltRewards" );
+		assertEq( getContract(address(initialDistribution), "liquidity()"), address(liquidity), "Incorrect initialDistribution.liquidity" );
 
-        if ( DEBUG )
-        	assertTrue( functionExists( address(priceAggregator.priceFeed1()), "forcedPriceBTCWith18Decimals()" ), "For DEBUG: The PriceFeed should be a ForcedPriceFeed" );
-        else
+		assertEq( salt.balanceOf(address(initialDistribution)), 100000000 ether, "The InitialDistribution contract should start with a SALT balance of 100 million SALT" );
+
+        if ( ! DEBUG )
         	{
         	// Live on the Ethereum blockchain
         	// Check that contracts are what they are expected to be
         	assertFalse( functionExists( address(priceAggregator), "forcedPriceBTCWith18Decimals()" ), "For DEBUG: The PriceFeed should not be a ForcedPriceFeed" );
 
-			address uniswapFeed = getContract( address(priceAggregator.priceFeed1()), "uniswapFeed()" );
-        	assertEq( getContract( address(priceAggregator.priceFeed2()), "CHAINLINK_BTC_USD()" ), address(0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c), "Incorrect BTC/USD Chainlink price feed" );
-        	assertEq( getContract( address(priceAggregator.priceFeed2()), "CHAINLINK_ETH_USD()" ), address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419), "Incorrect ETH/USD Chainlink price feed" );
-        	assertEq( getContract( address(uniswapFeed), "UNISWAP_V3_WBTC_WETH()" ), address(0xCBCdF9626bC03E24f779434178A73a0B4bad62eD), "Incorrect WBTC/WETH Uniswap v3 Pool" );
-        	assertEq( getContract( address(uniswapFeed), "UNISWAP_V3_WETH_USDC()" ), address(0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640), "Incorrect WETH/USDC Uniswap v3 Pool" );
+			// CoreChainlinkFeed
+        	assertEq( getContract( address(priceAggregator.priceFeed1()), "CHAINLINK_BTC_USD()" ), address(0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c), "Incorrect BTC/USD Chainlink price feed" );
+        	assertEq( getContract( address(priceAggregator.priceFeed1()), "CHAINLINK_ETH_USD()" ), address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419), "Incorrect ETH/USD Chainlink price feed" );
 
-			assertEq( getContract( address(priceAggregator.priceFeed3()), "usds()" ), address(usds), "Invalid priceAggregator.saltyFeed.USDS" );
+			// CoreUniswapFeed
+        	assertEq( getContract( address(priceAggregator.priceFeed2()), "UNISWAP_V3_WBTC_WETH()" ), address(0xCBCdF9626bC03E24f779434178A73a0B4bad62eD), "Incorrect WBTC/WETH Uniswap v3 Pool" );
+        	assertEq( getContract( address(priceAggregator.priceFeed2()), "UNISWAP_V3_WETH_USDC()" ), address(0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640), "Incorrect WETH/USDC Uniswap v3 Pool" );
+			assertEq( getContract( address(priceAggregator.priceFeed2()), "wbtc()" ), address(wbtc), "Invalid priceAggregator.uniswapFeed.wbtc" );
+			assertEq( getContract( address(priceAggregator.priceFeed2()), "weth()" ), address(weth), "Invalid priceAggregator.uniswapFeed.weth" );
+			assertEq( getContract( address(priceAggregator.priceFeed2()), "usdc()" ), address(0x9C65b1773A95d607f41fa205511cd3327cc39D9D), "Invalid priceAggregator.uniswapFeed.usdc" );
+
+			// CoreSaltyFeed
+			assertEq( getContract( address(priceAggregator.priceFeed3()), "pools()" ), address(pools), "Invalid priceAggregator.saltyFeed.pools" );
+			assertEq( getContract( address(priceAggregator.priceFeed3()), "wbtc()" ), address(wbtc), "Invalid priceAggregator.saltyFeed.wbtc" );
+			assertEq( getContract( address(priceAggregator.priceFeed3()), "weth()" ), address(weth), "Invalid priceAggregator.saltyFeed.weth" );
+			assertEq( getContract( address(priceAggregator.priceFeed3()), "usds()" ), address(usds), "Invalid priceAggregator.saltyFeed.usds" );
 
 			assertEq( address(wbtc), 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599, "Invalid WBTC" );
 			assertEq( address(weth), 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2, "Invalid WETH" );
@@ -185,6 +211,8 @@ contract TestDeployment is Deployment, Test
    		console.log( "priceFeed1: ", address(priceAggregator.priceFeed1()) );
    		console.log( "priceFeed2: ", address(priceAggregator.priceFeed2()) );
    		console.log( "priceFeed3: ", address(priceAggregator.priceFeed3()) );
+		console.log( "" );
+   		console.log( "initialDistribution: ", address(initialDistribution) );
    		}
     }
 
