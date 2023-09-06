@@ -20,7 +20,6 @@ import "../openzeppelin/security/ReentrancyGuard.sol";
 
 // Allows users to propose and vote on various governance actions such as changing parameters, whitelisting/unwhitelisting tokens, sending tokens, calling other contracts, and updating the website.
 // It handles proposing ballots, tracking votes, enforcing voting requirements, and executing approved proposals.
-// It also stores SALT in the contract for later use and WETH for forming Protocol Owned Liquidity of either SALT/WBTC, SALT/WETH or SALT/USDS.
 contract DAO is IDAO, Parameters, ReentrancyGuard
     {
 	using SafeERC20 for ISalt;
@@ -245,17 +244,21 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 
 
 	// Form Protocol Owned Liquidity with any SALT and USDS in the contract
-	function formPOL( ISalt salt, IUSDS usds ) public
+	// Any SALT or USDS that is not used will be stay in the DAO contract.
+	function formPOL( ILiquidity liquidity, ISalt salt, IUSDS usds ) public
 		{
 		require( msg.sender == address(exchangeConfig.upkeep()), "DAO.formPOL is only callable from the Upkeep contract" );
 
-		uint256 saltBalance = salt.balanceOf( address(this) );
-		uint256 usdsBalance = usds.balanceOf( address(this) );
+		uint256 balanceA = salt.balanceOf( address(this) );
+		uint256 balanceB = usds.balanceOf( address(this) );
 
-		salt.approve(address(pools), saltBalance);
-		usds.approve(address(pools), usdsBalance);
+		require( balanceA > 0, "formPOL: balanceA cannot be zero" );
+		require( balanceB > 0, "formPOL: balanceB cannot be zero" );
 
-		pools.addLiquidity( salt, usds, saltBalance, usdsBalance, 0, block.timestamp );
+		salt.approve(address(liquidity), balanceA);
+		usds.approve(address(liquidity), balanceB);
+
+		liquidity.addLiquidityAndIncreaseShare( salt, usds, balanceA, balanceB, 0, block.timestamp, true );
 		}
 
 
@@ -269,14 +272,13 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		}
 
 
-	function processRewardsFromPOL(ILiquidity liquidity, ISalt salt, IERC20 weth, IUSDS usds) public
+	function processRewardsFromPOL(ILiquidity liquidity, ISalt salt, IUSDS usds) public
 		{
 		require( msg.sender == address(exchangeConfig.upkeep()), "DAO.processRewardsFromPOL is only callable from the Upkeep contract" );
 
-		// The DAO owns SALT/WETH liquidity formed from the initial sale, and SALT/USDS which it forms on an ongoing basis
-		bytes32[] memory protocolOwnedLiquidityPoolIDs = new bytes32[](2);
-		(protocolOwnedLiquidityPoolIDs[0],) = PoolUtils.poolID(salt, weth);
-		(protocolOwnedLiquidityPoolIDs[1],) = PoolUtils.poolID(salt, usds);
+		// The DAO owns SALT/USDS which it forms on an ongoing basis
+		bytes32[] memory protocolOwnedLiquidityPoolIDs = new bytes32[](1);
+		(protocolOwnedLiquidityPoolIDs[0],) = PoolUtils.poolID(salt, usds);
 
 		uint256 claimedAmount = liquidity.claimAllRewards(protocolOwnedLiquidityPoolIDs);
 

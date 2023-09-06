@@ -10,7 +10,7 @@ contract DAOConfig is IDAOConfig, Ownable
     {
 	// The amount of SALT provided as a bootstrapping reward when a new token is whitelisted.
 	// Note that new tokens will only be able to be whitelisted (even if the vote is favorable) once the DAO SALT balance is at least this amount.
-	// The DAO receives 15 million SALT (linearly over 10 years - about 29k per week) as well as default ~23% of the Protocol Owned Liquidity SALT rewards.
+	// The DAO receives 25 million SALT (linearly over 10 years - about 48k per week) as well as default ~23% of the Protocol Owned Liquidity SALT rewards.
 	// Range: 50k ether to 500k ether with an adjustment of 50k ether
 	uint256 public bootstrappingRewards = 100000 ether;
 
