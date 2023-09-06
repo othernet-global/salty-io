@@ -32,6 +32,9 @@ contract SharedRewardsTest is Test, Deployment
 
     function setUp() public
     	{
+		vm.prank(address(initialDistribution));
+		salt.transfer(DEPLOYER, 100000000 ether);
+
     	IERC20 token1 = new TestERC20("TEST", 18);
 		IERC20 token2 = new TestERC20("TEST", 18);
 
