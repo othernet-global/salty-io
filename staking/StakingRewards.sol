@@ -172,7 +172,7 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 	// Adds SALT rewards for specific whitelisted pools.
 	// There is some risk of addSALTRewards being front run, but there are multiple mechanisms in place to prevent this from being effective.
 	// 1. There is a cooldown period of default one hour before shares can be modified once deposited.
-	// 2. Staked SALT has a default unstake period of 6 months.
+	// 2. Staked SALT has a default unstake period of 52 weeks.
 	// 3. Rewards are first placed into a RewardsEmitter which deposits rewards via addSALTRewards at the default rate of 1% per day.
 	// 4. Rewards are deposited fairly quickly, with outstanding rewards being transferred within the global performUpkeep function,
 	//      which will be called at least every 15 minutes - but likely more often.

@@ -9,8 +9,8 @@ import "../pools/PoolUtils.sol";
 
 
 // Staking SALT provides xSALT at a 1:1 ratio.
-// Unstaking xSALT to reclaim SALT has a default unstake duration of six months and a minimum duration of two weeks.
-// By default, unstaking for two weeks allows 50% of the SALT to be reclaimed, while unstaking for the full six months allows the full 100%
+// Unstaking xSALT to reclaim SALT has a default unstake duration of 52 weeks and a minimum duration of two weeks.
+// By default, unstaking for two weeks allows 20% of the SALT to be reclaimed, while unstaking for the full six months allows the full 100%
 
 contract Staking is IStaking, StakingRewards
     {
@@ -41,7 +41,7 @@ contract Staking is IStaking, StakingRewards
 		userXSalt[msg.sender] += amountToStake;
 
 		// Increase the user's staking share so that they will receive more future SALT rewards
-		// No cooldown as it takes default 6 months to unstake the xSALT to receive the full amount staked SALT back
+		// No cooldown as it takes default 52 weeks to unstake the xSALT to receive the full amount staked SALT back
 		_increaseUserShare( msg.sender, PoolUtils.STAKED_SALT, amountToStake, false );
 
 		// Transfer the SALT from the user's wallet
