@@ -16,9 +16,9 @@ contract StakingConfig is IStakingConfig, Ownable
 	// Range: 20 to 108 with an adjustment of 8
 	uint256 public maxUnstakeWeeks = 52; // 100% of the original SALT returned for unstaking this number of weeks
 
-	// The minimum percentage of the original xSALT stake that is claimable when staking the minimum number of weeks.
-	// Range: 30 to 90 with an adjustment of 10
-	uint256 public minUnstakePercent = 80;
+	// The percentage of the original staked SALT that is reclaimable when unstaking the minimum number of weeks.
+	// Range: 10 to 50 with an adjustment of 5
+	uint256 public minUnstakePercent = 20;
 
 	// Minimum time between increasing and decreasing user share in SharedRewards contracts.
 	// Prevents reward hunting where users could frontrun reward distributions and then immediately withdraw.
@@ -60,13 +60,13 @@ contract StakingConfig is IStakingConfig, Ownable
         {
         if (increase)
             {
-            if (minUnstakePercent < 90)
-                minUnstakePercent += 10;
+            if (minUnstakePercent < 50)
+                minUnstakePercent += 5;
             }
         else
             {
-            if (minUnstakePercent > 30)
-                minUnstakePercent -= 10;
+            if (minUnstakePercent > 10)
+                minUnstakePercent -= 5;
             }
         }
 
