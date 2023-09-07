@@ -9,7 +9,7 @@ import "./interfaces/IStakingConfig.sol";
 contract StakingConfig is IStakingConfig, Ownable
     {
 	// The minimum number of weeks for an unstake request.
-	// Range: 2 to 12 with an adjustment of 1
+	// Range: 1 to 12 with an adjustment of 1
 	uint256 public minUnstakeWeeks = 2;  // minUnstakePercent returned for unstaking this number of weeks
 
 	// The maximum number of weeks for an unstake request.
@@ -35,7 +35,7 @@ contract StakingConfig is IStakingConfig, Ownable
             }
         else
             {
-            if (minUnstakeWeeks > 2)
+            if (minUnstakeWeeks > 1)
                 minUnstakeWeeks -= 1;
             }
         }
