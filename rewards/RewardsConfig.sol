@@ -21,10 +21,11 @@ contract RewardsConfig is IRewardsConfig, Ownable
 	// Range: 25% to 75% with an adjustment of 5%
     uint256 public stakingRewardsPercent = 50;
 
-	// The percent of WBTC/WETH arbitrage profits (arbitrage swaps which involve WBTC/WETH which is most pairs) that will be sent to the SALT/USDS pool.
-	// This is done as SALT/USDS while an important pair for the exchange isn't involved in any arbitrage swap cycles (which would yield arbitrage profit for it as well).
-	// Range: 10% to 40% with an adjustment of 5%
-    uint256 public percentRewardsSaltUSDS = 25;
+	// The percent of SALT Rewards that will be sent to the SALT/USDS pool.
+	// This is done as SALT/USDS while a very important pair for the exchange isn't involved in any arbitrage swap cycles (which would yield arbitrage profit for it as well).
+	// This is because it isn't part of the usual token/WBTC, token/WETH pool structure which allows other pools to be part of arbitrage swap cycles when other pools are traded.
+	// Range: 5% to 25% with an adjustment of 5%
+    uint256 public percentRewardsSaltUSDS = 10;
 
 
 	function changeRewardsEmitterDailyPercent(bool increase) public onlyOwner
@@ -75,12 +76,12 @@ contract RewardsConfig is IRewardsConfig, Ownable
         {
         if (increase)
             {
-            if (percentRewardsSaltUSDS < 40)
+            if (percentRewardsSaltUSDS < 25)
                 percentRewardsSaltUSDS = percentRewardsSaltUSDS + 5;
             }
         else
             {
-            if (percentRewardsSaltUSDS > 10)
+            if (percentRewardsSaltUSDS > 5)
                 percentRewardsSaltUSDS = percentRewardsSaltUSDS - 5;
             }
         }

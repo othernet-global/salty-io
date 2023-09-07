@@ -187,7 +187,7 @@ contract TestParametersOffchain is Test
 		_checkParameter( Parameters.ParameterTypes.rewardsEmitterDailyPercentTimes1000, 250, 1000, 2500, 250 );
 		_checkParameter( Parameters.ParameterTypes.emissionsWeeklyPercentTimes1000, 250, 500, 1000, 250 );
 		_checkParameter( Parameters.ParameterTypes.stakingRewardsPercent, 25, 50, 75, 5 );
-		_checkParameter( Parameters.ParameterTypes.percentRewardsSaltUSDS, 10, 25, 40, 5 );
+		_checkParameter( Parameters.ParameterTypes.percentRewardsSaltUSDS, 5, 10, 25, 5 );
 		}
 
 
@@ -221,7 +221,7 @@ contract TestParametersOffchain is Test
 		_checkParameter( Parameters.ParameterTypes.ballotDuration, 3 days, 10 days, 14 days, 1 days );
 		_checkParameter( Parameters.ParameterTypes.baseProposalCost, 250 ether, 500 ether, 5000 ether, 250 ether );
 		_checkParameter( Parameters.ParameterTypes.maxPendingTokensForWhitelisting, 3, 5, 12, 1 );
-		_checkParameter( Parameters.ParameterTypes.arbitrageProfitsPercentPOL, 15, 30, 45, 5 );
+		_checkParameter( Parameters.ParameterTypes.arbitrageProfitsPercentPOL, 15, 20, 45, 5 );
 		_checkParameter( Parameters.ParameterTypes.upkeepRewardPercent, 1, 5, 10, 1 );
 		}
 

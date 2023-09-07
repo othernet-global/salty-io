@@ -52,7 +52,7 @@ contract DAOConfig is IDAOConfig, Ownable
 
 	// The share of the WETH arbitrage profits that are sent to the DAO to form Protocol Owned Liquidity
 	// Range: 15% to 45% with an adjustment of 5%
-	uint256 public arbitrageProfitsPercentPOL = 30;
+	uint256 public arbitrageProfitsPercentPOL = 20;
 
 	// The share of the WETH arbitrage profits sent to the DAO that are sent to the caller of DAO.performUpkeep()
 	// Range: 1% to 10% with an adjustment of 1%
