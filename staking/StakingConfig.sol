@@ -8,13 +8,13 @@ import "./interfaces/IStakingConfig.sol";
 // Contract owned by the DAO with parameters modifiable only by the DAO
 contract StakingConfig is IStakingConfig, Ownable
     {
-	// The minimum number of weeks for an unstake request.
+	// The minimum number of weeks for an unstake request at which point minUnstakePercent of the original staked SALT is reclaimable.
 	// Range: 1 to 12 with an adjustment of 1
 	uint256 public minUnstakeWeeks = 2;  // minUnstakePercent returned for unstaking this number of weeks
 
-	// The maximum number of weeks for an unstake request.
+	// The maximum number of weeks for an unstake request at which point 100% of the original staked SALT is reclaimable.
 	// Range: 20 to 108 with an adjustment of 8
-	uint256 public maxUnstakeWeeks = 52; // 100% of the original SALT returned for unstaking this number of weeks
+	uint256 public maxUnstakeWeeks = 52;
 
 	// The percentage of the original staked SALT that is reclaimable when unstaking the minimum number of weeks.
 	// Range: 10 to 50 with an adjustment of 5

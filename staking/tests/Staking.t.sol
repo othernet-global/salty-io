@@ -165,7 +165,7 @@ contract StakingTest is Test, Deployment
 		if ( i == 0 )
 			expectedClaimableSALT = (unstakeAmount * stakingConfig.minUnstakePercent()) / 100;
 		if ( i == 1 )
-			expectedClaimableSALT =15 ether;
+			expectedClaimableSALT =7840000000000000000;
 		if ( i == 2 )
 			expectedClaimableSALT =20 ether;
 
@@ -623,10 +623,10 @@ contract StakingTest is Test, Deployment
             staking.recoverSALT(charlieUnstakeID);
 
             // Check the amount of SALT that was recovered
-            // With a two week unstake, only 50% of the originally staked SALT is recovered
-            assertEq(salt.balanceOf(alice) - aliceSalt, 5 ether);
-            assertEq(salt.balanceOf(bob) - bobSalt, 10 ether);
-            assertEq(salt.balanceOf(charlie) - charlieSalt, 15 ether);
+            // With a two week unstake, only 20% of the originally staked SALT is recovered
+            assertEq(salt.balanceOf(alice) - aliceSalt, 2 ether);
+            assertEq(salt.balanceOf(bob) - bobSalt, 4 ether);
+            assertEq(salt.balanceOf(charlie) - charlieSalt, 6 ether);
 
             // Check the final xSALT balances
             assertEq(staking.userXSalt(alice), 40 ether);
@@ -713,7 +713,7 @@ contract StakingTest is Test, Deployment
         staking.stakeSALT(10 ether);
 
         // Alice unstakes
-        uint256 unstakeID = staking.unstake(5 ether, 26);
+        uint256 unstakeID = staking.unstake(5 ether, 52);
         vm.stopPrank();
 
         // Bob tries to recover SALT from Alice's unstake
@@ -722,7 +722,7 @@ contract StakingTest is Test, Deployment
         staking.recoverSALT(unstakeID);
 
         // Warp into the future to complete unstaking duration
-        vm.warp(block.timestamp + 26 weeks);
+        vm.warp(block.timestamp + 52 weeks);
 
         // Bob tries to recover SALT again from Alice's unstake after it completed
         vm.expectRevert("Not the original staker");

@@ -40,7 +40,7 @@ contract Deployment
 
 
 	// The DAO contract can provide us with all other contract addresses in the protocol
-	IDAO public dao = IDAO(address(0x504494f00b57Ed660ec35c89284C07D1d9500E97));
+	IDAO public dao = IDAO(address(0x58d6955428CEa41FB3222de15c5A8f1017672C60));
 
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
