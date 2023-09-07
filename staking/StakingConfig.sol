@@ -13,12 +13,12 @@ contract StakingConfig is IStakingConfig, Ownable
 	uint256 public minUnstakeWeeks = 2;  // minUnstakePercent returned for unstaking this number of weeks
 
 	// The maximum number of weeks for an unstake request.
-	// Range: 14 to 52 with an adjustment of 2
-	uint256 public maxUnstakeWeeks = 26; // 100% of the original SALT returned for unstaking this number of weeks
+	// Range: 20 to 108 with an adjustment of 8
+	uint256 public maxUnstakeWeeks = 52; // 100% of the original SALT returned for unstaking this number of weeks
 
 	// The minimum percentage of the original xSALT stake that is claimable when staking the minimum number of weeks.
-	// Range: 25 to 75 with an adjustment of 5
-	uint256 public minUnstakePercent = 50;
+	// Range: 30 to 90 with an adjustment of 10
+	uint256 public minUnstakePercent = 80;
 
 	// Minimum time between increasing and decreasing user share in SharedRewards contracts.
 	// Prevents reward hunting where users could frontrun reward distributions and then immediately withdraw.
@@ -45,13 +45,13 @@ contract StakingConfig is IStakingConfig, Ownable
         {
         if (increase)
             {
-            if (maxUnstakeWeeks < 52)
-                maxUnstakeWeeks += 2;
+            if (maxUnstakeWeeks < 108)
+                maxUnstakeWeeks += 8;
             }
         else
             {
-            if (maxUnstakeWeeks > 14)
-                maxUnstakeWeeks -= 2;
+            if (maxUnstakeWeeks > 20)
+                maxUnstakeWeeks -= 8;
             }
         }
 
@@ -60,13 +60,13 @@ contract StakingConfig is IStakingConfig, Ownable
         {
         if (increase)
             {
-            if (minUnstakePercent < 75)
-                minUnstakePercent += 5;
+            if (minUnstakePercent < 90)
+                minUnstakePercent += 10;
             }
         else
             {
-            if (minUnstakePercent > 25)
-                minUnstakePercent -= 5;
+            if (minUnstakePercent > 30)
+                minUnstakePercent -= 10;
             }
         }
 

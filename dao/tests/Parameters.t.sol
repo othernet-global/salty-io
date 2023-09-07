@@ -174,8 +174,8 @@ contract TestParametersOffchain is Test
 		vm.startPrank(address(parameters));
 
 		_checkParameter( Parameters.ParameterTypes.minUnstakeWeeks, 2, 2, 12, 1 );
-		_checkParameter( Parameters.ParameterTypes.maxUnstakeWeeks, 14, 26, 52, 2 );
-		_checkParameter( Parameters.ParameterTypes.minUnstakePercent, 25, 50, 75, 5 );
+		_checkParameter( Parameters.ParameterTypes.maxUnstakeWeeks, 20, 52, 108, 8 );
+		_checkParameter( Parameters.ParameterTypes.minUnstakePercent, 30, 80, 90, 10 );
 		_checkParameter( Parameters.ParameterTypes.modificationCooldown, 15 minutes, 1 hours, 6 hours, 15 minutes );
 		}
 
