@@ -24,7 +24,6 @@ contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
 	IStakingRewards immutable public stakingRewards;
 	IExchangeConfig immutable public exchangeConfig;
 	IPoolsConfig immutable public poolsConfig;
-	IStakingConfig immutable public stakingConfig;
 	IRewardsConfig immutable public rewardsConfig;
 	ISalt immutable public salt;
 

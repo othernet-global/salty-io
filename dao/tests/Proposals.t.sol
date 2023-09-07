@@ -1210,7 +1210,7 @@ contract TestProposals is Test, Deployment
        // Try proposing a ballot for the same token again - should pass as it has been marked finalized
        proposals.proposeTokenWhitelisting(TestERC20(testTokenAddress), "", "");
 
-       console.log( "proposals.openBallotsByName(ballotName): ", proposals.openBallotsByName(ballotName) );
+//       console.log( "proposals.openBallotsByName(ballotName): ", proposals.openBallotsByName(ballotName) );
        assertEq(proposals.openBallotsByName(ballotName), 3);
 
        vm.stopPrank();

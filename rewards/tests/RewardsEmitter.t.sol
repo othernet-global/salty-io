@@ -506,5 +506,112 @@ contract TestRewardsEmitter is Test, Deployment
         liquidityRewardsEmitter.performUpkeep(2 weeks);
 		}
 
+
+	// A unit test that verifies whether the RewardsEmitter correctly handles scenarios where addSALTRewards is called for a pool that has been withdrawn from whitelisting.
+	function testWithdrawnPoolAddSALTRewards() public {
+        // Alice deposits some liquidity to the pool1
+        vm.prank(alice);
+        liquidity.addLiquidityAndIncreaseShare(token1, token2, 500 ether, 500 ether, 0, block.timestamp, false );
+
+        AddedReward[] memory addedRewards = new AddedReward[](1);
+        addedRewards[0] = AddedReward({poolID: poolIDs[0], amountToAdd: 100 ether});
+
+        vm.prank(alice);
+        liquidityRewardsEmitter.addSALTRewards(addedRewards);
+
+        assertEq(liquidityRewardsEmitter.pendingRewardsForPools(poolIDs)[0], 100 ether);
+        assertEq(liquidityRewardsEmitter.pendingRewardsForPools(poolIDs)[1], 0);
+
+        // Whitelist is withdrawn for pool1
+        vm.prank(address(dao));
+        poolsConfig.unwhitelistPool(pools, token1, token2);
+
+        // Alice tries to add rewards to pool1 that has been withdrawn from whitelisting
+        // Expect it to revert
+        vm.expectRevert("Invalid pool");
+        liquidityRewardsEmitter.addSALTRewards(addedRewards);
+
+		// Verify that rewards are still the same
+        assertEq(liquidityRewardsEmitter.pendingRewardsForPools(poolIDs)[0], 100 ether);
+        assertEq(liquidityRewardsEmitter.pendingRewardsForPools(poolIDs)[1], 0);
+    }
+
+
+    // A unit test that verifies if RewardsEmitter correctly handles a case where addSALTRewards is called with an empty array.
+    function testAddSALTRewardsEmptyArray() public {
+            // Define rewards to be added as an empty array
+            AddedReward[] memory addedRewards = new AddedReward[](0);
+
+            uint256 initialContractBalance = salt.balanceOf(address(liquidityRewardsEmitter));
+
+            // Alice adds rewards using an empty array
+            vm.prank(alice);
+            liquidityRewardsEmitter.addSALTRewards(addedRewards);
+
+            // Contract balance should remain the same as no rewards were added
+            uint256 finalContractBalance = salt.balanceOf(address(liquidityRewardsEmitter));
+            assertEq(finalContractBalance, initialContractBalance);
+
+            // Pending rewards for each pool should remain the same as no rewards were added
+            uint256[] memory poolsPendingRewards = liquidityRewardsEmitter.pendingRewardsForPools(poolIDs);
+            for (uint256 i = 0; i < poolIDs.length; i++) {
+                assertEq(poolsPendingRewards[i], 0);
+            }
+        }
+
+
+    // A unit test that verifies whether the RewardsEmitter correctly handles the situation if a pool is whitelisted after rewards were added.
+	function testPoolWhitelistedAfterRewardsAdded() public {
+		IERC20 tokenA = new TestERC20( "TEST", 18 );
+		IERC20 tokenB = new TestERC20( "TEST", 18 );
+
+        bytes32 unlistedPoolID;
+        (unlistedPoolID,) = PoolUtils.poolID(tokenA, tokenB);
+        uint256 addedReward = 100 ether;
+
+        // Record initial balance of the contract
+        uint256 initialContractBalance = salt.balanceOf(address(liquidityRewardsEmitter));
+
+        AddedReward[] memory addedRewards = new AddedReward[](1);
+        addedRewards[0] = AddedReward({poolID: unlistedPoolID, amountToAdd: addedReward});
+
+        // Add rewards to an unlisted pool
+        vm.startPrank(address(alice));
+        vm.expectRevert("Invalid pool");
+        liquidityRewardsEmitter.addSALTRewards(addedRewards);
+        vm.stopPrank();
+
+        // Ensure that the rewards in the contract have not changed
+        assertEq(salt.balanceOf(address(liquidityRewardsEmitter)), initialContractBalance);
+
+        // Whitelist the previously unlisted pool and add rewards again
+        vm.prank(address(dao));
+        poolsConfig.whitelistPool(pools, tokenA, tokenB);
+
+        // Add rewards to the now whitelisted pool
+        liquidityRewardsEmitter.addSALTRewards(addedRewards);
+
+        // Ensure that the rewards in the contract have been increased by the added amount
+        assertEq(salt.balanceOf(address(liquidityRewardsEmitter)), initialContractBalance + addedReward);
+
+        // Ensure that the pending rewards for the whitelisted pool have been correctly incremented
+        assertEq(pendingLiquidityRewardsForPool(unlistedPoolID), addedReward);
+    }
+
+
+    // A unit test that tries to instantiate the RewardsEmitter with invalid contract arguments (e.g. address(0)) and expects it to revert.
+    function testRewardsEmitterConstructorRevertsWithZeroAddresses() public {
+        vm.expectRevert("_stakingRewards cannot be address(0)");
+        new RewardsEmitter(IStakingRewards(address(0)), exchangeConfig, poolsConfig, rewardsConfig);
+
+        vm.expectRevert("_exchangeConfig cannot be address(0)");
+        new RewardsEmitter(staking, IExchangeConfig(address(0)), poolsConfig, rewardsConfig);
+
+        vm.expectRevert("_poolsConfig cannot be address(0)");
+        new RewardsEmitter(staking, exchangeConfig, IPoolsConfig(address(0)), rewardsConfig);
+
+        vm.expectRevert("_rewardsConfig cannot be address(0)");
+        new RewardsEmitter(staking, exchangeConfig, poolsConfig, IRewardsConfig(address(0)));
+    }
 	}
 

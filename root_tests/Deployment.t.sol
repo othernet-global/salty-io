@@ -79,15 +79,21 @@ contract TestDeployment is Deployment, Test
         assertEq( getContract(address(collateral), "priceAggregator()"), address(priceAggregator), "Incorrect collateral.priceAggregator" );
 
 		assertEq( getContract(address(stakingRewardsEmitter), "stakingRewards()"), address(staking), "Incorrect stakingRewardsEmitter.stakingRewards" );
+        assertEq( getContract(address(stakingRewardsEmitter), "exchangeConfig()"), address(exchangeConfig), "Incorrect stakingRewardsEmitter.exchangeConfig" );
         assertEq( getContract(address(stakingRewardsEmitter), "poolsConfig()"), address(poolsConfig), "Incorrect stakingRewardsEmitter.poolsConfig" );
 		assertEq( getContract(address(stakingRewardsEmitter), "rewardsConfig()"), address(rewardsConfig), "Incorrect stakingRewardsEmitter.rewardsConfig" );
+		assertEq( getContract(address(stakingRewardsEmitter), "salt()"), address(salt), "Incorrect stakingRewardsEmitter.salt" );
 
 		assertEq( getContract(address(liquidityRewardsEmitter), "stakingRewards()"), address(liquidity), "Incorrect liquidityRewardsEmitter.stakingRewards" );
+		assertEq( getContract(address(liquidityRewardsEmitter), "exchangeConfig()"), address(exchangeConfig), "Incorrect liquidityRewardsEmitter.exchangeConfig" );
         assertEq( getContract(address(liquidityRewardsEmitter), "poolsConfig()"), address(poolsConfig), "Incorrect liquidityRewardsEmitter.poolsConfig" );
 		assertEq( getContract(address(liquidityRewardsEmitter), "rewardsConfig()"), address(rewardsConfig), "Incorrect liquidityRewardsEmitter.rewardsConfig" );
+		assertEq( getContract(address(liquidityRewardsEmitter), "salt()"), address(salt), "Incorrect liquidityRewardsEmitter.salt" );
 
+        assertEq( getContract(address(emissions), "saltRewards()"), address(saltRewards), "Incorrect emissions.saltRewards" );
         assertEq( getContract(address(emissions), "exchangeConfig()"), address(exchangeConfig), "Incorrect emissions.exchangeConfig" );
         assertEq( getContract(address(emissions), "rewardsConfig()"), address(rewardsConfig), "Incorrect emissions.rewardsConfig" );
+        assertEq( getContract(address(emissions), "salt()"), address(salt), "Incorrect emissions.salt" );
 
 		assertEq( getContract(address(dao), "pools()"), address(pools), "Incorrect dao.pools" );
 		assertEq( getContract(address(dao), "proposals()"), address(proposals), "Incorrect dao.proposals" );
