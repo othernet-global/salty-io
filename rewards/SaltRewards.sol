@@ -82,6 +82,7 @@ contract SaltRewards is ISaltRewards, ReentrancyGuard
 
 
 	// Transfer SALT rewards to the liquidityRewardsEmitter proportional to pool shares in generating recent arb profits.
+	// Also sends the direct rewards specified by the DAO to the SALT/USDS pool.
 	function _sendLiquidityRewards( bytes32[] memory poolIDs, uint256[] memory profitsForPools ) internal
 		{
 		// Determine the total profits so we can calculate proportional share
