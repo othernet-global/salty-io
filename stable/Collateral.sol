@@ -22,10 +22,6 @@ import "../price_feed/interfaces/IPriceAggregator.sol";
 // Users who call the liquidation function on undercollateralized positions receive a default 5% of the liquidated collateral (up to a default max of $500).
 // Liquidated users lose their deposited WBTC/WETH collateral and keep the USDS that they borrowed.
 
-// Liquidated WBTC/WETH collateral is sent to the USDS contract where it is swapped to USDS and the original amount of USDS borrowed from the liquidated position is burned (essentially "undoing" the user's original collateral deposit and USDS borrow).
-// As the minimum collateral ratio defaults to 110% any excess WBTC/WETH that is not swapped to burned USDS will be stored in the USDS contract - in the case
-// that future liquidated positions are undercollateralized during times of high market volatility and the WBTC/WETH is needed to purchase USDS to burn.
-
 contract Collateral is Liquidity, ICollateral
     {
 	using SafeERC20 for IERC20;

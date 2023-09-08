@@ -118,6 +118,8 @@ contract SaltRewards is ISaltRewards, ReentrancyGuard
 
 		// Update pending rewards
 		pendingLiquidityRewards = 0;
+
+		// Sweep up any dust
 		pendingRewardsSaltUSDS = salt.balanceOf(address(this));
 		}
 
@@ -133,8 +135,8 @@ contract SaltRewards is ISaltRewards, ReentrancyGuard
 
 		// Send the liquidity bootstrap rewards to the liquidityRewardsEmitter
 		IRewardsEmitter liquidityRewardsEmitter = exchangeConfig.liquidityRewardsEmitter();
-		salt.approve( address(liquidityRewardsEmitter), liquidityBootstrapAmount );
 
+		salt.approve( address(liquidityRewardsEmitter), liquidityBootstrapAmount );
 		liquidityRewardsEmitter.addSALTRewards( addedRewards );
 		}
 
@@ -146,12 +148,13 @@ contract SaltRewards is ISaltRewards, ReentrancyGuard
 		addedRewards[0] = AddedReward( PoolUtils.STAKED_SALT, stakingBootstrapAmount );
 
 		IRewardsEmitter stakingRewardsEmitter = exchangeConfig.stakingRewardsEmitter();
+
 		salt.approve( address(stakingRewardsEmitter), stakingBootstrapAmount );
 		stakingRewardsEmitter.addSALTRewards( addedRewards );
 		}
 
 
-    // Sends 5 million SALT to the liquidityRewardsEmitter (evenly divided amongst the pools) and 3 million SALT to the stakingRewardsEmitter.
+    // Sends an expected 5 million SALT to the liquidityRewardsEmitter (evenly divided amongst the pools) and 3 million SALT to the stakingRewardsEmitter.
 	function sendInitialSaltRewards( uint256 liquidityBootstrapAmount, uint256 stakingBootstrapAmount, bytes32[] memory poolIDs ) public
 		{
 		require( msg.sender == address(exchangeConfig.initialDistribution()), "SaltRewards.sendInitialRewards is only callable from the InitialDistribution contract" );

@@ -69,7 +69,6 @@ contract USDS is ERC20, IUSDS
 
 
 	// Called when a user's collateral position has been liquidated to indicate that the borrowed USDS from that position needs to be burned.
-	// Only callable by the Collateral contract.
 	function shouldBurnMoreUSDS( uint256 usdsToBurn ) public
 		{
 		require( msg.sender == address(collateral), "Can only call USDS.shouldBurnMoreUSDS from the Collateral contract" );
@@ -129,6 +128,7 @@ contract USDS is ERC20, IUSDS
 		usdsThatShouldBeBurned = _withdrawUSDSFromCounterswap( Counterswap.WETH_TO_USDS, tempRemainingToBurn );
 
 		// Burn all the USDS that was just withdrawn (and any other USDS in the contract - although there shouldn't normally be any)
+		// Extra USDS will remain in counterswap as a buffer of burnable USDS in case any liquidated collateral positions are ever underwater.
 		_burn( address(this), balanceOf(address(this)) );
 		}
 	}
