@@ -90,7 +90,7 @@ contract SaltRewards is ISaltRewards, ReentrancyGuard
 		for( uint256 i = 0; i < poolIDs.length; i++ )
 			totalProfits += profitsForPools[i];
 
-		// Can't send rewards with no profits
+		// Don't send rewards if no profits
 		if ( totalProfits == 0 )
 			return;
 
