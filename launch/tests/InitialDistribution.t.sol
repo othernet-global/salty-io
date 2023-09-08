@@ -116,7 +116,7 @@ contract TestInitialDistribution is Test, Deployment
 
 
 	// A unit test to ensure the constructor has correctly set the input parameters.
-	function test_initial_distribution_constructor() public
+	function testInitial_distribution_constructor() public
     {
     	InitialDistribution initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, liquidity);
 
@@ -223,7 +223,7 @@ function testConstructorInitializationWithZeroAddress() public {
 }
 
 	// A unit test to ensure the `distributionApproved` function can only be called once and subsequent calls fail.
-	function test_distributionApproved_callTwice() public {
+	function testDistributionApproved_callTwice() public {
 		vm.prank(DEPLOYER);
 		weth.transfer(address(dao), 1000 ether);
 

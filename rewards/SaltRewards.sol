@@ -66,6 +66,21 @@ contract SaltRewards is ISaltRewards, ReentrancyGuard
 		}
 
 
+	// Send the pending SALT rewards to the stakingRewardsEmitter
+	function _sendStakingRewards() internal
+		{
+		AddedReward[] memory addedRewards = new AddedReward[](1);
+		addedRewards[0] = AddedReward( PoolUtils.STAKED_SALT, pendingStakingRewards );
+
+		IRewardsEmitter stakingRewardsEmitter = exchangeConfig.stakingRewardsEmitter();
+		salt.approve( address(stakingRewardsEmitter), pendingStakingRewards );
+		stakingRewardsEmitter.addSALTRewards( addedRewards );
+
+		// Mark the pendingStakingRewards as sent
+		pendingStakingRewards = 0;
+		}
+
+
 	// Transfer SALT rewards to the liquidityRewardsEmitter proportional to pool shares in generating recent arb profits.
 	function _sendLiquidityRewards( bytes32[] memory poolIDs, uint256[] memory profitsForPools ) internal
 		{
@@ -102,22 +117,7 @@ contract SaltRewards is ISaltRewards, ReentrancyGuard
 
 		// Update pending rewards
 		pendingLiquidityRewards = 0;
-		pendingRewardsSaltUSDS = 0;
-		}
-
-
-	// Send the pending SALT rewards to the stakingRewardsEmitter
-	function _sendStakingRewards() internal
-		{
-		AddedReward[] memory addedRewards = new AddedReward[](1);
-		addedRewards[0] = AddedReward( PoolUtils.STAKED_SALT, pendingStakingRewards );
-
-		IRewardsEmitter stakingRewardsEmitter = exchangeConfig.stakingRewardsEmitter();
-		salt.approve( address(stakingRewardsEmitter), pendingStakingRewards );
-		stakingRewardsEmitter.addSALTRewards( addedRewards );
-
-		// Mark the pendingStakingRewards as sent
-		pendingStakingRewards = 0;
+		pendingRewardsSaltUSDS = salt.balanceOf(address(this));
 		}
 
 

@@ -125,6 +125,8 @@ contract TestDeployment is Deployment, Test
 
 		assertEq( getContract(address(saltRewards), "exchangeConfig()"), address(exchangeConfig), "Incorrect saltRewards.exchangeConfig" );
         assertEq( getContract(address(saltRewards), "rewardsConfig()"), address(rewardsConfig), "Incorrect saltRewards.rewardsConfig" );
+        assertEq( getContract(address(saltRewards), "salt()"), address(salt), "Incorrect saltRewards.salt" );
+        assertEq( getContract(address(saltRewards), "usds()"), address(usds), "Incorrect saltRewards.usds" );
 
 		assertEq( getContract( address(exchangeConfig), "owner()" ), address(dao), "exchangeConfig owner is not dao" );
 		assertEq( getContract( address(poolsConfig), "owner()" ), address(dao), "poolsConfig owner is not dao" );
