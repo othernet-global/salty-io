@@ -176,7 +176,7 @@ contract Collateral is Liquidity, ICollateral
 		wbtc.safeTransfer( address(usds), wbtc.balanceOf(address(this)) );
 		weth.safeTransfer( address(usds), weth.balanceOf(address(this)) );
 
-		// Have USDS remember the amount of originally borrowed USDS - which will need to be burned later on USDS.performUpkeep()
+		// Have the USDS contract remember the amount of USDS that will need to be burned.
 		usds.shouldBurnMoreUSDS( usdsBorrowedByUsers[wallet] );
 
 		// Clear the borrowedUSDS for the user who was liquidated so that they can simply keep the USDS they borrowed
