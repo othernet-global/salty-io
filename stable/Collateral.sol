@@ -256,7 +256,7 @@ contract Collateral is Liquidity, ICollateral
 		uint256 userCollateralValue = userCollateralValueInUSD(wallet);
 
 		// Make sure the user's position is under collateralized
-		return ( userCollateralValue * 100 ) / usdsBorrowedAmount < stableConfig.minimumCollateralRatioPercent();
+		return (( userCollateralValue * 100 ) / usdsBorrowedAmount) < stableConfig.minimumCollateralRatioPercent();
 		}
 
 

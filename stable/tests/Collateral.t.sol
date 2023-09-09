@@ -1269,49 +1269,532 @@ contract TestCollateral is Deployment
 
 	// A unit test to verify that the canUserBeLiquidated function returns false when the borrowed amount is less than the collateral ratio threshold.
 	function testCanUserBeLiquidatedUnderThreshold() public {
+
         // Verify that Alice can't be liquidated yet (collateral ratio is 200%)
         assertFalse(collateral.canUserBeLiquidated(alice));
 
-//        _depositCollateralAndBorrowMax(alice);
-//
-//        // Verify that Alice can't be liquidated yet (collateral ratio is 200%)
-//        assertFalse(collateral.canUserBeLiquidated(alice));
+        _depositCollateralAndBorrowMax(alice);
 
-//        // Alice repays half of her borrowed USDS
-//        uint256 bobBorrowedUSDS = collateral.usdsBorrowedByUsers(alice);
-//        vm.prank(alice);
-//        collateral.repayUSDS(bobBorrowedUSDS / 2);
-//        vm.stopPrank();
-//
-//        // Verify that Alice can't be liquidated (collateral ratio is now 400%)
-//        assertFalse(collateral.canUserBeLiquidated(alice));
+        // Verify that Alice can't be liquidated yet (collateral ratio is 200%)
+        assertFalse(collateral.canUserBeLiquidated(alice));
+
+        // Alice repays half of her borrowed USDS
+        uint256 bobBorrowedUSDS = collateral.usdsBorrowedByUsers(alice);
+        vm.prank(alice);
+        collateral.repayUSDS(bobBorrowedUSDS / 2);
+
+        // Verify that Alice can't be liquidated (collateral ratio is now 400%)
+        assertFalse(collateral.canUserBeLiquidated(alice));
     }
 
 
-    // A unit test to ensure the correct working of the usds.shouldBurnMoreUSDS function for various inputs.
     // A unit test for totalSharesForPool function, ensuring it returns zero when the total collateral amount becomes zero.
+    function testTotalSharesForPool() public {
+    	// Alice will deposit all her collateral and borrow max
+    	_depositCollateralAndBorrowMax(alice);
+
+		vm.warp(block.timestamp + 1 days);
+
+    	assertTrue( _userHasCollateral(alice) );
+
+    	// Ensure the total shares for pool is greater than zero
+    	assertTrue(collateral.totalSharesForPool(collateralPoolID) > 0, "Total shares for pool should be greater than zero");
+
+    	// Withdraw all collateral of Alice
+    	vm.startPrank(address(alice));
+    	collateral.repayUSDS( collateral.usdsBorrowedByUsers(alice));
+    	collateral.withdrawCollateralAndClaim( collateral.userShareForPool(alice, collateralPoolID), 0, 0, block.timestamp );
+    	vm.stopPrank();
+
+    	// Validate after withdrawal, Alice doesn't have collateral
+    	assertFalse( _userHasCollateral(alice) );
+
+    	// After withdrawing all collaterals the total shares for pool should be zero
+    	assertEq(collateral.totalSharesForPool(collateralPoolID), 0, "Total shares for pool should be zero after withdrawing all collaterals");
+    }
+
+
     // A unit test to validate the maxBorrowableUSDS function for multiple users with different levels of collateral values notably those above, at, and below the minimumCollateralValueForBorrowing.
+    function testMaxBorrowableUSDS() public {
+        _depositCollateralAndBorrowMax(alice);
+        vm.prank(alice);
+        collateral.repayUSDS(1 ether);
+        assertEq( collateral.maxBorrowableUSDS(alice), 1 ether );
+
+        _depositCollateralAndBorrowMax(bob);
+        vm.prank(bob);
+        collateral.repayUSDS(2 ether);
+        assertEq( collateral.maxBorrowableUSDS(bob), 2 ether );
+
+        _depositHalfCollateralAndBorrowMax(charlie);
+        vm.prank(charlie);
+        collateral.repayUSDS(3 ether);
+        assertEq( collateral.maxBorrowableUSDS(charlie), 3 ether );
+
+        uint256 maxBorrowDeployer = collateral.maxBorrowableUSDS(DEPLOYER);
+        assertTrue(maxBorrowDeployer == 0, "Deployer should not be able to borrow");
+
+        // Artificially crash the collateral price
+        _crashCollateralPrice();
+
+        // Alice and bob should not able to borrow after price crash
+        uint256 maxBorrowAlice = collateral.maxBorrowableUSDS(alice);
+        assertTrue(maxBorrowAlice == 0, "Alice should not be able to borrow after price crash");
+
+        uint256 maxBorrowBob = collateral.maxBorrowableUSDS(bob);
+        assertTrue(maxBorrowBob == 0, "Bob should not be able to borrow after price crash");
+
+        // Charlie can still borrow as he only borrowed half initially
+        uint256 maxBorrowCharlie = collateral.maxBorrowableUSDS(charlie);
+        assertTrue(maxBorrowCharlie == 0, "Charlie should not be able to borrow");
+    }
+
+
     // A unit test validating the behavior of liquidateUser function in the scenario where the user is just above the liquidation threshold.
+    function testLiquidateUserMarginallyAboveThreshold() public {
+
+        // User deposits collateral and borrows max USDS
+        _depositCollateralAndBorrowMax(alice);
+
+        vm.warp( block.timestamp + 1 days);
+
+        // At this point, Alice shouldn't be liquidatable
+        assertFalse( collateral.canUserBeLiquidated(alice), "Alice should not be liquidatable initially" );
+
+        // Manipulate collateral price to bring Alice just over the liquidation threshold
+        uint256 originalPriceBTC = forcedPriceFeed.getPriceBTC();
+        uint256 originalPriceETH = forcedPriceFeed.getPriceETH();
+        uint256 newPriceBTC = (originalPriceBTC * 55) / 100;
+        uint256 newPriceETH = (originalPriceETH * 55) / 100;
+
+        vm.startPrank( DEPLOYER );
+        forcedPriceFeed.setBTCPrice( newPriceBTC );
+        forcedPriceFeed.setETHPrice( newPriceETH );
+        priceAggregator.performUpkeep();
+        vm.stopPrank();
+
+        // Alice should now be just above the liquidation threshold
+        assertFalse(  collateral.canUserBeLiquidated(alice), "Alice should still not be liquidatable" );
+
+        // Trying to liquidate Alice now should fail
+        vm.expectRevert( "User cannot be liquidated" );
+        vm.prank(bob);
+        collateral.liquidateUser(alice);
+
+        // Crash the collateral value further to bring Alice under the liquidation threshold
+        newPriceBTC = (originalPriceBTC * 54) / 100;
+        newPriceETH = (originalPriceETH * 54) / 100;
+
+        vm.startPrank( DEPLOYER );
+        forcedPriceFeed.setBTCPrice( newPriceBTC );
+        forcedPriceFeed.setETHPrice( newPriceETH );
+        priceAggregator.performUpkeep();
+        vm.stopPrank();
+
+        // Alice should now be under the liquidation threshold
+        assertTrue(  collateral.canUserBeLiquidated(alice), "Alice should be liquidatable after crashing the collateral price further" );
+
+        // Liquidate Alice's position
+        vm.prank(bob);
+        collateral.liquidateUser(alice);
+
+        // Alice's position should now be liquidated
+        assertEq( collateral.userShareForPool(alice, collateralPoolID), 0 );
+        assertEq( collateral.usdsBorrowedByUsers(alice), 0 );
+    }
+
+
   	// A unit test for accuracy of maxWithdrawableCollateral function for scenarios where all borrowed USDS have been repaid.
+  	function testMaxWithdrawableCollateralAfterRepayment() public {
+        // Arrange
+        _depositCollateralAndBorrowMax(alice);
+
+        uint256 borrowed = collateral.usdsBorrowedByUsers(alice);
+        assertTrue(borrowed > 0, "Alice should have borrowed some USDS");
+
+        uint256 collateralBeforeRepayment = collateral.userShareForPool( alice, collateralPoolID );
+        assertEq(collateral.maxWithdrawableCollateral(alice), 0, "Alice shouldn't withdraw any collateral before repayment");
+
+        // Act
+        vm.startPrank(alice);
+        collateral.repayUSDS(borrowed);
+        vm.stopPrank();
+
+        // Assert
+        uint256 collateralAfterRepayment = collateral.userShareForPool(alice, collateralPoolID);
+        assertEq(collateralAfterRepayment, collateralBeforeRepayment, "Alice's collateral should remain the same after repayment");
+        assertEq(collateral.maxWithdrawableCollateral(alice), collateralAfterRepayment, "Alice should be able to withdraw all collateral after repayment");
+    }
+
+
 	// A unit test that validates the _walletsWithBorrowedUSDS set does not add duplicate wallets, even when multiple borrowUSDS operations are executed from the same user
+	function testNoDuplicateWalletsInBorrowUSDS() public {
+        assertEq(collateral.numberOfUsersWithBorrowedUSDS(), 0, "Should start with 0 wallets with borrowed USDS");
+
+		_readyUser(alice);
+		_readyUser(bob);
+
+        // Alice borrows from the contract
+        vm.startPrank(alice);
+        collateral.depositCollateralAndIncreaseShare(wbtc.balanceOf(alice), weth.balanceOf(alice), 0, block.timestamp, false );
+        collateral.borrowUSDS(1 ether);
+        vm.stopPrank();
+
+        assertEq(collateral.numberOfUsersWithBorrowedUSDS(), 1, "After one borrow operation, there should be 1 wallet with borrowed USDS");
+
+        // Alice borrows again from the contract
+        vm.startPrank(alice);
+        collateral.borrowUSDS(1 ether);
+        vm.stopPrank();
+
+        assertEq(collateral.numberOfUsersWithBorrowedUSDS(), 1, "After second borrow operation from the same wallet, there should still be 1 wallet with borrowed USDS");
+
+        // Bob borrows from the contract
+        vm.startPrank(bob);
+        collateral.depositCollateralAndIncreaseShare(wbtc.balanceOf(bob), weth.balanceOf(bob), 0, block.timestamp, false );
+        collateral.borrowUSDS(1 ether);
+        vm.stopPrank();
+
+        assertEq(collateral.numberOfUsersWithBorrowedUSDS(), 2, "After borrow operation from a new wallet, there should be 2 wallets with borrowed USDS");
+    }
+
+
 	// A unit test that verifies the accurate calculation, behavior, and exception handling for cases with various amounts of borrowed USDS in the repayUSDS function.
+	function testRepayUSDS() public {
+        _depositCollateralAndBorrowMax(alice);
+
+        uint256 borrowedUSDS = collateral.usdsBorrowedByUsers(alice);
+        uint256 aliceUSDSBalance = IERC20(address(usds)).balanceOf(alice);
+
+        assertEq(borrowedUSDS, aliceUSDSBalance, "Alice's borrowed USDS should equal her USDS balance.");
+
+        uint256 repayAmount = borrowedUSDS / 2;
+        vm.prank(alice);
+        collateral.repayUSDS(repayAmount);
+
+        // Alice's borrowedUSDS and USDS balance should have decreased by `repayAmount`
+        assertEq(collateral.usdsBorrowedByUsers(alice), borrowedUSDS - repayAmount, "Alice's borrowed USDS did not decrease correctly.");
+        assertEq(IERC20(address(usds)).balanceOf(alice), aliceUSDSBalance - repayAmount, "Alice's USDS balance did not decrease correctly.");
+
+        // Trying to repay more than borrowed should fail
+        uint256 remainingBorrowedUSDS = collateral.usdsBorrowedByUsers(alice);
+        vm.expectRevert("Cannot repay more than the borrowed amount");
+
+        vm.prank(alice);
+        collateral.repayUSDS(remainingBorrowedUSDS + 1);
+
+        // Repay full remaining amount
+        vm.prank(alice);
+        collateral.repayUSDS(remainingBorrowedUSDS);
+
+        assertEq(collateral.usdsBorrowedByUsers(alice), 0, "Alice's borrowed USDS should be 0 after full repayment.");
+        assertEq(IERC20(address(usds)).balanceOf(alice), aliceUSDSBalance - borrowedUSDS, "Alice's USDS balance did not decrease correctly after full repayment.");
+    }
+
+
 	// A unit test to verify the behavior of collateralValueInUSD function when the user does not have any collateral in the collateral pool.
+		function testCollateralValueInUSD_NoCollateralInPool() public {
+    		assertEq(collateral.userShareForPool(bob, collateralPoolID), 0, "Bob should start with no collateral in pool");
+
+    		// The collateral value for Bob should be 0 as there is no collateral in the pool
+    		uint256 collateralValueUSD = collateral.collateralValueInUSD(collateral.userShareForPool(bob, collateralPoolID));
+    		assertEq(collateralValueUSD, 0, "Bob's collateral value should be 0 with no collateral in the pool");
+    	}
+
+
     // A unit test which verifies that the liquidateUser function correctly updates the number of users with borrowed USDS.
+	function testLiquidateUserUpdatesUsersWithBorrowedUSDS() public {
+        // Assume Alice, Bob and Charlie have borrowed USDS
+        _depositCollateralAndBorrowMax(alice);
+        _depositCollateralAndBorrowMax(bob);
+        _depositCollateralAndBorrowMax(charlie);
+
+        // Check initial state
+        assertEq(collateral.numberOfUsersWithBorrowedUSDS(), 3, "Initial number of users with borrowed USDS should be 3");
+
+        // Artificially crash the collateral price
+        _crashCollateralPrice();
+
+        // Delay before the liquidation
+        vm.warp( block.timestamp + 1 days );
+
+        // Liquidate Alice's position
+        vm.prank(bob);
+        collateral.liquidateUser(alice);
+
+        // Check that the number of users with borrowed USDS is now 2
+        assertEq(collateral.numberOfUsersWithBorrowedUSDS(), 2, "Number of users with borrowed USDS should be 2 after liquidating Alice");
+
+        // Liquidate Bob's position
+        vm.prank(charlie);
+        collateral.liquidateUser(bob);
+
+        // Check that the number of users with borrowed USDS is now 1
+        assertEq(collateral.numberOfUsersWithBorrowedUSDS(), 1, "Number of users with borrowed USDS should be 1 after liquidating Bob");
+
+        // Liquidate Charlie's position
+        vm.prank(alice);
+        collateral.liquidateUser(charlie);
+
+        // Check that the number of users with borrowed USDS is now 0
+        assertEq(collateral.numberOfUsersWithBorrowedUSDS(), 0, "Number of users with borrowed USDS should be 0 after liquidating Charlie");
+    }
+
+
     // A unit test that checks accurate exception handling for invalid inputs to the constructor.
+    function testInvalidConstructorInputs() public {
+    	// Invalid _stableConfig parameter
+    	vm.expectRevert("_stableConfig cannot be address(0)");
+		collateral = new Collateral(pools, exchangeConfig, poolsConfig, stakingConfig, IStableConfig(address(0)), priceAggregator);
+
+    	// Invalid _priceAggregator parameter
+    	vm.expectRevert("_priceAggregator cannot be address(0)");
+		collateral = new Collateral(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, IPriceAggregator(address(0)));
+    }
+
+
     // A unit test that validates wbtc and weth balances in the contract should be zero when there are no depositors or borrowers
+    function testZeroWbtcWethBalances() public {
+          assertEq(collateral.numberOfUsersWithBorrowedUSDS(), 0 );
+
+        // Check WBTC and WETH balances
+        assertEq(wbtc.balanceOf(address(collateral)), 0 ether, "WBTC balance should be zero when there are no depositors or borrowers");
+        assertEq(weth.balanceOf(address(collateral)), 0 ether, "WETH balance should be zero when there are no depositors or borrowers");
+    }
+
+
 	// A unit test to validate userCollateralValueInUSD for wallets which have not deposited any collateral.
+	function testUserCollateralValueInUSD3() public {
+        address newUser = address(0x4444);
+        // Make sure newUser does not have any collateral
+        assertFalse(_userHasCollateral(newUser), "New user should not have any collateral");
+        // Try to get the user collateral value in USD
+        uint256 collateralValue = collateral.userCollateralValueInUSD(newUser);
+        // The value should be 0 because the user has not deposited any collateral
+        assertEq(collateralValue, 0, "Collateral value for a user with no collateral should be 0");
+    }
+
+
     // A unit test that ensures collateralValueInUSD returns zero when the provided collateralAmount value is zero.
+    function testCollateralValueInUSD() public {
+        // Prepare
+        uint256 zeroCollateralValue = 0;
+        // Call
+        uint256 result = collateral.collateralValueInUSD(zeroCollateralValue);
+        // Assert
+        assertEq(result, zeroCollateralValue, "Expect collateralValueInUSD with zero collateral to be zero");
+    }
+
+
+
     // A unit test to validate behaviors of liquidateUser function when the wallet to be liquidated has no borrowed USDS.
+	// A unit test to validate the behavior of 'liquidateUser' function when the wallet to be liquidated has no borrowed USDS.
+    function testLiquidateUserWithoutBorrowedUSDS() public {
+
+    	_depositCollateralAndBorrowMax(alice);
+
+    	vm.startPrank(alice);
+    	collateral.repayUSDS( collateral.usdsBorrowedByUsers(alice));
+    	vm.stopPrank();
+
+        // Make sure Alice starts with zero USDS borrowed
+        assertEq(collateral.usdsBorrowedByUsers(alice), 0, "Alice should start with zero borrowed USDS");
+
+        // Make sure Alice's collateral is more than zero
+        assertTrue(_userHasCollateral(alice), "Alice doesn't have any collateral");
+
+        // Artificially crash the collateral price
+        _crashCollateralPrice();
+
+        // Delay before the liquidation
+        vm.warp( block.timestamp + 1 days );
+
+        // Try and fail to liquidate Alice
+        vm.expectRevert( "User cannot be liquidated" );
+        vm.prank(bob);
+        collateral.liquidateUser(alice);
+
+        // Alice's position should remain unchanged
+        assertTrue(_userHasCollateral(alice), "Alice's position should not have been liquidated");
+        assertEq(collateral.usdsBorrowedByUsers(alice), 0, "Alice should still have zero borrowed USDS");
+    }
+
     // A unit test that checks after every successful liquidity withdrawal the totalSharesForPool function returns updated share
+    function testWithdrawCollateralAndSharesUpdate() public {
+        // Alice deposits collateral and borrows the maximum amount of USDS
+        _depositCollateralAndBorrowMax(alice);
+
+		vm.warp( block.timestamp + 1 days );
+
+    	vm.startPrank(alice);
+    	collateral.repayUSDS( collateral.usdsBorrowedByUsers(alice));
+    	vm.stopPrank();
+
+
+        uint256 aliceCollateralAmount = collateral.userShareForPool(alice, collateralPoolID);
+
+        // Alice withdraws some collateral
+        uint256 collateralToWithdraw = aliceCollateralAmount / 2;
+
+        vm.prank(alice);
+        collateral.withdrawCollateralAndClaim(collateralToWithdraw, 0, 0, block.timestamp);
+
+        // Total shares should be reduced by the withdrawn collateral amount
+        uint256 sharesAfterWithdrawal = collateral.totalSharesForPool(collateralPoolID);
+        assertEq(aliceCollateralAmount - collateralToWithdraw, sharesAfterWithdrawal, "totalSharesForPool did not update");
+
+        assertEq(collateral.userShareForPool(alice, collateralPoolID), sharesAfterWithdrawal);
+    }
+
+
+
     // A unit test that checks if repayUSDS function correctly reverts when the amount to repay is more than the borrowed amount
-    // A unit test to check if borrowUSDS function throws error when called by a wallet which doesn't have exchange access.
+    function testRepayUSDSExceedBorrowed() public {
+        _depositCollateralAndBorrowMax(alice);
+        uint256 borrowedUSDS = collateral.usdsBorrowedByUsers(alice);
+
+        // Try to repay more than the borrowed USDS
+        vm.startPrank(alice);
+        vm.expectRevert("Cannot repay more than the borrowed amount");
+        collateral.repayUSDS(borrowedUSDS + 1 ether);
+        vm.stopPrank();
+    }
+
+
     // A unit test to check if depositCollateralAndIncreaseShare function throws error when called by a wallet which doesn't have exchange access.
+    function testDepositCollateralWithoutExchangeAccess() public {
+
+		address wallet = address(0xDEAD1);
+
+		_readyUser(wallet);
+
+		uint256 wbtcBalance = wbtc.balanceOf(wallet);
+		uint256 wethBalance = weth.balanceOf(wallet);
+
+		vm.expectRevert( "Sending wallet does not have exchange access" );
+
+		vm.startPrank( wallet );
+		collateral.depositCollateralAndIncreaseShare( wbtcBalance, wethBalance, 0, block.timestamp, false );
+		vm.stopPrank();
+    }
+
+
 	// A unit test which verifies the behavior of userShareForPool function for wallets without any collateral share in the pool.
+	function testUserShareForPoolWithoutCollateral() public {
+        // Given no collateral has been deposited for alice so far, expect 0 share
+        vm.startPrank(alice);
+        uint256 aliceCollateralShare = collateral.userShareForPool(alice, collateralPoolID);
+        assertEq(aliceCollateralShare, 0, "Alice shouldn't have collateral share to begin with");
+
+        // Also, let's ensure calling this function for an arbitray address (not in the system) should return 0
+        address randomAddress = address(0x9999);
+        uint256 randomAddressCollateralShare = collateral.userShareForPool(randomAddress, collateralPoolID);
+        assertEq(randomAddressCollateralShare, 0, "Random address shouldn't have collateral share");
+        vm.stopPrank();
+    }
+
+
+
 	// A unit test that validates the behavior of underlyingTokenValueInUSD function with a range of token prices.
+	function testUnderlyingTokenValueInUSD() public {
+        uint256[5] memory mockBTCPricesInUSD = [uint256(100000 ether), 50000 ether, 20000 ether, 10000 ether, 5000 ether];
+        uint256[5] memory mockETHPricesInUSD = [uint256(3000 ether), 2000 ether, 1500 ether, 1000 ether, 500 ether];
+
+		forcedPriceFeed = IForcedPriceFeed(address(priceAggregator.priceFeed1()));
+
+        for (uint256 i = 0; i < mockBTCPricesInUSD.length; i++) {
+            uint256 mockBTCPriceInUSD = mockBTCPricesInUSD[i];
+            uint256 mockETHPriceInUSD = mockETHPricesInUSD[i];
+
+            // Mock the BTC and ETH prices
+            vm.startPrank(DEPLOYER);
+            forcedPriceFeed.setBTCPrice(mockBTCPriceInUSD);
+            forcedPriceFeed.setETHPrice(mockETHPriceInUSD);
+            vm.stopPrank();
+
+			vm.prank(address(upkeep));
+			priceAggregator.performUpkeep();
+
+            uint256 expectedUnderlyingTokenValueInUSD = mockBTCPriceInUSD + mockETHPriceInUSD;
+
+            assertEq( collateral.underlyingTokenValueInUSD(1 * 10**8, 1 ether), expectedUnderlyingTokenValueInUSD, "underlyingTokenValueInUSD" );
+        }
+    }
+
+
     // A unit test that validates the behavior of _increaseUserShare function with a range of addedLiquidity values.
+    function testDepositCollateralAndIncreaseShare() public {
+        // Initial balances for Alice
+        uint256 initialWBTCBalanceA = wbtc.balanceOf(alice);
+        uint256 initialWETHBalanceA = weth.balanceOf(alice);
+
+        // Alice tries to deposit 0 WBTC and 0 WETH, should fail
+        vm.expectRevert("The amount of tokenA to add is too small");
+        vm.prank(alice);
+        collateral.depositCollateralAndIncreaseShare(0, 0, 1, block.timestamp + 15 minutes, false);
+
+        // Alice deposits half of her WBTC and WETH
+        uint256 depositWBTC = initialWBTCBalanceA / 2;
+        uint256 depositWETH = initialWETHBalanceA / 2;
+
+        uint256 liquidityBefore = collateral.userShareForPool(alice, collateralPoolID);
+
+        vm.prank(alice);
+        collateral.depositCollateralAndIncreaseShare(depositWBTC, depositWETH, 1, block.timestamp + 15 minutes, false);
+
+        uint256 liquidityAfter = collateral.userShareForPool(alice, collateralPoolID);
+
+        // Validate that liquidity increased for Alice
+        assertEq(liquidityAfter > liquidityBefore, true, "Liquidity should have increased for Alice");
+
+        // Validate that Alice's WBTC and WETH balances decreased
+        assertEq(wbtc.balanceOf(alice), initialWBTCBalanceA - depositWBTC, "Alice's WBTC balance should have decreased by depositWBTC");
+        assertEq(weth.balanceOf(alice), initialWETHBalanceA - depositWETH, "Alice's WETH balance should have decreased by depositWETH");
+    }
+
+
     // A unit test that verifies the userShareForPool for accounts with multiple collateral positions.
-    // A unit test that checks the borrower's position before and after the liquidity is added and verifies the increase in shares after the addition of liquidity.
+    function testUserShareForPool_multipleCollateralPositions() public {
+    	_depositHalfCollateralAndBorrowMax(alice);
+    	_depositHalfCollateralAndBorrowMax(bob);
+		vm.warp( block.timestamp + 1 days);
+
+    	uint256 aliceShareBeforeSecondDeposit = collateral.userShareForPool(alice, collateralPoolID);
+    	uint256 bobShareBeforeSecondDeposit = collateral.userShareForPool(bob, collateralPoolID);
+
+    	_depositHalfCollateralAndBorrowMax(alice);
+    	_depositHalfCollateralAndBorrowMax(bob);
+
+    	uint256 aliceShareAfterSecondDeposit = collateral.userShareForPool(alice, collateralPoolID);
+    	uint256 bobShareAfterSecondDeposit = collateral.userShareForPool(bob, collateralPoolID);
+
+    	assertTrue(aliceShareAfterSecondDeposit > aliceShareBeforeSecondDeposit, "Alice's share should increase after second deposit");
+    	assertTrue(bobShareAfterSecondDeposit > bobShareBeforeSecondDeposit, "Bob's share should increase after second deposit");
+    }
+
+
     // A unit test that checks the borrower's position before and after the liquidity is removed and verifies the decrease in shares after the removal of liquidity.
+	function testBorrowerPositionBeforeAndAfterRemovingLiquidity() public {
+        // Alice will deposit all her collateral and borrow max
+        _depositCollateralAndBorrowMax(alice);
 
+		vm.warp( block.timestamp + 1 days );
 
+		// Repay so that colalteral can be withdrawn
+    	vm.startPrank(alice);
+    	collateral.repayUSDS( collateral.usdsBorrowedByUsers(alice));
+    	vm.stopPrank();
+
+        uint256 aliceCollateralShare = collateral.userShareForPool(alice, collateralPoolID);
+
+        // Alice will withdraw half of her collateral
+        uint256 halfCollateral = aliceCollateralShare / 2;
+        vm.prank(alice);
+        collateral.withdrawCollateralAndClaim(halfCollateral, 0, 0, block.timestamp);
+
+        uint256 aliceCollateralShareAfterWithdraw = collateral.userShareForPool(alice, collateralPoolID);
+
+        uint256 collateralDecrease = aliceCollateralShare - aliceCollateralShareAfterWithdraw;
+        assertEq(halfCollateral, collateralDecrease, "The decrease in Alice's collateral share should be equal to the amount withdrawn");
+    }
 }
