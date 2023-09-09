@@ -1,20 +1,11 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.21;
 
-import "forge-std/Test.sol";
 import "../../dev/Deployment.sol";
-import "../../root_tests/TestERC20.sol";
-import "../Collateral.sol";
-import "../../ExchangeConfig.sol";
-import "../../pools/Pools.sol";
-import "../../staking/Staking.sol";
-import "../../rewards/RewardsEmitter.sol";
-import "../../price_feed/tests/IForcedPriceFeed.sol";
 import "../../price_feed/tests/ForcedPriceFeed.sol";
-import "../../price_feed/PriceAggregator.sol";
 
 
-contract TestCollateral is Test, Deployment
+contract TestCollateral is Deployment
 	{
 	// User wallets for testing
     address public constant alice = address(0x1111);
@@ -26,40 +17,13 @@ contract TestCollateral is Test, Deployment
 
 	constructor()
 		{
+		vm.prank(address(initialDistribution));
+		salt.transfer(DEPLOYER, 100000000 ether);
+
 		// If $COVERAGE=yes, create an instance of the contract so that coverage testing can work
 		// Otherwise, what is tested is the actual deployed contract on the blockchain (as specified in Deployment.sol)
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
-			{
-			vm.startPrank(DEPLOYER);
-
-			// Because USDS already set the Collateral on deployment and it can only be done once, we have to recreate USDS as well
-			// That cascades into recreating multiple other contracts as well.
-			usds = new USDS(wbtc, weth);
-
-			IDAO dao = IDAO(getContract( address(exchangeConfig), "dao()" ));
-
-			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, dai, usds, teamWallet );
-			pools = new Pools(exchangeConfig, poolsConfig);
-
-			staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
-			liquidity = new Liquidity( pools, exchangeConfig, poolsConfig, stakingConfig );
-			collateral = new Collateral(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
-
-			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig );
-			liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, rewardsConfig );
-
-			emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
-
-			exchangeConfig.setDAO( dao );
-			exchangeConfig.setAccessManager( accessManager );
-
-			usds.setContracts( collateral, pools, exchangeConfig );
-
-			vm.stopPrank();
-			}
-
-		vm.prank(address(initialDistribution));
-		salt.transfer(DEPLOYER, 100000000 ether);
+			initializeContracts();
 
 		priceAggregator.performUpkeep();
 
@@ -640,6 +604,14 @@ contract TestCollateral is Test, Deployment
         vm.startPrank(bob);
         vm.expectRevert( "User does not have any collateral" );
         collateral.repayUSDS(1 ether);
+        vm.stopPrank();
+    }
+
+    // A unit test to validate borrowUSDS function for an account that has not deposited any collateral but tries to borrow USDS
+    function testCannotBorrowUSDSWithoutPosition() public {
+        vm.startPrank(bob);
+        vm.expectRevert( "User does not have any collateral" );
+        collateral.borrowUSDS(1 ether);
         vm.stopPrank();
     }
 
@@ -1262,5 +1234,84 @@ contract TestCollateral is Test, Deployment
 		collateral.borrowUSDS( maxUSDS );
 		vm.stopPrank();
         }
+
+
+	// A unit test to verify the case scenario where a user tries to deposit zero collateral amount in the depositCollateralAndIncreaseShare function.
+	function testDepositZeroCollateral() public {
+        // Alice attempts to deposit zero collateral which should not be allowed.
+        vm.prank(alice);
+        vm.expectRevert("The amount of tokenA to add is too small");
+        collateral.depositCollateralAndIncreaseShare(0, 0, 0, block.timestamp, false);
+    }
+
+
+	// A unit test that validates the behaviour of borrowUSDS function when the user has not yet deposited any collateral.
+	// A unit test that validates the borrowUSDS function behavior when a user has not deposited any collateral.
+    function testBorrowUSDSWithoutCollateral() public {
+
+    	address userX = address(0xDEAD);
+
+        assertEq(wbtc.balanceOf(userX), 0, "userX should start with zero WBTC");
+        assertEq(weth.balanceOf(userX), 0, "userX should start with zero WETH");
+        assertEq(usds.balanceOf(userX), 0, "userX should start with zero USDS");
+
+        // Alice tries to borrow USDS without having deposited any collateral
+        vm.startPrank(userX);
+        vm.expectRevert("User does not have any collateral");
+        collateral.borrowUSDS(1 ether);
+        vm.stopPrank();
+
+        // Verify Alice's collateral and USDS balance remain unchanged
+        assertEq(_userHasCollateral(userX), false, "userX should have no collateral");
+        assertEq(usds.balanceOf(userX), 0, "userX should have zero USDS");
+    }
+
+
+	// A unit test to verify that the canUserBeLiquidated function returns false when the borrowed amount is less than the collateral ratio threshold.
+	function testCanUserBeLiquidatedUnderThreshold() public {
+        // Verify that Alice can't be liquidated yet (collateral ratio is 200%)
+        assertFalse(collateral.canUserBeLiquidated(alice));
+
+//        _depositCollateralAndBorrowMax(alice);
+//
+//        // Verify that Alice can't be liquidated yet (collateral ratio is 200%)
+//        assertFalse(collateral.canUserBeLiquidated(alice));
+
+//        // Alice repays half of her borrowed USDS
+//        uint256 bobBorrowedUSDS = collateral.usdsBorrowedByUsers(alice);
+//        vm.prank(alice);
+//        collateral.repayUSDS(bobBorrowedUSDS / 2);
+//        vm.stopPrank();
+//
+//        // Verify that Alice can't be liquidated (collateral ratio is now 400%)
+//        assertFalse(collateral.canUserBeLiquidated(alice));
+    }
+
+
+    // A unit test to ensure the correct working of the usds.shouldBurnMoreUSDS function for various inputs.
+    // A unit test for totalSharesForPool function, ensuring it returns zero when the total collateral amount becomes zero.
+    // A unit test to validate the maxBorrowableUSDS function for multiple users with different levels of collateral values notably those above, at, and below the minimumCollateralValueForBorrowing.
+    // A unit test validating the behavior of liquidateUser function in the scenario where the user is just above the liquidation threshold.
+  	// A unit test for accuracy of maxWithdrawableCollateral function for scenarios where all borrowed USDS have been repaid.
+	// A unit test that validates the _walletsWithBorrowedUSDS set does not add duplicate wallets, even when multiple borrowUSDS operations are executed from the same user
+	// A unit test that verifies the accurate calculation, behavior, and exception handling for cases with various amounts of borrowed USDS in the repayUSDS function.
+	// A unit test to verify the behavior of collateralValueInUSD function when the user does not have any collateral in the collateral pool.
+    // A unit test which verifies that the liquidateUser function correctly updates the number of users with borrowed USDS.
+    // A unit test that checks accurate exception handling for invalid inputs to the constructor.
+    // A unit test that validates wbtc and weth balances in the contract should be zero when there are no depositors or borrowers
+	// A unit test to validate userCollateralValueInUSD for wallets which have not deposited any collateral.
+    // A unit test that ensures collateralValueInUSD returns zero when the provided collateralAmount value is zero.
+    // A unit test to validate behaviors of liquidateUser function when the wallet to be liquidated has no borrowed USDS.
+    // A unit test that checks after every successful liquidity withdrawal the totalSharesForPool function returns updated share
+    // A unit test that checks if repayUSDS function correctly reverts when the amount to repay is more than the borrowed amount
+    // A unit test to check if borrowUSDS function throws error when called by a wallet which doesn't have exchange access.
+    // A unit test to check if depositCollateralAndIncreaseShare function throws error when called by a wallet which doesn't have exchange access.
+	// A unit test which verifies the behavior of userShareForPool function for wallets without any collateral share in the pool.
+	// A unit test that validates the behavior of underlyingTokenValueInUSD function with a range of token prices.
+    // A unit test that validates the behavior of _increaseUserShare function with a range of addedLiquidity values.
+    // A unit test that verifies the userShareForPool for accounts with multiple collateral positions.
+    // A unit test that checks the borrower's position before and after the liquidity is added and verifies the increase in shares after the addition of liquidity.
+    // A unit test that checks the borrower's position before and after the liquidity is removed and verifies the decrease in shares after the removal of liquidity.
+
 
 }

@@ -39,7 +39,7 @@ contract Collateral is Liquidity, ICollateral
     uint256 immutable public wethDecimals;
     bytes32 immutable public collateralPoolID;
 
-   	// Keeps track of wallets that have borrowed USDS (so that they can be checked easily for sufficient colalteral ratios)
+   	// Keeps track of wallets that have borrowed USDS (so that they can be checked easily for sufficient collateral ratios)
    	EnumerableSet.AddressSet private _walletsWithBorrowedUSDS;
 
 	// The amount of USDS that has been borrowed by each user
@@ -115,6 +115,7 @@ contract Collateral is Liquidity, ICollateral
 		{
 		require( userShareForPool( msg.sender, collateralPoolID ) > 0, "User does not have any collateral" );
 		require( amountRepaid <= usdsBorrowedByUsers[msg.sender], "Cannot repay more than the borrowed amount" );
+		require( amountRepaid > 0, "Cannot repay zero amount" );
 
 		// Decrease the borrowed amount for the user
 		usdsBorrowedByUsers[msg.sender] -= amountRepaid;
@@ -149,7 +150,7 @@ contract Collateral is Liquidity, ICollateral
 		require( wallet != msg.sender, "Cannot liquidate self" );
 
 		// First, make sure that the user's colalteral ratio is below the required level
-		require( canUserCanBeLiquidated(wallet), "User cannot be liquidated" );
+		require( canUserBeLiquidated(wallet), "User cannot be liquidated" );
 
 		uint256 userCollateralAmount = userShareForPool( wallet, collateralPoolID );
 
@@ -245,7 +246,7 @@ contract Collateral is Liquidity, ICollateral
 
 
 	// Confirm that a user can be liquidated - that they have borrowed USDS and that their collateral value / borrowedUSDS ratio is less than the minimum required
-	function canUserCanBeLiquidated( address wallet ) public view returns (bool)
+	function canUserBeLiquidated( address wallet ) public view returns (bool)
 		{
 		// Check the current collateral ratio for the user
 		uint256 usdsBorrowedAmount = usdsBorrowedByUsers[wallet];

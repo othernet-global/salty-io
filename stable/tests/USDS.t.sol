@@ -1,96 +1,17 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.21;
 
-import "forge-std/Test.sol";
-import "../../root_tests/TestERC20.sol";
 import "../../dev/Deployment.sol";
-import "../../pools/PoolUtils.sol";
-import "../../pools/Pools.sol";
-import "../../arbitrage/ArbitrageSearch.sol";
-import "../../pools/Counterswap.sol";
-import "../../rewards/SaltRewards.sol";
-import "../../stable/Collateral.sol";
-import "../../ExchangeConfig.sol";
-import "../../staking/Staking.sol";
-import "../../rewards/RewardsEmitter.sol";
-import "../../price_feed/tests/IForcedPriceFeed.sol";
-import "../../price_feed/tests/ForcedPriceFeed.sol";
-import "../../pools/PoolsConfig.sol";
-import "../../price_feed/PriceAggregator.sol";
-import "../../dao/Proposals.sol";
-import "../../dao/DAO.sol";
-import "../../AccessManager.sol";
 
 
-contract USDSTest is Test, Deployment
+contract USDSTest is Deployment
 	{
 	constructor()
 		{
 		// If $COVERAGE=yes, create an instance of the contract so that coverage testing can work
 		// Otherwise, what is tested is the actual deployed contract on the blockchain (as specified in Deployment.sol)
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
-			{
-			vm.startPrank(DEPLOYER);
-
-			poolsConfig = new PoolsConfig();
-			usds = new USDS(wbtc, weth);
-
-			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, dai, usds, teamWallet );
-
-			priceAggregator = new PriceAggregator();
-			priceAggregator.setInitialFeeds( IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)) );
-
-			pools = new Pools(exchangeConfig, poolsConfig);
-			staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
-			liquidity = new Liquidity( pools, exchangeConfig, poolsConfig, stakingConfig );
-			collateral = new Collateral(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
-
-			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig );
-			liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, rewardsConfig );
-
-			emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
-
-			poolsConfig.whitelistPool(pools, salt, wbtc);
-			poolsConfig.whitelistPool(pools, salt, weth);
-			poolsConfig.whitelistPool(pools, salt, usds);
-			poolsConfig.whitelistPool(pools, wbtc, usds);
-			poolsConfig.whitelistPool(pools, weth, usds);
-			poolsConfig.whitelistPool(pools, wbtc, dai);
-			poolsConfig.whitelistPool(pools, weth, dai);
-			poolsConfig.whitelistPool(pools, usds, dai);
-			poolsConfig.whitelistPool(pools, wbtc, weth);
-
-
-			proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
-
-			address oldDAO = address(dao);
-			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidityRewardsEmitter);
-
-			accessManager = new AccessManager(dao);
-
-			exchangeConfig.setAccessManager( accessManager );
-			exchangeConfig.setStakingRewardsEmitter( stakingRewardsEmitter);
-			exchangeConfig.setLiquidityRewardsEmitter( liquidityRewardsEmitter);
-			exchangeConfig.setDAO( dao );
-			exchangeConfig.setUpkeep(upkeep);
-
-			pools.setDAO(dao);
-
-			usds.setContracts(collateral, pools, exchangeConfig);
-
-			// Transfer ownership of the newly created config files to the DAO
-			Ownable(address(exchangeConfig)).transferOwnership( address(dao) );
-			Ownable(address(poolsConfig)).transferOwnership( address(dao) );
-			Ownable(address(priceAggregator)).transferOwnership(address(dao));
-			vm.stopPrank();
-
-			vm.startPrank(address(oldDAO));
-			Ownable(address(stakingConfig)).transferOwnership( address(dao) );
-			Ownable(address(rewardsConfig)).transferOwnership( address(dao) );
-			Ownable(address(stableConfig)).transferOwnership( address(dao) );
-			Ownable(address(daoConfig)).transferOwnership( address(dao) );
-			vm.stopPrank();
-			}
+			initializeContracts();
 
 		priceAggregator.performUpkeep();
 		}

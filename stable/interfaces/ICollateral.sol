@@ -18,7 +18,7 @@ interface ICollateral is IStakingRewards
 	function maxWithdrawableCollateral( address wallet ) external view returns (uint256);
 	function maxBorrowableUSDS( address wallet ) external view returns (uint256);
 	function numberOfUsersWithBorrowedUSDS() external view returns (uint256);
-	function canUserCanBeLiquidated( address wallet ) external view returns (bool);
+	function canUserBeLiquidated( address wallet ) external view returns (bool);
 	function findLiquidatableUsers( uint256 startIndex, uint256 endIndex ) external view returns (address[] calldata);
 	function findLiquidatableUsers() external view returns (address[] calldata);
 

@@ -1,17 +1,10 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.21;
 
-import "forge-std/Test.sol";
-import "../../root_tests/TestERC20.sol";
-import "../../pools/Pools.sol";
 import "../../dev/Deployment.sol";
-import "../../pools/PoolUtils.sol";
-import "../../pools/Counterswap.sol";
-import "../ArbitrageSearch.sol";
-import "../../rewards/SaltRewards.sol";
 
 
-contract TestArbitrage is Test, Deployment
+contract TestArbitrage is Deployment
 	{
 	IERC20 public tokenE;	// similar price to ETH
     IERC20 public tokenB; // similar price to BTC
@@ -24,11 +17,7 @@ contract TestArbitrage is Test, Deployment
 		// If $COVERAGE=yes, create an instance of the contract so that coverage testing can work
 		// Otherwise, what is tested is the actual deployed contract on the blockchain (as specified in Deployment.sol)
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
-			{
-			vm.prank(DEPLOYER);
-			pools = new Pools(exchangeConfig, poolsConfig);
-			pools.setDAO(dao);
-			}
+			initializeContracts();
 
 		priceAggregator.performUpkeep();
 		uint256 priceBTC = priceAggregator.getPriceBTC();

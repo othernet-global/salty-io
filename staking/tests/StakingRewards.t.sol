@@ -1,18 +1,12 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.21;
 
-import "forge-std/Test.sol";
-import "../../Salt.sol";
-import "../../root_tests/TestERC20.sol";
-import "../StakingConfig.sol";
-import "../interfaces/IStakingConfig.sol";
-import "./TestStakingRewards.sol";
 import "../../dev/Deployment.sol";
-import "../../pools/PoolUtils.sol";
+import "./TestStakingRewards.sol";
 
 
 // This test derives from StakingRewards itself as there are no underived instances of StakingRewards
-contract SharedRewardsTest is Test, Deployment
+contract SharedRewardsTest is Deployment
 	{
     bytes32[] public poolIDs;
 

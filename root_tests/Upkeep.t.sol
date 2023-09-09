@@ -20,7 +20,7 @@ import "../AccessManager.sol";
 import "../launch/InitialDistribution.sol";
 
 
-contract TestMaxUpkeep is Test, Deployment
+contract TestMaxUpkeep is Deployment
 	{
     address public constant alice = address(0x1111);
 

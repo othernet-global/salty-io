@@ -8,7 +8,7 @@ import "../../pools/PoolUtils.sol";
 import "../Emissions.sol";
 
 
-contract TestEmissions is Test, Deployment
+contract TestEmissions is Deployment
 	{
 	address public alice = address(0x1111);
 	address public bob = address(0x2222);

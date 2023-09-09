@@ -1,15 +1,12 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.21;
 
-import "forge-std/Test.sol";
-import "./TestUniswapFeed.sol";
 import "../../dev/Deployment.sol";
 import "./ForcedPriceFeed.sol";
-import "../PriceAggregator.sol";
 import "./TestPriceAggregator.sol";
 
 
-contract TestPriceAggreagator is Test, Deployment
+contract TestPriceAggreagator is Deployment
 	{
 	IForcedPriceFeed public priceFeed1;
 	IForcedPriceFeed public priceFeed2;

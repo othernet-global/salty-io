@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.21;
 
-import "forge-std/Test.sol";
-import "../../root_tests/TestERC20.sol";
-import "../../pools/Pools.sol";
 import "../../dev/Deployment.sol";
 import "../../pools/PoolUtils.sol";
 import "../ArbitrageSearch.sol";
@@ -26,7 +23,7 @@ import "../../AccessManager.sol";
 import "./TestArbitrageSearch.sol";
 
 
-contract TestArbitrageSearch2 is Test, Deployment
+contract TestArbitrageSearch2 is Deployment
 	{
 	address public alice = address(0x1111);
 

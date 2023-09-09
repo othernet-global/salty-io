@@ -1,15 +1,11 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.21;
 
-import "forge-std/Test.sol";
 import "../../dev/Deployment.sol";
-import "../../root_tests/TestERC20.sol";
-import "../RewardsEmitter.sol";
-import "../SaltRewards.sol";
-import "../../pools/PoolUtils.sol";
 import "./TestSaltRewards.sol";
 
-contract TestSaltRewards2 is Test, Deployment
+
+contract TestSaltRewards2 is Deployment
 	{
     address public constant alice = address(0x1111);
     address public constant bob = address(0x2222);
@@ -19,19 +15,14 @@ contract TestSaltRewards2 is Test, Deployment
 
     function setUp() public
     	{
+		// Transfer the salt from the original initialDistribution to the DEPLOYER
+		vm.prank(address(initialDistribution));
+		salt.transfer(DEPLOYER, 100000000 ether);
+
 		// If $COVERAGE=yes, create an instance of the contract so that coverage testing can work
 		// Otherwise, what is tested is the actual deployed contract on the blockchain (as specified in Deployment.sol)
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
-			{
-			vm.prank(DEPLOYER);
-			liquidityRewardsEmitter = new RewardsEmitter(liquidity, exchangeConfig, poolsConfig, rewardsConfig );
-			stakingRewardsEmitter = new RewardsEmitter(staking, exchangeConfig, poolsConfig, rewardsConfig );
-
-			saltRewards = new SaltRewards(exchangeConfig, rewardsConfig);
-			}
-
-		vm.prank(address(initialDistribution));
-		salt.transfer(DEPLOYER, 1000000 ether);
+			initializeContracts();
     	}
 
 

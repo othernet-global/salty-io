@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.21;
 
-import "forge-std/Test.sol";
 import "../dev/Deployment.sol";
 
 
-contract TestDeployment is Deployment, Test
+contract TestDeployment is Deployment
 	{
 	function functionExists( address _contract, string memory _functionName ) public returns (bool)
 		{
@@ -68,15 +67,17 @@ contract TestDeployment is Deployment, Test
         assertEq( getContract(address(liquidity), "poolsConfig()"), address(poolsConfig), "Incorrect liquidity.poolsConfig" );
         assertEq( getContract(address(liquidity), "stakingConfig()"), address(stakingConfig), "Incorrect liquidity.stakingConfig" );
 
+
+        assertEq( getContract(address(collateral), "stableConfig()"), address(stableConfig), "Incorrect collateral.stableConfig" );
+        assertEq( getContract(address(collateral), "priceAggregator()"), address(priceAggregator), "Incorrect collateral.priceAggregator" );
     	assertEq( getContract(address(collateral), "wbtc()"), address(wbtc), "Incorrect collateral.wbtc" );
         assertEq( getContract(address(collateral), "weth()"), address(weth), "Incorrect collateral.weth" );
         assertEq( getContract(address(collateral), "usds()"), address(usds), "Incorrect collateral.usds" );
-        assertEq( getContract(address(collateral), "stableConfig()"), address(stableConfig), "Incorrect collateral.stableConfig" );
+
         assertEq( getContract(address(collateral), "pools()"), address(pools), "Incorrect collateral.pools" );
         assertEq( getContract(address(collateral), "exchangeConfig()"), address(exchangeConfig), "Incorrect collateral.exchangeConfig" );
         assertEq( getContract(address(collateral), "poolsConfig()"), address(poolsConfig), "Incorrect collateral.poolsConfig" );
         assertEq( getContract(address(collateral), "stakingConfig()"), address(stakingConfig), "Incorrect collateral.stakingConfig" );
-        assertEq( getContract(address(collateral), "priceAggregator()"), address(priceAggregator), "Incorrect collateral.priceAggregator" );
 
 		assertEq( getContract(address(stakingRewardsEmitter), "stakingRewards()"), address(staking), "Incorrect stakingRewardsEmitter.stakingRewards" );
         assertEq( getContract(address(stakingRewardsEmitter), "exchangeConfig()"), address(exchangeConfig), "Incorrect stakingRewardsEmitter.exchangeConfig" );

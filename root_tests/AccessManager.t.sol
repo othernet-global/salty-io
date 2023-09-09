@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.21;
 
-import "forge-std/Test.sol";
 import "../dev/Deployment.sol";
-import "../AccessManager.sol";
 
 
-contract TestAccessManager is Deployment, Test
+contract TestAccessManager is Deployment
 	{
 	constructor()
 		{

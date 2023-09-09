@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.21;
 
+import "forge-std/Test.sol";
 import "../pools/interfaces/IPools.sol";
 import "../pools/interfaces/IPoolsConfig.sol";
 import "../interfaces/IExchangeConfig.sol";
@@ -9,6 +10,7 @@ import "../stable/interfaces/IStableConfig.sol";
 import "../price_feed/interfaces/IPriceAggregator.sol";
 import "../staking/interfaces/IStakingConfig.sol";
 import "../staking/interfaces/IStaking.sol";
+import "../staking/Staking.sol";
 import "../staking/interfaces/ILiquidity.sol";
 import "../rewards/interfaces/IRewardsEmitter.sol";
 import "../rewards/Emissions.sol";
@@ -19,11 +21,24 @@ import "../price_feed/tests/IForcedPriceFeed.sol";
 import "../launch/interfaces/IBootstrapBallot.sol";
 import "../openzeppelin/finance/VestingWallet.sol";
 import "../launch/interfaces/IAirdrop.sol";
+import "../dao/Proposals.sol";
+import "../dao/DAO.sol";
+import "../AccessManager.sol";
+import "../rewards/SaltRewards.sol";
+import "../launch/InitialDistribution.sol";
+import "../pools/PoolsConfig.sol";
+import "../ExchangeConfig.sol";
+import "../price_feed/PriceAggregator.sol";
+import "../pools/Pools.sol";
+import "../staking/Liquidity.sol";
+import "../stable/Collateral.sol";
+import "../rewards/RewardsEmitter.sol";
+import "../root_tests/TestERC20.sol";
 
 
 // Stores the contract addresses for the various parts of the exchange and allows the unit tests to be run on them.
 
-contract Deployment
+contract Deployment is Test
     {
     bool public DEBUG = true;
 	address constant public DEPLOYER = 0x73107dA86708c2DAd0D91388fB057EeE3E2581aF;
@@ -109,6 +124,77 @@ contract Deployment
 
 		// Cast bytes to address
 		result = abi.decode(output, (address));
+		}
+
+
+	function initializeContracts() public
+		{
+		vm.startPrank(DEPLOYER);
+
+		poolsConfig = new PoolsConfig();
+		usds = new USDS(wbtc, weth);
+
+		exchangeConfig = new ExchangeConfig(salt, wbtc, weth, dai, usds, teamWallet );
+
+		priceAggregator = new PriceAggregator();
+		priceAggregator.setInitialFeeds( IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)) );
+
+		pools = new Pools(exchangeConfig, poolsConfig);
+		staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
+		liquidity = new Liquidity( pools, exchangeConfig, poolsConfig, stakingConfig );
+		collateral = new Collateral(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
+
+		stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig );
+		liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, rewardsConfig );
+
+		emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
+
+		poolsConfig.whitelistPool(pools, salt, wbtc);
+		poolsConfig.whitelistPool(pools, salt, weth);
+		poolsConfig.whitelistPool(pools, salt, usds);
+		poolsConfig.whitelistPool(pools, wbtc, usds);
+		poolsConfig.whitelistPool(pools, weth, usds);
+		poolsConfig.whitelistPool(pools, wbtc, dai);
+		poolsConfig.whitelistPool(pools, weth, dai);
+		poolsConfig.whitelistPool(pools, usds, dai);
+		poolsConfig.whitelistPool(pools, wbtc, weth);
+
+		proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
+
+		address oldDAO = address(dao);
+		dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidityRewardsEmitter);
+
+		accessManager = new AccessManager(dao);
+
+		exchangeConfig.setAccessManager( accessManager );
+		exchangeConfig.setStakingRewardsEmitter( stakingRewardsEmitter);
+		exchangeConfig.setLiquidityRewardsEmitter( liquidityRewardsEmitter);
+		exchangeConfig.setDAO( dao );
+
+		saltRewards = new SaltRewards(exchangeConfig, rewardsConfig);
+
+		upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, liquidity, emissions);
+		exchangeConfig.setUpkeep(upkeep);
+
+		initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, liquidity);
+		exchangeConfig.setInitialDistribution(initialDistribution);
+
+		pools.setDAO(dao);
+
+		usds.setContracts(collateral, pools, exchangeConfig );
+
+		// Transfer ownership of the newly created config files to the DAO
+		Ownable(address(exchangeConfig)).transferOwnership( address(dao) );
+		Ownable(address(poolsConfig)).transferOwnership( address(dao) );
+		Ownable(address(priceAggregator)).transferOwnership(address(dao));
+		vm.stopPrank();
+
+		vm.startPrank(address(oldDAO));
+		Ownable(address(stakingConfig)).transferOwnership( address(dao) );
+		Ownable(address(rewardsConfig)).transferOwnership( address(dao) );
+		Ownable(address(stableConfig)).transferOwnership( address(dao) );
+		Ownable(address(daoConfig)).transferOwnership( address(dao) );
+		vm.stopPrank();
 		}
 	}
 

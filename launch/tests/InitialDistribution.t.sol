@@ -20,7 +20,7 @@ import "../../dao/Proposals.sol";
 import "../../dao/DAO.sol";
 
 
-contract TestInitialDistribution is Test, Deployment
+contract TestInitialDistribution is Deployment
 	{
 	uint256 constant public MILLION_ETHER = 1000000 ether;
 

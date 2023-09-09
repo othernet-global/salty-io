@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.21;
 
-import "forge-std/Test.sol";
 import "../../dev/Deployment.sol";
 import "../CoreSaltyFeed.sol";
-import "../../ExchangeConfig.sol";
-import "../../pools/PoolUtils.sol";
 
 
-contract TestCoreSaltyFeed is Test, Deployment
+contract TestCoreSaltyFeed is Deployment
 	{
 	CoreSaltyFeed public saltyFeed;
 

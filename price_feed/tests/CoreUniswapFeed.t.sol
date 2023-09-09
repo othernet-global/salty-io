@@ -1,15 +1,11 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.21;
 
-import "forge-std/Test.sol";
-import "./TestUniswapFeed.sol";
-import "../interfaces/IPriceFeed.sol";
-import "../CoreUniswapFeed.sol";
 import "../../dev/Deployment.sol";
-import "../../ExchangeConfig.sol";
+import "./TestUniswapFeed.sol";
 
 
-contract TestCoreUniswapFeed is Test, Deployment
+contract TestCoreUniswapFeed is Deployment
 	{
 	TestUniswapFeed public testUniswapFeed;
 

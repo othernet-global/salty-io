@@ -73,7 +73,7 @@ contract Proposals is IProposals, ReentrancyGuard
 		ballots[ballotID] = Ballot( ballotID, true, ballotType, ballotName, address1, number1, string1, string2, ballotMinimumEndTime );
 		openBallotsByName[ballotName] = ballotID;
 
-		// Send the proposalFee (in USDS) from msg.sender to the USDS contract to increase the safety buffer for future collateral liquidiations (when borrowed USDS from liquidated collateral positions must be burned)
+		// Send the proposalFee (in USDS) from msg.sender to the USDS contract to increase the safety buffer for future collateral liquidations (when borrowed USDS from liquidated collateral positions must be burned)
 		if ( proposalCost > 0 )
 			IERC20(exchangeConfig.usds()).safeTransferFrom( msg.sender, address( exchangeConfig.usds() ), proposalCost );
 		}

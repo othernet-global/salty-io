@@ -1,21 +1,10 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.21;
 
-import "forge-std/Test.sol";
-import "../Proposals.sol";
 import "../../dev/Deployment.sol";
-import "../../root_tests/TestERC20.sol";
-import "../../ExchangeConfig.sol";
-import "../../pools/Pools.sol";
-import "../../staking/Liquidity.sol";
-import "../../staking/Staking.sol";
-import "../../stable/Collateral.sol";
-import "../../rewards/RewardsEmitter.sol";
-import "../../price_feed/tests/IForcedPriceFeed.sol";
-import "../../pools/PoolsConfig.sol";
 
 
-contract TestProposals is Test, Deployment
+contract TestProposals is Deployment
 	{
 	// User wallets for testing
     address public constant alice = address(0x1111);
@@ -24,48 +13,13 @@ contract TestProposals is Test, Deployment
 
 	constructor()
 		{
+		vm.prank(address(initialDistribution));
+		salt.transfer(DEPLOYER, 100000000 ether);
+
 		// If $COVERAGE=yes, create an instance of the contract so that coverage testing can work
 		// Otherwise, what is tested is the actual deployed contract on the blockchain (as specified in Deployment.sol)
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
-			{
-			vm.startPrank(DEPLOYER);
-
-			poolsConfig = new PoolsConfig();
-
-			// Because USDS already set the Collateral on deployment and it can only be done once, we have to recreate USDS as well
-			// That cascades into recreating multiple other contracts as well.
-			usds = new USDS(wbtc, weth);
-
-			IDAO dao = IDAO(getContract( address(exchangeConfig), "dao()" ));
-
-			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, dai, usds, teamWallet );
-			pools = new Pools(exchangeConfig, poolsConfig);
-
-			staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
-			liquidity = new Liquidity( pools, exchangeConfig, poolsConfig, stakingConfig );
-			collateral = new Collateral(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
-
-			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig );
-			liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, rewardsConfig );
-
-			emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
-
-			exchangeConfig.setDAO( dao );
-			exchangeConfig.setAccessManager( accessManager );
-
-			usds.setContracts( collateral, pools, exchangeConfig );
-
-			proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
-
-			// Transfer ownership of the config files to the DAO
-			Ownable(address(exchangeConfig)).transferOwnership( address(dao) );
-			Ownable(address(poolsConfig)).transferOwnership( address(dao) );
-
-			vm.stopPrank();
-			}
-
-		vm.prank(address(initialDistribution));
-		salt.transfer(DEPLOYER, 100000000 ether);
+			initializeContracts();
 
 		vm.startPrank( DEPLOYER );
 		salt.transfer( alice, 10000000 ether );

@@ -1,13 +1,9 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.21;
 
-import "forge-std/Test.sol";
 import "../../dev/Deployment.sol";
-import "../../root_tests/TestERC20.sol";
-import "../RewardsEmitter.sol";
-import "../../pools/PoolUtils.sol";
 
-contract TestRewardsEmitter is Test, Deployment
+contract TestRewardsEmitter is Deployment
 	{
     bytes32[] public poolIDs;
 
@@ -22,16 +18,13 @@ contract TestRewardsEmitter is Test, Deployment
 
     function setUp() public
     	{
+		vm.prank(address(initialDistribution));
+		salt.transfer(DEPLOYER, 100000000 ether);
+
 		// If $COVERAGE=yes, create an instance of the contract so that coverage testing can work
 		// Otherwise, what is tested is the actual deployed contract on the blockchain (as specified in Deployment.sol)
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
-			{
-			vm.prank(DEPLOYER);
-			liquidityRewardsEmitter = new RewardsEmitter(liquidity, exchangeConfig, poolsConfig, rewardsConfig );
-			}
-
-		vm.prank(address(initialDistribution));
-		salt.transfer(DEPLOYER, 100000000 ether);
+			initializeContracts();
 
     	token1 = new TestERC20("TEST", 18);
 		token2 = new TestERC20("TEST", 18);

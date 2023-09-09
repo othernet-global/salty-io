@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.21;
 
-import "forge-std/Test.sol";
 import "../../dev/Deployment.sol";
 import "../../root_tests/TestERC20.sol";
 import "../Pools.sol";
@@ -27,7 +26,7 @@ import "../../dao/DAO.sol";
 import "../../AccessManager.sol";
 
 
-contract TestCounterswap2 is Test, Deployment
+contract TestCounterswap2 is Deployment
 	{
 	TestPools public _pools;
 

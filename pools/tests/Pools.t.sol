@@ -1,17 +1,11 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.21;
 
-import "forge-std/Test.sol";
-import "../../root_tests/TestERC20.sol";
-import "../Pools.sol";
 import "../../dev/Deployment.sol";
-import "../PoolUtils.sol";
-import "../../pools/Counterswap.sol";
-import "../../rewards/SaltRewards.sol";
 import "./TestPools.sol";
 
 
-contract TestPools2 is Test, Deployment
+contract TestPools2 is Deployment
 	{
 	TestERC20[] private tokens = new TestERC20[](10);
 
@@ -25,12 +19,7 @@ contract TestPools2 is Test, Deployment
 		// If $COVERAGE=yes, create an instance of the contract so that coverage testing can work
 		// Otherwise, what is tested is the actual deployed contract on the blockchain (as specified in Deployment.sol)
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
-			{
-			vm.prank(DEPLOYER);
-			pools = new Pools(exchangeConfig, poolsConfig);
-
-			pools.setDAO(dao);
-			}
+			initializeContracts();
 
 		vm.startPrank( DEPLOYER );
 		for( uint256 i = 0; i < 10; i++ )

@@ -1,14 +1,10 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.21;
 
-import "forge-std/Test.sol";
 import "../../dev/Deployment.sol";
-import "../../root_tests/TestERC20.sol";
-import "../../pools/PoolUtils.sol";
-import "../Staking.sol";
 
 
-contract StakingTest is Test, Deployment
+contract StakingTest is Deployment
 	{
     bytes32[] public poolIDs;
 
@@ -19,16 +15,13 @@ contract StakingTest is Test, Deployment
 
 	constructor()
 		{
+		vm.prank(address(initialDistribution));
+		salt.transfer(DEPLOYER, 100000000 ether);
+
 		// If $COVERAGE=yes, create an instance of the contract so that coverage testing can work
 		// Otherwise, what is tested is the actual deployed contract on the blockchain (as specified in Deployment.sol)
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
-			{
-			vm.prank(DEPLOYER);
-			staking = new Staking(exchangeConfig, poolsConfig, stakingConfig);
-			}
-
-		vm.prank(address(initialDistribution));
-		salt.transfer(DEPLOYER, 100000000 ether);
+			initializeContracts();
 		}
 
 

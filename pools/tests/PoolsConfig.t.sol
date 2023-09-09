@@ -1,23 +1,10 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.21;
 
-import "forge-std/Test.sol";
 import "../../dev/Deployment.sol";
-import "../../root_tests/TestERC20.sol";
-import "../PoolsConfig.sol";
-import "../PoolUtils.sol";
-import "../../dev/Deployment.sol";
-import "../../root_tests/TestERC20.sol";
-import "../../stable/Collateral.sol";
-import "../../ExchangeConfig.sol";
-import "../../pools/Pools.sol";
-import "../../staking/Staking.sol";
-import "../../rewards/RewardsEmitter.sol";
-import "../../price_feed/tests/IForcedPriceFeed.sol";
-import "../../price_feed/tests/ForcedPriceFeed.sol";
 
 
-contract PoolsConfigTest is Deployment, Test
+contract PoolsConfigTest is Deployment
 	{
 	IERC20 public token1 = new TestERC20("TEST", 18);
 	IERC20 public token2 = new TestERC20("TEST", 18);
@@ -31,34 +18,7 @@ contract PoolsConfigTest is Deployment, Test
 		// If $COVERAGE=yes, create an instance of the contract so that coverage testing can work
 		// Otherwise, what is tested is the actual deployed contract on the blockchain (as specified in Deployment.sol)
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
-			{
-			vm.startPrank(DEPLOYER);
-
-			// Because USDS already set the Collateral on deployment and it can only be done once, we have to recreate USDS as well
-			// That cascades into recreating multiple other contracts as well.
-			usds = new USDS(wbtc, weth);
-
-			IDAO dao = IDAO(getContract( address(exchangeConfig), "dao()" ));
-
-			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, dai, usds, teamWallet );
-			pools = new Pools(exchangeConfig, poolsConfig);
-
-			staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
-			liquidity = new Liquidity( pools, exchangeConfig, poolsConfig, stakingConfig );
-			collateral = new Collateral(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
-
-			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig );
-			liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, rewardsConfig );
-
-			emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
-
-			exchangeConfig.setDAO( dao );
-			exchangeConfig.setAccessManager( accessManager );
-
-			usds.setContracts( collateral, pools, exchangeConfig );
-
-			vm.stopPrank();
-			}
+			initializeContracts();
 		}
 
 
