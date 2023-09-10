@@ -37,8 +37,12 @@ contract StableConfig is IStableConfig, Ownable
 
 	function changeRewardPercentForCallingLiquidation(bool increase) public onlyOwner
         {
+        if ( ( rewardPercentForCallingLiquidation - 1 ) > minimumCollateralRatioPercent )
+        	return;
+
 		// Don't act if (minimumCollateralRatioPercent - rewardPercentForCallingLiquidation) is less than 105% to ensure that the position will be liquidatable for more than the originally borrowed USDS amount (assume reasonable market volatility)
         uint256 remainingRatioAfterReward = minimumCollateralRatioPercent - rewardPercentForCallingLiquidation - 1;
+
         if (increase)
             {
             if (remainingRatioAfterReward >= 105 && rewardPercentForCallingLiquidation < 10)
@@ -99,7 +103,11 @@ contract StableConfig is IStableConfig, Ownable
 
 	function changeMinimumCollateralRatioPercent(bool increase) public onlyOwner
         {
+        if ( rewardPercentForCallingLiquidation > minimumCollateralRatioPercent - 1 )
+        	return;
+
         uint256 remainingRatioAfterReward = minimumCollateralRatioPercent - 1 - rewardPercentForCallingLiquidation;
+
         if (increase)
             {
             if (minimumCollateralRatioPercent < 120)
