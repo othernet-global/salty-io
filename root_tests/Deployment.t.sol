@@ -182,6 +182,7 @@ contract TestDeployment is Deployment
         assertEq( getContract(address(usds), "weth()"), address(weth), "Incorrect usds.weth" );
         assertEq( getContract(address(usds), "collateral()"), address(collateral), "Incorrect usds.collateral" );
         assertEq( getContract(address(usds), "pools()"), address(pools), "Incorrect usds.pools" );
+        assertEq( getContract(address(usds), "exchangeConfig()"), address(exchangeConfig), "Incorrect usds.exchangeConfig" );
     	}
 
 

@@ -5,9 +5,9 @@ import "../openzeppelin/token/ERC20/ERC20.sol";
 import "../stable/interfaces/ICollateral.sol";
 import "./interfaces/IUSDS.sol";
 import "../pools/interfaces/IPools.sol";
-import "../dao/interfaces/IDAO.sol";
 import "../pools/Counterswap.sol";
 import "../interfaces/IExchangeConfig.sol";
+import "../openzeppelin/access/Ownable.sol";
 
 
 // USDS can be borrowed by users who have deposited WBTC/WETH liquidity as collateral via Collateral.sol
@@ -15,7 +15,7 @@ import "../interfaces/IExchangeConfig.sol";
 // The minimum default collateral ratio is 110% - below which positions can be liquidated by any user.
 
 // If WBTC/WETH collateral is liquidated the reclaimed WBTC and WETH tokens are sent to this contract and swapped for USDS (via counterswapping) which is then burned (essentially "undoing" the user's original collateral deposit and USDS borrow).
-contract USDS is ERC20, IUSDS
+contract USDS is ERC20, IUSDS, Ownable
     {
     IERC20 immutable public wbtc;
     IERC20 immutable public weth;
@@ -42,10 +42,8 @@ contract USDS is ERC20, IUSDS
 
 
 	// These contracts will be set at deployment time and after that become immutable
-	function setContracts( ICollateral _collateral, IPools _pools, IExchangeConfig _exchangeConfig ) public
+	function setContracts( ICollateral _collateral, IPools _pools, IExchangeConfig _exchangeConfig ) public onlyOwner
 		{
-		require( address(collateral) == address(0), "setContracts can only be called once" );
-
 		require( address(_collateral) != address(0), "_collateral cannot be address(0)" );
 		require( address(_pools) != address(0), "_pools cannot be address(0)" );
 		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
@@ -53,6 +51,9 @@ contract USDS is ERC20, IUSDS
 		collateral = _collateral;
 		pools = _pools;
 		exchangeConfig = _exchangeConfig;
+
+		// setContracts can only be called once
+		renounceOwnership();
 		}
 
 

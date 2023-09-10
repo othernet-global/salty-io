@@ -53,10 +53,8 @@ contract Deployment is Test
 	IERC20 public _testUSDC = IERC20(0x9C65b1773A95d607f41fa205511cd3327cc39D9D);
 	IForcedPriceFeed public forcedPriceFeed = IForcedPriceFeed(address(0x3B0Eb37f26b502bAe83df4eCc54afBDfb90B5d3a));
 
-
 	// The DAO contract can provide us with all other contract addresses in the protocol
 	IDAO public dao = IDAO(address(0x5121CC57E70AD677435a020789408af03F4F03Ee));
-
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));
@@ -197,7 +195,3 @@ contract Deployment is Test
 		vm.stopPrank();
 		}
 	}
-
-
-
-

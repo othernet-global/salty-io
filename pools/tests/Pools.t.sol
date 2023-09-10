@@ -1737,7 +1737,7 @@ function testMinLiquidityAndReclaimedAmounts() public {
         pools.setDAO(dao);
 
         // Try to set the DAO again and expect a revert
-        vm.expectRevert("setDAO can only be called once");
+        vm.expectRevert("Ownable: caller is not the owner");
         pools.setDAO(dao);
     }
 
@@ -1746,7 +1746,6 @@ function testMinLiquidityAndReclaimedAmounts() public {
 	function testSetDAOWithZeroAddress() public {
 		pools = new Pools(exchangeConfig, poolsConfig);
 
-        vm.startPrank(DEPLOYER);
         vm.expectRevert("_dao cannot be address(0)");
         pools.setDAO(IDAO(address(0)));
     }

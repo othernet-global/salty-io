@@ -40,7 +40,7 @@ contract USDSTest is Deployment
 
 		address invalid = address(0xdead);
 
-		vm.expectRevert("setContracts can only be called once");
+		vm.expectRevert("Ownable: caller is not the owner");
 		usds.setContracts( ICollateral(invalid), IPools(invalid), IExchangeConfig(invalid) );
 
 		// Validate that the addresses did not change

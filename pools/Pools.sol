@@ -13,9 +13,10 @@ import "./Counterswap.sol";
 import "./PoolStats.sol";
 import "../rewards/SaltRewards.sol";
 import "../arbitrage/ArbitrageSearch.sol";
+import "../openzeppelin/access/Ownable.sol";
 
 
-contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch
+contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	{
 	using SafeERC20 for IERC20;
 
@@ -56,12 +57,14 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch
 		}
 
 
-	function setDAO( IDAO _dao ) public
+	function setDAO( IDAO _dao ) public onlyOwner
 		{
-		require( address(dao) == address(0), "setDAO can only be called once" );
 		require( address(_dao) != address(0), "_dao cannot be address(0)" );
 
 		dao = _dao;
+
+		// setDAO can only be called once
+		renounceOwnership();
 		}
 
 
