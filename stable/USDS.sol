@@ -124,11 +124,29 @@ contract USDS is ERC20, IUSDS, Ownable
 		if ( usdsThatShouldBeBurned == 0 )
 			return;
 
+		// Everything in the contract will be burned up to the specified amount
+		uint256 startingBalance = balanceOf(address(this));
+
+		if ( startingBalance > usdsThatShouldBeBurned )
+			{
+			// Only part of the startingBalance will be burned
+			_burn( address(this), usdsThatShouldBeBurned );
+    		usdsThatShouldBeBurned = 0;
+
+			return;
+			}
+		else
+			{
+			// The entire startingBalance will be burned
+			usdsThatShouldBeBurned -= startingBalance;
+			}
+
+
 		// Withdraw up to usdsThatShouldBeBurned from previously done WBTC->USDS and WETH->USDS counterswaps
 		uint256 tempRemainingToBurn = _withdrawUSDSFromCounterswap( Counterswap.WBTC_TO_USDS, usdsThatShouldBeBurned );
 		usdsThatShouldBeBurned = _withdrawUSDSFromCounterswap( Counterswap.WETH_TO_USDS, tempRemainingToBurn );
 
-		// Burn all the USDS that was just withdrawn (and any other USDS in the contract - although there shouldn't normally be any)
+		// Burn all the USDS that was just withdrawn (and any other USDS in the contract).
 		// Extra USDS will remain in counterswap as a buffer of burnable USDS in case any liquidated collateral positions are ever underwater.
 		_burn( address(this), balanceOf(address(this)) );
 		}
