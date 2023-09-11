@@ -52,7 +52,7 @@ contract PoolStats is IPoolStats
 		bytes16 reserveRatio = ABDKMathQuad.div( ABDKMathQuad.fromUInt(reserve0), ABDKMathQuad.fromUInt(reserve1) );
 
 		// Use a novel mechanism to compute the exponential average with irregular periods between data points.
-		// Simulation shows that this works quite well and is well correlated to a traditional EMA with a similar uniform period.
+		// Simulation shows that this works quite well and is well correlated to a traditional EMA with a similar uniform update period.
 		uint256 timeSinceLastUpdate = block.timestamp - lastUpdateTimes[poolID];
 		bytes16 effectiveAlpha = ABDKMathQuad.mul( ABDKMathQuad.fromUInt(timeSinceLastUpdate), alpha );
 
