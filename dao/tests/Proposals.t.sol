@@ -479,6 +479,7 @@ contract TestProposals is Deployment
 
 
 	// A unit test for the proposals.totalVotesCastForBallot function that confirms it returns the correct total votes for a given ballot.
+   // A unit test that verifies if the totalVotesCastForBallot function correctly calculates the sum of all types of votes for a particular ballot.
 	function testTotalVotesCastForBallot() public
         {
         string memory ballotName = "parameter:2";
@@ -503,7 +504,7 @@ contract TestProposals is Deployment
 
         vm.startPrank( alice );
 		staking.stakeSALT( 1000 ether );
-        proposals.castVote(ballotID, Vote.INCREASE);
+        proposals.castVote(ballotID, Vote.DECREASE);
         vm.stopPrank();
 
         assertEq(proposals.totalVotesCastForBallot(ballotID), 4000 ether);

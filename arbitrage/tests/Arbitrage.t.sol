@@ -458,5 +458,14 @@ contract TestArbitrage is Deployment
 		}
 
 
+	// A unit test that checks the constructor rejects an initialization with a zero address for _exchangeConfig.
+	function testArbitrageSearchZeroAddressExchangeConfig() public {
+        IExchangeConfig exchangeConfig = IExchangeConfig(address(0));
+
+        vm.expectRevert("_exchangeConfig cannot be address(0)");
+
+        new ArbitrageSearch(exchangeConfig);
+    }
+
 	}
 

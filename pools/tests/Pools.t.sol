@@ -1705,21 +1705,21 @@ function testMinLiquidityAndReclaimedAmounts() public {
 
 
 	// A unit test that validates "unwhitelist" function's modification of '_whitelistedCache' variable.
-	function testUnwhitelist() public {
+	function testWhitelistAndUnwhitelist() public {
 		TestPools _pools = new TestPools(exchangeConfig, poolsConfig);
 
       // Begin closure-based prank on the defined DAO address
       vm.startPrank(address(poolsConfig));
 
-      // Whitelist tokens[0] and tokens[1] by calling setIsWhitelistedCache() function
+      // Whitelist tokens[0] and tokens[1] by calling setIsWhitelisted() function
       (bytes32 tokenPairID,) = PoolUtils.poolID(tokens[0], tokens[1]);
-      _pools.setIsWhitelistedCache(tokenPairID);
+      _pools.setIsWhitelisted(tokenPairID);
 
       // Check that the tokens are whitelisted as expected
       assertEq(_pools.isWhitelistedCache(tokenPairID), true);
 
-      // Call the clearIsWhitelistedCache() function to unwhitelist the tokens[0] and tokens[1] pair
-      _pools.clearIsWhitelistedCache(tokenPairID);
+      // Call the clearIsWhitelisted() function to unwhitelist the tokens[0] and tokens[1] pair
+      _pools.clearIsWhitelisted(tokenPairID);
 
       // Assert that the tokens are no longer whitelisted
       assertEq(_pools.isWhitelistedCache(tokenPairID), false);
@@ -1749,5 +1749,71 @@ function testMinLiquidityAndReclaimedAmounts() public {
         vm.expectRevert("_dao cannot be address(0)");
         pools.setDAO(IDAO(address(0)));
     }
+
+
+    // A unit test that checks if the depositTokenForCounterswap method correctly increases the user balance.
+    function testDepositTokenForCounterswap() public {
+        // Set up
+        IERC20 tokenToDeposit = tokens[0];
+        address counterswapAddress = address(0x4444);
+
+        uint256 initialBalance = pools.depositedBalance(counterswapAddress, tokenToDeposit);
+        uint256 amountToDeposit = 500 ether;
+        uint256 expectedBalance = initialBalance + amountToDeposit;
+
+        // Execute
+        vm.prank(address(DEPLOYER));
+        tokens[0].transfer(address(upkeep), amountToDeposit);
+
+        vm.startPrank(address(upkeep));
+        tokenToDeposit.approve(address(pools), amountToDeposit);
+        pools.depositTokenForCounterswap(counterswapAddress, tokenToDeposit, amountToDeposit);
+        vm.stopPrank();
+
+        // Verify
+        uint256 postDepositBalance = pools.depositedBalance(counterswapAddress, tokenToDeposit);
+        assertEq(postDepositBalance, expectedBalance);
+    }
+
+
+	// A unit test that checks if the withdrawTokenFromCounterswap method correctly decreases the user balance.
+	function testWithdrawTokenFromCounterswap() public {
+
+		vm.prank(DEPLOYER);
+		tokens[5].transfer(alice, 50 ether);
+
+        // Alice deposits 50 tokens
+        vm.startPrank(alice);
+        tokens[5].approve(address(pools), 50 ether );
+        pools.deposit(tokens[5], 50 ether);
+        vm.stopPrank();
+
+    	// Check Alice's balance
+    	uint256 aliceBalance = pools.depositedBalance(alice, tokens[5]);
+    	// Alice's balance should be 50
+    	assertEq(aliceBalance, 50 ether);
+
+    	// Alice withdraws 25 tokens
+    	vm.startPrank(address(upkeep));
+    	pools.withdrawTokenFromCounterswap(alice, tokens[5], 25 ether);
+    	vm.stopPrank();
+
+    	// Check Alice's balance after withdrawal
+    	aliceBalance = pools.depositedBalance(alice, tokens[5]);
+    	// Alice's balance should be 25
+    	assertEq(aliceBalance, 25 ether);
+    }
+
+
+	// A unit test that verifies that the clearIsWhitelistedCache can only be called from the PoolsConfig contract.
+	function testClearIsWhitelistedCacheOnlyCallableFromPoolsConfig() public {
+        (bytes32 poolID,) = PoolUtils.poolID(tokens[0], tokens[1]);
+
+        // Try to call clearIsWhitelisted as bob, which should fail
+        vm.startPrank(bob);
+
+        vm.expectRevert("Pools.clearIsWhitelisted is only callable from the PoolsConfig contract");
+        pools.clearIsWhitelisted(poolID);
+        }
     }
 

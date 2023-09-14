@@ -458,4 +458,63 @@ contract LiquidityTest is Deployment
 		assertEq( addedAmountA, 10 ether );
 		assertEq( addedAmountB, 20 ether );
     }
+
+
+	// A unit test that checks if the contract rejects the dual zap for non-whitelisted pools.
+	function testRejectDualZapForNonWhitelistedPools() public {
+    	bytes32 nonWhitelistedPool;
+    	IERC20 token4;
+    	IERC20 token5;
+
+    	// Create new tokens
+    	token4 = new TestERC20("TEST", 18);
+    	token5 = new TestERC20("TEST", 18);
+
+    	// Get pool ID of non-whitelisted pool
+    	(nonWhitelistedPool,) = PoolUtils.poolID(token4, token5);
+
+    	uint256 amountA = 10 ether;
+    	uint256 amountB = 20 ether;
+
+    	// Alice has new tokens and approves liquidity to spend them
+    	token4.transfer(alice, 1000 ether);
+    	token5.transfer(alice, 1000 ether);
+    	vm.startPrank(alice);
+    	token4.approve(address(liquidity), type(uint256).max);
+    	token5.approve(address(liquidity), type(uint256).max);
+
+    	// Should revert while trying to addLiquidityAndIncreaseShare
+    	vm.expectRevert("Invalid pool");
+    	liquidity.addLiquidityAndIncreaseShare( token4, token5, amountA, amountB, 0 ether, block.timestamp, false );
+    }
+
+
+	// A unit test that checks if the contract correctly reverts excess tokens back to the sender after the addLiquidityAndIncreaseShare() operation.
+    function testExcessTokensAreReverted() public {
+
+    	// Create the initial reserve ratio
+        token1.approve(address(pools), type(uint256).max);
+        token2.approve(address(pools), type(uint256).max);
+    	pools.addLiquidity(token1, token2, 100 ether, 100 ether, 0, block.timestamp);
+
+        uint256 initialBalanceToken1Alice = token1.balanceOf( alice );
+        uint256 initialBalanceToken2Alice = token2.balanceOf( alice );
+        uint256 addedAmount1 = 10 ether;
+        uint256 addedAmount2 = 20 ether;
+
+        // Have alice add liquidity with excess tokens
+        vm.startPrank(alice);
+        token1.approve(address(liquidity), type(uint256).max);
+        token2.approve(address(liquidity), type(uint256).max);
+        ( uint256 addedAmountA, uint256 addedAmountB,) = liquidity.addLiquidityAndIncreaseShare( token1, token2, addedAmount1, addedAmount2, 0 ether, block.timestamp, true );
+		vm.stopPrank();
+
+        // The exact amount of tokens should be deposited in the pool
+        assertEq( addedAmountA, addedAmount1, "Incorrect amount of token1 was added to pool" );
+        assertEq( addedAmountB, addedAmount1, "Incorrect amount of token2 was added to pool" );
+
+        // Verify that Alice's balance of both tokens has decreased by the amount added to liquidity pool
+        assertEq( token1.balanceOf( alice ), initialBalanceToken1Alice - addedAmount1, "Incorrect token1 balance after liquidity addition" );
+        assertEq( token2.balanceOf( alice ), initialBalanceToken2Alice - addedAmount1, "Incorrect token2 balance after liquidity addition" );
+    }
 	}

@@ -303,6 +303,7 @@ contract TestPoolStats is Test, PoolStats
 		assertEq(profits[1], 0, "Profit for pool 1 not cleared");
 	}
 
+
 	// A unit test for `profitsForPools` that verifies it returns zero for pools without profits
 	function testPoolWithoutProfits() public
 	{
@@ -310,5 +311,41 @@ contract TestPoolStats is Test, PoolStats
 		// Checking initial profit of pool to be zero
 		assertEq(_profitsForPools[_poolID2], 0, "Initial profit should be zero");
 	}
+
+
+   // A unit test for averageReserveRatio() function that verifies the ratio is inverted/flipped if provided tokens are flipped
+   function testAverageReserveRatio() public {
+       // Prepare
+       _updatePoolStats(poolID2, 2 ether, 3 ether);
+       bytes16 expectedRatio = ABDKMathQuad.div( ABDKMathQuad.fromUInt(3 ether), ABDKMathQuad.fromUInt(2 ether) );
+
+       // Execute and verify
+       bytes16 actualRatio = averageReserveRatio( tokenB, tokenC );
+
+       assertEq(
+           ABDKMathQuad.toUInt(ABDKMathQuad.mul(actualRatio, ABDKMathQuad.fromUInt(1 ether))),
+           ABDKMathQuad.toUInt(ABDKMathQuad.mul(expectedRatio, ABDKMathQuad.fromUInt(1 ether))),
+           "Reserve ratios don't match"
+       );
+
+       // Execute and verify inverse check. We need to invert the expected ratio as now tokenC is the first token and tokenB the second token
+       actualRatio = averageReserveRatio( tokenC, tokenB );
+
+       expectedRatio = ABDKMathQuad.div( ABDKMathQuad.fromUInt(1), expectedRatio );
+       assertEq(
+           ABDKMathQuad.toUInt(ABDKMathQuad.mul(actualRatio, ABDKMathQuad.fromUInt(1 ether))),
+           ABDKMathQuad.toUInt(ABDKMathQuad.mul(expectedRatio, ABDKMathQuad.fromUInt(1 ether))),
+           "Flipped reserve ratios don't match"
+       );
+   }
+
+
+	// A unit test to check constructor that throws error when exchangeConfig address is equal to zero
+	function testConstructorAddressZero() public
+    {
+    vm.expectRevert( "_exchangeConfig cannot be address(0)" );
+    new PoolStats(IExchangeConfig(address(0)));
+    }
+
 	}
 

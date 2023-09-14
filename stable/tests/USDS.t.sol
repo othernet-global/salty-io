@@ -632,8 +632,8 @@ contract USDSTest is Deployment
     	vm.prank(address(upkeep));
     	usds.performUpkeep();
 
-		uint256 amountBurned = usdsSupply - usds.totalSupply();
-		console.log( "amountBurned: ", amountBurned );
+//		uint256 amountBurned = usdsSupply - usds.totalSupply();
+//		console.log( "amountBurned: ", amountBurned );
 
         // All tokens should be burned
         assertEq(usds.balanceOf(address(usds)), 0);

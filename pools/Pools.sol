@@ -42,8 +42,8 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	// Keep track of the amount of liquidity owned by users for each poolID
 	mapping(address=>mapping(bytes32=>uint256)) private _userLiquidity;
 
-	// Cache of the whitelisted pools so we don't need an external call to access poolsConfig.isWhitelisted on swaps
-	mapping(bytes32=>bool) public _isWhitelistedCache;
+	// Cache of the whitelisted pools so we don't need an external call to access poolsConfig.isWhitelisted on swaps (to determine arbitrage type)
+	mapping(bytes32=>bool) public _isWhitelisted;
 
 
 	constructor( IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig )
@@ -76,20 +76,20 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 
 	// Called by PoolsConfig to cache the whitelisted pool locally to avoid external calls to poolsConfig.isWhitelisted on swaps
-	function setIsWhitelistedCache(bytes32 poolID) public
+	function setIsWhitelisted(bytes32 poolID) public
 		{
-		require(msg.sender == address(poolsConfig), "Pools.setIsWhitelistedCache is only callable from the PoolsConfig contract" );
+		require(msg.sender == address(poolsConfig), "Pools.setIsWhitelisted is only callable from the PoolsConfig contract" );
 
-		_isWhitelistedCache[poolID] = true;
+		_isWhitelisted[poolID] = true;
 		}
 
 
 	// Called by PoolsConfig to cache the whitelisted pool locally to avoid external calls to poolsConfig.isWhitelisted on swaps
-	function clearIsWhitelistedCache(bytes32 poolID) public
+	function clearIsWhitelisted(bytes32 poolID) public
 		{
-		require(msg.sender == address(poolsConfig), "Pools.clearIsWhitelistedCache is only callable from the PoolsConfig contract" );
+		require(msg.sender == address(poolsConfig), "Pools.clearIsWhitelisted is only callable from the PoolsConfig contract" );
 
-		_isWhitelistedCache[poolID] = false;
+		_isWhitelisted[poolID] = false;
 		}
 
 
@@ -380,7 +380,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		{
 		// See if tokenIn and tokenOut are whitelisted and therefore can have direct liquidity in the pool
 		(bytes32 poolID,) = PoolUtils.poolID(swapTokenIn, swapTokenOut);
-		bool isWhitelistedPair = _isWhitelistedCache[poolID];
+		bool isWhitelistedPair = _isWhitelisted[poolID];
 
 		if ( isWhitelistedPair )
 			{

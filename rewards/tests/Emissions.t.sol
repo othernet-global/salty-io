@@ -173,4 +173,24 @@ contract TestEmissions is Deployment
 
 		assertEq( salt.balanceOf(address(emissions)), startingEmissionsBalance - expectedRewards);
 		}
+
+
+    uint256 constant public MAX_TIME_SINCE_LAST_UPKEEP = 1 weeks;
+
+	// A unit test to check the amount of SALT rewards sent in performUpkeep when timeSinceLastUpkeep is greater than MAX_TIME_SINCE_LAST_UPKEEP.
+	function testPerformUpkeepMaxTimeSinceLastUpkeep() public
+		{
+		uint256 initialSaltBalance = salt.balanceOf(address(emissions));
+
+		// Perform upkeep with a time greater than MAX_TIME_SINCE_LAST_UPKEEP
+		vm.prank(address(upkeep));
+		emissions.performUpkeep(MAX_TIME_SINCE_LAST_UPKEEP + 1);
+
+		// Despite providing a time greater than MAX_TIME_SINCE_LAST_UPKEEP, only MAX_TIME_SINCE_LAST_UPKEEP should be considered
+		// Weekly emission rate is .50%, so the expected salt sent is .50% of the initial balance
+		uint256 expectedSaltSent = initialSaltBalance * 5 / 1000;
+		uint256 finalSaltBalance = salt.balanceOf(address(emissions));
+		assertEq(initialSaltBalance - finalSaltBalance, expectedSaltSent);
+		}
+
 	}

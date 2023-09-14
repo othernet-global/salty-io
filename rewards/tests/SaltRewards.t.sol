@@ -460,5 +460,64 @@ contract TestSaltRewards2 is Deployment
         assertEq(_saltRewards.pendingStakingRewards(), 10 ether);
         assertEq(_saltRewards.pendingLiquidityRewards(), 20 ether);
     }
+
+
+	// A unit test to verify contract balance after multiple addSALTRewards function calls.
+	function testRepeatedAddSALTRewards() public {
+		vm.startPrank(address(DEPLOYER));
+
+		// Defining the amounts to add as salt rewards
+		uint256[] memory amounts = new uint256[](3);
+		amounts[0] = 3 ether;
+		amounts[1] = 5 ether;
+		amounts[2] = 2 ether;
+
+		uint256 expectedBalance = 0;
+		for (uint256 i = 0; i < amounts.length; i++) {
+			// Add salt rewards
+			salt.approve(address(saltRewards), amounts[i]);
+			saltRewards.addSALTRewards(amounts[i]);
+
+			// Update expected balance
+			expectedBalance += amounts[i];
+
+			// Check the balance of contract
+			assertEq(salt.balanceOf(address(saltRewards)), expectedBalance, "Incorrect contract balance after addSALTRewards");
+		}
+	}
+
+
+	// A unit test to validate that any leftover SALT dust is added to pendingRewardsSaltUSDS after executing the _sendLiquidityRewards function
+	    function testAddDustToPendingRewardsSaltUSDS() public {
+            TestSaltRewards _saltRewards = new TestSaltRewards(exchangeConfig, rewardsConfig);
+
+            vm.prank(DEPLOYER);
+            salt.transfer(address(_saltRewards), 50 ether);
+
+            bytes32[] memory poolIDs = new bytes32[](1);
+            (poolIDs[0],) = PoolUtils.poolID(salt,usds);
+
+            uint256[] memory profitsForPools = new uint256[](1);
+            profitsForPools[0] = 10 ether;
+
+            // Initializing the pending rewards
+            uint256 initialPendingLiquidityRewards = 40 ether;
+            uint256 initialPendingRewardsSaltUSDS = 1 ether;
+            _saltRewards.setPendingLiquidityRewards(initialPendingLiquidityRewards);
+            _saltRewards.setPendingRewardsSaltUSDS(initialPendingRewardsSaltUSDS);
+
+            // Balance of contract before running sendLiquidityRewards
+            uint256 initialSaltContractBalance = salt.balanceOf(address(_saltRewards));
+
+			_saltRewards.sendStakingRewards();
+            _saltRewards.sendLiquidityRewards(poolIDs, profitsForPools);
+
+            uint256 dust = salt.balanceOf(address(_saltRewards));
+
+            // It should be equal to the dust remaining in the contract plus the initial pendingRewardsSaltUSDS
+            assertEq(_saltRewards.pendingRewardsSaltUSDS(), 9 ether, "The remaining dust was not added to pendingRewardsSaltUSDS");
+        }
+
+
 	}
 

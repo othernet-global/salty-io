@@ -43,7 +43,7 @@ contract PoolsConfig is IPoolsConfig, Ownable
 		underlyingPoolTokens[poolID] = TokenPair(tokenA, tokenB);
 
 		if ( _whitelist.add(poolID) )
-			pools.setIsWhitelistedCache(poolID);
+			pools.setIsWhitelisted(poolID);
 		}
 
 
@@ -52,7 +52,7 @@ contract PoolsConfig is IPoolsConfig, Ownable
 		(bytes32 poolID, ) = PoolUtils.poolID(tokenA,tokenB);
 
 		if ( _whitelist.remove(poolID) )
-			pools.clearIsWhitelistedCache(poolID);
+			pools.clearIsWhitelisted(poolID);
 		}
 
 

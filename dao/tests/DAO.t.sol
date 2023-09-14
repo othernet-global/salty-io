@@ -857,5 +857,29 @@ contract TestDAO is Deployment
         dao.sendSaltToSaltRewards(salt, saltRewards, 5 ether);
         assertEq(salt.balanceOf(address(saltRewards)), 15 ether, "DAO sending SALT to SaltRewards did not adequately adjust the SaltRewards's SALT balance.");
     }
+
+
+    // A unit test to validate the functionality of sufficientBootstrappingRewardsExistForWhitelisting
+	function testSufficientBootstrappingRewardsExistForWhitelisting() public {
+
+        // Initial SALT balance of DAO is 0 ether
+
+        // Test when SALT balance in DAO contract is insufficient for whitelisting
+        assertEq(dao.sufficientBootstrappingRewardsExistForWhitelisting(), false, "DAO should have insufficient bootstrapping rewards");
+
+		uint256 bootstrappingRewards = daoConfig.bootstrappingRewards();
+
+        vm.prank(DEPLOYER);
+        salt.transfer(address(dao), bootstrappingRewards * 2 - 1);
+
+		// Still insufficient
+        assertEq(dao.sufficientBootstrappingRewardsExistForWhitelisting(), false, "DAO should still have insufficient bootstrapping rewards");
+
+        vm.prank(DEPLOYER);
+        salt.transfer(address(dao), 2);
+
+		// Sufficient
+        assertEq(dao.sufficientBootstrappingRewardsExistForWhitelisting(), true, "DAO should have sufficient bootstrapping rewards");
+    }
     }
 
