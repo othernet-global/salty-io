@@ -36,6 +36,7 @@ contract TestCoreFeeds is Deployment
 		usds.mintTo(DEPLOYER, 100000000 ether );
 
 		vm.startPrank(DEPLOYER);
+		accessManager.grantAccess();
 		usds.approve( address(pools), type(uint256).max );
 		weth.approve( address(pools), type(uint256).max );
 		wbtc.approve( address(pools), type(uint256).max );

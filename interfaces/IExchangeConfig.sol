@@ -20,8 +20,6 @@ interface IExchangeConfig
 	function setAccessManager( IAccessManager _accessManager ) external; // onlyOwner
 	function setStakingRewardsEmitter( IRewardsEmitter _rewardsEmitter ) external; // onlyOwner
 	function setLiquidityRewardsEmitter( IRewardsEmitter _rewardsEmitter ) external; // onlyOwner
-	function setLiquidity( IStakingRewards _liquidity ) external; // onlyOwner
-	function setCollateral( ICollateral _collateral ) external; // onlyOwner
 
 	function setTeamWallet( address _teamWallet ) external;
 	function setVestingWallets( address _teamVestingWallet, address _daoVestingWallet ) external;

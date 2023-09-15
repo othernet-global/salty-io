@@ -21,6 +21,16 @@ contract TestPools2 is Deployment
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 			initializeContracts();
 
+		accessManager.grantAccess();
+		vm.prank(DEPLOYER);
+		accessManager.grantAccess();
+		vm.prank(alice);
+		accessManager.grantAccess();
+		vm.prank(bob);
+		accessManager.grantAccess();
+		vm.prank(charlie);
+		accessManager.grantAccess();
+
 		vm.startPrank( DEPLOYER );
 		for( uint256 i = 0; i < 10; i++ )
 			{
@@ -74,16 +84,6 @@ contract TestPools2 is Deployment
 
 		tokens[5].approve(address(pools), type(uint256).max );
 		pools.deposit(tokens[5], 1 ether);
-
-		accessManager.grantAccess();
-		vm.prank(DEPLOYER);
-		accessManager.grantAccess();
-		vm.prank(alice);
-		accessManager.grantAccess();
-		vm.prank(bob);
-		accessManager.grantAccess();
-		vm.prank(charlie);
-		accessManager.grantAccess();
 		}
 
 

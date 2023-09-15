@@ -26,8 +26,6 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 	IAccessManager public accessManager;
 	IInitialDistribution public initialDistribution;
 
-	IStakingRewards public liquidity;
-	ICollateral public collateral;
 
 	address public teamWallet;
 	address public teamVestingWallet;	// can only be set once
@@ -58,24 +56,6 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 		require( address(_dao) != address(0), "_dao cannot be address(0)" );
 
 		dao = _dao;
-		}
-
-
-	function setLiquidity( IStakingRewards _liquidity ) public onlyOwner
-		{
-		require( address(liquidity) == address(0), "setLiquidity can only be called once" );
-		require( address(_liquidity) != address(0), "_liquidity cannot be address(0)" );
-
-		liquidity = _liquidity;
-		}
-
-
-	function setCollateral( ICollateral _collateral ) public onlyOwner
-		{
-		require( address(collateral) == address(0), "setCollateral can only be called once" );
-		require( address(_collateral) != address(0), "_collateral cannot be address(0)" );
-
-		collateral = _collateral;
 		}
 
 
@@ -146,14 +126,6 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 		{
 		// The DAO always has access
 		if ( wallet == address(dao) )
-			return true;
-
-		// The Liquidity contract always has access
-		if ( wallet == address(liquidity) )
-			return true;
-
-		// The Collateral contract always has access
-		if ( wallet == address(collateral) )
 			return true;
 
 		return accessManager.walletHasAccess( wallet );

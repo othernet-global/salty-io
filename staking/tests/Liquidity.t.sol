@@ -29,6 +29,17 @@ contract LiquidityTest is Deployment
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 			initializeContracts();
 
+		accessManager.grantAccess();
+
+		vm.prank(DEPLOYER);
+		accessManager.grantAccess();
+		vm.prank(alice);
+		accessManager.grantAccess();
+		vm.prank(bob);
+		accessManager.grantAccess();
+		vm.prank(charlie);
+		accessManager.grantAccess();
+
     	token1 = new TestERC20("TEST", 18);
 		token2 = new TestERC20("TEST", 18);
 		token3 = new TestERC20("TEST", 18);
@@ -93,14 +104,6 @@ contract LiquidityTest is Deployment
         token2.approve(address(liquidity), type(uint256).max);
         token3.approve(address(liquidity), type(uint256).max);
 		vm.stopPrank();
-
-		accessManager.grantAccess();
-		vm.prank(alice);
-		accessManager.grantAccess();
-		vm.prank(bob);
-		accessManager.grantAccess();
-		vm.prank(charlie);
-		accessManager.grantAccess();
     	}
 
 
@@ -184,6 +187,7 @@ contract LiquidityTest is Deployment
 
 	// A unit test where the DAO attempts to withdraw liquidity from the pool. The function should reject this operation and not modify the the liquidity share.
 	function testWithdrawLiquidityFromDAO() public {
+
 		// Have the DAO add liquidity
 		vm.startPrank(address(dao));
 		(,, uint256 addedLiquidity) = liquidity.addLiquidityAndIncreaseShare( token1, token2, 10 ether, 10 ether, 0 ether, block.timestamp, false );

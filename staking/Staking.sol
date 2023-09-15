@@ -106,12 +106,9 @@ contract Staking is IStaking, StakingRewards
 
 		u.status = UnstakeState.CLAIMED;
 
-		uint256 claimableSALT = u.claimableSALT;
-		require( claimableSALT <= u.unstakedXSALT, "Claimable amount can't be more than the original stake" );
-
 		// See if the user unstaked early and received only a portion of their original stake
 		// The portion they did not receive will be considered the earlyUnstakeFee
-		uint256 earlyUnstakeFee = u.unstakedXSALT - claimableSALT;
+		uint256 earlyUnstakeFee = u.unstakedXSALT - u.claimableSALT;
 
 		// Burn 100% of the earlyUnstakeFee
 		if ( earlyUnstakeFee > 0 )
@@ -122,18 +119,18 @@ contract Staking is IStaking, StakingRewards
             }
 
 		// Send the reclaimed SALT back to the user
-		salt.safeTransfer( msg.sender, claimableSALT );
+		salt.safeTransfer( msg.sender, u.claimableSALT );
 		}
 
 
 	// ===== VIEWS =====
 
 	// Retrieve all pending unstakes associated with a user within a specific range.
-	function unstakesForUser( address wallet, uint256 start, uint256 end ) public view returns (Unstake[] memory) {
+	function unstakesForUser( address user, uint256 start, uint256 end ) public view returns (Unstake[] memory) {
         // Check if start and end are within the bounds of the array
         require(end >= start, "Invalid range: end cannot be less than start");
 
-        uint256[] memory userUnstakes = _userUnstakeIDs[wallet];
+        uint256[] memory userUnstakes = _userUnstakeIDs[user];
 
         require(userUnstakes.length > end, "Invalid range: end is out of bounds");
         require(start < userUnstakes.length, "Invalid range: start is out of bounds");
@@ -149,15 +146,15 @@ contract Staking is IStaking, StakingRewards
 
 
 	// Retrieve all pending unstakes associated with a user.
-	function unstakesForUser( address wallet ) external view returns (Unstake[] memory)
+	function unstakesForUser( address user ) external view returns (Unstake[] memory)
 		{
 		// Check to see how many unstakes the user has
-		uint256[] memory unstakeIDs = _userUnstakeIDs[wallet];
+		uint256[] memory unstakeIDs = _userUnstakeIDs[user];
 		if ( unstakeIDs.length == 0 )
 			return new Unstake[](0);
 
 		// Return them all
-		return unstakesForUser( wallet, 0, unstakeIDs.length - 1 );
+		return unstakesForUser( user, 0, unstakeIDs.length - 1 );
 		}
 
 

@@ -145,7 +145,6 @@ contract Collateral is Liquidity, ICollateral
 	// A default 5% of the value of the collateral is sent to the caller, with the rest being sent to the Liquidator for later conversion to USDS which is then burned.
 	function liquidateUser( address wallet ) public nonReentrant
 		{
-		require( exchangeConfig.walletHasAccess(msg.sender), "Sender does not have exchange access" );
 		require( wallet != msg.sender, "Cannot liquidate self" );
 
 		// First, make sure that the user's colalteral ratio is below the required level

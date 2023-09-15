@@ -376,9 +376,10 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 	// Adjust the reserves for swapping between the two specified tokens and then immediately attempt arbitrage.
 	// Perform a counterswap if possible - essentially undoing the original swap by restoring the reserves to their preswap state.
-	// Requires exchange access for the sending wallet (affecting swap and depositSwapWithdraw)
+	// Requires exchange access for the sending wallet
 	function _adjustReservesAndAttemptArbitrage( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut ) internal returns (uint256 swapAmountOut)
 		{
+		// Exchange access required - which affects the swap and depositSwapWithdraw functions
 		require( exchangeConfig.walletHasAccess(msg.sender), "Sender does not have exchange access" );
 
 		// See if tokenIn and tokenOut are whitelisted and therefore can have direct liquidity in the pool

@@ -18,6 +18,8 @@ contract TestCoreSaltyFeed is Deployment
        	wbtc.approve( address(pools), type(uint256).max );
        	weth.approve( address(pools), type(uint256).max );
        	usds.approve( address(pools), type(uint256).max );
+
+       	accessManager.grantAccess();
 		vm.stopPrank();
 
 		vm.prank( address(collateral) );

@@ -77,8 +77,6 @@ contract TestArbitrageSearch2 is Deployment
 			exchangeConfig.setAccessManager( accessManager );
 			exchangeConfig.setStakingRewardsEmitter( stakingRewardsEmitter);
 			exchangeConfig.setLiquidityRewardsEmitter( liquidityRewardsEmitter);
-			exchangeConfig.setLiquidity( liquidity);
-			exchangeConfig.setCollateral( collateral);
 			exchangeConfig.setDAO( dao );
 
 			testArbitrageSearch = new TestArbitrageSearch( exchangeConfig);
