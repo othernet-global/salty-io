@@ -29,7 +29,7 @@ contract AccessManager is IAccessManager
 
 
 	// Called whenever the DAO updates the list of excluded countries.
-	// If, in contrast, new countries are included, then updating the geoVersion isn't necessary as the existing _walletsWithAccess willl still be valid.
+	// If, in contrast, new countries are included, then updating the geoVersion isn't necessary as the existing _walletsWithAccess will still be valid.
     function excludedCountriesUpdated() public
     	{
     	require( msg.sender == address(dao), "Only the DAO can call excludedCountriesUpdated" );

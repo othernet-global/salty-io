@@ -96,7 +96,6 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 
 	// Decrease a user's share for the pool and have any pending rewards sent to them.
 	// Does not require the pool to be valid (in case the pool was recently unwhitelisted)
-	// Does not require exchange access for the sender in case they have assets they need to withdraw and were are not whitelisted
 	function _decreaseUserShare( address wallet, bytes32 poolID, uint256 amountToDecrease, bool useCooldown ) internal
 		{
 		require( amountToDecrease != 0, "Cannot decrease zero share" );

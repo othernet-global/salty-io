@@ -35,8 +35,11 @@ contract Staking is IStaking, StakingRewards
 
 
 	// Stake a given amount of SALT and immediately receive the same amount of xSALT
+	// Requires exchange access for the sending wallet
 	function stakeSALT( uint256 amountToStake ) public nonReentrant
 		{
+		require( exchangeConfig.walletHasAccess(msg.sender), "Sender does not have exchange access" );
+
 		// The SALT will be converted instantly to xSALT
 		userXSalt[msg.sender] += amountToStake;
 

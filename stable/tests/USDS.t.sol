@@ -13,6 +13,9 @@ contract USDSTest is Deployment
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 			initializeContracts();
 
+		vm.prank(DEPLOYER);
+		accessManager.grantAccess();
+
 		priceAggregator.performUpkeep();
 		}
 
@@ -626,8 +629,6 @@ contract USDSTest is Deployment
         // Check initial balances and burn amount
         assertEq(usds.usdsThatShouldBeBurned(), initialUsdsToBurn);
         assertEq(usds.balanceOf(address(usds)), initialBalance);
-
-		uint256 usdsSupply = usds.totalSupply();
 
     	vm.prank(address(upkeep));
     	usds.performUpkeep();

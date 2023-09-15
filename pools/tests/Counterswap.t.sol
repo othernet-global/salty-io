@@ -76,6 +76,8 @@ contract TestCounterswap2 is Deployment
 		exchangeConfig.setAccessManager( accessManager );
 		exchangeConfig.setStakingRewardsEmitter( stakingRewardsEmitter);
 		exchangeConfig.setLiquidityRewardsEmitter( liquidityRewardsEmitter);
+		exchangeConfig.setLiquidity( liquidity);
+		exchangeConfig.setCollateral( collateral);
 		exchangeConfig.setDAO( dao );
 		exchangeConfig.setUpkeep(upkeep);
 
@@ -95,6 +97,11 @@ contract TestCounterswap2 is Deployment
 		Ownable(address(stableConfig)).transferOwnership( address(dao) );
 		Ownable(address(daoConfig)).transferOwnership( address(dao) );
 		vm.stopPrank();
+
+
+		accessManager.grantAccess();
+		vm.prank(DEPLOYER);
+		accessManager.grantAccess();
 		}
 
 

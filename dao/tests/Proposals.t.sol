@@ -32,6 +32,7 @@ contract TestProposals is Deployment
 		usds.mintTo( alice, 1000000 ether );
 		vm.stopPrank();
 
+		accessManager.grantAccess();
 		vm.prank(alice);
 		accessManager.grantAccess();
 		vm.prank(bob);

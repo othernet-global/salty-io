@@ -75,6 +75,8 @@ contract TestMaxUpkeep is Deployment
 			exchangeConfig.setAccessManager( accessManager );
 			exchangeConfig.setStakingRewardsEmitter( stakingRewardsEmitter);
 			exchangeConfig.setLiquidityRewardsEmitter( liquidityRewardsEmitter);
+			exchangeConfig.setLiquidity( liquidity);
+			exchangeConfig.setCollateral( collateral);
 			exchangeConfig.setDAO( dao );
 
 			saltRewards = new SaltRewards(exchangeConfig, rewardsConfig);
@@ -106,6 +108,12 @@ contract TestMaxUpkeep is Deployment
 			vm.prank(DEPLOYER);
 			salt.transfer(address(initialDistribution), 100000000 ether);
 			}
+
+		accessManager.grantAccess();
+		vm.prank(DEPLOYER);
+		accessManager.grantAccess();
+		vm.prank(alice);
+		accessManager.grantAccess();
 
 		// Increase max pools to 100
 		for( uint256 i = 0; i < 5; i++ )

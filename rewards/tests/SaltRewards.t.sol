@@ -507,12 +507,8 @@ contract TestSaltRewards2 is Deployment
             _saltRewards.setPendingRewardsSaltUSDS(initialPendingRewardsSaltUSDS);
 
             // Balance of contract before running sendLiquidityRewards
-            uint256 initialSaltContractBalance = salt.balanceOf(address(_saltRewards));
-
 			_saltRewards.sendStakingRewards();
             _saltRewards.sendLiquidityRewards(poolIDs, profitsForPools);
-
-            uint256 dust = salt.balanceOf(address(_saltRewards));
 
             // It should be equal to the dust remaining in the contract plus the initial pendingRewardsSaltUSDS
             assertEq(_saltRewards.pendingRewardsSaltUSDS(), 9 ether, "The remaining dust was not added to pendingRewardsSaltUSDS");

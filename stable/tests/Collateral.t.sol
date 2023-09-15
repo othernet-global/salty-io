@@ -25,6 +25,18 @@ contract TestCollateral is Deployment
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 			initializeContracts();
 
+		accessManager.grantAccess();
+		vm.prank(DEPLOYER);
+		accessManager.grantAccess();
+		vm.prank(alice);
+		accessManager.grantAccess();
+		vm.prank(bob);
+		accessManager.grantAccess();
+		vm.prank(charlie);
+		accessManager.grantAccess();
+
+
+
 		priceAggregator.performUpkeep();
 
 		(collateralPoolID,) = PoolUtils.poolID( wbtc, weth );
@@ -32,13 +44,6 @@ contract TestCollateral is Deployment
 		// Mint some USDS to the DEPLOYER
 		vm.prank( address(collateral) );
 		usds.mintTo( DEPLOYER, 2000000 ether );
-
-		vm.prank(alice);
-		accessManager.grantAccess();
-		vm.prank(bob);
-		accessManager.grantAccess();
-		vm.prank(charlie);
-		accessManager.grantAccess();
 		}
 
 
@@ -1257,6 +1262,7 @@ contract TestCollateral is Deployment
 
         // Alice tries to borrow USDS without having deposited any collateral
         vm.startPrank(userX);
+        accessManager.grantAccess();
         vm.expectRevert("User does not have any collateral");
         collateral.borrowUSDS(1 ether);
         vm.stopPrank();
@@ -1671,7 +1677,7 @@ contract TestCollateral is Deployment
 		uint256 wbtcBalance = wbtc.balanceOf(wallet);
 		uint256 wethBalance = weth.balanceOf(wallet);
 
-		vm.expectRevert( "Sending wallet does not have exchange access" );
+		vm.expectRevert( "Sender does not have exchange access" );
 
 		vm.startPrank( wallet );
 		collateral.depositCollateralAndIncreaseShare( wbtcBalance, wethBalance, 0, block.timestamp, false );

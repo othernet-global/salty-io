@@ -4,6 +4,7 @@ pragma solidity =0.8.21;
 import "../dao/interfaces/IDAO.sol";
 import "../interfaces/IAccessManager.sol";
 import "../stable/interfaces/IUSDS.sol";
+import "../stable/interfaces/ICollateral.sol";
 import "../interfaces/ISalt.sol";
 import "../rewards/interfaces/IRewardsEmitter.sol";
 import "../rewards/interfaces/ISaltRewards.sol";
@@ -19,6 +20,8 @@ interface IExchangeConfig
 	function setAccessManager( IAccessManager _accessManager ) external; // onlyOwner
 	function setStakingRewardsEmitter( IRewardsEmitter _rewardsEmitter ) external; // onlyOwner
 	function setLiquidityRewardsEmitter( IRewardsEmitter _rewardsEmitter ) external; // onlyOwner
+	function setLiquidity( IStakingRewards _liquidity ) external; // onlyOwner
+	function setCollateral( ICollateral _collateral ) external; // onlyOwner
 
 	function setTeamWallet( address _teamWallet ) external;
 	function setVestingWallets( address _teamVestingWallet, address _daoVestingWallet ) external;

@@ -94,6 +94,7 @@ contract LiquidityTest is Deployment
         token3.approve(address(liquidity), type(uint256).max);
 		vm.stopPrank();
 
+		accessManager.grantAccess();
 		vm.prank(alice);
 		accessManager.grantAccess();
 		vm.prank(bob);

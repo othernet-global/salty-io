@@ -75,7 +75,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		}
 
 
-	// Called by PoolsConfig to cache the whitelisted pool locally to avoid external calls to poolsConfig.isWhitelisted on swaps
+	// Called by PoolsConfig to cache the whitelisted pool status locally to avoid external calls to poolsConfig.isWhitelisted on swaps
 	function setIsWhitelisted(bytes32 poolID) public
 		{
 		require(msg.sender == address(poolsConfig), "Pools.setIsWhitelisted is only callable from the PoolsConfig contract" );
@@ -84,7 +84,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		}
 
 
-	// Called by PoolsConfig to cache the whitelisted pool locally to avoid external calls to poolsConfig.isWhitelisted on swaps
+	// Called by PoolsConfig to cache the whitelisted pool status locally to avoid external calls to poolsConfig.isWhitelisted on swaps
 	function clearIsWhitelisted(bytes32 poolID) public
 		{
 		require(msg.sender == address(poolsConfig), "Pools.clearIsWhitelisted is only callable from the PoolsConfig contract" );
@@ -376,8 +376,11 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 	// Adjust the reserves for swapping between the two specified tokens and then immediately attempt arbitrage.
 	// Perform a counterswap if possible - essentially undoing the original swap by restoring the reserves to their preswap state.
+	// Requires exchange access for the sending wallet (affecting swap and depositSwapWithdraw)
 	function _adjustReservesAndAttemptArbitrage( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut ) internal returns (uint256 swapAmountOut)
 		{
+		require( exchangeConfig.walletHasAccess(msg.sender), "Sender does not have exchange access" );
+
 		// See if tokenIn and tokenOut are whitelisted and therefore can have direct liquidity in the pool
 		(bytes32 poolID,) = PoolUtils.poolID(swapTokenIn, swapTokenOut);
 		bool isWhitelistedPair = _isWhitelisted[poolID];

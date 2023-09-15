@@ -54,7 +54,7 @@ contract Deployment is Test
 	IForcedPriceFeed public forcedPriceFeed = IForcedPriceFeed(address(0x3B0Eb37f26b502bAe83df4eCc54afBDfb90B5d3a));
 
 	// The DAO contract can provide us with all other contract addresses in the protocol
-	IDAO public dao = IDAO(address(0x0E8c2808a2353229e4ae3bCdeF0bAa59D6DbE889));
+	IDAO public dao = IDAO(address(0x3c99BAa9Bd39d7BF726f3bEba26c9DaE8e7008C7));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));
@@ -167,6 +167,8 @@ contract Deployment is Test
 		exchangeConfig.setAccessManager( accessManager );
 		exchangeConfig.setStakingRewardsEmitter( stakingRewardsEmitter);
 		exchangeConfig.setLiquidityRewardsEmitter( liquidityRewardsEmitter);
+		exchangeConfig.setLiquidity( liquidity);
+		exchangeConfig.setCollateral( collateral);
 		exchangeConfig.setDAO( dao );
 
 		saltRewards = new SaltRewards(exchangeConfig, rewardsConfig);

@@ -18,6 +18,12 @@ contract TestArbitrage is Deployment
 		// Otherwise, what is tested is the actual deployed contract on the blockchain (as specified in Deployment.sol)
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 			initializeContracts();
+
+		vm.prank(alice);
+		accessManager.grantAccess();
+		vm.prank(DEPLOYER);
+		accessManager.grantAccess();
+
 		}
 
 

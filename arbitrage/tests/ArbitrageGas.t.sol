@@ -19,6 +19,12 @@ contract TestArbitrage is Deployment
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 			initializeContracts();
 
+		vm.prank(alice);
+		accessManager.grantAccess();
+		vm.prank(DEPLOYER);
+		accessManager.grantAccess();
+
+
 		priceAggregator.performUpkeep();
 		uint256 priceBTC = priceAggregator.getPriceBTC();
 		uint256 priceETH = priceAggregator.getPriceETH();

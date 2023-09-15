@@ -6,8 +6,8 @@ import "../openzeppelin/token/ERC20/IERC20.sol";
 
 // Counterswaps allow the protocol to swap one given token for another in a way that doesn't impact the market directly.
 // It is done by waiting for users to swap in the opposiite direction and then swapping in the desired direction within the same transaction - essentially restoring the reserves to where they were before the user swap.
-// This is done to gradually swap WETH to SALT and USDS for Protocol Owned Liquidity and liquidated WBTC and WETH collateral to USDS so that it can be burned.
-// Counterswaps are deposited into the Pools contract are owned by the constant addresses below.
+// This is done to gradually swap WETH to SALT and USDS for Protocol Owned Liquidity and liquidated WBTC and WETH collateral to USDS so that the USDS can be burned.
+// Counterswaps are deposited into the Pools contract and owned by the constant addresses below.
 
 library Counterswap
 	{
@@ -17,7 +17,7 @@ library Counterswap
 	address constant public WBTC_TO_USDS = address(bytes20(uint160(uint256(keccak256('counterswap WBTC to USDS')))));
 
 
-	// Determine the counterswap address for swapping tokenToCounterswap->desiredToken
+	// Determine the counterswap address for swapping tokenToCounterswap -> desiredToken
 	function _determineCounterswapAddress( IERC20 tokenToCounterswap, IERC20 desiredToken, IERC20 wbtc, IERC20 weth, IERC20 salt, IERC20 usds ) internal pure returns (address counterswapAddress)
 		{
 		if ( address(tokenToCounterswap) == address(weth) )

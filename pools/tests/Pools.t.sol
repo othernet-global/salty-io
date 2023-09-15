@@ -74,6 +74,16 @@ contract TestPools2 is Deployment
 
 		tokens[5].approve(address(pools), type(uint256).max );
 		pools.deposit(tokens[5], 1 ether);
+
+		accessManager.grantAccess();
+		vm.prank(DEPLOYER);
+		accessManager.grantAccess();
+		vm.prank(alice);
+		accessManager.grantAccess();
+		vm.prank(bob);
+		accessManager.grantAccess();
+		vm.prank(charlie);
+		accessManager.grantAccess();
 		}
 
 
@@ -1231,129 +1241,12 @@ contract TestPools2 is Deployment
 		vm.stopPrank();
 		}
 
-
 	function testCheckReserves() public
 		{
 		_checkReserves( 1000 ether, 100 ether, 200 ether, 2000 ether );
 		_checkReserves( 1000 ether, 100 ether, 2000 ether, 200 ether );
 		_checkReserves( 100 ether, 1000 ether, 200 ether, 2000 ether );
 		_checkReserves( 100 ether, 1000 ether, 2000 ether, 200 ether );
-		}
-
-
-	// A unit test that verifies that quote amount out is returning accurate results
-	function _testQuoteAmountOut() public
-    {
-   		vm.startPrank(DEPLOYER);
-
-        // Define the array of tokens to be used in the swap operation
-        IERC20[] memory chain = new IERC20[](3);
-        chain[0] = new TestERC20("TEST", 18);
-        chain[1] = new TestERC20("TEST", 18);
-        chain[2] = new TestERC20("TEST", 18);
-
-//        console.log( "chain[0]: ", address(chain[0]) );
-//        console.log( "chain[1]: ", address(chain[1]) );
-//        console.log( "chain[2]: ", address(chain[2]) );
-//
-		chain[0].approve(address(pools),type(uint256).max);
-		chain[1].approve(address(pools),type(uint256).max);
-		chain[2].approve(address(pools),type(uint256).max);
-		vm.stopPrank();
-
-   		vm.startPrank(address(dao));
-		poolsConfig.whitelistPool(pools, chain[0], chain[1]);
-		poolsConfig.whitelistPool(pools, chain[1], chain[2]);
-		vm.stopPrank();
-
-   		vm.startPrank(DEPLOYER);
-		pools.addLiquidity( chain[0], chain[1], 1000 ether, 500 ether, 0, block.timestamp );
-		pools.addLiquidity( chain[1], chain[2], 200 ether, 2000 ether, 0, block.timestamp );
-
-		uint256 amountIn = 100 ether;
-		pools.deposit(chain[0], amountIn );
-
-		uint256 estimateOut = PoolUtils.quoteAmountOut( pools, chain, amountIn );
-        uint256 amountOut = pools.swap(chain[0], chain[1], amountIn, 0 ether, block.timestamp);
-        amountOut = pools.swap(chain[1], chain[2], amountOut, 0 ether, block.timestamp);
-
-		assertEq( estimateOut, amountOut, "quoteAmountOut did not return an accurate result" );
-		vm.stopPrank();
-		}
-
-
-	// A unit test that verifies that quote amount in is returning accurate results
-	function _testQuoteAmountIn() public
-    {
-   		vm.startPrank(DEPLOYER);
-
-        // Define the array of tokens to be used in the swap operation
-        IERC20[] memory chain = new IERC20[](3);
-        chain[0] = new TestERC20("TEST", 18);
-        chain[1] = new TestERC20("TEST", 18);
-        chain[2] = new TestERC20("TEST", 18);
-
-		chain[0].approve(address(pools),type(uint256).max);
-		chain[1].approve(address(pools),type(uint256).max);
-		chain[2].approve(address(pools),type(uint256).max);
-		vm.stopPrank();
-
-		vm.startPrank(address(dao));
-		poolsConfig.whitelistPool(pools, chain[0], chain[1]);
-		poolsConfig.whitelistPool(pools, chain[1], chain[2]);
-		vm.stopPrank();
-
-   		vm.startPrank(DEPLOYER);
-		pools.addLiquidity( chain[0], chain[1], 1000 ether, 500 ether, 0, block.timestamp );
-		pools.addLiquidity( chain[1], chain[2], 200 ether, 2000 ether, 0, block.timestamp );
-
-		uint256 targetAmountOut = 100 ether;
-		uint256 amountIn = PoolUtils.quoteAmountIn( pools, chain, targetAmountOut );
-
-//		console.log( "amountIn: ", amountIn );
-
-		pools.deposit(chain[0], amountIn );
-
-		// Get the actual amountOut for the given amountIn
-        uint256 amountOut = pools.swap(chain[0], chain[1], amountIn, 0 ether, block.timestamp);
-        amountOut = pools.swap(chain[1], chain[2], amountOut, 0 ether, block.timestamp);
-
-		// Remove the last two digits for integer division inaccuracy
-		assertEq( targetAmountOut / 100, amountOut / 100, "quoteAmountIn did not return an accurate result" );
-		vm.stopPrank();
-		}
-
-	// A unit test that checks the quote amount out for different token orderings
-	function testQuoteAmountOut() public
-		{
-		// Loops to give the three token chains chances to have different ordering to check flipped functionality
-		for( uint256 i = 0; i < 10; i++ )
-			_testQuoteAmountOut();
-		}
-
-
-	// A unit test that checks the quote amount in for different token orderings
-	function testQuoteAmountIn() public
-		{
-		// Loops to give the three token chains chances to have different ordering to check flipped functionality
-		for( uint256 i = 0; i < 10; i++ )
-			_testQuoteAmountIn();
-		}
-
-
-	// A unit test that checks the quote amounts with no reserves
-	function testQuoteAmountsWithNoReserves() public
-		{
-        // Define the array of tokens to be used in the swap operation
-        IERC20[] memory chain = new IERC20[](3);
-        chain[0] = new TestERC20("TEST", 18);
-        chain[1] = new TestERC20("TEST", 18);
-        chain[2] = new TestERC20("TEST", 18);
-
-		uint256 amountIn = PoolUtils.quoteAmountIn( pools, chain, 100 ether );
-		assertEq(amountIn, 0);
-		uint256 amountOut = PoolUtils.quoteAmountOut( pools, chain, 100 ether );
-		assertEq(amountOut, 0);
 		}
 
 

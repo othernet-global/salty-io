@@ -32,6 +32,16 @@ contract TestDAO is Deployment
 
 		vm.prank( DEPLOYER );
 		salt.transfer( alice, 10000000 ether );
+
+
+		vm.prank(alice);
+		accessManager.grantAccess();
+		vm.prank(bob);
+		accessManager.grantAccess();
+		vm.prank(DEPLOYER);
+		accessManager.grantAccess();
+
+		accessManager.grantAccess();
 		}
 
 
@@ -411,6 +421,8 @@ contract TestDAO is Deployment
 
 		assertTrue( dao.countryIsExcluded( "US" ), "US should be excluded" );
 
+        accessManager.grantAccess();
+
         proposals.proposeCountryInclusion( "US", "description" );
 		_voteForAndFinalizeBallot(2, Vote.YES);
 
@@ -428,6 +440,8 @@ contract TestDAO is Deployment
 		_voteForAndFinalizeBallot(1, Vote.YES);
 
 		assertTrue( dao.countryIsExcluded( "US" ), "US should be excluded" );
+
+        accessManager.grantAccess();
 
         proposals.proposeCountryInclusion( "US", "description" );
 		_voteForAndFinalizeBallot(2, Vote.NO);
@@ -502,14 +516,16 @@ contract TestDAO is Deployment
 	// A unit test to test that finalizing an approved setContract ballot works with all possible contract options
 	function testSetContractApproved() public
 		{
-		_checkSetContractApproved( 1, "accessManager", address( new AccessManager(dao) ) );
-		_checkSetContractApproved( 3, "stakingRewardsEmitter", address(0x1231233 ) );
-		_checkSetContractApproved( 5, "liquidityRewardsEmitter", address(0x1231234 ) );
-		_checkSetContractApproved( 7, "priceFeed1", address(0x1231236 ) );
+		_checkSetContractApproved( 1, "stakingRewardsEmitter", address(0x1231233 ) );
+		_checkSetContractApproved( 3, "liquidityRewardsEmitter", address(0x1231234 ) );
+		_checkSetContractApproved( 5, "priceFeed1", address(0x1231236 ) );
 		vm.warp(block.timestamp + 60 days);
-		_checkSetContractApproved( 9, "priceFeed2", address(0x1231237 ) );
+		_checkSetContractApproved( 7, "priceFeed2", address(0x1231237 ) );
 		vm.warp(block.timestamp + 60 days);
-		_checkSetContractApproved( 11, "priceFeed3", address(0x1231238 ) );
+		_checkSetContractApproved( 9, "priceFeed3", address(0x1231238 ) );
+
+		// Done last to prevent access issues
+		_checkSetContractApproved( 11, "accessManager", address( new AccessManager(dao) ) );
 		}
 
 
