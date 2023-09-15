@@ -61,7 +61,7 @@ contract USDS is ERC20, IUSDS, Ownable
 	// Only callable by the Collateral contract.
 	function mintTo( address wallet, uint256 amount ) public
 		{
-		require( msg.sender == address(collateral), "Can only call USDS.mintTo from the Collateral contract" );
+		require( msg.sender == address(collateral), "USDS.mintTo is only callable from the Collateral contract" );
 		require( address(wallet) != address(0), "Cannot mint to address(0)" );
 		require( amount > 0, "Cannot mint zero USDS" );
 
@@ -72,7 +72,7 @@ contract USDS is ERC20, IUSDS, Ownable
 	// Called when a user's collateral position has been liquidated to indicate that the borrowed USDS from that position needs to be burned.
 	function shouldBurnMoreUSDS( uint256 usdsToBurn ) public
 		{
-		require( msg.sender == address(collateral), "Can only call USDS.shouldBurnMoreUSDS from the Collateral contract" );
+		require( msg.sender == address(collateral), "USDS.shouldBurnMoreUSDS is only callable from the Collateral contract" );
 
 		usdsThatShouldBeBurned += usdsToBurn;
 		}

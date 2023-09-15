@@ -209,12 +209,46 @@ contract TestPools2 is Deployment
 
 		uint256 amountIn = 300 ether;
 
-        // Despoit an insufficient balance of the initial token
+        // Deposit an insufficient balance of the initial token
         pools.deposit( tokens[0], amountIn - 1);
 
         vm.expectRevert("Insufficient deposited token balance of initial token");
         pools.swap(tokens[0], tokens[1], amountIn, 1 ether, block.timestamp);
     }
+
+
+	// A unit test to check that users without exchange access cannot swap
+	function testUserSwapWithoutAccess() public
+		{
+		// This will clear access for all users
+		vm.prank(address(dao));
+		accessManager.excludedCountriesUpdated();
+
+		vm.startPrank(DEPLOYER);
+
+		uint256 amountIn = 300 ether;
+
+        // Deposit an insufficient balance of the initial token
+        pools.deposit( tokens[0], amountIn);
+
+		vm.expectRevert( "Sender does not have exchange access" );
+        pools.swap(tokens[0], tokens[1], amountIn, 1 ether, block.timestamp);
+		}
+
+
+	// A unit test to check that users without exchange access cannot depositSwapWithdraw
+	function testUserDepositSwapWithdrawWithoutAccess() public
+		{
+		// This will clear access for all users
+		vm.prank(address(dao));
+		accessManager.excludedCountriesUpdated();
+
+		vm.startPrank(DEPLOYER);
+
+		vm.expectRevert( "Sender does not have exchange access" );
+        pools.depositSwapWithdraw(tokens[0], tokens[1], 1 ether, 1 ether, block.timestamp);
+		}
+
 
 
 	// A unit test that handles scenarios related to exceeding pool reserve ratio, updating reserves, and adjusting user's token balance though deposits and withdrawals.

@@ -144,6 +144,26 @@ contract TestProposals is Deployment
     }
 
 
+	// A unit test that checks that users without access cannot propose or cast votes
+	function testProposeAndVoteWithoutAccess() public {
+
+		vm.expectRevert( "Sender does not have exchange access" );
+		vm.prank(address(0xDEAD));
+        proposals.proposeParameterBallot(1, "description" );
+
+        // Using address alice for initial proposal
+        vm.startPrank(DEPLOYER);
+
+        // Proposing a ParameterBallot for the first time
+        proposals.proposeParameterBallot(1, "description" );
+        vm.stopPrank();
+
+		vm.expectRevert( "Sender does not have exchange access" );
+		vm.prank(address(0xDEAD));
+		proposals.castVote( 1, Vote.INCREASE );
+    }
+
+
 	// A unit test that verifies the proposeCountryInclusion and proposeCountryExclusion functions with different country names. Check that the appropriate country name gets stored in the proposal.
 	function testProposeCountryInclusionExclusion() public {
         string memory inclusionBallotName = "include:us";

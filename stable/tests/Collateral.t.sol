@@ -123,6 +123,16 @@ contract TestCollateral is Deployment
 		}
 
 
+
+	// A unit test to check that users without exchange access cannot borrowUSDS
+	function testUserWithoutAccess() public
+		{
+		vm.expectRevert( "Sender does not have exchange access" );
+		vm.prank(address(0xDEAD));
+		collateral.borrowUSDS( 1 ether );
+		}
+
+
 	// A unit test that verifies the liquidateUser function correctly transfers WETH to the liquidator and WBTC/WETH to the USDS contract
 	function testLiquidatePosition() public {
 		assertEq(wbtc.balanceOf(address(usds)), 0, "USDS contract should start with zero WBTC");
@@ -1665,6 +1675,7 @@ contract TestCollateral is Deployment
         collateral.repayUSDS(borrowedUSDS + 1 ether);
         vm.stopPrank();
     }
+
 
 
     // A unit test to check if depositCollateralAndIncreaseShare function throws error when called by a wallet which doesn't have exchange access.

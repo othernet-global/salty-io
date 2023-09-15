@@ -44,11 +44,11 @@ contract PriceAggregator is IPriceAggregator, Ownable
 
 	function setInitialFeeds( IPriceFeed _priceFeed1, IPriceFeed _priceFeed2, IPriceFeed _priceFeed3 ) public onlyOwner
 		{
+		require( address(priceFeed1) == address(0), "setInitialFeeds() can only be called once" );
+
 		require( address(_priceFeed1) != address(0), "_priceFeed1 cannot be address(0)" );
 		require( address(_priceFeed2) != address(0), "_priceFeed2 cannot be address(0)" );
 		require( address(_priceFeed3) != address(0), "_priceFeed3 cannot be address(0)" );
-
-		require( address(priceFeed1) == address(0), "setInitialFeeds() can only be called once" );
 
 		priceFeed1 = _priceFeed1;
 		priceFeed2 = _priceFeed2;

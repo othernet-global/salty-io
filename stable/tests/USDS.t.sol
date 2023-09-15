@@ -65,7 +65,7 @@ contract USDSTest is Deployment
         assertEq(usds.balanceOf(wallet), mintAmount);
 
         // Try minting from a different address
-        vm.expectRevert("Can only call USDS.mintTo from the Collateral contract");
+        vm.expectRevert("USDS.mintTo is only callable from the Collateral contract");
         vm.prank(otherAddress);
         usds.mintTo(wallet, mintAmount);
 
@@ -99,7 +99,7 @@ contract USDSTest is Deployment
 		   assertEq(usds.usdsThatShouldBeBurned(), amountToBurn);
 
 		   // Try signalling burn from a non-collateral address
-		   vm.expectRevert("Can only call USDS.shouldBurnMoreUSDS from the Collateral contract");
+		   vm.expectRevert("USDS.shouldBurnMoreUSDS is only callable from the Collateral contract");
 		   vm.prank(otherAddress);
 		   usds.shouldBurnMoreUSDS(amountToBurn);
    }
@@ -118,7 +118,7 @@ contract USDSTest is Deployment
         assertEq(usds.balanceOf(wallet), mintAmount);
 
         // Attempt to mint from a different address
-        vm.expectRevert("Can only call USDS.mintTo from the Collateral contract");
+        vm.expectRevert("USDS.mintTo is only callable from the Collateral contract");
         vm.prank(otherAddress);
         usds.mintTo(wallet, mintAmount);
 
@@ -139,7 +139,7 @@ contract USDSTest is Deployment
         assertEq(usds.usdsThatShouldBeBurned(), burnAmount);
 
         // Attempt to signal burn from a different address
-        vm.expectRevert("Can only call USDS.shouldBurnMoreUSDS from the Collateral contract");
+        vm.expectRevert("USDS.shouldBurnMoreUSDS is only callable from the Collateral contract");
         vm.prank(otherAddress);
         usds.shouldBurnMoreUSDS(burnAmount);
     }
@@ -151,7 +151,7 @@ contract USDSTest is Deployment
         uint256 mintAmount = 1 ether;
 
         // Try minting without setting the collateral address first
-        vm.expectRevert("Can only call USDS.mintTo from the Collateral contract");
+        vm.expectRevert("USDS.mintTo is only callable from the Collateral contract");
         usds.mintTo(wallet, mintAmount);
 
         // Validate that the balance did not increase
@@ -167,7 +167,7 @@ contract USDSTest is Deployment
     	USDS newUSDS = new USDS(wbtc, weth);
 
         // Expect revert as the Collateral contract is not set yet
-        vm.expectRevert("Can only call USDS.shouldBurnMoreUSDS from the Collateral contract");
+        vm.expectRevert("USDS.shouldBurnMoreUSDS is only callable from the Collateral contract");
         newUSDS.shouldBurnMoreUSDS(usdsToBurn);
     }
 

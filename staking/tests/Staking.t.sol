@@ -307,6 +307,16 @@ contract StakingTest is Deployment
 	}
 
 
+
+	// A unit test to check that users without exchange access cannot stakeSALT
+	function testUserWithoutAccess() public
+		{
+		vm.expectRevert( "Sender does not have exchange access" );
+		vm.prank(address(0xDEAD));
+        staking.stakeSALT(1 ether);
+		}
+
+
 	// A unit test which tests the unstakesForUser function for a user with various numbers of unstake requests, and checks that the returned Unstake structs array is accurate.
 	function testUnstakesForUser() public {
         vm.startPrank(alice);

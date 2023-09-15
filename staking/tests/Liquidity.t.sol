@@ -185,6 +185,18 @@ contract LiquidityTest is Deployment
 	}
 
 
+
+	// A unit test to check that users without exchange access cannot addLiquidityAndIncreaseShare
+	function testUserWithoutAccess() public
+		{
+		vm.expectRevert( "Sender does not have exchange access" );
+		vm.prank(address(0xDEAD));
+		liquidity.addLiquidityAndIncreaseShare( token1, token2, 10 ether, 10 ether, 0 ether, block.timestamp, false );
+		}
+
+
+
+
 	// A unit test where the DAO attempts to withdraw liquidity from the pool. The function should reject this operation and not modify the the liquidity share.
 	function testWithdrawLiquidityFromDAO() public {
 
