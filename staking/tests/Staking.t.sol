@@ -934,6 +934,4 @@ contract StakingTest is Deployment
         vm.expectRevert("Cannot unstake more than the xSALT balance");
         staking.unstake(10 ether - unstakeAmount + 1, 4);
     }
-
-
 	}

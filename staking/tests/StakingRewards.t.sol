@@ -573,18 +573,27 @@ contract SharedRewardsTest is Deployment
     // Warp time forward by one day
     vm.warp(block.timestamp + 1 days);
 
+	uint256 startingBalance = salt.balanceOf( address(stakingRewards) );
+
     AddedReward[] memory addedRewards = new AddedReward[](1);
     addedRewards[0] = AddedReward(poolIDs[0], 40 ether);
     stakingRewards.addSALTRewards(addedRewards);
 
+	uint256 added = salt.balanceOf(address(stakingRewards)) - startingBalance;
+	assertEq( added, 40 ether );
 
     // Alice decreases share by 10 ether
     stakingRewards.externalDecreaseUserShare(alice, poolIDs[0], 10 ether, false);
+
+	startingBalance = salt.balanceOf( address(stakingRewards) );
 
     // Bob claims rewards
     // Bob should claim 10
     vm.prank(bob);
     stakingRewards.claimAllRewards(poolIDs);
+
+	uint256 removed = startingBalance - salt.balanceOf(address(stakingRewards));
+	assertEq( removed, 10 ether );
 
     // Bob decreases share by 10 ether
     stakingRewards.externalDecreaseUserShare(bob, poolIDs[0], 10 ether, false);
@@ -653,5 +662,83 @@ contract SharedRewardsTest is Deployment
         // Verify the SALT balance of Alice hasn't changed
         uint256 aliceBalanceAfter = salt.balanceOf(alice);
         assertEq(aliceBalanceBefore, aliceBalanceAfter, "Alice's balance should not have changed");
+    }
+
+
+	// A unit test that checks if userPendingReward function returns zero for the users and pools with zero share and zero totalReward.
+	function testUserPendingRewardWithZeroShareAndZeroRewards() public {
+        // Check pending rewards for Alice in pools[0], should be 0 as the user share and total rewards is 0
+        uint256 pendingRewards = stakingRewards.userPendingReward(alice, poolIDs[0]);
+        assertEq(pendingRewards, 0, "Pending Rewards should be zero");
+
+        // Check pending rewards for Bob in pools[0], should be 0 as the user share and total rewards is 0
+        pendingRewards = stakingRewards.userPendingReward(bob, poolIDs[0]);
+        assertEq(pendingRewards, 0, "Pending Rewards should be zero");
+
+        // Check pending rewards for Charlie in pools[0], should be 0 as the user share and total rewards is 0
+        pendingRewards = stakingRewards.userPendingReward(charlie, poolIDs[0]);
+        assertEq(pendingRewards, 0, "Pending Rewards should be zero");
+
+        // Check pending rewards for Alice in pools[1], should be 0 as the user share and total rewards is 0
+        pendingRewards = stakingRewards.userPendingReward(alice, poolIDs[1]);
+        assertEq(pendingRewards, 0, "Pending Rewards should be zero");
+
+        // Check pending rewards for Bob in pools[1], should be 0 as the user share and total rewards is 0
+        pendingRewards = stakingRewards.userPendingReward(bob, poolIDs[1]);
+        assertEq(pendingRewards, 0, "Pending Rewards should be zero");
+
+        // Check pending rewards for Charlie in pools[1], should be 0 as the user share and total rewards is 0
+        pendingRewards = stakingRewards.userPendingReward(charlie, poolIDs[1]);
+        assertEq(pendingRewards, 0, "Pending Rewards should be zero");
+    }
+
+
+	// A unit test that confirms that rewards cannot be claimed from pools where the user has no shares.
+	function testClaimRewardsWithNoShares() public {
+            vm.prank(DEPLOYER);
+            // Alice increases her share in pools[0] by 5 ether
+            stakingRewards.externalIncreaseUserShare(alice, poolIDs[0], 5 ether, true);
+
+            // Add rewards to the pools
+            AddedReward[] memory addedRewards = new AddedReward[](2);
+            addedRewards[0] = AddedReward(poolIDs[0], 10 ether);
+            addedRewards[1] = AddedReward(poolIDs[1], 20 ether);
+            stakingRewards.addSALTRewards(addedRewards);
+
+            uint256 aliceSaltBalanceBeforeClaim = salt.balanceOf(alice);
+
+            // Alice tries to claim all rewards from both pools
+            bytes32[] memory claimPools = new bytes32[](2);
+            claimPools[0] = poolIDs[0];
+            claimPools[1] = poolIDs[1];
+            vm.prank(alice);
+            stakingRewards.claimAllRewards(claimPools);
+            uint256 aliceSaltBalanceAfterClaim = salt.balanceOf(alice);
+
+            // Verify that rewards were claimed from pool[0] where Alice had shares
+            assertEq(aliceSaltBalanceAfterClaim, aliceSaltBalanceBeforeClaim + 10 ether, "Alice should have claimed rewards");
+
+            // Alice tries to claim rewards from pools[1] where she has no shares.
+            // It shouldn't revert, but will not return any rewards
+            claimPools = new bytes32[](1);
+            claimPools[0] = poolIDs[1];
+            stakingRewards.claimAllRewards(claimPools);
+
+            // Verify no rewards were claimed
+            aliceSaltBalanceAfterClaim = salt.balanceOf(alice);
+            assertEq(aliceSaltBalanceAfterClaim, aliceSaltBalanceBeforeClaim + 10 ether, "Alice should not be able to claim rewards");
+        }
+
+
+	// A unit test that checks if the constructor rejects zero addresses for the configuration contracts and token.
+    function testConstructorRejectsZeroAddresses() public {
+        vm.expectRevert("_exchangeConfig cannot be address(0)");
+        stakingRewards = new TestStakingRewards(IExchangeConfig(address(0)), poolsConfig, stakingConfig);
+
+        vm.expectRevert("_poolsConfig cannot be address(0)");
+        stakingRewards = new TestStakingRewards(exchangeConfig, IPoolsConfig(address(0)), stakingConfig);
+
+        vm.expectRevert("_stakingConfig cannot be address(0)");
+        stakingRewards = new TestStakingRewards(exchangeConfig, poolsConfig, IStakingConfig(address(0)));
     }
 	}
