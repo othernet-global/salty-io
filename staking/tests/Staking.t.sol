@@ -750,4 +750,190 @@ contract StakingTest is Deployment
         // Verify that Alice's SALT balance increased
         assertEq(salt.balanceOf(alice), aliceStartingBalance - 5 ether);
         }
+
+
+	// A unit test to check if the contract reverts when trying to stake SALT without allowing the contract to spend SALT on the user's behalf.
+	function testStakeWithNoAllowance() public {
+	vm.startPrank(alice);
+
+	salt.approve( address(staking), 0 );
+
+	// Alice stakes 5 ether of SALT
+	vm.expectRevert( "ERC20: insufficient allowance" );
+	staking.stakeSALT(5 ether);
+	}
+
+
+	// A unit test to check if the contract reverts when trying to cancel an unstake that does not exist.
+		function testCancelUnstakeNonExistent() public {
+    		vm.startPrank(alice);
+
+    		// Alice stakes 10 ether
+    		staking.stakeSALT(10 ether);
+    		assertEq(staking.userXSalt(alice), 10 ether);
+    		assertEq(totalStakedOnPlatform(), 10 ether);
+
+    		// Alice creates an unstake request with 5 ether for 3 weeks
+    		uint256 unstakeID = staking.unstake(5 ether, 3);
+    		assertEq(staking.userXSalt(alice), 5 ether);
+    		assertEq(totalStakedOnPlatform(), 5 ether);
+
+    		// Now we try to cancel a non-existent unstake request
+
+    		// Add 10 to unstakeID to ensure it doesn't exist
+    		unstakeID += 10;
+    		vm.expectRevert("Only PENDING unstakes can be cancelled");
+    		staking.cancelUnstake(unstakeID);
+    	}
+
+
+	// A unit test to check if the contract reverts when trying to unstake xSALT without first staking any SALT.
+	function testUnstakeWithoutStaking() public {
+		// Alice tries to unstake 5 ether of xSALT, without having staked any SALT
+		vm.prank(alice);
+		vm.expectRevert("Cannot unstake more than the xSALT balance");
+		staking.unstake(5 ether, 4);
+	}
+
+
+	// A unit test which tests a user staking zero SALT tokens, and checks an error occurs
+	function testStakeZeroSalt() public {
+        vm.prank(alice);
+
+        // Alice tries to stake 0 ether of SALT tokens
+        vm.expectRevert("Cannot increase zero share");
+        staking.stakeSALT(0 ether);
+    }
+
+
+	// A unit test which tests a user able to recover SALT tokens from multiple pending unstakes simultaneously and checks that the user's SALT balance and each unstakeByID mapping are updated correctly.
+	function testMultipleUnstakeRecovery() public {
+        vm.startPrank(alice);
+
+		staking.stakeSALT(60 ether);
+
+        // Create multiple unstake requests
+        uint256[] memory unstakeIDs = new uint256[](3);
+        unstakeIDs[0] = staking.unstake(20 ether, 12);
+        unstakeIDs[1] = staking.unstake(15 ether, 12);
+        unstakeIDs[2] = staking.unstake(25 ether, 12);
+
+        // Advance time by 12 weeks to complete unstaking
+        vm.warp(block.timestamp + 12 * 1 weeks);
+
+        // Recover SALT for each unstake request
+        for (uint256 i = 0; i < unstakeIDs.length; i++) {
+            uint256 saltBalance = salt.balanceOf(alice);
+            staking.recoverSALT(unstakeIDs[i]);
+
+            // Check recovered SALT
+            Unstake memory unstake = staking.unstakeByID(unstakeIDs[i]);
+	        assertEq(uint256(unstake.status), uint256(UnstakeState.CLAIMED));
+            assertEq(salt.balanceOf(alice) - saltBalance, unstake.claimableSALT);
+        }
+    }
+
+
+	// A unit test to check if the contract reverts when trying to stake SALT with zero balance.
+	function testStakeSALTWithZeroBalance() public {
+        // Get initial balance
+        uint256 initialSaltBalance = salt.balanceOf(alice);
+
+        // Stake all SALT tokens
+        vm.startPrank(alice);
+        staking.stakeSALT(initialSaltBalance);
+
+        // Try to stake additional SALT tokens when balance is 0
+        vm.expectRevert("ERC20: transfer amount exceeds balance");
+        staking.stakeSALT(1 ether);
+    }
+
+
+	// A unit test which tests a user with multiple pending unstakes that have different completion times, and checks that the user can only recover SALT tokens for the unstakes that have passed the completion time.
+	function testMultiplePendingUnstakesWithDifferentCompletionTimes() public {
+        vm.startPrank(alice);
+
+        // Alice stakes 30 ether of SALT
+        staking.stakeSALT(30 ether);
+
+        // Alice starts unstaking 10 ether with 2 weeks unstaking duration
+        uint256 unstakeID1 = staking.unstake(10 ether, 2);
+        uint256 completion1 = block.timestamp + 2 weeks;
+
+        // Alice starts unstaking 10 ether with 5 weeks unstaking duration
+        uint256 unstakeID2 = staking.unstake(10 ether, 5);
+        uint256 completion2 = block.timestamp + 5 weeks;
+
+        // Alice starts unstaking 10 ether with 7 weeks unstaking duration
+        uint256 unstakeID3 = staking.unstake(10 ether, 7);
+        uint256 completion3 = block.timestamp + 7 weeks;
+
+        // Alice tries to recover SALT before the first unstake completes
+        vm.expectRevert("Unstake has not completed yet");
+        staking.recoverSALT(unstakeID1);
+
+        // Alice tries to recover SALT after the first completion time but before the second
+        vm.warp(completion1);
+        staking.recoverSALT(unstakeID1);
+        vm.expectRevert("Unstake has not completed yet");
+        staking.recoverSALT(unstakeID2);
+
+        // Alice tries to recover SALT after the second completion time but before the third
+        vm.warp(completion2);
+        staking.recoverSALT(unstakeID2);
+        vm.expectRevert("Unstake has not completed yet");
+        staking.recoverSALT(unstakeID3);
+
+        // Alice recovers SALT after the third unstake completes
+        vm.warp(completion3);
+        staking.recoverSALT(unstakeID3);
+    }
+
+
+	// A unit test to check if a transaction is reverted when attempting to set the unstaking duration longer than the maximum weeks allowed for the unstake duration.
+	function testUnstakeDurationTooLong() public {
+            uint256 maxUnstakeWeeks = stakingConfig.maxUnstakeWeeks();
+
+            vm.startPrank(alice);
+            staking.stakeSALT(10 ether);
+
+            vm.expectRevert("Unstaking duration too long");
+            staking.unstake(5 ether, maxUnstakeWeeks + 1);
+        }
+
+
+	// A unit test to check if a transaction is reverted when attempting to set the unstaking duration shorter than the minimum weeks allowed for the unstake duration.
+	function testUnstakeDurationTooShort() public {
+            uint256 minUnstakeWeeks = stakingConfig.minUnstakeWeeks();
+
+            vm.startPrank(alice);
+            staking.stakeSALT(10 ether);
+
+            vm.expectRevert("Unstaking duration too short");
+            staking.unstake(5 ether, minUnstakeWeeks - 1);
+        }
+
+
+	// A unit test to check if the user's freeXSALT, total shares of STAKED_SALT correctly decrease only by the unstaked amount (and not more than that) when a user makes an unstake request.
+	function testUnstakingDecreasesOnlyByUnstakedAmount() public {
+        // Alice stakes 10 ether of SALT tokens
+        vm.startPrank(alice);
+        staking.stakeSALT(10 ether);
+        assertEq(staking.userXSalt(alice), 10 ether);
+        assertEq(staking.userShareForPool(alice, PoolUtils.STAKED_SALT), 10 ether);
+
+        // Alice unstakes 5 ether of SALT tokens
+        uint256 unstakeAmount = 5 ether;
+        staking.unstake(unstakeAmount, 4);
+
+        // Check that Alice's freeXSALT and total shares of STAKED_SALT have decreased only by the unstaked amount
+        assertEq(staking.userXSalt(alice), 10 ether - unstakeAmount);
+        assertEq(staking.userShareForPool(alice, PoolUtils.STAKED_SALT), 10 ether - unstakeAmount);
+
+        // Try to unstake more than the remaining xSALT balance, expect to revert
+        vm.expectRevert("Cannot unstake more than the xSALT balance");
+        staking.unstake(10 ether - unstakeAmount + 1, 4);
+    }
+
+
 	}
