@@ -123,7 +123,7 @@ contract Staking is IStaking, StakingRewards
 		}
 
 
-	// ===== VIEWS =====
+	// === VIEWS ===
 
 	// Retrieve all pending unstakes associated with a user within a specific range.
 	function unstakesForUser( address user, uint256 start, uint256 end ) public view returns (Unstake[] memory) {

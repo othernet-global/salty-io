@@ -561,7 +561,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		}
 
 
-	// ==== VIEWS ====
+	// === VIEWS ===
 
 	// The pool reserves for two specified tokens.
 	// The reserves are returned in the order specified by the token arguments - which may not be the address(tokenA) < address(tokenB) order stored in the PoolInfo struct itself.

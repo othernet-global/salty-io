@@ -33,7 +33,7 @@ contract AccessManager is IAccessManager
 	// If, in contrast, new countries are included, then updating the geoVersion isn't necessary as the existing _walletsWithAccess will still be valid.
     function excludedCountriesUpdated() public
     	{
-    	require( msg.sender == address(dao), "Only the DAO can call excludedCountriesUpdated" );
+    	require( msg.sender == address(dao), "AccessManager.excludedCountriedUpdated only callable by the DAO" );
 
         geoVersion += 1;
     	}
@@ -45,6 +45,8 @@ contract AccessManager is IAccessManager
         _walletsWithAccess[geoVersion][msg.sender] = true;
     	}
 
+
+	// === VIEWS ===
 
     function walletHasAccess(address wallet) public view returns (bool)
     	{

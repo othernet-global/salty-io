@@ -70,7 +70,7 @@ contract TestAccessManager is Deployment
     	accessManager.excludedCountriesUpdated();
 
 		// Should revert
-    	vm.expectRevert("Only the DAO can call excludedCountriesUpdated");
+    	vm.expectRevert("AccessManager.excludedCountriedUpdated only callable by the DAO");
 
 		vm.prank( address(0x123));
     	accessManager.excludedCountriesUpdated();
@@ -186,5 +186,32 @@ contract TestAccessManager is Deployment
     	assertEq(accessManager.walletHasAccess(user2), false, "User2 should not have access");
     	}
 
+
+	// A unit test where excludedCountriesUpdated is called twice in succession and verify geoVersion increments correctly on both operations.
+	 function testGeoVersionIncrement() public
+        {
+            // Get the initial geoVersion
+            uint256 initialGeoVersion = accessManager.geoVersion();
+
+            // DAO calls excludedCountriesUpdated first time
+            vm.prank(address(dao));
+            accessManager.excludedCountriesUpdated();
+
+            // Get the updated geoVersion
+            uint256 updatedGeoVersion = accessManager.geoVersion();
+
+            // Check that the geoVersion incremented correctly
+            assertEq(updatedGeoVersion, initialGeoVersion + 1, "geoVersion did not increment correctly after first update");
+
+            // DAO calls excludedCountriesUpdated second time
+            vm.prank(address(dao));
+            accessManager.excludedCountriesUpdated();
+
+            // Get the new updated geoVersion
+            uint256 newUpdatedGeoVersion = accessManager.geoVersion();
+
+            // Check that the geoVersion incremented correctly again
+            assertEq(newUpdatedGeoVersion, updatedGeoVersion + 1, "geoVersion did not increment correctly after second update");
+        }
     }
 

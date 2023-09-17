@@ -202,7 +202,7 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 		}
 
 
-	// ===== VIEWS =====
+	// === VIEWS ===
 
 	// Returns the total shares for specified pools.
 	function totalSharesForPools( bytes32[] memory poolIDs ) public view returns (uint256[] memory shares)

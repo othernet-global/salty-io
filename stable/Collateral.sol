@@ -184,7 +184,7 @@ contract Collateral is Liquidity, ICollateral
 		}
 
 
-	// ===== VIEWS =====
+	// === VIEWS ===
 
 	// The maximum amount of collateral that can be withdrawn while keeping the collateral ratio above a default of 200%
 	// Returns value with 18 decimals

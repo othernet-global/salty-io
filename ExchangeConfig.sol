@@ -68,6 +68,26 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 		}
 
 
+	function setVestingWallets( address _teamVestingWallet, address _daoVestingWallet ) public
+		{
+		require( address(teamVestingWallet) == address(0), "setVestingWallets can only be called once" );
+		require( address(_teamVestingWallet) != address(0), "_teamVestingWallet cannot be address(0)" );
+		require( address(_daoVestingWallet) != address(0), "_daoVestingWallet cannot be address(0)" );
+
+		teamVestingWallet = _teamVestingWallet;
+		daoVestingWallet = _daoVestingWallet;
+		}
+
+
+	function setInitialDistribution( IInitialDistribution _initialDistribution ) public
+		{
+		require( address(initialDistribution) == address(0), "setInitialDistribution can only be called once" );
+		require( address(_initialDistribution) != address(0), "_initialDistribution cannot be address(0)" );
+
+		initialDistribution = _initialDistribution;
+		}
+
+
 	function setAccessManager( IAccessManager _accessManager ) public onlyOwner
 		{
 		require( address(_accessManager) != address(0), "_accessManager cannot be address(0)" );
@@ -97,26 +117,6 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 		require( msg.sender == teamWallet, "Only the current team can change the teamWallet" );
 
 		teamWallet = _teamWallet;
-		}
-
-
-	function setVestingWallets( address _teamVestingWallet, address _daoVestingWallet ) public
-		{
-		require( address(teamVestingWallet) == address(0), "setVestingWallets can only be called once" );
-		require( address(_teamVestingWallet) != address(0), "_teamVestingWallet cannot be address(0)" );
-		require( address(_daoVestingWallet) != address(0), "_daoVestingWallet cannot be address(0)" );
-
-		teamVestingWallet = _teamVestingWallet;
-		daoVestingWallet = _daoVestingWallet;
-		}
-
-
-	function setInitialDistribution( IInitialDistribution _initialDistribution ) public
-		{
-		require( address(initialDistribution) == address(0), "setInitialDistribution can only be called once" );
-		require( address(_initialDistribution) != address(0), "_initialDistribution cannot be address(0)" );
-
-		initialDistribution = _initialDistribution;
 		}
 
 

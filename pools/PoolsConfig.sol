@@ -71,7 +71,7 @@ contract PoolsConfig is IPoolsConfig, Ownable
         }
 
 
-	// ===== VIEWS =====
+	// === VIEWS ===
 
 	function numberOfWhitelistedPools() public view returns (uint256)
 		{
