@@ -3,6 +3,7 @@ pragma solidity =0.8.21;
 
 import "forge-std/Test.sol";
 import "../dev/Deployment.sol";
+import "../Salt.sol";
 
 
 contract TestSalt is Deployment
@@ -88,10 +89,12 @@ contract TestSalt is Deployment
     // A unit test to check the constructor to ensure that it correctly mints the initial supply of tokens to the deployer of the contract.
 	function test_initialSupply() public
         {
-        uint initialSupply = salt.totalSupply();
-        assertEq(initialSupply, 100 * MILLION_ETHER);
+        salt = new Salt();
 
-        uint deployerBalance = salt.balanceOf(address(alice));
+        uint preBurnTotalSupply = salt.totalSupply();
+        assertEq(preBurnTotalSupply, 100 * MILLION_ETHER); // Assert that total supply is equal to INITIAL_SUPPLY.
+
+        uint deployerBalance = salt.balanceOf(address(this));
         assertEq(deployerBalance, 100 * MILLION_ETHER);
         }
 
@@ -101,10 +104,10 @@ contract TestSalt is Deployment
 
 		ERC20 saltToken = ERC20(address(salt));
 
-    	if ( DEBUG)
-			assertEq(saltToken.name(), "Salt");
-		else
+    	if (DEBUG)
 			assertEq(saltToken.name(), "testSALT");
+		else
+			assertEq(saltToken.name(), "Salt");
 
 		assertEq(saltToken.symbol(), "SALT");
     }
