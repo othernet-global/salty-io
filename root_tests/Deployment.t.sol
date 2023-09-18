@@ -6,6 +6,9 @@ import "../dev/Deployment.sol";
 
 contract TestDeployment is Deployment
 	{
+	address constant public TEAM_WALLET = address(0x123456789);
+
+
 	function functionExists( address _contract, string memory _functionName ) public returns (bool)
 		{
 		bytes4 FUNC_SELECTOR = bytes4(keccak256( bytes(_functionName) ));
@@ -46,9 +49,20 @@ contract TestDeployment is Deployment
         assertEq( getContract(address(exchangeConfig), "weth()"), address(weth), "Incorrect exchangeConfig.weth" );
         assertEq( getContract(address(exchangeConfig), "dai()"), address(dai), "Incorrect exchangeConfig.dai" );
         assertEq( getContract(address(exchangeConfig), "usds()"), address(usds), "Incorrect exchangeConfig.usds" );
-        assertEq( getContract(address(exchangeConfig), "accessManager()"), address(accessManager), "Incorrect exchangeConfig.accessManager" );
+
         assertEq( getContract(address(exchangeConfig), "dao()"), address(dao), "Incorrect exchangeConfig.dao" );
         assertEq( getContract(address(exchangeConfig), "upkeep()"), address(upkeep), "Incorrect exchangeConfig.upkeep" );
+        assertEq( getContract(address(exchangeConfig), "stakingRewardsEmitter()"), address(stakingRewardsEmitter), "Incorrect exchangeConfig.stakingRewardsEmitter" );
+        assertEq( getContract(address(exchangeConfig), "liquidityRewardsEmitter()"), address(liquidityRewardsEmitter), "Incorrect exchangeConfig.liquidityRewardsEmitter" );
+        assertEq( getContract(address(exchangeConfig), "accessManager()"), address(accessManager), "Incorrect exchangeConfig.accessManager" );
+        assertEq( getContract(address(exchangeConfig), "initialDistribution()"), address(initialDistribution), "Incorrect exchangeConfig.initialDistribution" );
+
+        assertEq( getContract(address(exchangeConfig), "teamWallet()"), TEAM_WALLET, "Incorrect exchangeConfig.teamWallet" );
+        assertEq( getContract(address(exchangeConfig), "teamVestingWallet()"), address(teamVestingWallet), "Incorrect exchangeConfig.teamVestingWallet" );
+        assertEq( getContract(address(exchangeConfig), "daoVestingWallet()"), address(daoVestingWallet), "Incorrect exchangeConfig.daoVestingWallet" );
+
+		assertTrue( functionExists( address(teamVestingWallet), "beneficiary()" ), "For DEBUG: Incorrect exchangeConfig.teamVestingWallet" );
+		assertTrue( functionExists( address(daoVestingWallet), "beneficiary()" ), "For DEBUG: Incorrect exchangeConfig.daoVestingWallet" );
 
         assertEq( getContract(address(pools), "wbtc()"), address(wbtc), "Incorrect pools.wbtc" );
         assertEq( getContract(address(pools), "weth()"), address(weth), "Incorrect pools.weth" );

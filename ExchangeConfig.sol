@@ -4,7 +4,6 @@ pragma solidity =0.8.21;
 import "./openzeppelin/access/Ownable.sol";
 import "./interfaces/IExchangeConfig.sol";
 import "./rewards/interfaces/IRewardsEmitter.sol";
-import "./rewards/interfaces/ISaltRewards.sol";
 import "./interfaces/IUpkeep.sol";
 import "./launch/interfaces/IInitialDistribution.sol";
 
@@ -26,8 +25,9 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 	IAccessManager public accessManager;
 	IInitialDistribution public initialDistribution;
 
-
 	address public teamWallet;
+
+	// Gradually distribute SALT to the teamWallet and DAO over 10 years
 	address public teamVestingWallet;	// can only be set once
 	address public daoVestingWallet;		// can only be set once
 
@@ -68,7 +68,7 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 		}
 
 
-	function setVestingWallets( address _teamVestingWallet, address _daoVestingWallet ) public
+	function setVestingWallets( address _teamVestingWallet, address _daoVestingWallet ) public onlyOwner
 		{
 		require( address(teamVestingWallet) == address(0), "setVestingWallets can only be called once" );
 		require( address(_teamVestingWallet) != address(0), "_teamVestingWallet cannot be address(0)" );
@@ -79,7 +79,7 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 		}
 
 
-	function setInitialDistribution( IInitialDistribution _initialDistribution ) public
+	function setInitialDistribution( IInitialDistribution _initialDistribution ) public onlyOwner
 		{
 		require( address(initialDistribution) == address(0), "setInitialDistribution can only be called once" );
 		require( address(_initialDistribution) != address(0), "_initialDistribution cannot be address(0)" );
