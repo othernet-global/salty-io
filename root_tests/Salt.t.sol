@@ -18,7 +18,15 @@ contract TestSalt is Deployment
 		// If $COVERAGE=yes, create an instance of the contract so that coverage testing can work
 		// Otherwise, what is tested is the actual deployed contract on the blockchain (as specified in Deployment.sol)
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
+			{
+			vm.prank(address(initialDistribution));
+			salt.transfer(address(DEPLOYER), 10000000 ether);
+
 			initializeContracts();
+
+			vm.prank(DEPLOYER);
+			salt.transfer(address(initialDistribution), 10000000 ether);
+			}
 		}
 
 

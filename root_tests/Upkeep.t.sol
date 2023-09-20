@@ -19,7 +19,6 @@ import "../dao/DAO.sol";
 import "../AccessManager.sol";
 import "../launch/InitialDistribution.sol";
 import "../dao/DAOConfig.sol";
-import "./TestUpkeep.sol";
 
 
 contract TestUpkeep2 is Deployment
@@ -208,37 +207,10 @@ contract TestUpkeep2 is Deployment
     }
 
 
-//   // A unit test to verify the _withdrawTokenFromCounterswap function when the token deposited in Counterswap is non-zero. Ensure that it correctly executes and updates the balance.
-//function testWithdrawTokenFromCounterswap() public
-//    {
-//        // Mock setup
-//        TestERC20 token = new TestERC20('Test Token', 18);
-//        address counterswapAddress = address(0x123);
-//
-//        // Mint some tokens to the counterswap address
-//        token.transfer(counterswapAddress, 50 ether);
-//
-//        vm.startPrank(counterswapAddress);
-//        token.approve(address(pools), 50 ether);
-//        pools.deposit(token, 50 ether);
-//        vm.stopPrank();
-//
-//        // Instantiate TestUpkeep contract
-//	    TestUpkeep upkeep = new TestUpkeep(pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, liquidity, emissions);
-//
-//        // Act
-//        vm.prank(address(usds));
-//        upkeep.withdrawTokenFromCounterswap(token, counterswapAddress);
-//
-//        // Assert
-//        uint256 tokenDepositedInCounterswap = pools.depositedBalance( counterswapAddress, token );
-//        assertEq(token.balanceOf(counterswapAddress), 0);
-//        assertEq(tokenDepositedInCounterswap, 0);
-//    }
-
-
-    // A unit test to verify the _withdrawTokenFromCounterswap function when the token deposited in Counterswap is zero. Ensure that the function does not perform any actions.
     // A unit test to verify the onlySameContract modifier. Test by calling a function with the modifier from another contract and ensure it reverts with the correct error message.
+
+
+
     // A unit test to verify the step1 function. Ensure that the priceAggregator contract's performUpkeep function is called.
     // A unit test to verify the step2 function. Ensure that the usds contract's performUpkeep function is called.
     // A unit test to verify the step3 function. Ensure that the _withdrawTokenFromCounterswap function is called with correct arguments.
