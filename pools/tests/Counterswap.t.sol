@@ -46,6 +46,8 @@ contract TestCounterswap2 is Deployment
 		priceAggregator = new PriceAggregator();
 		priceAggregator.setInitialFeeds( IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)) );
 
+		exchangeConfig = new ExchangeConfig(salt, wbtc, weth, dai, usds, teamWallet );
+
 		_pools = new TestPools(exchangeConfig, poolsConfig);
 		staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
 		liquidity = new Liquidity( _pools, exchangeConfig, poolsConfig, stakingConfig );

@@ -5,4 +5,7 @@ pragma solidity =0.8.21;
 interface IUpkeep
 	{
 	function performUpkeep() external;
+
+	// Views
+	function lastUpkeepTime() external returns (uint256);
 	}

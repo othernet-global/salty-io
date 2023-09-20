@@ -129,6 +129,7 @@ contract TestDeployment is Deployment
         assertEq( getContract(address(upkeep), "saltRewards()"), address(saltRewards), "Incorrect upkeep.saltRewards" );
         assertEq( getContract(address(upkeep), "liquidity()"), address(liquidity), "Incorrect upkeep.liquidity" );
         assertEq( getContract(address(upkeep), "emissions()"), address(emissions), "Incorrect upkeep.emissions" );
+
         assertEq( getContract(address(upkeep), "weth()"), address(weth), "Incorrect upkeep.weth" );
         assertEq( getContract(address(upkeep), "salt()"), address(salt), "Incorrect upkeep.salt" );
         assertEq( getContract(address(upkeep), "usds()"), address(usds), "Incorrect upkeep.usds" );

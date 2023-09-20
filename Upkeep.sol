@@ -10,7 +10,6 @@ import "./dao/interfaces/IDAOConfig.sol";
 import "./pools/Counterswap.sol";
 import "./rewards/interfaces/IEmissions.sol";
 import "./pools/interfaces/IPoolStats.sol";
-import "./pools/PoolUtils.sol";
 import "./staking/interfaces/ILiquidity.sol";
 import "./openzeppelin/finance/VestingWallet.sol";
 
@@ -268,6 +267,7 @@ contract Upkeep is IUpkeep
 
 	// Perform the various steps of performUpkeep as outlined at the top of the contract.
 	// Each step is wrapped in a try/catch and called using this.stepX() - with each stepX function requiring that the caller has to be this contract.
+	// Uses a maximum of 1157k gas with 100 whitelisted pools according to UpkeepGasUsage.t.sol
 	function performUpkeep() public
 		{
 		uint256 timeSinceLastUpkeep = block.timestamp - lastUpkeepTime;
