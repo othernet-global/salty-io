@@ -9,6 +9,8 @@ import "../interfaces/IExchangeConfig.sol";
 import "./interfaces/IRewardsEmitter.sol";
 import "../interfaces/ISalt.sol";
 import "../openzeppelin/security/ReentrancyGuard.sol";
+import "../pools/PoolUtils.sol";
+
 
 // Stores SALT rewards for later distribution at a default rate of 1% per day to those holding shares in the specified StakingRewards contract.
 // The gradual emissions rate is to help offset the natural rewards fluctuation and create a more stable yield.
@@ -74,14 +76,26 @@ contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
 
 	// Transfer a percent (default 1% per day) of the currently held rewards to the specified StakingRewards pools.
 	// The percentage to transfer is interpolated from how long it's been since the last performUpkeep().
-	function performUpkeep( uint256 timeSinceLastUpkeep ) public
+	function performUpkeep( uint256 timeSinceLastUpkeep, bool isStaking ) public
 		{
 		require( msg.sender == address(exchangeConfig.upkeep()), "RewardsEmitter.performUpkeep is only callable from the Upkeep contract" );
 
 		if ( timeSinceLastUpkeep == 0 )
 			return;
 
-		bytes32[] memory pools = poolsConfig.whitelistedPools();
+		bytes32[] memory poolIDs;
+
+		 if ( isStaking )
+		 	{
+		 	// The stakingRewardsEmitter only distributes rewards to those that have staked SALT
+		 	poolIDs = new bytes32[](1);
+		 	poolIDs[0] = PoolUtils.STAKED_SALT;
+		 	}
+		 else
+		 	{
+		 	// For the liquidityRewardsEmitter, all pools can receive rewards
+			poolIDs = poolsConfig.whitelistedPools();
+			}
 
 		// Cap the timeSinceLastUpkeep at one day (if for some reason it has been longer).
 		// This will cap the emitted rewards at a default of 1% in this transaction.
@@ -89,7 +103,7 @@ contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
         	timeSinceLastUpkeep = MAX_TIME_SINCE_LAST_UPKEEP;
 
 		// These are the AddedRewards that will be sent to the specified StakingRewards contract
-		AddedReward[] memory addedRewards = new AddedReward[]( pools.length );
+		AddedReward[] memory addedRewards = new AddedReward[]( poolIDs.length );
 
 		// Cached for efficiency
 		// Rewards to emit = pendingRewards * dailyPercent * timeElapsed / oneDay
@@ -97,9 +111,9 @@ contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
 		uint256 denominatorMult = 100 days * 1000; // simplification of ( 100 percent ) * numberSecondsInOneDay * 1000
 
 		uint256 sum = 0;
-		for( uint256 i = 0; i < pools.length; i++ )
+		for( uint256 i = 0; i < poolIDs.length; i++ )
 			{
-			bytes32 poolID = pools[i];
+			bytes32 poolID = poolIDs[i];
 
 			// Each pool will send a percentage of the pending rewards based on the time elapsed since the last send
 			uint256 amountToAddForPool = ( pendingRewards[poolID] * numeratorMult ) / denominatorMult;
