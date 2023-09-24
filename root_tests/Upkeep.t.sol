@@ -517,16 +517,18 @@ contract TestUpkeep2 is Deployment
     // A unit test to verify that step12() functions correctly
     function testSuccessStep12() public
     	{
+    	// Prepare
     	vm.startPrank(address(initialDistribution));
     	salt.approve(address(saltRewards), 100 ether);
     	saltRewards.addSALTRewards(100 ether);
     	salt.transfer(DEPLOYER, 1000000 ether);
     	vm.stopPrank();
 
-		bytes32[] memory poolIDs = new bytes32[](3);
+		bytes32[] memory poolIDs = new bytes32[](4);
 		(poolIDs[0],) = PoolUtils.poolID(salt,weth);
 		(poolIDs[1],) = PoolUtils.poolID(salt,wbtc);
 		(poolIDs[2],) = PoolUtils.poolID(wbtc,weth);
+		(poolIDs[3],) = PoolUtils.poolID(salt,usds);
 
 		// Add some dummy initial liquidity
 		vm.prank(address(collateral));
@@ -546,25 +548,93 @@ contract TestUpkeep2 is Deployment
 		weth.approve(address(pools), type(uint256).max);
 
 		// Place some sample trades to create arbitrage contributions for the pool stats
-		console.log( "ARB PROFIT: ", pools.depositedBalance( address(dao), weth ) );
 		pools.depositSwapWithdraw(salt, weth, 1 ether, 0, block.timestamp);
-		console.log( "ARB PROFIT: ", pools.depositedBalance( address(dao), weth ) );
 		pools.depositSwapWithdraw(salt, wbtc, 1 ether, 0, block.timestamp);
-		console.log( "ARB PROFIT: ", pools.depositedBalance( address(dao), weth ) );
 		pools.depositSwapWithdraw(weth, wbtc, 1 ether, 0, block.timestamp);
-		console.log( "ARB PROFIT: ", pools.depositedBalance( address(dao), weth ) );
 
+		// Step 12. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter and call clearProfitsForPools.
+    	vm.prank(address(upkeep));
+    	ITestUpkeep(address(upkeep)).step12(poolIDs);
+
+		// Check that 10% of the rewards were sent to the SALT/USDS liquidityRewardsEmitter
+		bytes32[] memory poolIDsB = new bytes32[](1);
+		(poolIDsB[0],) = PoolUtils.poolID(salt, usds);
+		assertEq( liquidityRewardsEmitter.pendingRewardsForPools(poolIDsB)[0], 10 ether );
+
+		// Check that rewards were sent to the stakingRewardsEmitter
+		bytes32[] memory poolIDsA = new bytes32[](1);
+		poolIDsA[0] = PoolUtils.STAKED_SALT;
+		assertEq( stakingRewardsEmitter.pendingRewardsForPools(poolIDsA)[0], 45 ether );
+
+		// Check that rewards were sent proportionally to the three pools involved in generating the above arbitrage
+		assertEq( liquidityRewardsEmitter.pendingRewardsForPools(poolIDs)[0], uint256(45 ether) / 3 );
+		assertEq( liquidityRewardsEmitter.pendingRewardsForPools(poolIDs)[1], uint256(45 ether) / 3 );
+		assertEq( liquidityRewardsEmitter.pendingRewardsForPools(poolIDs)[2], uint256(45 ether) / 3 );
+
+		// Check that the rewards were reset
 		uint256[] memory profitsForPools = IPoolStats(address(pools)).profitsForPools(poolIDs);
 		for( uint256 i = 0; i < profitsForPools.length; i++ )
-			console.log( "PROFIT: ", profitsForPools[i] );
+			assertEq( profitsForPools[i], 0 );
+	  	}
 
-//		// Step 12. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter and call clearProfitsForPools.
-//    	vm.prank(address(upkeep));
-//    	ITestUpkeep(address(upkeep)).step12(poolIDs);
 
-//		// Emissions initial distribution of 52 million tokens stored in the contract is a default .50% per week.
-//		// Approximately 37142 tokens per day initially.
-//		assertEq( salt.balanceOf(address(saltRewards)), 37142857142857142857147 );
+    // A unit test to verify that step13() functions correctly
+    function testSuccessStep13() public
+    	{
+    	// Prepare
+    	vm.startPrank(address(initialDistribution));
+    	salt.approve(address(saltRewards), 100 ether);
+    	saltRewards.addSALTRewards(100 ether);
+    	salt.transfer(DEPLOYER, 1000000 ether);
+    	vm.stopPrank();
+
+		bytes32[] memory poolIDs = new bytes32[](4);
+		(poolIDs[0],) = PoolUtils.poolID(salt,weth);
+		(poolIDs[1],) = PoolUtils.poolID(salt,wbtc);
+		(poolIDs[2],) = PoolUtils.poolID(wbtc,weth);
+		(poolIDs[3],) = PoolUtils.poolID(salt,usds);
+
+		// Add some dummy initial liquidity
+		vm.prank(address(collateral));
+		usds.mintTo(DEPLOYER, 1000 ether);
+
+		vm.startPrank(DEPLOYER);
+		salt.approve(address(liquidity), type(uint256).max);
+		wbtc.approve(address(liquidity), type(uint256).max);
+		weth.approve(address(liquidity), type(uint256).max);
+
+		liquidity.addLiquidityAndIncreaseShare( salt, weth, 1000 ether, 100 ether, 0, block.timestamp, true );
+		liquidity.addLiquidityAndIncreaseShare( wbtc, salt, 10 * 10**8, 1000 ether, 0, block.timestamp, true );
+		liquidity.addLiquidityAndIncreaseShare( wbtc, weth, 10 * 10**8, 100 ether, 0, block.timestamp, true );
+
+		salt.approve(address(pools), type(uint256).max);
+		wbtc.approve(address(pools), type(uint256).max);
+		weth.approve(address(pools), type(uint256).max);
+
+		// Place some sample trades to create arbitrage contributions for the pool stats
+		pools.depositSwapWithdraw(salt, weth, 1 ether, 0, block.timestamp);
+		pools.depositSwapWithdraw(salt, wbtc, 1 ether, 0, block.timestamp);
+		pools.depositSwapWithdraw(weth, wbtc, 1 ether, 0, block.timestamp);
+
+		// Step 12. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter and call clearProfitsForPools.
+    	vm.prank(address(upkeep));
+    	ITestUpkeep(address(upkeep)).step12(poolIDs);
+
+		// Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
+    	vm.prank(address(upkeep));
+    	ITestUpkeep(address(upkeep)).step13(1 days);
+
+		// Check if the rewards were transferred (default 1% per day...so 1%) to the liquidity contract
+		uint256[] memory rewards = liquidity.totalRewardsForPools(poolIDs);
+
+		assertEq( rewards[0], uint256(45 ether) / 300 );
+		assertEq( rewards[1], uint256(45 ether) / 300 );
+		assertEq( rewards[2], uint256(45 ether) / 300 );
+
+		// Check that the staking rewards were transferred to the staking contract
+		bytes32[] memory poolIDsA = new bytes32[](1);
+		poolIDsA[0] = PoolUtils.STAKED_SALT;
+		assertEq( staking.totalRewardsForPools(poolIDsA)[0], 45 ether / 100 );
 	  	}
 
 

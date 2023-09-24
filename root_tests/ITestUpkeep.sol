@@ -15,5 +15,6 @@ interface ITestUpkeep
 	function step9() external;
 	function step10( uint256 daoStartingSaltBalance ) external;
 	function step11( uint256 timeSinceLastUpkeep ) external;
-	function step12( bytes32[] memory poolIDs)  external;
+	function step12( bytes32[] memory poolIDs) external;
+	function step13( uint256 timeSinceLastUpkeep ) external;
 	}
