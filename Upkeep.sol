@@ -236,8 +236,8 @@ contract Upkeep is IUpkeep
 	// 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 	function step13( uint256 timeSinceLastUpkeep ) public onlySameContract
 		{
-		exchangeConfig.stakingRewardsEmitter().performUpkeep(timeSinceLastUpkeep);
-		exchangeConfig.liquidityRewardsEmitter().performUpkeep(timeSinceLastUpkeep);
+		exchangeConfig.stakingRewardsEmitter().performUpkeep(timeSinceLastUpkeep, true);
+		exchangeConfig.liquidityRewardsEmitter().performUpkeep(timeSinceLastUpkeep, false);
 		}
 
 
