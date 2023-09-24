@@ -145,6 +145,7 @@ contract Deployment is Test
 		stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig );
 		liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, rewardsConfig );
 
+		saltRewards = new SaltRewards(exchangeConfig, rewardsConfig);
 		emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
 		poolsConfig.whitelistPool(pools, salt, wbtc);
@@ -168,8 +169,6 @@ contract Deployment is Test
 		exchangeConfig.setStakingRewardsEmitter( stakingRewardsEmitter);
 		exchangeConfig.setLiquidityRewardsEmitter( liquidityRewardsEmitter);
 		exchangeConfig.setDAO( dao );
-
-		saltRewards = new SaltRewards(exchangeConfig, rewardsConfig);
 
 		upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, liquidity, emissions);
 		exchangeConfig.setUpkeep(upkeep);

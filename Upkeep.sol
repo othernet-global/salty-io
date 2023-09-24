@@ -20,11 +20,11 @@ import "./openzeppelin/finance/VestingWallet.sol";
 // 3. Withdraws the remaining USDS already counterswapped from WBTC and WETH (for later formation of SALT/USDS liquidity).
 // 4. Has the DAO withdraw the WETH arbitrage profits from the Pools contract.
 // 5. Sends a default 5% of the withdrawn WETH to the caller of performUpkeep().
-// 6. Sends a default 15% of the remaining WETH to counterswap for conversion to USDS (for later formation of SALT/USDS liquidity).
+// 6. Sends a default 10% (20% / 2) of the remaining WETH to counterswap for conversion to USDS (for later formation of SALT/USDS liquidity).
 // 7. Sends all remaining WETH to counterswap for conversion to SALT (for later SALT/USDS POL formation and SaltRewards).
 // 8. Withdraws SALT from previous counterswaps.
 // 9. Sends SALT and USDS (from steps 3 and 8) to the DAO and has it form SALT/USDS Protocol Owned Liquidity
-// 10. Sends the remaining SALT (from step8) to SaltRewards.  Remaining USDS stays in the Upkeep contract for later POL formation.
+// 10. Sends the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.  Remaining USDS stays in the Upkeep contract for later POL formation.
 // 11. Sends SALT Emissions to the SaltRewards contract.
 // 12. Distributes SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter and call clearProfitsForPools.
 // 13. Distributes SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
@@ -133,7 +133,7 @@ contract Upkeep is IUpkeep
 
 	// 5. Send a default 5% of the withdrawn WETH to the caller of performUpkeep().
 	// The only WETH balance normally in the contract will be the WETH arbitrage profit that was withdrawn in step4
-	function step5() public onlySameContract
+	function step5( address receiver ) public onlySameContract
 		{
 		uint256 wethBalance = weth.balanceOf( address(this) );
 		if ( wethBalance == 0 )
@@ -142,18 +142,19 @@ contract Upkeep is IUpkeep
 		uint256 rewardAmount = wethBalance * daoConfig.upkeepRewardPercent() / 100;
 
 		// Send the reward
-		weth.safeTransfer(msg.sender, rewardAmount);
+		weth.safeTransfer(receiver, rewardAmount);
 		}
 
 
-	// 6. Send a default 15% of the remaining WETH to counterswap for conversion to USDS (for later formation of SALT/USDS liquidity).
+	// 6. Send a default 10% (20% / 2) of the remaining WETH to counterswap for conversion to USDS (for later formation of SALT/USDS liquidity).
 	function step6() public onlySameContract
 		{
 		uint256 wethBalance = weth.balanceOf( address(this) );
-		weth.approve( address(pools), wethBalance );
 
 		// Only half the specified percent will be used for USDS to form SALT/USDS POL (the other half will be counterswapped into SALT in step7)
 		uint256 wethAmountForUSDS = ( wethBalance * daoConfig.arbitrageProfitsPercentPOL() / 100 ) / 2;
+		weth.approve( address(pools), wethAmountForUSDS );
+
 		pools.depositTokenForCounterswap( Counterswap.WETH_TO_USDS, weth, wethAmountForUSDS );
 		}
 
@@ -163,6 +164,8 @@ contract Upkeep is IUpkeep
 		{
 		// WETH approval done in the previous step
 		uint256 wethBalance = weth.balanceOf( address(this) );
+		weth.approve( address(pools), wethBalance );
+
 		pools.depositTokenForCounterswap( Counterswap.WETH_TO_SALT, weth, wethBalance );
 		}
 
@@ -189,7 +192,7 @@ contract Upkeep is IUpkeep
 		}
 
 
-	// 10. Send the remaining SALT (from step8) to SaltRewards.
+	// 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
 	function step10( uint256 daoStartingSaltBalance ) public onlySameContract
 		{
 		IDAO dao = exchangeConfig.dao();
@@ -270,6 +273,8 @@ contract Upkeep is IUpkeep
 	// Uses a maximum of 1157k gas with 100 whitelisted pools according to UpkeepGasUsage.t.sol
 	function performUpkeep() public
 		{
+		require( block.timestamp >= lastUpkeepTime, "Cannot update with an earlier block.timestamp than lastUpkeepTime" );
+
 		uint256 timeSinceLastUpkeep = block.timestamp - lastUpkeepTime;
 
 		bytes32[] memory poolIDs = poolsConfig.whitelistedPools();
@@ -288,7 +293,7 @@ contract Upkeep is IUpkeep
  		try this.step4() {}
 		catch (bytes memory error) { emit UpkeepError("Step 4", error); }
 
- 		try this.step5() {}
+ 		try this.step5(msg.sender) {}
 		catch (bytes memory error) { emit UpkeepError("Step 5", error); }
 
  		try this.step6() {}
@@ -301,6 +306,7 @@ contract Upkeep is IUpkeep
 		catch (bytes memory error) { emit UpkeepError("Step 8", error); }
 
 		// Remember the DAO SALT balance before SALT is sent there to form POL
+		// It will be assumed that that SALT should just stay in the contract and not be sent to the SaltRewards contract
 		uint256 daoStartingSaltBalance = salt.balanceOf( address(exchangeConfig.dao()) );
 
  		try this.step9() {}

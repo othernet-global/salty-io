@@ -19,7 +19,7 @@ import "../dao/DAO.sol";
 import "../AccessManager.sol";
 import "../launch/InitialDistribution.sol";
 import "../dao/DAOConfig.sol";
-
+import "./ITestUpkeep.sol";
 
 contract TestUpkeep2 is Deployment
 	{
@@ -54,6 +54,7 @@ contract TestUpkeep2 is Deployment
 			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig );
 			liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, rewardsConfig );
 
+			saltRewards = new SaltRewards(exchangeConfig, rewardsConfig);
 			emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
 			poolsConfig.whitelistPool(pools, salt, wbtc);
@@ -77,8 +78,6 @@ contract TestUpkeep2 is Deployment
 			exchangeConfig.setStakingRewardsEmitter( stakingRewardsEmitter);
 			exchangeConfig.setLiquidityRewardsEmitter( liquidityRewardsEmitter);
 			exchangeConfig.setDAO( dao );
-
-			saltRewards = new SaltRewards(exchangeConfig, rewardsConfig);
 
 			upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, liquidity, emissions);
 			exchangeConfig.setUpkeep(upkeep);
@@ -186,6 +185,7 @@ contract TestUpkeep2 is Deployment
 		new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, liquidity, _emissions);
 	}
 
+
     // A unit test to check the performUpkeep function and ensure that lastUpkeepTime state variable is updated.
     function testPerformUpkeep() public
     {
@@ -208,97 +208,422 @@ contract TestUpkeep2 is Deployment
 
 
     // A unit test to verify the onlySameContract modifier. Test by calling a function with the modifier from another contract and ensure it reverts with the correct error message.
+	function testUpkeepModifier() public {
+        vm.expectRevert("Only callable from within the same contract");
+        ITestUpkeep(address(upkeep)).step1();
+    }
 
 
+    // A unit test to verify the performUpkeep function when it is called multiple times in quick succession. Ensure that the lastUpkeepTime is correctly updated on each call.
+    function testUpdateLastUpkeepTime() public {
 
-    // A unit test to verify the step1 function. Ensure that the priceAggregator contract's performUpkeep function is called.
-    // A unit test to verify the step2 function. Ensure that the usds contract's performUpkeep function is called.
-    // A unit test to verify the step3 function. Ensure that the _withdrawTokenFromCounterswap function is called with correct arguments.
-    // A unit test to verify the step4 function. Ensure that the dao's withdrawArbitrageProfits function is called with correct argument.
-    // A unit test to verify the step5 function. Ensure that the expected WETH reward is transferred to the caller.
-    // A unit test to verify the step6 function. Ensure that the pools' depositTokenForCounterswap function is called with correct arguments.
-    // A unit test to verify the step7 function. Ensure that the pools' depositTokenForCounterswap function is called with correct arguments.
-    // A unit test to verify the step8 function. Ensure that the _withdrawTokenFromCounterswap function is called with correct arguments.
-    // A unit test to verify the step9 function. Ensure that the dao's formPOL function is called with correct arguments.
-    // A unit test to verify the step10 function. Ensure that the dao's sendSaltToSaltRewards function is called with correct arguments.
-    // A unit test to verify the step11 function. Ensure that the emissions' performUpkeep function is called with correct argument.
-    // A unit test to verify the step12 function. Check if the expected SALT rewards are distributed and profits were correctly cleared.
-    // A unit test to verify the step13 function. Ensure that the stakingRewardsEmitter and liquidityRewardsEmitter's performUpkeep functions are called with correct arguments.
-    // A unit test to verify the step14 function. Ensure that the dao's processRewardsFromPOL function is called with correct arguments.
-    // A unit test to verify the step15 function. Ensure that the dao's vesting wallet correctly releases SALT.
-    // A unit test to verify the step16 function. Ensure that the team's vesting wallet correctly releases SALT and is transferred to team's wallet.
-    // A unit test to verify the performUpkeep function when called after a period of time. Ensure that the timeSinceLastUpkeep is correctly calculated and used in step11 and step13.
-    // A unit test to verify the step10 function when the dao's current SALT balance is less than the starting SALT balance. Ensure that the function does not send any SALT to saltRewards.
-    // A unit test to verify the step10 function when the dao's current SALT balance is more than the starting SALT balance. Ensure that remaining SALT is correctly calculated and sent to saltRewards.
-    // A unit test to verify that the performUpkeep function correctly catches and logs errors from any step function.
-    // A unit test to verify the step16 function when the releaseable amount from the team vesting wallet is zero. Ensure that the function does not transfer any SALT to the team's wallet.
-    // A unit test to verify the step16 function when the releaseable amount from the team vesting wallet is non-zero. Ensure that the function correctly transfers the releaseable amount of SALT to the team's wallet.
-    // A unit test to verify the step15 function when the releaseable amount from the DAO vesting wallet is non-zero. Ensure the vesting wallet correctly releases the releasable SALT to DAO.
-    // A unit test to verify the performUpkeep function with a non-zero address set as the caller of the function in step5. Ensure that the expected reward is transferred to the caller.
-    // A unit test to verify the step7 function when the remaining WETH balance in the contract is zero. Ensure that the function does not perform any actions.
-    // A unit test to verify the step7 function when the remaining WETH balance in the contract is non-zero. Ensure that the function correctly executes and updates the balance.
-    // A unit test to verify the step9 function when the SALT and USDS balance of the contract are zero. Ensure that the function does not perform any actions.
-    // A unit test to verify the step9 function when the SALT and USDS balance in the contract are non-zero. Ensure that the function correctly forms SALT/USDS Protocol Owned Liquidity.
-    // A unit test to verify the step2 function when the WBTC and WETH balance in the USDS contract are non-zero. Ensure that the tokens are correctly transferred to the counterswap addresses and USDS is withdrawn for burning.
-    // A unit test to verify the step12 function when the profits for pools are zero. Ensure that the function does not perform any actions.
-    // A unit test to verify the step12 function when the profits for pools are non-zero. Ensure that the SALT is correctly distributed and profits were correctly cleared.
-    // A unit test to verify the constructor when all addresses are the same. Ensure that the constructor reverts with the correct error message.
-    // A unit test to verify the step15 function when the releasable amount from the DAO vesting wallet is zero. Ensure the function does not perform any actions.
-    // A unit test to verify the performUpkeep function when the block timestamp is the same as the last upkeep time. Ensure that the timeSinceLastUpkeep is correctly calculated as zero and used in step11 and step13.
-    // A unit test to verify the performUpkeep function when it is called multiple times in quick succession. Ensure that the lastUpkeepTime is correctly updated each time and the second call does not revert due to the previous state.
-    // A unit test to verify the step1 function when the priceAggregator contract's performUpkeep function reverts. Ensure that the performUpkeep function continues with the rest of the steps.
-    // A unit test to verify the step2 function when the usds contract's performUpkeep function reverts. Ensure that the performUpkeep function continues with the rest of the steps.
-    // A unit test to verify the step5 function when the reward to the caller is zero. Ensure that the function does not perform any transfers.
-    // A unit test to verify the step6 function when the depositTokenForCounterswap function reverts. Ensure that the function does not prevent the performUpkeep function from continuing.
-    // A unit test to verify the step9 function. Check if the balance of SALT and USDS in the DAO account has correctly increased.
-    // A unit test to verify the step14 function when the processRewardsFromPOL function reverts. Check if the performUpkeep function continues with the rest of the steps.
-    // A unit test to verify lastUpkeepTime state variable. Ensure that it is correctly set and updated on each call to performUpkeep.
-    // A unit test to verify the step15 function when the DAO's vesting wallet does not have any SALT to release. Ensure that the function does not perform any actions.
+            for (uint i=0; i < 5; i++)
+            	{
+            	uint256 timeIncrease = i * 1 hours;
+
+                // Increase block time
+                vm.warp(block.timestamp + timeIncrease);
+
+                // Execute the performUpkeep function
+                upkeep.performUpkeep();
+
+                // Check if lastUpkeepTime has updated correctly
+                assertEq(upkeep.lastUpkeepTime(), block.timestamp, "Incorrect lastUpkeepTime");
+            	}
+        }
+
     // A unit test to verify that upon deployment, the constructor sets the lastUpkeepTime to the current block's timestamp.
-    // A unit test to verify the step16 function when the team's vesting wallet does not have any SALT to release. Ensure that the function does not perform any actions.
-    // A unit test to verify the performUpkeep function when called from an account that is not the contract itself. Ensure the function reverts with the correct error message.
-    // A unit test to verify the _withdrawTokenFromCounterswap function when the deposited token balance in the counterswap address is zero. Ensure that the function does not perform any withdraw operation.
-    // A unit test to verify the _withdrawTokenFromCounterswap function when the withdraw operation reverts. Ensure that the function catches and handles the error correctly.
-    // A unit test to verify the performUpkeep function when all the steps succeed. Ensure that the function completes without any errors and updates the state variables correctly.
-    // A unit test to verify the step3 function when the deposited USDS in Counterswap is some arbitrary non-zero number.
-    // A unit test to verify the step4 function when the DAO's WETH balance is zero.
-    // A unit test to verify the step4 function when the DAO's WETH balance is non-zero.
-    // A unit test to verify the step5 function when the arbirtage profits for WETH are zero.
-    // A unit test to verify the step5 function when the arbirtage profits for WETH are non-zero.
-    // A unit test to verify the step6 function when the remainder of the WETH balance is zero.
-    // A unit test to verify the step6 function when the remainder of the WETH balance is non-zero.
-    // A unit test to verify the step8 function when the deposited SALT in Counterswap is zero.
-    // A unit test to verify the step8 function when the deposited SALT in Counterswap is non-zero.
-    // A unit test to verify the step10 function when the dao's current SALT balance is equal to the starting SALT balance.
-    // A unit test to verify the step11 function when the Emissions' performUpkeep function reverts. Ensure that the performUpkeep function continues with the rest of the steps.
-    // A unit test to verify that the performUpkeep function correctly calculates the timeSinceLastUpkeep when the block timestamp is greater than the last upkeep time.
-    // A unit test to verify that the performUpkeep function correctly calculates the timeSinceLastUpkeep when the block timestamp is less than the last upkeep time.
-    // A unit test to verify that the performUpkeep function reverts when it is called before the minimum upkeep interval has passed.
-    // A unit test to verify the step14 function when the dao's POL balance is zero. Ensure that the function does not perform any actions.
-    // A unit test to verify the step1 function when the priceAggregator contract's performUpkeep function does not cause an update in the prices.
+    function test_constructor() public {
+			upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, liquidity, emissions);
+
+        assertEq(block.timestamp, upkeep.lastUpkeepTime(), "lastUpkeepTime was not set correctly in constructor");
+    }
+
+
+    // A unit test to verify that the performUpkeep function reverts when the block timestamp is less than the last upkeep time.
+	function testPerformUpkeepRevertsWhenTimestampLTLastPerformUpkeep() public {
+    	upkeep.performUpkeep();
+
+    	vm.warp(block.timestamp - 1 minutes);
+
+    	vm.expectRevert();
+    	upkeep.performUpkeep();
+    }
+
+
+    // A unit test to verify that step1() functions correctly
+    function testSuccessStep1() public
+    	{
+    	// Set an initial price
+    	vm.startPrank(DEPLOYER);
+    	forcedPriceFeed.setBTCPrice( 10000 ether );
+    	forcedPriceFeed.setETHPrice( 1000 ether );
+    	vm.stopPrank();
+
+		priceAggregator.performUpkeep();
+
+		assertEq( priceAggregator.getPriceBTC(), 10000 ether );
+		assertEq( priceAggregator.getPriceETH(), 1000 ether );
+
+    	// Set a new price
+    	vm.startPrank(DEPLOYER);
+    	forcedPriceFeed.setBTCPrice( 20000 ether );
+    	forcedPriceFeed.setETHPrice( 2000 ether );
+    	vm.stopPrank();
+
+		// Step 1. Update the prices of BTC and ETH in the PriceAggregator.
+    	vm.prank(address(upkeep));
+    	ITestUpkeep(address(upkeep)).step1();
+
+		assertEq( priceAggregator.getPriceBTC(), 20000 ether );
+		assertEq( priceAggregator.getPriceETH(), 2000 ether );
+    	}
+
+
+    // A unit test to verify that step2() functions correctly
+    function testSuccessStep2() public
+    	{
+    	// Dummy WBTC and WETH to send to USDS
+    	vm.startPrank(DEPLOYER);
+    	wbtc.transfer( address(usds), 5 ether );
+    	weth.transfer( address(usds), 50 ether );
+    	vm.stopPrank();
+
+    	// USDS to usds contract to mimic withdrawn counterswap trades
+    	vm.startPrank( address(collateral));
+    	usds.mintTo( address(usds), 30 ether );
+    	usds.shouldBurnMoreUSDS( 20 ether );
+    	vm.stopPrank();
+
+		assertEq( usds.totalSupply(), 30 ether );
+
+		// Step 2. Send WBTC and WETH from the USDS contract to the counterswap addresses (for conversion to USDS) and withdraw USDS from counterswap for burning.
+    	vm.prank(address(upkeep));
+    	ITestUpkeep(address(upkeep)).step2();
+
+		// Check that the WBTC and WETH have been sent for counterswap
+		assertEq( pools.depositedBalance( Counterswap.WBTC_TO_USDS, wbtc ), 5 ether );
+		assertEq( pools.depositedBalance( Counterswap.WETH_TO_USDS, weth ), 50 ether );
+
+		// Check that 20 ether of USDS has been burned
+		assertEq( usds.totalSupply(), 10 ether );
+    	}
+
+
+    // A unit test to verify that step3() functions correctly
+    function testSuccessStep3() public
+    	{
+    	// USDS to deposited to counterswap to mimic completed counterswap trades
+    	vm.prank( address(collateral));
+    	usds.mintTo( address(usds), 30 ether );
+
+    	vm.startPrank(address(usds));
+    	usds.approve( address(pools), type(uint256).max );
+    	pools.depositTokenForCounterswap(Counterswap.WBTC_TO_USDS, usds, 15 ether);
+    	pools.depositTokenForCounterswap(Counterswap.WETH_TO_USDS, usds, 15 ether);
+		vm.stopPrank();
+
+		// Step 3. Withdraw the remaining USDS already counterswapped from WBTC and WETH (for later formation of SALT/USDS liquidity).
+    	vm.prank(address(upkeep));
+    	ITestUpkeep(address(upkeep)).step3();
+
+		// Check that the Upkeep contract withdrew USDS from counterswap
+		assertEq( usds.balanceOf(address(upkeep)), 30 ether );
+    	}
+
+
+    // A unit test to verify that step4() functions correctly
+    function testSuccessStep4() public
+    	{
+    	// Arbitrage profits are deposited as WETH for the DAO
+    	vm.prank(DEPLOYER);
+    	weth.transfer(address(dao), 25 ether);
+
+    	vm.startPrank(address(dao));
+    	weth.approve(address(pools), 25 ether);
+    	pools.deposit(weth, 25 ether);
+    	vm.stopPrank();
+
+    	assertEq( pools.depositedBalance(address(dao), weth), 25 ether );
+
+		// Step 4. Have the DAO withdraw the WETH arbitrage profits from the Pools contract and send the withdrawn WETH to this contract.
+    	vm.prank(address(upkeep));
+    	ITestUpkeep(address(upkeep)).step4();
+
+    	// Confirm the weth has been withdrawn and sent to the upkeep contract
+    	assertEq( pools.depositedBalance(address(dao), weth), 0 ether );
+
+    	assertEq( weth.balanceOf(address(upkeep)), 25 ether );
+    	}
+
+
+    // A unit test to verify that step5() functions correctly
+    function testSuccessStep5() public
+    	{
+    	// Mimic withdrawing arbitrage profits
+    	vm.prank(DEPLOYER);
+    	weth.transfer(address(upkeep), 100 ether);
+
+		// Step 5. Send a default 5% of the withdrawn WETH to the caller of performUpkeep().
+    	vm.prank(address(upkeep));
+    	ITestUpkeep(address(upkeep)).step5(alice);
+
+    	assertEq( weth.balanceOf(alice), 5 ether );
+    	}
+
+
+    // A unit test to verify that step5() functions correctly
+    function testSuccessStep5B() public
+    	{
+    	// Mimic withdrawing arbitrage profits
+    	vm.prank(DEPLOYER);
+    	weth.transfer(address(upkeep), 100 ether);
+
+		// Step 5. Send a default 5% of the withdrawn WETH to the caller of performUpkeep().
+    	vm.prank(address(alice));
+    	upkeep.performUpkeep();
+
+    	assertEq( weth.balanceOf(alice), 5 ether );
+    	}
+
+
+    // A unit test to verify that step6() functions correctly
+    function testSuccessStep6() public
+    	{
+    	// Mimic withdrawing arbitrage profits
+    	vm.prank(DEPLOYER);
+    	weth.transfer(address(upkeep), 100 ether);
+
+		// Step 6. Send a default 10% (20% / 2 ) of the remaining WETH to counterswap for conversion to USDS (for later formation of SALT/USDS liquidity).
+    	vm.prank(address(upkeep));
+    	ITestUpkeep(address(upkeep)).step6();
+
+		// Check that the WETH has been sent to counterswap
+		// Only half the specified percent will be used for USDS to form SALT/USDS POL (the other half will be counterswapped into SALT in step7)
+    	assertEq( pools.depositedBalance(Counterswap.WETH_TO_USDS, weth), 10 ether );
+    	}
+
+
+    // A unit test to verify that step7() functions correctly
+    function testSuccessStep7() public
+    	{
+    	// Mimic withdrawing arbitrage profits
+    	vm.prank(DEPLOYER);
+    	weth.transfer(address(upkeep), 100 ether);
+
+		// Step 7. Send all remaining WETH to counterswap for conversion to SALT (for later SALT/USDS POL formation and SaltRewards).
+    	vm.prank(address(upkeep));
+    	ITestUpkeep(address(upkeep)).step7();
+
+		// Check that the WETH has been sent to counterswap
+    	assertEq( pools.depositedBalance(Counterswap.WETH_TO_SALT, weth), 100 ether );
+    	}
+
+
+    // A unit test to verify that step8() functions correctly
+    function testSuccessStep8() public
+    	{
+    	vm.prank(address(initialDistribution));
+    	salt.transfer(address(usds), 15 ether);
+
+    	vm.startPrank(address(usds));
+    	salt.approve( address(pools), type(uint256).max );
+    	pools.depositTokenForCounterswap(Counterswap.WETH_TO_SALT, salt, 15 ether);
+		vm.stopPrank();
+
+		// Step 8. Withdraw SALT from previous counterswaps.
+    	vm.prank(address(upkeep));
+    	ITestUpkeep(address(upkeep)).step8();
+
+		// Check that the WETH has been sent to counterswap
+    	assertEq( salt.balanceOf(address(upkeep)), 15 ether );
+    	}
+
+
+    // A unit test to verify that step9() functions correctly
+    function testSuccessStep9() public
+    	{
+    	// SALT and USDS to the Upkeep contract
+    	vm.prank(address(collateral));
+    	usds.mintTo(address(upkeep), 30 ether );
+
+    	vm.prank(address(initialDistribution));
+    	salt.transfer(address(upkeep), 15 ether);
+
+		// Check that the initial SALT/USDS reserves are zero
+		(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves(salt, usds);
+		assertEq(reserve0, 0);
+		assertEq(reserve1, 0);
+
+		// Step 9. Send SALT and USDS (from steps 8 and 3) to the DAO and have it form SALT/USDS Protocol Owned Liquidity
+    	vm.prank(address(upkeep));
+    	ITestUpkeep(address(upkeep)).step9();
+
+		// Check that SALT/USDS POL has been formed
+		(reserve0, reserve1) = pools.getPoolReserves(salt, usds);
+		assertEq(reserve0, 15 ether);
+		assertEq(reserve1, 30 ether);
+
+		(bytes32 poolID,) = PoolUtils.poolID(salt, usds);
+
+		// liquidity should hold the actually LP in the Pools contract
+    	assertEq( pools.getUserLiquidity(address(liquidity), salt, usds), pools.totalLiquidity(poolID) );
+
+		// The DAO should have full share of the liquidity
+		assertEq( liquidity.userShareForPool(address(dao), poolID), pools.totalLiquidity(poolID) );
+	  	}
+
+
+    // A unit test to verify that step10() functions correctly
+    function testSuccessStep10() public
+    	{
+    	// Mimics SALT that is already in the DAO
+    	uint256 initialSaltInDAO = 1000 ether;
+
+    	// SALT to the DAO (initialSaltInDAO and 15 ether which mimics step9() SALT being transferred from Upkeep to the DAO)
+    	vm.startPrank(address(initialDistribution));
+    	salt.transfer(address(dao), initialSaltInDAO + 15 ether);
+    	vm.stopPrank();
+
+		// Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
+    	vm.prank(address(upkeep));
+    	ITestUpkeep(address(upkeep)).step10(initialSaltInDAO);
+
+		// SaltRewards should now have 15 ether (which doens't include the original amount in the DAO)
+		assertEq( salt.balanceOf(address(saltRewards)), 15 ether );
+	  	}
+
+
+    // A unit test to verify that step11() functions correctly
+    function testSuccessStep11() public
+    	{
+		vm.prank(address(bootstrapBallot));
+		initialDistribution.distributionApproved();
+
+		assertEq( salt.balanceOf(address(emissions)), 52 * 1000000 ether );
+
+    	uint256 timeElapsed = 1 days;
+
+		// Step 11. Send SALT Emissions to the SaltRewards contract.
+    	vm.prank(address(upkeep));
+    	ITestUpkeep(address(upkeep)).step11(timeElapsed);
+
+		// Emissions initial distribution of 52 million tokens stored in the contract is a default .50% per week.
+		// Approximately 37142 tokens per day initially.
+		assertEq( salt.balanceOf(address(saltRewards)), 37142857142857142857147 );
+	  	}
+
+
+    // A unit test to verify that step12() functions correctly
+    function testSuccessStep12() public
+    	{
+    	vm.startPrank(address(initialDistribution));
+    	salt.approve(address(saltRewards), 100 ether);
+    	saltRewards.addSALTRewards(100 ether);
+    	salt.transfer(DEPLOYER, 1000000 ether);
+    	vm.stopPrank();
+
+		bytes32[] memory poolIDs = new bytes32[](3);
+		(poolIDs[0],) = PoolUtils.poolID(salt,weth);
+		(poolIDs[1],) = PoolUtils.poolID(salt,wbtc);
+		(poolIDs[2],) = PoolUtils.poolID(wbtc,weth);
+
+		// Add some dummy initial liquidity
+		vm.prank(address(collateral));
+		usds.mintTo(DEPLOYER, 1000 ether);
+
+		vm.startPrank(DEPLOYER);
+		salt.approve(address(liquidity), type(uint256).max);
+		wbtc.approve(address(liquidity), type(uint256).max);
+		weth.approve(address(liquidity), type(uint256).max);
+
+		liquidity.addLiquidityAndIncreaseShare( salt, weth, 1000 ether, 100 ether, 0, block.timestamp, true );
+		liquidity.addLiquidityAndIncreaseShare( wbtc, salt, 10 * 10**8, 1000 ether, 0, block.timestamp, true );
+		liquidity.addLiquidityAndIncreaseShare( wbtc, weth, 10 * 10**8, 100 ether, 0, block.timestamp, true );
+
+		salt.approve(address(pools), type(uint256).max);
+		wbtc.approve(address(pools), type(uint256).max);
+		weth.approve(address(pools), type(uint256).max);
+
+		// Place some sample trades to create arbitrage contributions for the pool stats
+		console.log( "ARB PROFIT: ", pools.depositedBalance( address(dao), weth ) );
+		pools.depositSwapWithdraw(salt, weth, 1 ether, 0, block.timestamp);
+		console.log( "ARB PROFIT: ", pools.depositedBalance( address(dao), weth ) );
+		pools.depositSwapWithdraw(salt, wbtc, 1 ether, 0, block.timestamp);
+		console.log( "ARB PROFIT: ", pools.depositedBalance( address(dao), weth ) );
+		pools.depositSwapWithdraw(weth, wbtc, 1 ether, 0, block.timestamp);
+		console.log( "ARB PROFIT: ", pools.depositedBalance( address(dao), weth ) );
+
+		uint256[] memory profitsForPools = IPoolStats(address(pools)).profitsForPools(poolIDs);
+		for( uint256 i = 0; i < profitsForPools.length; i++ )
+			console.log( "PROFIT: ", profitsForPools[i] );
+
+//		// Step 12. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter and call clearProfitsForPools.
+//    	vm.prank(address(upkeep));
+//    	ITestUpkeep(address(upkeep)).step12(poolIDs);
+
+//		// Emissions initial distribution of 52 million tokens stored in the contract is a default .50% per week.
+//		// Approximately 37142 tokens per day initially.
+//		assertEq( salt.balanceOf(address(saltRewards)), 37142857142857142857147 );
+	  	}
+
+
+
+	// A unit test to verify all expected outcomes of a performUpkeep
+
+    // A unit test to verify the step1 function reverts correctly. Ensure that the performUpkeep function continues with the rest of the steps.
+    // A unit test to verify the step2 function reverts correctly. Ensure that the performUpkeep function continues with the rest of the steps.
+    // A unit test to verify the step3 function reverts correctly. Ensure that the performUpkeep function continues with the rest of the steps.
+    // A unit test to verify the step4 function reverts correctly. Ensure that the performUpkeep function continues with the rest of the steps.
+    // A unit test to verify the step5 function reverts correctly. Ensure that the performUpkeep function continues with the rest of the steps.
+    // A unit test to verify the step6 function reverts correctly. Ensure that the performUpkeep function continues with the rest of the steps.
+    // A unit test to verify the step7 function reverts correctly. Ensure that the performUpkeep function continues with the rest of the steps.
+    // A unit test to verify the step8 function reverts correctly. Ensure that the performUpkeep function continues with the rest of the steps.
+    // A unit test to verify the step9 function reverts correctly. Ensure that the performUpkeep function continues with the rest of the steps.
+    // A unit test to verify the step10 function reverts correctly. Ensure that the performUpkeep function continues with the rest of the steps.
+    // A unit test to verify the step11 function reverts correctly. Ensure that the performUpkeep function continues with the rest of the steps.
+    // A unit test to verify the step12 function reverts correctly. Ensure that the performUpkeep function continues with the rest of the steps.
+    // A unit test to verify the step13 function reverts correctly. Ensure that the performUpkeep function continues with the rest of the steps.
+    // A unit test to verify the step14 function reverts correctly. Ensure that the performUpkeep function continues with the rest of the steps.
+    // A unit test to verify the step15 function reverts correctly. Ensure that the performUpkeep function continues with the rest of the steps.
+    // A unit test to verify the step16 function reverts correctly. Ensure that the performUpkeep function continues with the rest of the steps.
+
     // A unit test to verify the step2 function when the WBTC and WETH balance in the USDS contract are zero. Ensure that the tokens are not transferred.
-    // A unit test to verify the constructor when supplied parameters are empty arrays. Ensure that the constructor reverts with the correct error message.
     // A unit test to verify the step3 function when there is no USDS remaining to withdraw from Counterswap.
-    // A unit test to verify the step3 function when the USDS balance in Counterswap exceeds the float ranges. Ensure that it reverts with the correct error message.
     // A unit test to verify the step4 function when the WETH arbitrage profits' withdrawal operation fails. Ensure it reverts with the correct error message.
+    // A unit test to verify the step4 function when the DAO's WETH balance is zero.
+    // A unit test to verify the step5 function when the arbirtage profits for WETH are zero.
+    // A unit test to verify the step5 function when the reward to the caller is zero. Ensure that the function does not perform any transfers.
     // A unit test to verify the step5 function when WETH balance in this contract is zero. Ensure that no reward is transferred to the caller.
+    // A unit test to verify the step6 function when the remainder of the WETH balance is zero.
     // A unit test to verify the step6 function when all the WETH balance is used for the reward in step5. Ensure that the function does not perform any deposit actions.
     // A unit test to verify the step6 function when all the WETH balance is not sufficient to form SALT/USDS liquidity. Ensure that it does not perform any deposit actions.
     // A unit test to verify the step7 function when all the WETH balance is used in step6 to form SALT/USDS liquidity. Ensure that it does not perform any deposit actions.
     // A unit test to verify the step7 function when all the WETH balance is not sufficient for conversion to SALT. Ensure that it does not perform any deposit actions.
-    // A unit test to verify the step8 function when the deposited SALT in Counterswap exceeds the float ranges. Ensure that it reverts with the correct error message.
+    // A unit test to verify the step7 function when the remaining WETH balance in the contract is zero. Ensure that the function does not perform any actions.
+    // A unit test to verify the step8 function when the deposited SALT in Counterswap is zero.
     // A unit test to verify the step9 function when the formation of SALT/USDS POL fails. Ensure that it reverts with the correct error message.
     // A unit test to verify the step9 function when the SALT/USDS balances are not sufficient to form POL. Ensure that it does not perform any formation actions.
+    // A unit test to verify the step9 function when the SALT and USDS balance of the contract are zero. Ensure that the function does not perform any actions.
+    // A unit test to verify the step9 function. Check if the balance of SALT and USDS in the DAO account has correctly increased.
+    // A unit test to verify the step10 function when the dao's current SALT balance is less than the starting SALT balance. Ensure that the function does not send any SALT to saltRewards.
+    // A unit test to verify the step10 function when the dao's current SALT balance is more than the starting SALT balance. Ensure that remaining SALT is correctly calculated and sent to saltRewards.
+    // A unit test to verify the step10 function when the dao's current SALT balance is equal to the starting SALT balance.
     // A unit test to verify the step10 function when there is no remaining SALT to send to SaltRewards. Ensure that it does not perform any transfer actions.
     // A unit test to verify the step11 function when the Emissions' performUpkeep function does not emit any SALT. Ensure that it does not perform any emission actions.
+    // A unit test to verify the step12 function when the profits for pools are zero. Ensure that the function does not perform any actions.
     // A unit test to verify the step12 function when the SaltRewards' performUpkeep function fails. Ensure that it reverts with the correct error message.
     // A unit test to verify the step12 function when the clearProfitsForPools function fails. Ensure that it reverts with the correct error message.
     // A unit test to verify the step13 function when the distribute SALT rewards function fails in the stakingRewardsEmitter. Ensure that it reverts with the correct error message.
     // A unit test to verify the step13 function when the distribute SALT rewards function fails in the liquidityRewardsEmitter. Ensure that it reverts with the correct error message.
+    // A unit test to verify the step14 function when the dao's POL balance is zero. Ensure that the function does not perform any actions.
     // A unit test to verify the step14 function when the DAO's POL balance is not sufficient for distribution. Ensure that it does not perform any distribution actions.
     // A unit test to verify the step15 function when the DAO vesting wallet's release operation fails. Ensure that it reverts with the correct error message.
     // A unit test to verify the step15 function when the DAO vesting wallet contains no SALT. Ensure that it does not perform any release actions.
+    // A unit test to verify the step15 function when the releasable amount from the DAO vesting wallet is zero. Ensure the function does not perform any actions.
+    // A unit test to verify the step15 function when the DAO's vesting wallet does not have any SALT to release. Ensure that the function does not perform any actions.
+    // A unit test to verify the step16 function when the releaseable amount from the team vesting wallet is zero. Ensure that the function does not transfer any SALT to the team's wallet.
+    // A unit test to verify the step16 function when the team's vesting wallet does not have any SALT to release. Ensure that the function does not perform any actions.
     // A unit test to verify the step16 function when the team vesting wallet's release operation fails. Ensure that it reverts with the correct error message.
     // A unit test to verify the step16 function when the team vesting wallet contains no SALT. Ensure that it does not perform any release actions.
-    // A unit test to verify the performUpkeep function when it is called before the previous call has finished. Ensure that it reverts with the correct error message.
 	}
