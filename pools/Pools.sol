@@ -369,7 +369,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 			uint256 arbitrageProfit = _arbitrage(isWhitelistedPair, token2, token3, arbitrageAmountIn);
 
 			// Update the stats related to the pools that contributed to the arbitrage so they can be rewarded proportionally later
-			 _updateProfitsFromArbitrage( isWhitelistedPair, token2, token3, wbtc, arbitrageProfit );
+			 _updateProfitsFromArbitrage( isWhitelistedPair, token2, token3, wbtc, weth, arbitrageProfit );
 			}
 		}
 
