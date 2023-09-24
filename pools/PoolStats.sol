@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.21;
 
+import "forge-std/Test.sol";
 import "../openzeppelin/utils/math/Math.sol";
 import "../abdk/ABDKMathQuad.sol";
 import "../openzeppelin/token/ERC20/IERC20.sol";
@@ -30,6 +31,7 @@ contract PoolStats is IPoolStats
 	mapping(bytes32=>bytes16) public averageReserveRatios;
 
 	// The profits (in WETH) that were contributed by each pool as arbitrage profits since the last performUpkeep was called.
+	// Used to divide rewards proportionally amongst pools based on contributed arbitrage profits
 	mapping(bytes32=>uint256) public _profitsForPools;
 
 
@@ -48,12 +50,18 @@ contract PoolStats is IPoolStats
 		if ( ( reserve0 < PoolUtils.DUST ) || ( reserve1 < PoolUtils.DUST ) )
 			return;
 
+		uint256 lastUpdateTime = lastUpdateTimes[poolID];
+
+		// Don't allow timestamps before the lastUpdateTime
+		if ( block.timestamp < lastUpdateTime )
+			return;
+
 		// Update the exponential average
 		bytes16 reserveRatio = ABDKMathQuad.div( ABDKMathQuad.fromUInt(reserve0), ABDKMathQuad.fromUInt(reserve1) );
 
 		// Use a novel mechanism to compute the exponential average with irregular periods between data points.
 		// Simulation shows that this works quite well and is well correlated to a traditional EMA with a similar uniform update period.
-		uint256 timeSinceLastUpdate = block.timestamp - lastUpdateTimes[poolID];
+		uint256 timeSinceLastUpdate = block.timestamp - lastUpdateTime;
 		bytes16 effectiveAlpha = ABDKMathQuad.mul( ABDKMathQuad.fromUInt(timeSinceLastUpdate), alpha );
 
 		// Make sure effectiveAlpha doesn't exceed 1
@@ -76,30 +84,42 @@ contract PoolStats is IPoolStats
 
 
 	// Keep track of the which pools contributed to a recent arbitrage profit so that they can be rewarded later on performUpkeep.
-	// As a gas optimization (as this is called in the user swap transaction) only one write corresponding to the poolID of arbToken2 and arbToken3 is written.
-	// On saltRewards.performUpkeep() arbToken2 and arbToken3 will be reconstituted from the poolID and then WETH/arbToken2, arbToken3/arbToken3 and WETH/arbToken3 will be rewarded.
-	// Unwhitelisted token pairs are a bit different as they have to incorporate WBTC and are described below.
-	function _updateProfitsFromArbitrage( bool isWhitelistedPair, IERC20 arbToken2, IERC20 arbToken3, IERC20 wbtc, uint256 arbitrageProfit ) internal
+	function _updateProfitsFromArbitrage( bool isWhitelistedPair, IERC20 arbToken2, IERC20 arbToken3, IERC20 wbtc, IERC20 weth, uint256 arbitrageProfit ) internal
 		{
 		if ( arbitrageProfit == 0 )
 			return;
 
 		if ( isWhitelistedPair )
 			{
-			// The arb cycle was: WETH->arbToken2->arbToken3->WETH
-			// Pools that will be rewarded on performUpkeep: WETH/arbToken2, arbToken2/arbToken3, and WETH/arbToken3
-			(bytes32 poolID,) = PoolUtils.poolID( arbToken2, arbToken3 );
+			// Divide the profit evenly across the 3 pools that took part in the arbitrage
+			arbitrageProfit = arbitrageProfit / 3;
 
+			// The arb cycle was: WETH->arbToken2->arbToken3->WETH
+			(bytes32 poolID,) = PoolUtils.poolID( weth, arbToken2 );
+			_profitsForPools[poolID] += arbitrageProfit;
+
+			(poolID,) = PoolUtils.poolID( arbToken2, arbToken3 );
+			_profitsForPools[poolID] += arbitrageProfit;
+
+			(poolID,) = PoolUtils.poolID( arbToken3, weth );
 			_profitsForPools[poolID] += arbitrageProfit;
 			}
 		else
 			{
+			// Divide the profit evenly across the 4 pools that took part in the arbitrage
+			arbitrageProfit = arbitrageProfit / 4;
+
 			// The arb cycle was: WETH->arbToken2->wbtc->arbToken3->WETH
-			// Pools that will be rewarded on performUpkeep: WETH/arbToken2, WETH/arbToken3, WBTC/arbToken2, , WBTC/arbToken3, WBTC/WETH
-			(bytes32 poolID,) = PoolUtils.poolID( arbToken2, wbtc );
+			(bytes32 poolID,) = PoolUtils.poolID( weth, arbToken2 );
 			_profitsForPools[poolID] += arbitrageProfit;
 
-			(poolID,) = PoolUtils.poolID( arbToken3, wbtc );
+			(poolID,) = PoolUtils.poolID( arbToken2, wbtc );
+			_profitsForPools[poolID] += arbitrageProfit;
+
+			(poolID,) = PoolUtils.poolID( wbtc, arbToken3 );
+			_profitsForPools[poolID] += arbitrageProfit;
+
+			(poolID,) = PoolUtils.poolID( arbToken3, weth );
 			_profitsForPools[poolID] += arbitrageProfit;
 			}
 		}

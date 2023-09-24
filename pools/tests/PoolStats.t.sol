@@ -175,7 +175,7 @@ contract TestPoolStats is Test, PoolStats
         (poolID,) = PoolUtils.poolID( arbToken2, arbToken3 );
         initialProfit = _profitsForPools[poolID];
 
-        _updateProfitsFromArbitrage(isWhitelistedPair, arbToken2, arbToken3, wbtc, arbitrageProfit);
+        _updateProfitsFromArbitrage(isWhitelistedPair, arbToken2, arbToken3, wbtc, exchangeConfig.weth(), arbitrageProfit);
 
         assertEq(_profitsForPools[poolID], initialProfit, "Profit should not increase when arbitrage profit is zero");
     	}
@@ -192,9 +192,9 @@ contract TestPoolStats is Test, PoolStats
 
         uint256 initialProfit = _profitsForPools[poolID];
 
-        _updateProfitsFromArbitrage(isWhitelistedPair, arbToken2, arbToken3, wbtc, arbitrageProfit);
+        _updateProfitsFromArbitrage(isWhitelistedPair, arbToken2, arbToken3, wbtc, exchangeConfig.weth(), arbitrageProfit);
 
-        assertEq(_profitsForPools[poolID], initialProfit + arbitrageProfit, "Profit didn't increase as expected for whitelisted pair");
+        assertEq(_profitsForPools[poolID], initialProfit + arbitrageProfit / 3, "Profit didn't increase as expected for whitelisted pair");
     }
 
 
@@ -204,14 +204,14 @@ contract TestPoolStats is Test, PoolStats
         bool isWhitelistedPair = false;
         uint256 arbitrageProfit = 1 ether;  // profit
 
-        _updateProfitsFromArbitrage(isWhitelistedPair, tokenA, tokenC, wbtc, arbitrageProfit);
+        _updateProfitsFromArbitrage(isWhitelistedPair, tokenA, tokenC, wbtc, exchangeConfig.weth(), arbitrageProfit);
 
         (bytes32 poolIDA,) = PoolUtils.poolID( tokenA, wbtc );
         (bytes32 poolIDB,) = PoolUtils.poolID( tokenC, wbtc );
 
         // Check that the profits for the non-whitelisted pairs are updated correctly
-        assertEq(_profitsForPools[poolIDA], arbitrageProfit, "Profit for the second pair should be updated");
-        assertEq(_profitsForPools[poolIDB], arbitrageProfit, "Profit for the second pair should be updated");
+        assertEq(_profitsForPools[poolIDA], arbitrageProfit / 4, "Profit for the second pair should be updated");
+        assertEq(_profitsForPools[poolIDB], arbitrageProfit / 4, "Profit for the second pair should be updated");
     }
 
 
@@ -282,17 +282,27 @@ contract TestPoolStats is Test, PoolStats
 	// A unit test for `profitsForPools` that verifies it returns profits correctly for given pool IDs
 	function testProfitsForPools() public {
 
-		_updateProfitsFromArbitrage(true, tokenA, tokenB, wbtc, 10 ether); // 10 ether profit for arbToken2 to arbToken3 pool
-		_updateProfitsFromArbitrage(true, tokenB, tokenC, wbtc, 5 ether); // 5 ether profit for arbToken2 to arbToken3 pool
+		_updateProfitsFromArbitrage(true, tokenA, tokenB, wbtc, exchangeConfig.weth(), 10 ether); // 10 ether profit for arbToken2/arbToken3 pool
+		_updateProfitsFromArbitrage(true, tokenB, tokenC, wbtc, exchangeConfig.weth(), 5 ether); // 5 ether profit for arbToken2/arbToken3 pool
 
-		bytes32[] memory poolIDs = new bytes32[](2);
+		bytes32[] memory poolIDs = new bytes32[](6);
 		(poolIDs[0],) = PoolUtils.poolID(tokenA, tokenB);
-		(poolIDs[1],) = PoolUtils.poolID(tokenB, tokenC);
+		(poolIDs[1],) = PoolUtils.poolID(tokenA, exchangeConfig.weth());
+		(poolIDs[2],) = PoolUtils.poolID(tokenB, exchangeConfig.weth());
+
+		(poolIDs[3],) = PoolUtils.poolID(tokenB, tokenC);
+		(poolIDs[4],) = PoolUtils.poolID(tokenB, exchangeConfig.weth());
+		(poolIDs[5],) = PoolUtils.poolID(tokenC, exchangeConfig.weth());
 
 		uint256[] memory profits = this.profitsForPools(poolIDs);
 
-		assertEq(profits[0], 10 ether, "Incorrect profit for pool 0");
-		assertEq(profits[1], 5 ether, "Incorrect profit for pool 1");
+		assertEq(profits[0], uint256(10 ether) / 3, "Incorrect profit for pool 0a");
+		assertEq(profits[1], uint256(10 ether) / 3, "Incorrect profit for pool 0b");
+		assertEq(profits[2], uint256(10 ether) / 3 + uint256(5 ether) / 3, "Incorrect profit for pool 0c");
+
+		assertEq(profits[3], uint256(5 ether) / 3, "Incorrect profit for pool 1a");
+		assertEq(profits[4], uint256(10 ether) / 3 + uint256(5 ether) / 3, "Incorrect profit for pool 1b");
+		assertEq(profits[5], uint256(5 ether) / 3, "Incorrect profit for pool 1c");
 
 		// Clear the profits
 		vm.prank(address(deployment.upkeep()));
@@ -300,7 +310,12 @@ contract TestPoolStats is Test, PoolStats
 
 		profits = this.profitsForPools(poolIDs);
 		assertEq(profits[0], 0, "Profit for pool 0 not cleared");
-		assertEq(profits[1], 0, "Profit for pool 1 not cleared");
+		assertEq(profits[1], 0, "Profit for pool 0 not cleared");
+		assertEq(profits[2], 0, "Profit for pool 0 not cleared");
+
+		assertEq(profits[3], 0, "Profit for pool 1 not cleared");
+		assertEq(profits[4], 0, "Profit for pool 1 not cleared");
+		assertEq(profits[5], 0, "Profit for pool 1 not cleared");
 	}
 
 
