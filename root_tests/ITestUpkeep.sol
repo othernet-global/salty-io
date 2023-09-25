@@ -17,4 +17,7 @@ interface ITestUpkeep
 	function step11( uint256 timeSinceLastUpkeep ) external;
 	function step12( bytes32[] memory poolIDs) external;
 	function step13( uint256 timeSinceLastUpkeep ) external;
+	function step14() external;
+	function step15() external;
+	function step16() external;
 	}

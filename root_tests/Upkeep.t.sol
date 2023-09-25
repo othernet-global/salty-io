@@ -624,7 +624,7 @@ contract TestUpkeep2 is Deployment
     	vm.prank(address(upkeep));
     	ITestUpkeep(address(upkeep)).step13(1 days);
 
-		// Check if the rewards were transferred (default 1% per day...so 1%) to the liquidity contract
+		// Check if the rewards were transferred (default 1% per day...so 1% as the above timeSinceLastUpkeep is one day) to the liquidity contract
 		uint256[] memory rewards = liquidity.totalRewardsForPools(poolIDs);
 
 		assertEq( rewards[0], uint256(45 ether) / 300 );
@@ -637,6 +637,99 @@ contract TestUpkeep2 is Deployment
 		assertEq( staking.totalRewardsForPools(poolIDsA)[0], 45 ether / 100 );
 	  	}
 
+
+    // A unit test to verify that step14() functions correctly
+    function testSuccessStep14() public
+    	{
+    	// SALT and USDS to the Upkeep contract
+    	vm.prank(address(collateral));
+    	usds.mintTo(address(upkeep), 30 ether );
+
+    	vm.prank(address(initialDistribution));
+    	salt.transfer(address(upkeep), 15 ether);
+
+		// Step 9. Send SALT and USDS (from steps 8 and 3) to the DAO and have it form SALT/USDS Protocol Owned Liquidity
+    	vm.prank(address(upkeep));
+    	ITestUpkeep(address(upkeep)).step9();
+
+		// DAO should have formed SALT/USDS liquidity and owns all the shares
+		// Mimic reward emission
+		(bytes32 poolID,) = PoolUtils.poolID(salt, usds);
+		AddedReward[] memory addedRewards = new AddedReward[](1);
+		addedRewards[0] = AddedReward( poolID, 100 ether );
+
+    	vm.startPrank(address(initialDistribution));
+    	salt.approve(address(liquidity), type(uint256).max);
+    	liquidity.addSALTRewards(addedRewards);
+    	vm.stopPrank();
+
+		assertEq( salt.balanceOf(exchangeConfig.teamWallet()), 0);
+
+		uint256 initialSupply = salt.totalSupply();
+
+		// Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
+		vm.prank(address(upkeep));
+		ITestUpkeep(address(upkeep)).step14();
+
+		// Check teamWallet transfer
+		assertEq( salt.balanceOf(exchangeConfig.teamWallet()), 10 ether);
+
+		// Check the amount burned
+		uint256 amountBurned = initialSupply - salt.totalSupply();
+		uint256 expectedAmountBurned = 90 ether * 75 / 100;
+		assertEq( amountBurned, expectedAmountBurned );
+
+		// Check that the remaining SALT stays in the DAO contract
+		assertEq( salt.balanceOf(address(dao)), 90 ether - expectedAmountBurned );
+	  	}
+
+
+    // A unit test to verify that step15() functions correctly
+    function testSuccessStep15() public
+    	{
+    	// Distribute the initial SALT tokens
+    	vm.prank(address(bootstrapBallot));
+    	initialDistribution.distributionApproved();
+
+    	assertEq( salt.balanceOf(address(daoVestingWallet)), 25 * 1000000 ether );
+
+		// Warp to the start of when the daoVestingWallet starts to emit
+		vm.warp( daoVestingWallet.start() );
+
+		vm.warp( block.timestamp + 24 hours );
+		assertEq( salt.balanceOf(address(dao)), 0 );
+
+		// Step 15. Send SALT from the DAO vesting wallet to the DAO (linear distribution of 25 million tokens over 10 years).
+    	vm.prank(address(upkeep));
+    	ITestUpkeep(address(upkeep)).step15();
+
+		// Check that SALT has been sent to DAO.
+    	assertEq( salt.balanceOf(address(dao)), uint256( 25 * 1000000 ether ) * 24 hours / (60 * 60 * 24 * 365 * 10) );
+    	}
+
+
+    // A unit test to verify that step16() functions correctly
+    function testSuccessStep16() public
+    	{
+    	// Distribute the initial SALT tokens
+    	vm.prank(address(bootstrapBallot));
+    	initialDistribution.distributionApproved();
+
+    	assertEq( salt.balanceOf(address(teamVestingWallet)), 10 * 1000000 ether );
+
+		// Warp to the start of when the teamVestingWallet starts to emit
+		vm.warp( teamVestingWallet.start() );
+
+		vm.warp( block.timestamp + 24 hours );
+		assertEq( salt.balanceOf(teamWallet), 0 );
+
+		// Step 16. Send SALT from the team vesting wallet to the team (linear distribution over 10 years).
+    	vm.prank(address(upkeep));
+    	ITestUpkeep(address(upkeep)).step16();
+
+		// Check that SALT has been sent to DAO.
+    	assertEq( salt.balanceOf(teamWallet), uint256( 10 * 1000000 ether ) * 24 hours / (60 * 60 * 24 * 365 * 10) );
+    	}
 
 
 	// A unit test to verify all expected outcomes of a performUpkeep

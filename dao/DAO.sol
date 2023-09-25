@@ -288,7 +288,7 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 
 		uint256 remainingAmount = claimedAmount - amountToSendToTeam;
 
-		// Burn a default 75% of the remaining claimed SALT
+		// Burn a default 75% of the remaining SALT that was just claimed (the rest of the SALT stays in the DAO contract)
 		uint256 saltToBurn = ( remainingAmount * daoConfig.percentPolRewardsBurned() ) / 100;
 
 		salt.safeTransfer( address(salt), saltToBurn );

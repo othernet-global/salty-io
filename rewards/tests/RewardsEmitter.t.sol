@@ -217,12 +217,40 @@ contract TestRewardsEmitter is Deployment
         liquidityRewardsEmitter.performUpkeep(1 days, false);
 
         // Verify that the correct amount of rewards were deducted from each pool's pending rewards
-        // By default, 5% of the rewards should be deducted per day
+        // With the adjustment in the constructor, 2.5% of the rewards should be deducted per day
         assertEq(pendingLiquidityRewardsForPool(poolIDs[0]), 9.75 ether); // 10 ether - 2.5%
         assertEq(pendingLiquidityRewardsForPool(poolIDs[1]), 9.75 ether); // 10 ether - 2.5%
 
         // Rewards transferred to the liquidity contract
         assertEq(salt.balanceOf(address(liquidity)), .50 ether);
+    }
+
+
+	// A unit test where rewards are added for the stakingRewardsEmitter
+	function testPerformUpkeepForStakingRewardsEmitter() public {
+        // Add some pending rewards to the pools
+        AddedReward[] memory addedRewards = new AddedReward[](1);
+        addedRewards[0] = AddedReward({poolID: PoolUtils.STAKED_SALT, amountToAdd: 10 ether});
+
+        salt.approve(address(stakingRewardsEmitter), type(uint256).max);
+        stakingRewardsEmitter.addSALTRewards(addedRewards);
+
+		bytes32[] memory _poolIDs = new bytes32[](1);
+		_poolIDs[0] = PoolUtils.STAKED_SALT;
+
+        // Verify that the rewards were added
+        assertEq(stakingRewardsEmitter.pendingRewardsForPools( _poolIDs )[0], 10 ether);
+
+        // Call performUpkeep
+        vm.prank(address(upkeep));
+        stakingRewardsEmitter.performUpkeep(1 days, true);
+
+        // Verify that the correct amount of rewards were deducted from each pool's pending rewards
+        // With the adjustment in the constructor, 2.5% of the rewards should be deducted per day
+        assertEq(stakingRewardsEmitter.pendingRewardsForPools( _poolIDs )[0], 9.75 ether); // 10 ether - 2.5%
+
+        // Rewards transferred to the staking contract
+        assertEq(salt.balanceOf(address(staking)), .25 ether);
     }
 
 

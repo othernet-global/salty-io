@@ -255,13 +255,13 @@ contract Upkeep is IUpkeep
 		}
 
 
-	// 16. Sends SALT from the team vesting wallet to the team (linear distribution over 10 years).
-	// The teamVestingWallet vests to this contract - which can then be transferred to the active teamWallet.
+	// 16. Send SALT from the team vesting wallet to the team (linear distribution over 10 years).
+	// The teamVestingWallet vests to this contract - which is then transferred to the active teamWallet.
 	function step16() public onlySameContract
 		{
 		uint256 releaseableAmount = VestingWallet(payable(exchangeConfig.teamVestingWallet())).releasable(address(salt));
 
-		// teamVestingWallet actually sends the vested SALT to this contract (which will then need to be sent to the team)
+		// teamVestingWallet actually sends the vested SALT to this contract (which will then need to be sent to the active teamWallet)
 		VestingWallet(payable(exchangeConfig.teamVestingWallet())).release(address(salt));
 
 		salt.safeTransfer( exchangeConfig.teamWallet(), releaseableAmount );
