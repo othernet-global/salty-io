@@ -170,6 +170,10 @@ contract Deployment is Test
 		exchangeConfig.setLiquidityRewardsEmitter( liquidityRewardsEmitter);
 		exchangeConfig.setDAO( dao );
 
+		daoVestingWallet = new VestingWallet( address(dao), uint64(block.timestamp + 60 * 60 * 24 * 7), 60 * 60 * 24 * 365 * 10 );
+		teamVestingWallet = new VestingWallet( address(upkeep), uint64(block.timestamp + 60 * 60 * 24 * 7), 60 * 60 * 24 * 365 * 10 );
+		exchangeConfig.setVestingWallets(address(teamVestingWallet), address(daoVestingWallet));
+
 		upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, liquidity, emissions);
 		exchangeConfig.setUpkeep(upkeep);
 

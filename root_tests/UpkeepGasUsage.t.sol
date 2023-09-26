@@ -127,28 +127,57 @@ contract TestMaxUpkeep is Deployment
     	vm.prank(address(bootstrapBallot));
     	initialDistribution.distributionApproved();
 
+		vm.startPrank(DEPLOYER);
+		wbtc.approve(address(pools), type(uint256).max);
+		weth.approve(address(pools), type(uint256).max);
+		vm.stopPrank();
+
 		uint256 totalPools = 100;
 
     	// Create additional whitelisted pools
-    	for( uint256 i = 0; i < totalPools - 9; i++ )
+    	while( poolsConfig.numberOfWhitelistedPools() < ( totalPools - 4 ) )
     		{
+			vm.startPrank(DEPLOYER);
     		IERC20 tokenA = new TestERC20( "TEST", 18 );
     		IERC20 tokenB = new TestERC20( "TEST", 18 );
+    		vm.stopPrank();
 
-    		vm.prank(address(dao));
-    		poolsConfig.whitelistPool(pools, tokenA, tokenB);
+    		vm.startPrank(address(dao));
+    		poolsConfig.whitelistPool(pools, tokenA, weth);
+    		poolsConfig.whitelistPool(pools, tokenA, wbtc);
+    		poolsConfig.whitelistPool(pools, tokenB, weth);
+    		poolsConfig.whitelistPool(pools, tokenB, wbtc);
+			vm.stopPrank();
 
+			vm.startPrank(DEPLOYER);
     		tokenA.approve(address(pools), type(uint256).max);
 			tokenB.approve(address(pools), type(uint256).max);
-            pools.addLiquidity(tokenA, tokenB, 1000 ether, 1000 ether, 0, block.timestamp);
+            pools.addLiquidity(tokenA, weth, 1000 ether, 1000 ether, 0, block.timestamp);
+            pools.addLiquidity(tokenA, wbtc, 1000 ether, 1000 * 10**8, 0, block.timestamp);
+            pools.addLiquidity(tokenB, weth, 1000 ether, 1000 ether, 0, block.timestamp);
+            pools.addLiquidity(tokenB, wbtc, 1000 ether, 1000 * 10**8, 0, block.timestamp);
 
 	    	// Performs swaps on all of the pools so that arbitrage profits exist everywhere
             pools.depositSwapWithdraw(tokenA, tokenB, 1 ether, 0, block.timestamp);
+            pools.depositSwapWithdraw(tokenA, weth, 1 ether, 0, block.timestamp);
+            pools.depositSwapWithdraw(tokenB, weth, 1 ether, 0, block.timestamp);
+            pools.depositSwapWithdraw(tokenA, wbtc, 1 ether, 0, block.timestamp);
+            pools.depositSwapWithdraw(tokenB, wbtc, 1 ether, 0, block.timestamp);
+
+	    	vm.stopPrank();
     		}
+
+
+//    	bytes32[] memory poolIDs = poolsConfig.whitelistedPools();
+//    	uint256[] memory stats = IPoolStats(address(pools)).profitsForPools(poolIDs);
+//    	for( uint256 i = 0; i < poolIDs.length; i++ )
+//    		{
+//    		console.log( "POOL: ", i, stats[i] );
+//    		}
     	}
 
 
-	// Set the baseline for the performUpkeep()
+	// Set the initial storage write baseline for performUpkeep()
     function testGasMaxUpkeepBaseline() public
     	{
     	vm.warp(block.timestamp + 1 hours);
