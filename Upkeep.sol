@@ -179,6 +179,7 @@ contract Upkeep is IUpkeep
 
 
 	// 9. Send SALT and USDS (from steps 8 and 3) to the DAO and have it form SALT/USDS Protocol Owned Liquidity
+	// Any SALT or USDS that is not used will be stay in the DAO contract for later POL formation.
 	function step9() public onlySameContract
 		{
 		uint256 saltBalance = salt.balanceOf( address(this) );
