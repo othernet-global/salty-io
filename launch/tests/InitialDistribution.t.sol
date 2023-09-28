@@ -183,7 +183,7 @@ contract TestInitialDistribution is Deployment
 		assertEq(salt.balanceOf(address(teamVestingWallet)), 10 * MILLION_ETHER);
 		assertEq(salt.balanceOf(address(airdrop)), 5 * MILLION_ETHER);
 		assertEq(salt.balanceOf(address(liquidityRewardsEmitter)), 4999999999999999999999995);
-		assertEq(salt.balanceOf(address(stakingRewardsEmitter)), 3 * MILLION_ETHER);
+		assertEq(salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005);
 
 		assertEq( salt.balanceOf(address(initialDistribution)), 0 );
 	}

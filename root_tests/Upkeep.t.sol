@@ -477,7 +477,7 @@ contract TestUpkeep2 is Deployment
 
 		// Emissions initial distribution of 52 million tokens stored in the contract is a default .50% per week.
 		// Approximately 37142 tokens per day initially.
-		assertEq( salt.balanceOf(address(saltRewards)), 37142857142857142857147 );
+		assertEq( salt.balanceOf(address(saltRewards)), 37142857142857142857142 );
 	  	}
 
 
@@ -792,7 +792,7 @@ contract TestUpkeep2 is Deployment
 		// Need to warp so that there can be some SALT emissions
 		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
 
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000 ether );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
 		assertEq( salt.balanceOf(address(staking)), 0 );
 
 
@@ -844,7 +844,7 @@ contract TestUpkeep2 is Deployment
 		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
 		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000000 );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005 );
 		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000 );
 
 		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
@@ -901,7 +901,7 @@ contract TestUpkeep2 is Deployment
 		assertEq( reserve1, 301000000000000000000 );
 
 		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-		assertEq( salt.balanceOf(address(saltRewards)), 163436428571428571428576 );
+		assertEq( salt.balanceOf(address(saltRewards)), 163436428571428571428571 );
 
 		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
 		uint256 saltBurned = saltSupply - salt.totalSupply();
@@ -981,7 +981,7 @@ contract TestUpkeep2 is Deployment
 		// 5 minutes delay will cause less SALT to be emitted which will cause the SALT/USDS POL formation to be limited by SALT rather than USDS
 		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 5 minutes);
 
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000 ether );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
 		assertEq( salt.balanceOf(address(staking)), 0 );
 
 
@@ -1033,7 +1033,7 @@ contract TestUpkeep2 is Deployment
 		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
 		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000000 );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005 );
 		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000 );
 
 		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
@@ -1089,7 +1089,7 @@ contract TestUpkeep2 is Deployment
 		assertEq( reserve1, 25782343987823439878 );
 
 		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-		assertEq( salt.balanceOf(address(saltRewards)), 143070577876984126984132 );
+		assertEq( salt.balanceOf(address(saltRewards)), 143070577876984126984127 );
 
 		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
 		uint256 saltBurned = saltSupply - salt.totalSupply();

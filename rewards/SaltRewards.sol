@@ -155,11 +155,14 @@ contract SaltRewards is ISaltRewards, ReentrancyGuard
 
 
     // Sends an expected 5 million SALT to the liquidityRewardsEmitter (evenly divided amongst the pools) and 3 million SALT to the stakingRewardsEmitter.
-	function sendInitialSaltRewards( uint256 liquidityBootstrapAmount, uint256 stakingBootstrapAmount, bytes32[] memory poolIDs ) public
+	function sendInitialSaltRewards( uint256 liquidityBootstrapAmount, bytes32[] memory poolIDs ) public
 		{
 		require( msg.sender == address(exchangeConfig.initialDistribution()), "SaltRewards.sendInitialRewards is only callable from the InitialDistribution contract" );
 
 		_sendInitialLiquidityRewards(liquidityBootstrapAmount, poolIDs);
+
+		// Remaining tokens go to stakingRewardsEmitter
+		uint256 stakingBootstrapAmount = salt.balanceOf(address(this));
 		_sendInitialStakingRewards(stakingBootstrapAmount);
 		}
 

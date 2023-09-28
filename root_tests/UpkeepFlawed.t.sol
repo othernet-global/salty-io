@@ -188,7 +188,7 @@ contract TestUpkeepFlawed is Deployment
 		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
 		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
 
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000 ether );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
 		assertEq( salt.balanceOf(address(staking)), 0 );
 
 
@@ -237,7 +237,7 @@ contract TestUpkeepFlawed is Deployment
 		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
 		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000000, "step11-13 A" );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
 		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
 
 		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
@@ -293,7 +293,7 @@ contract TestUpkeepFlawed is Deployment
 		assertEq( reserve1, 31000000000000000000, "step 9 B" );
 
 		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428576, "step 10 A" );
+		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428571, "step 10 A" );
 
 		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
 		uint256 saltBurned = saltSupply - salt.totalSupply();
@@ -373,7 +373,7 @@ contract TestUpkeepFlawed is Deployment
 		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
 		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
 
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000 ether );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
 		assertEq( salt.balanceOf(address(staking)), 0 );
 
 
@@ -423,7 +423,7 @@ contract TestUpkeepFlawed is Deployment
 		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
 		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000000, "step11-13 A" );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
 		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
 
 		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
@@ -479,7 +479,7 @@ contract TestUpkeepFlawed is Deployment
 		assertEq( reserve1, 31000000000000000000, "step 9 B" );
 
 		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428576, "step 10 A" );
+		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428571, "step 10 A" );
 
 		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
 		uint256 saltBurned = saltSupply - salt.totalSupply();
@@ -559,7 +559,7 @@ contract TestUpkeepFlawed is Deployment
 		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
 		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
 
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000 ether );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
 		assertEq( salt.balanceOf(address(staking)), 0 );
 
 
@@ -607,7 +607,7 @@ contract TestUpkeepFlawed is Deployment
 		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
 		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000000, "step11-13 A" );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
 		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
 
 		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
@@ -666,7 +666,7 @@ contract TestUpkeepFlawed is Deployment
 		assertEq( reserve1, 1000000000000000000, "step 9 B" );
 
 		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428576, "step 10 A" );
+		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428571, "step 10 A" );
 
 		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
 		uint256 saltBurned = saltSupply - salt.totalSupply();
@@ -748,7 +748,7 @@ contract TestUpkeepFlawed is Deployment
 		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
 		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
 
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000 ether );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
 		assertEq( salt.balanceOf(address(staking)), 0 );
 
 
@@ -799,7 +799,7 @@ contract TestUpkeepFlawed is Deployment
 		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
 		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000000, "step11-13 A" );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
 		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
 
 		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
@@ -855,7 +855,7 @@ contract TestUpkeepFlawed is Deployment
 		assertEq( reserve1, 31000000000000000000, "step 9 B" );
 
 		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428576, "step 10 A" );
+		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428571, "step 10 A" );
 
 		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
 		uint256 saltBurned = saltSupply - salt.totalSupply();
@@ -937,7 +937,7 @@ contract TestUpkeepFlawed is Deployment
 		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
 		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
 
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000 ether );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
 		assertEq( salt.balanceOf(address(staking)), 0 );
 
 
@@ -987,7 +987,7 @@ contract TestUpkeepFlawed is Deployment
 		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
 		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000000, "step11-13 A" );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
 		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
 
 		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
@@ -1043,7 +1043,7 @@ contract TestUpkeepFlawed is Deployment
 		assertEq( reserve1, 31000000000000000000, "step 9 B" );
 
 		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428576, "step 10 A" );
+		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428571, "step 10 A" );
 
 		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
 		uint256 saltBurned = saltSupply - salt.totalSupply();
@@ -1124,7 +1124,7 @@ contract TestUpkeepFlawed is Deployment
 		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
 		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
 
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000 ether );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
 		assertEq( salt.balanceOf(address(staking)), 0 );
 
 
@@ -1174,7 +1174,7 @@ contract TestUpkeepFlawed is Deployment
 		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
 		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000000, "step11-13 A" );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
 		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
 
 		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
@@ -1230,7 +1230,7 @@ contract TestUpkeepFlawed is Deployment
 		assertEq( reserve1, 31000000000000000000, "step 9 B" );
 
 		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428576, "step 10 A" );
+		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428571, "step 10 A" );
 
 		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
 		uint256 saltBurned = saltSupply - salt.totalSupply();
@@ -1312,7 +1312,7 @@ contract TestUpkeepFlawed is Deployment
 		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
 		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
 
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000 ether );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
 		assertEq( salt.balanceOf(address(staking)), 0 );
 
 
@@ -1360,7 +1360,7 @@ contract TestUpkeepFlawed is Deployment
 		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
 		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000000, "step11-13 A" );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
 		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
 
 		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
@@ -1416,7 +1416,7 @@ contract TestUpkeepFlawed is Deployment
 		assertEq( reserve1, 31000000000000000000, "step 9 B" );
 
 		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428576, "step 10 A" );
+		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428571, "step 10 A" );
 
 		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
 		uint256 saltBurned = saltSupply - salt.totalSupply();
@@ -1498,7 +1498,7 @@ contract TestUpkeepFlawed is Deployment
 		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
 		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
 
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000 ether );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
 		assertEq( salt.balanceOf(address(staking)), 0 );
 
 
@@ -1545,7 +1545,7 @@ contract TestUpkeepFlawed is Deployment
 		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
 		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000000, "step11-13 A" );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
 		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
 
 		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
@@ -1603,7 +1603,7 @@ contract TestUpkeepFlawed is Deployment
 		assertEq( reserve1, 31000000000000000000, "step 9 B" );
 
 		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428576, "step 10 A" );
+		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428571, "step 10 A" );
 
 		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
 		uint256 saltBurned = saltSupply - salt.totalSupply();
@@ -1685,7 +1685,7 @@ contract TestUpkeepFlawed is Deployment
 		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
 		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
 
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000 ether );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
 		assertEq( salt.balanceOf(address(staking)), 0 );
 
 
@@ -1732,7 +1732,7 @@ contract TestUpkeepFlawed is Deployment
 		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
 		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000000, "step11-13 A" );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
 		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
 
 		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
@@ -1791,7 +1791,7 @@ contract TestUpkeepFlawed is Deployment
 		assertEq( reserve1, 1000000000000000000, "step 9 B" );
 
 		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428576, "step 10 A" );
+		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428571, "step 10 A" );
 
 		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
 		uint256 saltBurned = saltSupply - salt.totalSupply();
@@ -1873,7 +1873,7 @@ contract TestUpkeepFlawed is Deployment
 		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
 		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
 
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000 ether );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
 		assertEq( salt.balanceOf(address(staking)), 0 );
 
 
@@ -1920,7 +1920,7 @@ contract TestUpkeepFlawed is Deployment
 		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
 		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000000, "step11-13 A" );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
 		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
 
 		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
@@ -1979,8 +1979,8 @@ contract TestUpkeepFlawed is Deployment
 		assertEq( reserve1, 301000000000000000000, "step 9 B" );
 
 		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-//		assertEq( salt.balanceOf(address(saltRewards)), 163436428571428571428576, "step 10 A" );
-		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428576, "step 10 A" );
+//		assertEq( salt.balanceOf(address(saltRewards)), 163436428571428571428571, "step 10 A" );
+		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428571, "step 10 A" );
 
 		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
 		uint256 saltBurned = saltSupply - salt.totalSupply();
@@ -2060,7 +2060,7 @@ contract TestUpkeepFlawed is Deployment
 		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
 		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
 
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000 ether );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
 		assertEq( salt.balanceOf(address(staking)), 0 );
 
 
@@ -2107,9 +2107,9 @@ contract TestUpkeepFlawed is Deployment
 		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
 		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-//		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000000, "step11-13 A" );
+//		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
 //		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 2970000000000000000000000, "step11-13 A" );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 2970000000000000000000005, "step11-13 A" );
 		assertEq( salt.balanceOf(address(staking)), 30000000000000000000000, "step11-13 B" );
 
 		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
@@ -2168,8 +2168,8 @@ contract TestUpkeepFlawed is Deployment
 		assertEq( reserve1, 301000000000000000000, "step 9 B" );
 
 		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-//		assertEq( salt.balanceOf(address(saltRewards)), 163436428571428571428576, "step 10 A" );
-		assertEq( salt.balanceOf(address(saltRewards)), 110000000000000000005, "step 10 A" );
+//		assertEq( salt.balanceOf(address(saltRewards)), 163436428571428571428571, "step 10 A" );
+		assertEq( salt.balanceOf(address(saltRewards)), 110000000000000000000, "step 10 A" );
 
 		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
 		uint256 saltBurned = saltSupply - salt.totalSupply();
@@ -2249,7 +2249,7 @@ contract TestUpkeepFlawed is Deployment
 		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
 		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
 
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000 ether );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
 		assertEq( salt.balanceOf(address(staking)), 0 );
 
 
@@ -2296,9 +2296,9 @@ contract TestUpkeepFlawed is Deployment
 		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
 		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-//		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000000, "step11-13 A" );
+//		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
 //		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 2970000000000000000000000, "step11-13 A" );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 2970000000000000000000005, "step11-13 A" );
 		assertEq( salt.balanceOf(address(staking)), 30000000000000000000000, "step11-13 B" );
 
 		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
@@ -2357,8 +2357,8 @@ contract TestUpkeepFlawed is Deployment
 		assertEq( reserve1, 301000000000000000000, "step 9 B" );
 
 		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-//		assertEq( salt.balanceOf(address(saltRewards)), 163436428571428571428576, "step 10 A" );
-		assertEq( salt.balanceOf(address(saltRewards)), 297157142857142857142862, "step 10 A" );
+//		assertEq( salt.balanceOf(address(saltRewards)), 163436428571428571428571, "step 10 A" );
+		assertEq( salt.balanceOf(address(saltRewards)), 297157142857142857142857, "step 10 A" );
 
 		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
 		uint256 saltBurned = saltSupply - salt.totalSupply();
@@ -2438,7 +2438,7 @@ contract TestUpkeepFlawed is Deployment
     		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
     		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
 
-    		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000 ether );
+    		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
     		assertEq( salt.balanceOf(address(staking)), 0 );
 
 
@@ -2485,9 +2485,9 @@ contract TestUpkeepFlawed is Deployment
     		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
     		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-//    		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000000, "step11-13 A" );
+//    		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
 //    		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
-    		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3117000000000000000000000, "step11-13 A" );
+    		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3117000000000000000000005, "step11-13 A" );
     		assertEq( salt.balanceOf(address(staking)), 0, "step11-13 B" );
 
     		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
@@ -2547,7 +2547,7 @@ contract TestUpkeepFlawed is Deployment
     		assertEq( reserve1, 301000000000000000000, "step 9 B" );
 
     		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-    		assertEq( salt.balanceOf(address(saltRewards)), 163436428571428571428576, "step 10 A" );
+    		assertEq( salt.balanceOf(address(saltRewards)), 163436428571428571428571, "step 10 A" );
 
     		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
     		uint256 saltBurned = saltSupply - salt.totalSupply();
@@ -2628,7 +2628,7 @@ contract TestUpkeepFlawed is Deployment
 		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
 		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
 
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000 ether );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
 		assertEq( salt.balanceOf(address(staking)), 0 );
 
 
@@ -2675,7 +2675,7 @@ contract TestUpkeepFlawed is Deployment
 		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
 		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000000, "step11-13 A" );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
 		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
 
 		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
@@ -2734,7 +2734,7 @@ contract TestUpkeepFlawed is Deployment
 		assertEq( reserve1, 301000000000000000000, "step 9 B" );
 
 		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-		assertEq( salt.balanceOf(address(saltRewards)), 163436428571428571428576, "step 10 A" );
+		assertEq( salt.balanceOf(address(saltRewards)), 163436428571428571428571, "step 10 A" );
 
 		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
 		uint256 saltBurned = saltSupply - salt.totalSupply();
@@ -2815,7 +2815,7 @@ contract TestUpkeepFlawed is Deployment
     		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
     		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
 
-    		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000 ether );
+    		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
     		assertEq( salt.balanceOf(address(staking)), 0 );
 
 
@@ -2862,7 +2862,7 @@ contract TestUpkeepFlawed is Deployment
     		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
     		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-    		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000000, "step11-13 A" );
+    		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
     		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
 
     		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
@@ -2922,7 +2922,7 @@ contract TestUpkeepFlawed is Deployment
     		assertEq( reserve1, 301000000000000000000, "step 9 B" );
 
     		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-    		assertEq( salt.balanceOf(address(saltRewards)), 163436428571428571428576, "step 10 A" );
+    		assertEq( salt.balanceOf(address(saltRewards)), 163436428571428571428571, "step 10 A" );
 
     		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
     		uint256 saltBurned = saltSupply - salt.totalSupply();
@@ -3002,7 +3002,7 @@ contract TestUpkeepFlawed is Deployment
 		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
 		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
 
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000 ether );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
 		assertEq( salt.balanceOf(address(staking)), 0 );
 
 
@@ -3049,7 +3049,7 @@ contract TestUpkeepFlawed is Deployment
 		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
 		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000000, "step11-13 A" );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
 		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
 
 		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract

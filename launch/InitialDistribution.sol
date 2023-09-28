@@ -84,6 +84,6 @@ contract InitialDistribution is IInitialDistribution
 	    // Liquidity Bootstrapping		5 million
 	    // Staking Bootstrapping			3 million
 		salt.safeTransfer( address(saltRewards), 8 * MILLION_ETHER );
-		saltRewards.sendInitialSaltRewards(5 * MILLION_ETHER, 3 * MILLION_ETHER, poolIDs );
+		saltRewards.sendInitialSaltRewards(5 * MILLION_ETHER, poolIDs );
     	}
 	}

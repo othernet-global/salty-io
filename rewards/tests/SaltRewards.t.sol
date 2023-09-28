@@ -258,21 +258,20 @@ contract TestSaltRewards2 is Deployment
         TestSaltRewards _saltRewards = new TestSaltRewards(exchangeConfig, rewardsConfig);
 
         vm.prank(DEPLOYER);
-        salt.transfer(address(_saltRewards), 10 ether);
+        salt.transfer(address(_saltRewards), 8 ether);
 
         uint256 liquidityBootstrapAmount = 5 ether;
-        uint256 stakingBootstrapAmount = 3 ether;
 
         bytes32[] memory poolIDs = new bytes32[](1);
         (poolIDs[0],) = PoolUtils.poolID(salt, usds);
 
         // Expect revert because the caller is not the initialDistribution
         vm.expectRevert("SaltRewards.sendInitialRewards is only callable from the InitialDistribution contract");
-        _saltRewards.sendInitialSaltRewards(liquidityBootstrapAmount, stakingBootstrapAmount, poolIDs);
+        _saltRewards.sendInitialSaltRewards(liquidityBootstrapAmount, poolIDs);
 
         // Change the caller to the initialDistribution
         vm.prank(address(initialDistribution));
-        _saltRewards.sendInitialSaltRewards(liquidityBootstrapAmount, stakingBootstrapAmount, poolIDs);
+        _saltRewards.sendInitialSaltRewards(liquidityBootstrapAmount, poolIDs);
     }
 
 
