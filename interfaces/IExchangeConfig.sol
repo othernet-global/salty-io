@@ -11,6 +11,7 @@ import "../rewards/interfaces/ISaltRewards.sol";
 import "../rewards/interfaces/IEmissions.sol";
 import "./IUpkeep.sol";
 import "../launch/interfaces/IInitialDistribution.sol";
+import "../launch/interfaces/IAirdrop.sol";
 
 
 interface IExchangeConfig
@@ -20,6 +21,7 @@ interface IExchangeConfig
 	function setAccessManager( IAccessManager _accessManager ) external; // onlyOwner
 	function setStakingRewardsEmitter( IRewardsEmitter _rewardsEmitter ) external; // onlyOwner
 	function setLiquidityRewardsEmitter( IRewardsEmitter _rewardsEmitter ) external; // onlyOwner
+	function setAirdrop( IAirdrop _airdrop ) external; // onlyOwner
 
 	function setTeamWallet( address _teamWallet ) external;
 	function setVestingWallets( address _teamVestingWallet, address _daoVestingWallet ) external;
@@ -42,6 +44,7 @@ interface IExchangeConfig
 	function upkeep() external view returns (IUpkeep);
 	function stakingRewardsEmitter() external view returns (IRewardsEmitter);
 	function liquidityRewardsEmitter() external view returns (IRewardsEmitter);
+	function airdrop() external view returns (IAirdrop);
 
 	function walletHasAccess( address wallet ) external view returns (bool);
 	}
