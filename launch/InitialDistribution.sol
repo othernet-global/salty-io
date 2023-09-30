@@ -78,6 +78,7 @@ contract InitialDistribution is IInitialDistribution
 
 	    // Airdrop Participants				5 million
 		salt.safeTransfer( address(airdrop), 5 * MILLION_ETHER );
+		airdrop.allowClaiming();
 
 		bytes32[] memory poolIDs = poolsConfig.whitelistedPools();
 
