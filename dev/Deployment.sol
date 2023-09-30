@@ -34,6 +34,7 @@ import "../staking/Liquidity.sol";
 import "../stable/Collateral.sol";
 import "../rewards/RewardsEmitter.sol";
 import "../root_tests/TestERC20.sol";
+import "../launch/Airdrop.sol";
 
 
 // Stores the contract addresses for the various parts of the exchange and allows the unit tests to be run on them.
@@ -54,7 +55,7 @@ contract Deployment is Test
 	IForcedPriceFeed public forcedPriceFeed = IForcedPriceFeed(address(0x3B0Eb37f26b502bAe83df4eCc54afBDfb90B5d3a));
 
 	// The DAO contract can provide us with all other contract addresses in the protocol
-	IDAO public dao = IDAO(address(0xBa725E8788B97f9d45105577Fd132A320c9FF6d0));
+	IDAO public dao = IDAO(address(0x19130ee296294E36d4AF709933A60fABC7107d30));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));
@@ -163,12 +164,15 @@ contract Deployment is Test
 		address oldDAO = address(dao);
 		dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidityRewardsEmitter);
 
+		airdrop = new Airdrop(exchangeConfig, staking);
+
 		accessManager = new AccessManager(dao);
 
 		exchangeConfig.setAccessManager( accessManager );
 		exchangeConfig.setStakingRewardsEmitter( stakingRewardsEmitter);
 		exchangeConfig.setLiquidityRewardsEmitter( liquidityRewardsEmitter);
 		exchangeConfig.setDAO( dao );
+		exchangeConfig.setAirdrop(airdrop);
 
 		daoVestingWallet = new VestingWallet( address(dao), uint64(block.timestamp + 60 * 60 * 24 * 7), 60 * 60 * 24 * 365 * 10 );
 		teamVestingWallet = new VestingWallet( address(upkeep), uint64(block.timestamp + 60 * 60 * 24 * 7), 60 * 60 * 24 * 365 * 10 );
