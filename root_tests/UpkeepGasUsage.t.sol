@@ -70,12 +70,15 @@ contract TestMaxUpkeep is Deployment
 			address oldDAO = address(dao);
 			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidityRewardsEmitter);
 
+			airdrop = new Airdrop(exchangeConfig, staking);
+
 			accessManager = new AccessManager(dao);
 
 			exchangeConfig.setAccessManager( accessManager );
 			exchangeConfig.setStakingRewardsEmitter( stakingRewardsEmitter);
 			exchangeConfig.setLiquidityRewardsEmitter( liquidityRewardsEmitter);
 			exchangeConfig.setDAO( dao );
+			exchangeConfig.setAirdrop(airdrop);
 
 			saltRewards = new SaltRewards(exchangeConfig, rewardsConfig);
 
@@ -119,6 +122,9 @@ contract TestMaxUpkeep is Deployment
 			vm.prank(address(dao));
 			poolsConfig.changeMaximumWhitelistedPools(true);
 			}
+
+		vm.prank(DEPLOYER);
+		airdrop.whitelistWallet(alice);
 		}
 
 

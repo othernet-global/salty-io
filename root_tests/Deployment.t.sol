@@ -56,6 +56,7 @@ contract TestDeployment is Deployment
         assertEq( getContract(address(exchangeConfig), "liquidityRewardsEmitter()"), address(liquidityRewardsEmitter), "Incorrect exchangeConfig.liquidityRewardsEmitter" );
         assertEq( getContract(address(exchangeConfig), "accessManager()"), address(accessManager), "Incorrect exchangeConfig.accessManager" );
         assertEq( getContract(address(exchangeConfig), "initialDistribution()"), address(initialDistribution), "Incorrect exchangeConfig.initialDistribution" );
+		assertEq( getContract(address(exchangeConfig), "airdrop()"), address(airdrop), "Incorrect exchangeConfig.airdrop" );
 
         assertEq( getContract(address(exchangeConfig), "teamWallet()"), TEAM_WALLET, "Incorrect exchangeConfig.teamWallet" );
         assertEq( getContract(address(exchangeConfig), "teamVestingWallet()"), address(teamVestingWallet), "Incorrect exchangeConfig.teamVestingWallet" );
@@ -63,6 +64,10 @@ contract TestDeployment is Deployment
 
 		assertTrue( functionExists( address(teamVestingWallet), "beneficiary()" ), "For DEBUG: Incorrect exchangeConfig.teamVestingWallet" );
 		assertTrue( functionExists( address(daoVestingWallet), "beneficiary()" ), "For DEBUG: Incorrect exchangeConfig.daoVestingWallet" );
+
+        assertEq( getContract(address(airdrop), "exchangeConfig()"), address(exchangeConfig), "Incorrect airdrop.exchangeConfig" );
+        assertEq( getContract(address(airdrop), "staking()"), address(staking), "Incorrect airdrop.staking" );
+        assertEq( getContract(address(airdrop), "salt()"), address(salt), "Incorrect airdrop.salt" );
 
         assertEq( getContract(address(pools), "wbtc()"), address(wbtc), "Incorrect pools.wbtc" );
         assertEq( getContract(address(pools), "weth()"), address(weth), "Incorrect pools.weth" );

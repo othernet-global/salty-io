@@ -68,12 +68,15 @@ contract TestUpkeep2 is Deployment
 		address oldDAO = address(dao);
 		dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidityRewardsEmitter);
 
+		airdrop = new Airdrop(exchangeConfig, staking);
+
 		accessManager = new AccessManager(dao);
 
 		exchangeConfig.setAccessManager( accessManager );
 		exchangeConfig.setStakingRewardsEmitter( stakingRewardsEmitter);
 		exchangeConfig.setLiquidityRewardsEmitter( liquidityRewardsEmitter);
 		exchangeConfig.setDAO( dao );
+		exchangeConfig.setAirdrop(airdrop);
 
 		upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, liquidity, emissions);
 		exchangeConfig.setUpkeep(upkeep);
@@ -112,6 +115,9 @@ contract TestUpkeep2 is Deployment
 		accessManager.grantAccess();
 		vm.prank(alice);
 		accessManager.grantAccess();
+
+		vm.prank(DEPLOYER);
+		airdrop.whitelistWallet(alice);
 		}
 
 
@@ -801,6 +807,8 @@ contract TestUpkeep2 is Deployment
 //		for( uint256 i = 0; i < poolIDs.length; i++ )
 //			console.log( "POOL: ", stats[i] );
 
+
+		assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5 ether );
 
 		// === Perform upkeep ===
 		address upkeepCaller = address(0x9999);

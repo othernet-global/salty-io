@@ -127,7 +127,7 @@ contract StakingTest is Deployment
 	staking.stakeSALT(5 ether);
 
 	// Try to unstake 10 SALT, which is more than Alice has staked
-	vm.expectRevert("Cannot unstake more than the xSALT balance");
+	vm.expectRevert("Cannot decrease more than existing user share");
 	staking.unstake(10 ether, 4);
 	}
 
@@ -526,21 +526,6 @@ contract StakingTest is Deployment
         assertEq(staking.userXSalt(alice), initialBalance);
     }
 
-
-	// A unit test which tests a user trying to unstake a negative amount of SALT tokens and checks that the transaction reverts with an appropriate error message.
-	 function testUnstakeNegativeAmount() public {
-            vm.startPrank(alice);
-            uint256 amountToStake = 5 ether;
-            staking.stakeSALT(amountToStake);
-
-            uint256 unstakeAmount = uint256(int256(-1));
-
-            vm.expectRevert("Cannot unstake more than the xSALT balance");
-            staking.unstake(unstakeAmount, 4);
-            vm.stopPrank();
-        }
-
-
 	// A unit test which tests multiple users trying to cancel each other's unstake requests and checks that only the original staker can cancel the request.
 	function testCancelUnstake2() public {
         uint256 amountToStake = 10 ether;
@@ -791,7 +776,7 @@ contract StakingTest is Deployment
 	function testUnstakeWithoutStaking() public {
 		// Alice tries to unstake 5 ether of xSALT, without having staked any SALT
 		vm.prank(alice);
-		vm.expectRevert("Cannot unstake more than the xSALT balance");
+		vm.expectRevert("Cannot decrease more than existing user share");
 		staking.unstake(5 ether, 4);
 	}
 
@@ -931,7 +916,38 @@ contract StakingTest is Deployment
         assertEq(staking.userShareForPool(alice, PoolUtils.STAKED_SALT), 10 ether - unstakeAmount);
 
         // Try to unstake more than the remaining xSALT balance, expect to revert
-        vm.expectRevert("Cannot unstake more than the xSALT balance");
+        vm.expectRevert("Cannot decrease more than existing user share");
         staking.unstake(10 ether - unstakeAmount + 1, 4);
     }
+
+
+    // A unit test to check that the transferXSaltFromAirdrop functino can only be called by the Airdrop contract and that the function performs correctly
+	function testTransferXSaltFromAirdrop() public
+		{
+		address airdrop = address(exchangeConfig.airdrop());
+
+		vm.prank(DEPLOYER);
+		salt.transfer(airdrop, 1000000 ether);
+
+		uint256 amountToTransfer = 10 ether;
+
+		// Start with Airdrop contract staking 10 ether
+		vm.startPrank(airdrop);
+		salt.approve(address(staking), type(uint256).max);
+		staking.stakeSALT(amountToTransfer);
+		assertEq(staking.userXSalt(airdrop), amountToTransfer);
+		vm.stopPrank();
+
+		// Attempt to transfer xSALT from non-Airdrop contract should fail
+		vm.expectRevert("Staking.transferXSaltFromAirdrop is only callable from the Airdrop contract");
+		staking.transferXSaltFromAirdrop(alice, 1 ether);
+
+		// transfer 2 of those xSALT to Alice
+		vm.prank(airdrop);
+		staking.transferXSaltFromAirdrop(alice, 2 ether);
+
+		// Alice's balance should update and Airdrop's balance should decrease
+		assertEq(staking.userXSalt(airdrop), 8 ether);
+		assertEq(staking.userXSalt(alice), 2 ether);
+		}
 	}

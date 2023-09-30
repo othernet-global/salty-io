@@ -42,6 +42,9 @@ contract TestDAO is Deployment
 		accessManager.grantAccess();
 
 		accessManager.grantAccess();
+
+		vm.prank(DEPLOYER);
+		airdrop.whitelistWallet(alice);
 		}
 
 

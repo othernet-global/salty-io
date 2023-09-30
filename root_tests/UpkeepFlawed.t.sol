@@ -70,12 +70,15 @@ contract TestUpkeepFlawed is Deployment
 		address oldDAO = address(dao);
 		dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidityRewardsEmitter);
 
+		airdrop = new Airdrop(exchangeConfig, staking);
+
 		accessManager = new AccessManager(dao);
 
 		exchangeConfig.setAccessManager( accessManager );
 		exchangeConfig.setStakingRewardsEmitter( stakingRewardsEmitter);
 		exchangeConfig.setLiquidityRewardsEmitter( liquidityRewardsEmitter);
 		exchangeConfig.setDAO( dao );
+		exchangeConfig.setAirdrop(airdrop);
 
 		upkeep = new UpkeepFlawed(pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, liquidity, emissions, stepToRevert);
 		exchangeConfig.setUpkeep(upkeep);
@@ -114,6 +117,9 @@ contract TestUpkeepFlawed is Deployment
 		accessManager.grantAccess();
 		vm.prank(alice);
 		accessManager.grantAccess();
+
+		vm.prank(DEPLOYER);
+		airdrop.whitelistWallet(alice);
 		}
 
 
