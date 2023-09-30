@@ -86,7 +86,7 @@ contract PoolsConfig is IPoolsConfig, Ownable
 		}
 
 
-	function _isWhitelisted( bytes32 poolID ) internal view returns (bool)
+	function isWhitelisted( bytes32 poolID ) public view returns (bool)
 		{
 		if ( poolID == PoolUtils.STAKED_SALT )
 			return true;
@@ -95,23 +95,10 @@ contract PoolsConfig is IPoolsConfig, Ownable
 		}
 
 
-	function isWhitelisted( bytes32 poolID ) public view returns (bool)
-		{
-		return _isWhitelisted(poolID);
-		}
-
-
 	// Return an array of the currently whitelisted poolIDs
 	function whitelistedPools() public view returns (bytes32[] memory)
 		{
-		bytes32[] memory whitelistAddresses = _whitelist.values();
-
-		bytes32[] memory pools = new bytes32[]( whitelistAddresses.length );
-
-		for( uint256 i = 0; i < pools.length; i++ )
-			pools[i] = whitelistAddresses[i];
-
-		return pools;
+		return _whitelist.values();
 		}
 
 
