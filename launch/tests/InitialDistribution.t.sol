@@ -75,12 +75,15 @@ contract TestInitialDistribution is Deployment
 			address oldDAO = address(dao);
 			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidityRewardsEmitter);
 
+			airdrop = new Airdrop(exchangeConfig, staking);
+
 			accessManager = new AccessManager(dao);
 
 			exchangeConfig.setAccessManager( accessManager );
 			exchangeConfig.setStakingRewardsEmitter( stakingRewardsEmitter);
 			exchangeConfig.setLiquidityRewardsEmitter( liquidityRewardsEmitter);
 			exchangeConfig.setDAO( dao );
+			exchangeConfig.setAirdrop(airdrop);
 
 			saltRewards = new SaltRewards(exchangeConfig, rewardsConfig);
 
@@ -112,6 +115,9 @@ contract TestInitialDistribution is Deployment
 			salt.transfer(address(initialDistribution), 100 * MILLION_ETHER);
 			vm.stopPrank();
 			}
+
+		vm.prank(DEPLOYER);
+		airdrop.whitelistWallet(alice);
 		}
 
 
@@ -239,5 +245,29 @@ function testConstructorInitializationWithZeroAddress() public {
         vm.prank(address(bootstrapBallot));
         initialDistribution.distributionApproved();
     }
+
+
+	// A unit test to check that the Airdrop contract has been setup correctly on a call to distributionApproved()
+	function testAirdropSetupOnDistributionApproved() public {
+
+		// Create some dummy aidrop recipients
+		vm.startPrank(DEPLOYER);
+		airdrop.whitelistWallet(address(0x1));
+		airdrop.whitelistWallet(address(0x2));
+		airdrop.whitelistWallet(address(0x3));
+		airdrop.whitelistWallet(address(0x4));
+		airdrop.whitelistWallet(address(0x5));
+		vm.stopPrank();
+
+		vm.prank(address(bootstrapBallot));
+		initialDistribution.distributionApproved();
+
+		// Make sure claiming has been activated for airdrop
+		assertTrue( airdrop.claimingAllowed() );
+		assertEq( airdrop.numberWhitelisted(), 6 );
+		assertEq( salt.balanceOf(address(airdrop)), 5 * MILLION_ETHER );
+
+		assertEq( airdrop.saltAmountForEachUser(), 5 * MILLION_ETHER / 6 );
+	}
     }
 
