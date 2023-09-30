@@ -8,4 +8,5 @@ interface IUpkeep
 
 	// Views
 	function lastUpkeepTime() external returns (uint256);
+	function currentRewardsForCallingPerformUpkeep() external returns (uint256);
 	}
