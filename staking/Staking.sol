@@ -17,9 +17,6 @@ contract Staking is IStaking, StakingRewards
 	using SafeERC20 for ISalt;
 
 
-	// The xSALT balance for each user
-	mapping(address => uint256) public userXSalt;
-
 	// The unstakeIDs for each user
 	mapping(address => uint256[]) private _userUnstakeIDs;
 
@@ -41,7 +38,6 @@ contract Staking is IStaking, StakingRewards
 		require( exchangeConfig.walletHasAccess(msg.sender), "Sender does not have exchange access" );
 
 		// The SALT will be converted instantly to xSALT
-		userXSalt[msg.sender] += amountToStake;
 
 		// Increase the user's staking share so that they will receive more future SALT rewards
 		// No cooldown as it takes default 52 weeks to unstake the xSALT to receive the full amount staked SALT back
@@ -56,7 +52,6 @@ contract Staking is IStaking, StakingRewards
 	function unstake( uint256 amountUnstaked, uint256 numWeeks ) public nonReentrant returns (uint256 unstakeID)
 		{
 		require( msg.sender != address(exchangeConfig.dao()), "DAO cannot unstake" );
-		require( amountUnstaked <= userXSalt[msg.sender], "Cannot unstake more than the xSALT balance" );
 
 		uint256 claimableSALT = calculateUnstake( amountUnstaked, numWeeks );
 		uint256 completionTime = block.timestamp + numWeeks * ( 1 weeks );
@@ -68,7 +63,6 @@ contract Staking is IStaking, StakingRewards
 		_userUnstakeIDs[msg.sender].push( unstakeID );
 
 		// Unstaking immediately reduces the user's xSALT balance even though there will be the specified delay to convert it back to SALT
-		userXSalt[msg.sender] -= amountUnstaked;
 
 		// Decrease the user's staking share so that they will receive less future SALT rewards
 		// This call will send any pending SALT rewards to msg.sender as well.
@@ -87,7 +81,6 @@ contract Staking is IStaking, StakingRewards
 		require( msg.sender == u.wallet, "Not the original staker" );
 
 		// User will be able to use the xSALT again immediately
-		userXSalt[msg.sender] += u.unstakedXSALT;
 
 		// Update the user's share of the rewards for staked SALT
 		_increaseUserShare( msg.sender, PoolUtils.STAKED_SALT, u.unstakedXSALT, false );
@@ -123,7 +116,24 @@ contract Staking is IStaking, StakingRewards
 		}
 
 
+	// Send xSALT from the Airdrop contract to a user
+	function transferXSaltFromAirdrop(address wallet, uint256 amountToTransfer) public
+		{
+		require( msg.sender == address(exchangeConfig.airdrop()), "Staking.transferXSaltFromAirdrop is only callable from the Airdrop contract" );
+
+		_decreaseUserShare( msg.sender, PoolUtils.STAKED_SALT, amountToTransfer, false );
+		_increaseUserShare( wallet, PoolUtils.STAKED_SALT, amountToTransfer, false );
+		}
+
+
 	// === VIEWS ===
+
+
+	function userXSalt( address wallet ) external view returns (uint256)
+		{
+		return userShareForPool(wallet, PoolUtils.STAKED_SALT);
+		}
+
 
 	// Retrieve all pending unstakes associated with a user within a specific range.
 	function unstakesForUser( address user, uint256 start, uint256 end ) public view returns (Unstake[] memory) {
