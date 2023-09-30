@@ -337,4 +337,18 @@ contract Upkeep is IUpkeep
 
 		lastUpkeepTime = block.timestamp;
 		}
+
+
+	// ==== VIEWS ====
+	// Returns the amount of SALT that will currently be rewarded for calling performUpkeep()
+	// Useful for potential callers to know if calling the function will be profitable in comparison to the gas costs
+	function currentRewardsForCallingPerformUpkeep() public view returns (uint256)
+		{
+		uint256 daoWETH = pools.depositedBalance( address(exchangeConfig.dao()), weth );
+
+		if ( daoWETH == 0 )
+			return 0;
+
+		return daoWETH * daoConfig.upkeepRewardPercent() / 100;
+		}
 	}
