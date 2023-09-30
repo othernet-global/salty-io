@@ -6,6 +6,7 @@ import "./interfaces/IExchangeConfig.sol";
 import "./rewards/interfaces/IRewardsEmitter.sol";
 import "./interfaces/IUpkeep.sol";
 import "./launch/interfaces/IInitialDistribution.sol";
+import "./launch/interfaces/IAirdrop.sol";
 
 
 // Contract owned by the DAO with parameters modifiable only by the DAO
@@ -24,6 +25,7 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 	IRewardsEmitter public liquidityRewardsEmitter;
 	IAccessManager public accessManager;
 	IInitialDistribution public initialDistribution;
+	IAirdrop public airdrop;
 
 	address public teamWallet;
 
@@ -88,6 +90,15 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 		}
 
 
+	function setAirdrop( IAirdrop _airdrop ) public onlyOwner
+		{
+		require( address(airdrop) == address(0), "setAirdrop can only be called once" );
+		require( address(_airdrop) != address(0), "_airdrop cannot be address(0)" );
+
+		airdrop = _airdrop;
+		}
+
+
 	function setAccessManager( IAccessManager _accessManager ) public onlyOwner
 		{
 		require( address(_accessManager) != address(0), "_accessManager cannot be address(0)" );
@@ -124,8 +135,12 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 	// AccessManager can be updated by the DAO and include any necessary functionality.
 	function walletHasAccess( address wallet ) public view returns (bool)
 		{
-		// The DAO always has access
+		// The DAO contract always has access
 		if ( wallet == address(dao) )
+			return true;
+
+		// The Airdrop contract always has access
+		if ( wallet == address(airdrop) )
 			return true;
 
 		return accessManager.walletHasAccess( wallet );
