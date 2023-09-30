@@ -381,7 +381,6 @@ contract TestAirdrop is Deployment
         // Check that the final xSALT balance of Alice is the initial xSALT balance plus saltAmountForEachUser
         assertEq(finalXSaltBalance, initialXSaltBalance + airdrop.saltAmountForEachUser(), "Claim Airdrop did not function correctly");
 
-
         // Check that claimed mapping now returns true for Alice
         assertTrue(airdrop.claimed(alice), "Alice should have claimed after claiming airdrop");
     }
