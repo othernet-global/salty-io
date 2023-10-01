@@ -120,6 +120,9 @@ contract TestUpkeepEdge is Deployment
 	// A unit test to check the behavior of performUpkeep() when the priceAggregator returns zero price
 	function testPerformUpkeepZeroPrice() public
 		{
+		vm.prank(DEPLOYER);
+		airdrop.whitelistWallet(alice);
+
 		vm.prank(address(bootstrapBallot));
 		initialDistribution.distributionApproved();
 
@@ -470,6 +473,9 @@ contract TestUpkeepEdge is Deployment
     // A unit test to verify the step11 function when the Emissions' performUpkeep function does not emit any SALT. Ensure that it does not perform any emission actions.
 	function testStep11() public
 		{
+		vm.prank(DEPLOYER);
+		airdrop.whitelistWallet(alice);
+
 		vm.prank(address(bootstrapBallot));
 		initialDistribution.distributionApproved();
 
