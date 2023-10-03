@@ -18,6 +18,13 @@ contract TestCoreFeeds is Deployment
 
 	constructor()
 		{
+		finalizeBootstrap();
+
+		vm.prank(address(daoVestingWallet));
+		salt.transfer(DEPLOYER, 1000000 ether);
+
+
+
 		chainlinkFeed = new CoreChainlinkFeed( CHAINLINK_BTC_USD, CHAINLINK_ETH_USD );
 		uniswapFeed = new CoreUniswapFeed( IERC20(_testBTC), IERC20(_testETH), IERC20(_testUSDC), UNISWAP_V3_BTC_ETH, UNISWAP_V3_USDC_ETH );
 		saltyFeed = new CoreSaltyFeed( pools, exchangeConfig );

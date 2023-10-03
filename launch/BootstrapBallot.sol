@@ -17,6 +17,7 @@ contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
 
 	uint256 public completionTimestamp;
 	bool public ballotFinalized;
+	bool private _ballotApproved;
 
 	// Ensures that voters can only vote once
 	mapping(address=>bool) public hasVoted;
@@ -46,7 +47,10 @@ contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
 		require( block.timestamp >= completionTimestamp, "Ballot duration is not yet complete" );
 
 		if ( yesVotes > noVotes )
+			{
 			exchangeConfig.initialDistribution().distributionApproved();
+			_ballotApproved = true;
+			}
 
 		ballotFinalized = true;
 		}
@@ -67,4 +71,9 @@ contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
 
 		hasVoted[msg.sender] = true;
 		}
-	}
+
+
+	function ballotApproved() public virtual returns (bool)
+		{
+		return _ballotApproved;
+		}	}

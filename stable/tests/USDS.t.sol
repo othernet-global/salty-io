@@ -17,6 +17,8 @@ contract USDSTest is Deployment
 		accessManager.grantAccess();
 
 		priceAggregator.performUpkeep();
+
+		finalizeBootstrap();
 		}
 
 

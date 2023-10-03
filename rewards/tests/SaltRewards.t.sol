@@ -15,14 +15,14 @@ contract TestSaltRewards2 is Deployment
 
     function setUp() public
     	{
-		// Transfer the salt from the original initialDistribution to the DEPLOYER
-		vm.prank(address(initialDistribution));
-		salt.transfer(DEPLOYER, 100000000 ether);
-
 		// If $COVERAGE=yes, create an instance of the contract so that coverage testing can work
 		// Otherwise, what is tested is the actual deployed contract on the blockchain (as specified in Deployment.sol)
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 			initializeContracts();
+
+		// Transfer the salt from the original initialDistribution to the DEPLOYER
+		vm.prank(address(initialDistribution));
+		salt.transfer(DEPLOYER, 100000000 ether);
     	}
 
 

@@ -14,15 +14,15 @@ contract TestDAO is Deployment
 
 	constructor()
 		{
-		// Transfer the salt from the original initialDistribution to the DEPLOYER
-		vm.prank(address(initialDistribution));
-		salt.transfer(DEPLOYER, 100000000 ether);
-
-
 		// If $COVERAGE=yes, create an instance of the contract so that coverage testing can work
 		// Otherwise, what is tested is the actual deployed contract on the blockchain (as specified in Deployment.sol)
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 			initializeContracts();
+
+		finalizeBootstrap();
+
+		vm.prank(address(daoVestingWallet));
+		salt.transfer(DEPLOYER, 15000000 ether);
 
 		// Mint some USDS to the DEPLOYER and alice
 		vm.startPrank( address(collateral) );
@@ -42,9 +42,6 @@ contract TestDAO is Deployment
 		accessManager.grantAccess();
 
 		accessManager.grantAccess();
-
-		vm.prank(DEPLOYER);
-		airdrop.whitelistWallet(alice);
 		}
 
 
@@ -810,19 +807,6 @@ contract TestDAO is Deployment
 
     // A unit test to validate that SALT tokens are burned as expected by the processRewardsFromPOL function
     function testProcessRewardsFromPOL() public {
-
-
-		// Alice and DEPLOYER need to send the 100million SALT back to the InitialDistribution contract
-		vm.prank(alice);
-		salt.transfer(address(DEPLOYER), 10000000 ether);
-
-		vm.prank(DEPLOYER);
-		salt.transfer(address(initialDistribution), 100000000 ether);
-
-		// Distribute to add SALT rewards to the liquidityRewardsEmitter
-		vm.prank(address(bootstrapBallot));
-		initialDistribution.distributionApproved();
-
 
 		// DAO needs to form some SALT/USDS liquidity to receive some rewards
 		vm.prank(address(daoVestingWallet));

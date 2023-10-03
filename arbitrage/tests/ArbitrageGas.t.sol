@@ -19,6 +19,11 @@ contract TestArbitrage is Deployment
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 			initializeContracts();
 
+		finalizeBootstrap();
+
+		vm.prank(address(daoVestingWallet));
+		salt.transfer(DEPLOYER, 1000000 ether);
+
 		vm.prank(alice);
 		accessManager.grantAccess();
 		vm.prank(DEPLOYER);

@@ -13,4 +13,5 @@ interface IBootstrapBallot
 	function noVotes() external returns (uint256);
 	function hasVoted(address user) external returns (bool);
 	function ballotFinalized() external returns (bool);
+	function ballotApproved() external returns (bool);
 	}

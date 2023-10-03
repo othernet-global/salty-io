@@ -20,6 +20,8 @@ import "../AccessManager.sol";
 import "../launch/InitialDistribution.sol";
 import "../dao/DAOConfig.sol";
 import "./ITestUpkeep.sol";
+import "../launch/tests/TestBootstrapBallot.sol";
+
 
 contract TestUpkeep2 is Deployment
 	{
@@ -85,6 +87,7 @@ contract TestUpkeep2 is Deployment
 		teamVestingWallet = new VestingWallet( address(upkeep), uint64(block.timestamp + 60 * 60 * 24 * 7), 60 * 60 * 24 * 365 * 10 );
 		exchangeConfig.setVestingWallets(address(teamVestingWallet), address(daoVestingWallet));
 
+		bootstrapBallot = new TestBootstrapBallot(exchangeConfig, airdrop, 60 * 60 * 24 * 3 );
 		initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, liquidity);
 		exchangeConfig.setInitialDistribution(initialDistribution);
 
@@ -110,14 +113,19 @@ contract TestUpkeep2 is Deployment
 		vm.prank(DEPLOYER);
 		salt.transfer(address(initialDistribution), 100000000 ether);
 
+		vm.prank(DEPLOYER);
+		airdrop.whitelistWallet(alice);
+
+//		finalizeBootstrap();
+//		vm.prank(address(daoVestingWallet));
+//		salt.transfer(DEPLOYER, 1000000 ether);
+
+
 		accessManager.grantAccess();
 		vm.prank(DEPLOYER);
 		accessManager.grantAccess();
 		vm.prank(alice);
 		accessManager.grantAccess();
-
-		vm.prank(DEPLOYER);
-		airdrop.whitelistWallet(alice);
 		}
 
 

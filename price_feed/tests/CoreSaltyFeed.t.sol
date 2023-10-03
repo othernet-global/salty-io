@@ -24,6 +24,11 @@ contract TestCoreSaltyFeed is Deployment
 
 		vm.prank( address(collateral) );
 		usds.mintTo(DEPLOYER, 1000000000 ether);
+
+		finalizeBootstrap();
+
+		vm.prank(address(daoVestingWallet));
+		salt.transfer(DEPLOYER, 1000000 ether);
 		}
 
 

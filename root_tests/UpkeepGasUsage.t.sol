@@ -85,6 +85,7 @@ contract TestMaxUpkeep is Deployment
 			upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, liquidity, emissions);
 			exchangeConfig.setUpkeep(upkeep);
 
+			bootstrapBallot = new BootstrapBallot(exchangeConfig, airdrop, 60 * 60 * 24 * 3 );
 			initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, liquidity);
 			exchangeConfig.setInitialDistribution(initialDistribution);
 
@@ -110,6 +111,15 @@ contract TestMaxUpkeep is Deployment
 			salt.transfer(address(initialDistribution), 100000000 ether);
 			}
 
+		vm.prank(DEPLOYER);
+		airdrop.whitelistWallet(alice);
+
+		finalizeBootstrap();
+
+		vm.prank(address(daoVestingWallet));
+		salt.transfer(DEPLOYER, 1000000 ether);
+
+
 		accessManager.grantAccess();
 		vm.prank(DEPLOYER);
 		accessManager.grantAccess();
@@ -122,16 +132,13 @@ contract TestMaxUpkeep is Deployment
 			vm.prank(address(dao));
 			poolsConfig.changeMaximumWhitelistedPools(true);
 			}
-
-		vm.prank(DEPLOYER);
-		airdrop.whitelistWallet(alice);
 		}
 
 
     function setUp() public
     	{
-    	vm.prank(address(bootstrapBallot));
-    	initialDistribution.distributionApproved();
+//    	vm.prank(address(bootstrapBallot));
+//    	initialDistribution.distributionApproved();
 
 		vm.startPrank(DEPLOYER);
 		wbtc.approve(address(pools), type(uint256).max);

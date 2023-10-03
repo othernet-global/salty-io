@@ -15,13 +15,15 @@ contract TestPoolsAndCounterswap is Deployment
 
 	constructor()
 		{
-		vm.prank(address(initialDistribution));
-		salt.transfer(DEPLOYER, 100000000 ether);
-
 		// If $COVERAGE=yes, create an instance of the contract so that coverage testing can work
 		// Otherwise, what is tested is the actual deployed contract on the blockchain (as specified in Deployment.sol)
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 			initializeContracts();
+
+		finalizeBootstrap();
+
+		vm.prank(address(daoVestingWallet));
+		salt.transfer(DEPLOYER, 1000000 ether);
 
 		accessManager.grantAccess();
 		vm.prank(DEPLOYER);

@@ -24,6 +24,7 @@ import "../../price_feed/PriceAggregator.sol";
 import "../../dao/Proposals.sol";
 import "../../dao/DAO.sol";
 import "../../AccessManager.sol";
+import "../../launch/BootstrapBallot.sol";
 
 
 contract TestCounterswap2 is Deployment
@@ -34,7 +35,7 @@ contract TestCounterswap2 is Deployment
 	constructor()
 		{
 		vm.prank(address(initialDistribution));
-		salt.transfer(DEPLOYER, 100000000 ether);
+		salt.transfer(DEPLOYER, 100000000 ether );
 
 		vm.startPrank(DEPLOYER);
 
@@ -45,8 +46,6 @@ contract TestCounterswap2 is Deployment
 
 		priceAggregator = new PriceAggregator();
 		priceAggregator.setInitialFeeds( IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)) );
-
-		exchangeConfig = new ExchangeConfig(salt, wbtc, weth, dai, usds, teamWallet );
 
 		_pools = new TestPools(exchangeConfig, poolsConfig);
 		staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
@@ -73,13 +72,24 @@ contract TestCounterswap2 is Deployment
 		address oldDAO = address(dao);
 		dao = new DAO( _pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidityRewardsEmitter);
 
+		airdrop = new Airdrop(exchangeConfig, staking);
+
 		accessManager = new AccessManager(dao);
 
 		exchangeConfig.setAccessManager( accessManager );
 		exchangeConfig.setStakingRewardsEmitter( stakingRewardsEmitter);
 		exchangeConfig.setLiquidityRewardsEmitter( liquidityRewardsEmitter);
 		exchangeConfig.setDAO( dao );
+		exchangeConfig.setAirdrop(airdrop);
+
+		saltRewards = new SaltRewards(exchangeConfig, rewardsConfig);
+
+		upkeep = new Upkeep(_pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, liquidity, emissions);
 		exchangeConfig.setUpkeep(upkeep);
+
+		bootstrapBallot = new BootstrapBallot(exchangeConfig, airdrop, 60 * 60 * 24 * 3 );
+		initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, liquidity);
+		exchangeConfig.setInitialDistribution(initialDistribution);
 
 		_pools.setDAO(dao);
 
@@ -98,6 +108,13 @@ contract TestCounterswap2 is Deployment
 		Ownable(address(daoConfig)).transferOwnership( address(dao) );
 		vm.stopPrank();
 
+		vm.prank(DEPLOYER);
+		salt.transfer(address(initialDistribution), 100000000 ether);
+
+		finalizeBootstrap();
+
+		vm.prank(address(daoVestingWallet));
+		salt.transfer(DEPLOYER, 25000000 ether);
 
 		accessManager.grantAccess();
 		vm.prank(DEPLOYER);

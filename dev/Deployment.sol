@@ -35,6 +35,7 @@ import "../stable/Collateral.sol";
 import "../rewards/RewardsEmitter.sol";
 import "../root_tests/TestERC20.sol";
 import "../launch/Airdrop.sol";
+import "../launch/BootstrapBallot.sol";
 
 
 // Stores the contract addresses for the various parts of the exchange and allows the unit tests to be run on them.
@@ -55,7 +56,7 @@ contract Deployment is Test
 	IForcedPriceFeed public forcedPriceFeed = IForcedPriceFeed(address(0x3B0Eb37f26b502bAe83df4eCc54afBDfb90B5d3a));
 
 	// The DAO contract can provide us with all other contract addresses in the protocol
-	IDAO public dao = IDAO(address(0x594b5b65E77909CDB1f0428BB01b4aF726F10157));
+	IDAO public dao = IDAO(address(0x614f1478ccF8cA890ec21Ff2A398a5966E608909));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));
@@ -128,6 +129,10 @@ contract Deployment is Test
 
 	function initializeContracts() public
 		{
+		// Transfer the salt from the original initialDistribution to the DEPLOYER
+		vm.prank(address(initialDistribution));
+		salt.transfer(DEPLOYER, 100000000 ether);
+
 		vm.startPrank(DEPLOYER);
 
 		poolsConfig = new PoolsConfig();
@@ -174,17 +179,19 @@ contract Deployment is Test
 		exchangeConfig.setDAO( dao );
 		exchangeConfig.setAirdrop(airdrop);
 
+		upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, liquidity, emissions);
+		exchangeConfig.setUpkeep(upkeep);
+
 		daoVestingWallet = new VestingWallet( address(dao), uint64(block.timestamp + 60 * 60 * 24 * 7), 60 * 60 * 24 * 365 * 10 );
 		teamVestingWallet = new VestingWallet( address(upkeep), uint64(block.timestamp + 60 * 60 * 24 * 7), 60 * 60 * 24 * 365 * 10 );
 		exchangeConfig.setVestingWallets(address(teamVestingWallet), address(daoVestingWallet));
 
-		upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, liquidity, emissions);
-		exchangeConfig.setUpkeep(upkeep);
-
+		bootstrapBallot = new BootstrapBallot(exchangeConfig, airdrop, 60 * 60 * 24 * 3 );
 		initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, liquidity);
 		exchangeConfig.setInitialDistribution(initialDistribution);
 
 		pools.setDAO(dao);
+
 
 		usds.setContracts(collateral, pools, exchangeConfig );
 
@@ -200,5 +207,38 @@ contract Deployment is Test
 		Ownable(address(stableConfig)).transferOwnership( address(dao) );
 		Ownable(address(daoConfig)).transferOwnership( address(dao) );
 		vm.stopPrank();
+
+		// Move the SALT to the new initialDistribution contract
+		vm.prank(DEPLOYER);
+		salt.transfer(address(initialDistribution), 100000000 ether);
+		}
+
+
+	function finalizeBootstrap() public
+		{
+		address alice = address(0x1111);
+		address bob = address(0x2222);
+
+		vm.startPrank(DEPLOYER);
+		airdrop.whitelistWallet(alice);
+		airdrop.whitelistWallet(bob);
+		vm.stopPrank();
+
+		// Voting stage (yesVotes: 2, noVotes: 0)
+		vm.startPrank(alice);
+		accessManager.grantAccess();
+		bootstrapBallot.vote(true);
+		vm.stopPrank();
+
+		vm.startPrank(bob);
+		accessManager.grantAccess();
+		bootstrapBallot.vote(true);
+		vm.stopPrank();
+
+		// Increase current blocktime to be greater than completionTimestamp
+		vm.warp( bootstrapBallot.completionTimestamp() + 1);
+
+		// Call finalizeBallot()
+		bootstrapBallot.finalizeBallot();
 		}
 	}

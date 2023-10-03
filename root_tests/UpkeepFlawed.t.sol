@@ -22,6 +22,8 @@ import "../dao/DAOConfig.sol";
 import "./ITestUpkeep.sol";
 import "./UpkeepFlawed.sol";
 import "./IUpkeepFlawed.sol";
+import "../launch/tests/TestBootstrapBallot.sol";
+
 
 contract TestUpkeepFlawed is Deployment
 	{
@@ -87,6 +89,7 @@ contract TestUpkeepFlawed is Deployment
 		teamVestingWallet = new VestingWallet( address(upkeep), uint64(block.timestamp + 60 * 60 * 24 * 7), 60 * 60 * 24 * 365 * 10 );
 		exchangeConfig.setVestingWallets(address(teamVestingWallet), address(daoVestingWallet));
 
+		bootstrapBallot = new TestBootstrapBallot(exchangeConfig, airdrop, 60 * 60 * 24 * 3 );
 		initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, liquidity);
 		exchangeConfig.setInitialDistribution(initialDistribution);
 

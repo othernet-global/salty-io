@@ -18,13 +18,15 @@ contract TestRewardsEmitter is Deployment
 
     function setUp() public
     	{
-		vm.prank(address(initialDistribution));
-		salt.transfer(DEPLOYER, 100000000 ether);
-
 		// If $COVERAGE=yes, create an instance of the contract so that coverage testing can work
 		// Otherwise, what is tested is the actual deployed contract on the blockchain (as specified in Deployment.sol)
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 			initializeContracts();
+
+		finalizeBootstrap();
+
+		vm.prank(address(daoVestingWallet));
+		salt.transfer(DEPLOYER, 1000000 ether);
 
     	token1 = new TestERC20("TEST", 18);
 		token2 = new TestERC20("TEST", 18);
@@ -202,6 +204,7 @@ contract TestRewardsEmitter is Deployment
 
 	// A unit test where pending rewards are added to multiple pools, then performUpkeep is called. Test that the correct amount of rewards are deducted from each pool's pending rewards.
 	function testPerformUpkeepWithMultiplePools() public {
+
         // Add some pending rewards to the pools
         AddedReward[] memory addedRewards = new AddedReward[](2);
         addedRewards[0] = AddedReward({poolID: poolIDs[0], amountToAdd: 10 ether});
@@ -221,13 +224,19 @@ contract TestRewardsEmitter is Deployment
         assertEq(pendingLiquidityRewardsForPool(poolIDs[0]), 9.75 ether); // 10 ether - 2.5%
         assertEq(pendingLiquidityRewardsForPool(poolIDs[1]), 9.75 ether); // 10 ether - 2.5%
 
-        // Rewards transferred to the liquidity contract
-        assertEq(salt.balanceOf(address(liquidity)), .50 ether);
+        // Rewards transferred to the liquidity contract (including from the bootstrapping rewards)
+        assertEq(salt.balanceOf(address(liquidity)), 125000499999999999999992);
     }
 
 
 	// A unit test where rewards are added for the stakingRewardsEmitter
 	function testPerformUpkeepForStakingRewardsEmitter() public {
+
+		bytes32[] memory _poolIDs = new bytes32[](1);
+		_poolIDs[0] = PoolUtils.STAKED_SALT;
+
+		uint256 startingRewards = stakingRewardsEmitter.pendingRewardsForPools( _poolIDs )[0];
+
         // Add some pending rewards to the pools
         AddedReward[] memory addedRewards = new AddedReward[](1);
         addedRewards[0] = AddedReward({poolID: PoolUtils.STAKED_SALT, amountToAdd: 10 ether});
@@ -235,11 +244,8 @@ contract TestRewardsEmitter is Deployment
         salt.approve(address(stakingRewardsEmitter), type(uint256).max);
         stakingRewardsEmitter.addSALTRewards(addedRewards);
 
-		bytes32[] memory _poolIDs = new bytes32[](1);
-		_poolIDs[0] = PoolUtils.STAKED_SALT;
-
         // Verify that the rewards were added
-        assertEq(stakingRewardsEmitter.pendingRewardsForPools( _poolIDs )[0], 10 ether);
+        assertEq(stakingRewardsEmitter.pendingRewardsForPools( _poolIDs )[0], startingRewards + 10 ether);
 
         // Call performUpkeep
         vm.prank(address(upkeep));
@@ -247,10 +253,10 @@ contract TestRewardsEmitter is Deployment
 
         // Verify that the correct amount of rewards were deducted from each pool's pending rewards
         // With the adjustment in the constructor, 2.5% of the rewards should be deducted per day
-        assertEq(stakingRewardsEmitter.pendingRewardsForPools( _poolIDs )[0], 9.75 ether); // 10 ether - 2.5%
+        assertEq(stakingRewardsEmitter.pendingRewardsForPools( _poolIDs )[0], 2925009750000000000000005); // (startingRewards + 10 ether) - 2.5%
 
         // Rewards transferred to the staking contract
-        assertEq(salt.balanceOf(address(staking)), .25 ether);
+        assertEq(salt.balanceOf(address(staking)), 75000250000000000000000);
     }
 
 
