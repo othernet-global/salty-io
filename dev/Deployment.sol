@@ -56,7 +56,7 @@ contract Deployment is Test
 	IForcedPriceFeed public forcedPriceFeed = IForcedPriceFeed(address(0x3B0Eb37f26b502bAe83df4eCc54afBDfb90B5d3a));
 
 	// The DAO contract can provide us with all other contract addresses in the protocol
-	IDAO public dao = IDAO(address(0x614f1478ccF8cA890ec21Ff2A398a5966E608909));
+	IDAO public dao = IDAO(address(0x1c7F2244D610e4344f8877cfe1D04B93fcC9e862));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));
@@ -129,6 +129,8 @@ contract Deployment is Test
 
 	function initializeContracts() public
 		{
+//		console.log( "DEFAULT: ", address(this) );
+
 		// Transfer the salt from the original initialDistribution to the DEPLOYER
 		vm.prank(address(initialDistribution));
 		salt.transfer(DEPLOYER, 100000000 ether);
@@ -214,6 +216,51 @@ contract Deployment is Test
 		}
 
 
+	function grantAccessAlice() public
+		{
+		bytes memory sig = abi.encodePacked(hex"4f69e68f57bbd5d369c62eaf3e2bf4ab8f34ba5c0b3a782303e71664149fef4d0b7c9426a932c9c7f5b8e1186e193ebacc929651ad95130de9f1b306e5ef913e1c");
+
+		vm.prank( address(0x1111) );
+		accessManager.grantAccess(sig);
+		}
+
+
+	function grantAccessBob() public
+		{
+		bytes memory sig = abi.encodePacked(hex"9692bd8568d725621e169001b02c11bc3ef89bb195bc04758b16db4e02422b423400ce4729dd2896998f5e4fcd500704859039d642ab2818fc3ba7d69df97b3b1b");
+
+		vm.prank( address(0x2222) );
+		accessManager.grantAccess(sig);
+		}
+
+
+	function grantAccessCharlie() public
+		{
+		bytes memory sig = abi.encodePacked(hex"4440eb129ab41dd8cf12baa0366ce7c54bc10d185450830745d7eb6ee3a680231edd64db7c2df80b5988ef2880274f91b1df2a24a77d8b9176325ee13091e3741c");
+
+		vm.prank( address(0x3333) );
+		accessManager.grantAccess(sig);
+		}
+
+
+	function grantAccessDeployer() public
+		{
+		bytes memory sig = abi.encodePacked(hex"7b562514293d56c3cf7012eb63b771846d6a44f9195c0b94d2d340fae9e31e82366ebec63b0e52f8a385fe754f88150ae1defc979351cda7bd45123a0b1445481c");
+
+		vm.prank( 0x73107dA86708c2DAd0D91388fB057EeE3E2581aF );
+		accessManager.grantAccess(sig);
+		}
+
+
+	function grantAccessDefault() public
+		{
+		bytes memory sig = abi.encodePacked(hex"a32e7c2d1b0d660c7051f2586d5370dc2bb034cf6cfbec76a0126077758189b328c3312eaf1b0ef03b854819c82c239d7eca596eb5e35cd29a5de78855c53c301b");
+
+		vm.prank( 0x7FA9385bE102ac3EAc297483Dd6233D62b3e1496 );
+		accessManager.grantAccess(sig);
+		}
+
+
 	function finalizeBootstrap() public
 		{
 		address alice = address(0x1111);
@@ -226,12 +273,10 @@ contract Deployment is Test
 
 		// Voting stage (yesVotes: 2, noVotes: 0)
 		vm.startPrank(alice);
-		accessManager.grantAccess();
 		bootstrapBallot.vote(true);
 		vm.stopPrank();
 
 		vm.startPrank(bob);
-		accessManager.grantAccess();
 		bootstrapBallot.vote(true);
 		vm.stopPrank();
 
