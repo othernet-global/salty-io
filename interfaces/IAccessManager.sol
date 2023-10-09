@@ -5,7 +5,7 @@ pragma solidity =0.8.21;
 interface IAccessManager
 	{
 	function excludedCountriesUpdated() external;
-	function grantAccess() external;
+	function grantAccess(bytes memory signature) external;
 
 	// Views
 	function geoVersion() external view returns (uint256);

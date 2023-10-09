@@ -9,6 +9,12 @@ contract TestAccessManager is Deployment
 	constructor()
 		{
 		accessManager = new AccessManager(dao);
+
+		grantAccessAlice();
+		grantAccessBob();
+		grantAccessCharlie();
+		grantAccessDeployer();
+		grantAccessDefault();
 		}
 
 
@@ -82,9 +88,6 @@ contract TestAccessManager is Deployment
     	{
     	address user = address(this);
 
-    	// User grants access to their wallet
-    	accessManager.grantAccess();
-
     	// Check that the access was correctly granted
     	bool access = accessManager.walletHasAccess(user);
     	assertEq(access, true, "Access not correctly granted");
@@ -94,16 +97,11 @@ contract TestAccessManager is Deployment
 	// A unit test where a user grants access, then attempts to grant access again, and walletHasAccess is checked to verify that the user still has access and the function call does not revert.
 	function testGrantAccessTwice() public
     	{
-    	address user = address(this);
-
-    	// User grants access to their wallet
-    	accessManager.grantAccess();
-
-    	// User attempts to grant access again
-    	accessManager.grantAccess();
+    	address alice = address(0x1111);
+    	grantAccessAlice();
 
     	// Check that the user still has access
-    	bool access = accessManager.walletHasAccess(user);
+    	bool access = accessManager.walletHasAccess(alice);
     	assertEq(access, true, "Access not correctly granted after granting access twice");
     	}
 
@@ -111,21 +109,22 @@ contract TestAccessManager is Deployment
 	// A unit test where a user grants access, the DAO calls excludedCountriesUpdated, then the user grants access again, and walletHasAccess is checked to verify that the user has access under the new geoVersion.
 	function testAccessWithGeoVersionUpdate() public
 		{
-		address user = address(this);
-
-		// User grants access to their wallet
-		accessManager.grantAccess();
+		address alice = address(0x1111);
+		assertEq(accessManager.walletHasAccess(alice), true, "Alice should start with access");
 
 		// DAO updates the list of excluded countries
 		vm.prank(address(dao));
 		accessManager.excludedCountriesUpdated();
 
+		assertEq(accessManager.walletHasAccess(alice), false, "There should not be access after geoVersion update");
+
 		// User grants access again
-		accessManager.grantAccess();
+		bytes memory sig = abi.encodePacked(hex"8b213e0ebbb653419203488db6b2ea3dcd35067906b813aee2e2ae20db4218233a72959b5aa61d2e1673aac95a75ac46cb80d93630f7b2d98de5e7344e6f14821c");
+		vm.prank( address(0x1111) );
+		accessManager.grantAccess(sig);
 
 		// Check that the user still has access under the new geoVersion
-		bool access = accessManager.walletHasAccess(user);
-		assertEq(access, true, "Access not correctly granted after geoVersion update");
+		assertEq(accessManager.walletHasAccess(alice), true, "Access not correctly granted after geoVersion update");
 		}
 
 
@@ -139,7 +138,7 @@ contract TestAccessManager is Deployment
     	accessManager.excludedCountriesUpdated();
 
     	// User grants access to their wallet
-    	accessManager.grantAccess();
+//    	accessManager.grantAccess();
 
     	// DAO updates the list of excluded countries again
 		vm.prank(address(dao));
@@ -155,35 +154,29 @@ contract TestAccessManager is Deployment
 	// A unit test where multiple users grant access, the DAO calls excludedCountriesUpdated, some users grant access again, and walletHasAccess is checked for each user to verify that the ones who granted access again have access under the new geoVersion, and the others do not.
 	function testAccessStatusAfterMultipleUpdates() public
     	{
-    	address user1 = address(0x1111);
-    	address user2 = address(0x2222);
-    	address user3 = address(0x3333);
-
-    	// Users grant access to their wallets
-    	vm.prank(user1);
-    	accessManager.grantAccess();
-    	vm.prank(user2);
-    	accessManager.grantAccess();
-    	vm.prank(user3);
-    	accessManager.grantAccess();
-
+    	address alice = address(0x1111);
+		address bob = address(0x2222);
+		address charlie = address(0x3333);
 
     	// DAO updates the list of excluded countries
     	vm.prank(address(dao));
     	accessManager.excludedCountriesUpdated();
 
-    	// Some users grant access to their wallets again
-    	vm.prank(user1);
-    	accessManager.grantAccess();
-    	vm.prank(user3);
-    	accessManager.grantAccess();
+    	// Some users grant access to Alice and Charlie
+		bytes memory sig = abi.encodePacked(hex"8b213e0ebbb653419203488db6b2ea3dcd35067906b813aee2e2ae20db4218233a72959b5aa61d2e1673aac95a75ac46cb80d93630f7b2d98de5e7344e6f14821c");
+		vm.prank( address(0x1111) );
+		accessManager.grantAccess(sig);
+
+		sig = abi.encodePacked(hex"21b0ce1a5fefbdbe547f7cc3774c70e1464e36e2826afad8508c90e9fd05abd8363f04b93ba09c530ff09dc5d6ad0551a36fa8637ac82bf764f1e3fbf7090c981c");
+		vm.prank( address(0x3333) );
+		accessManager.grantAccess(sig);
 
     	// Check that the users who granted access again have access under the new geoVersion
-    	assertEq(accessManager.walletHasAccess(user1), true, "User1 should have access");
-    	assertEq(accessManager.walletHasAccess(user3), true, "User3 should have access");
+    	assertEq(accessManager.walletHasAccess(alice), true, "Alice should have access");
+    	assertEq(accessManager.walletHasAccess(charlie), true, "Charlie should have access");
 
     	// Check that the user who did not grant access again does not have access under the new geoVersion
-    	assertEq(accessManager.walletHasAccess(user2), false, "User2 should not have access");
+    	assertEq(accessManager.walletHasAccess(bob), false, "Bob should not have access");
     	}
 
 
@@ -213,5 +206,63 @@ contract TestAccessManager is Deployment
             // Check that the geoVersion incremented correctly again
             assertEq(newUpdatedGeoVersion, updatedGeoVersion + 1, "geoVersion did not increment correctly after second update");
         }
+
+
+	function bytes32ToHexString(bytes32 input) internal pure returns (string memory) {
+			bytes memory lookup = "0123456789abcdef";
+			bytes memory result = new bytes(64);
+			for (uint i = 0; i < 32; i++) {
+				uint8 currentByte = uint8(input[i]);
+				uint8 hi = uint8(currentByte / 16);
+				uint8 lo = currentByte - 16 * hi;
+				result[i*2] = lookup[hi];
+				result[i*2+1] = lookup[lo];
+			}
+			return string(result);
+		}
+
+
+	function slice32(bytes memory array, uint index) internal pure returns (bytes32 result)
+		{
+		result = 0;
+
+		for (uint i = 0; i < 32; i++)
+			{
+			uint8 temp = uint8(array[index+i]);
+			result |= bytes32((uint(temp) & 0xFF) * 2**(8*(31-i)));
+			}
+		}
+
+
+    // A unit test to check that the verify signer method is working properly
+	function testVerifySigner() public
+		{
+		// Signed hash
+		// geoVersion: 5
+		// wallet: 0x73107dA86708c2DAd0D91388fB057EeE3E2581aF
+		// expectedSigner: 0x1234519dca2ef23207e1ca7fd70b96f281893baa
+		// hash: 9b978b40988bf1671fc95b11a0dc27fd55a7cb99ca5b3c095527d3ba1737ca5f21488b1963c6cff3d27ee2423b20df6c70960bc8fe270450cf01212311af75561c
+
+		uint256 geoVersion = 5;
+		address wallet = 0x73107dA86708c2DAd0D91388fB057EeE3E2581aF;
+
+		bytes memory sig = abi.encodePacked(hex"fe5516272a193c8bb439c68336de6dbbdfdec1e346703f4f2e4f202a64b094697f4602626407e82b565cf1af407e50a6bf1c5143fb8c32eb7760cdc5434321f31b");
+
+		bytes32 r = slice32(sig, 0);
+		bytes32 s = slice32(sig, 32);
+		uint8 v = uint8(sig[64]);
+
+//		console.log( "R: ", bytes32ToHexString(r) );
+//		console.log( "S: ", bytes32ToHexString(s) );
+//		console.log( "V: ", v );
+
+		bytes32 messageHash = keccak256(abi.encodePacked(geoVersion, wallet));
+//		console.log( "MESSAGE HASH: ", bytes32ToHexString(messageHash) );
+
+		address recoveredAddress = ecrecover(messageHash, v, r, s);
+//		console.log( "RECOVERED ADDRESS: ", recoveredAddress );
+
+		assertEq( recoveredAddress, 0x1234519DCA2ef23207E1CA7fd70b96f281893bAa, "Incorrect recovered address" );
+		}
     }
 
