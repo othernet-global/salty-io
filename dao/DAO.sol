@@ -66,6 +66,26 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		daoConfig = _daoConfig;
 		priceAggregator = _priceAggregator;
         liquidityRewardsEmitter = _liquidityRewardsEmitter;
+
+   		// Initially excluded countries (to limit regulatory risk for the launch).
+   		// Afghanistan, Canada, China, Cuba, India, Iran, North Korea, Pakistan, Russia, Syria, United Kingdom, USA, Venezuela
+
+   		// These countries will not initially be able to take part in the airdrop or use the DEX.
+   		// The DAO can reinclude them at any time (or even modify the AccessManager itself to alter geo restriction entirely).
+
+		excludedCountries["AFG"] = true;
+		excludedCountries["CAN"] = true;
+		excludedCountries["CHN"] = true;
+		excludedCountries["CUB"] = true;
+		excludedCountries["IND"] = true;
+		excludedCountries["IRN"] = true;
+		excludedCountries["PRK"] = true;
+		excludedCountries["PAK"] = true;
+		excludedCountries["RUS"] = true;
+		excludedCountries["SYR"] = true;
+		excludedCountries["GBR"] = true;
+		excludedCountries["USA"] = true;
+		excludedCountries["VEN"] = true;
         }
 
 
