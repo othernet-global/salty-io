@@ -16,6 +16,12 @@ contract TestExchangeConfig is Deployment
 		// Otherwise, what is tested is the actual deployed contract on the blockchain (as specified in Deployment.sol)
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 			initializeContracts();
+
+		grantAccessAlice();
+		grantAccessBob();
+		grantAccessCharlie();
+		grantAccessDeployer();
+		grantAccessDefault();
 		}
 
 
@@ -299,9 +305,12 @@ contract TestExchangeConfig is Deployment
 
     // A unit test to check the walletHasAccess function when the given wallet address is not the DAO address and the accessManager contract allows access for this wallet. Verify that the function returns true.
     function testWalletHasAccessNonDAOWalletAllowedByAccessManager() public {
-    	// Set access manager to allow access
-    	vm.prank(address(0x1234));
-    	accessManager.grantAccess();
+
+    	// Give access to the user
+		bytes memory sig = abi.encodePacked(hex"140e05ee4a808d731d7a8d72d685f7335c13b502823a4ff504fb894b96b230a277a693cc4d7ad68065776e05d9b7159fdb193912611d3c3c39abffe6f0e73bbf1c");
+		vm.prank( address(0x1234) );
+		accessManager.grantAccess(sig);
+
 
     	// Call `walletHasAccess` function with a non-DAO address which is allowed by accessManager
     	assertTrue(exchangeConfig.walletHasAccess(address(0x1234)));

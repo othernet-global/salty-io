@@ -111,6 +111,12 @@ contract TestMaxUpkeep is Deployment
 			salt.transfer(address(initialDistribution), 100000000 ether);
 			}
 
+		grantAccessAlice();
+		grantAccessBob();
+		grantAccessCharlie();
+		grantAccessDeployer();
+		grantAccessDefault();
+
 		vm.prank(DEPLOYER);
 		airdrop.whitelistWallet(alice);
 
@@ -118,13 +124,6 @@ contract TestMaxUpkeep is Deployment
 
 		vm.prank(address(daoVestingWallet));
 		salt.transfer(DEPLOYER, 1000000 ether);
-
-
-		accessManager.grantAccess();
-		vm.prank(DEPLOYER);
-		accessManager.grantAccess();
-		vm.prank(alice);
-		accessManager.grantAccess();
 
 		// Increase max pools to 100
 		for( uint256 i = 0; i < 5; i++ )

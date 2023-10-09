@@ -119,6 +119,12 @@ contract TestBootstrapBallot is Deployment
 			vm.stopPrank();
 			}
 
+		grantAccessAlice();
+		grantAccessBob();
+		grantAccessCharlie();
+		grantAccessDeployer();
+		grantAccessDefault();
+
 		vm.prank(DEPLOYER);
 		airdrop.whitelistWallet(alice);
 		}
@@ -133,12 +139,10 @@ contract TestBootstrapBallot is Deployment
 
         // Voting stage (yesVotes: 2, noVotes: 0)
         vm.startPrank(alice);
-        accessManager.grantAccess();
         bootstrapBallot.vote(true);
         vm.stopPrank();
 
         vm.startPrank(bob);
-        accessManager.grantAccess();
         bootstrapBallot.vote(true);
         vm.stopPrank();
 
@@ -164,12 +168,10 @@ contract TestBootstrapBallot is Deployment
 
         // Voting stage (yesVotes: 2, noVotes: 0)
         vm.startPrank(alice);
-        accessManager.grantAccess();
         bootstrapBallot.vote(true);
         vm.stopPrank();
 
         vm.startPrank(bob);
-        accessManager.grantAccess();
         bootstrapBallot.vote(true);
         vm.stopPrank();
 
@@ -196,12 +198,10 @@ contract TestBootstrapBallot is Deployment
 
         // Voting stage (yesVotes: 2, noVotes: 0)
         vm.startPrank(alice);
-        accessManager.grantAccess();
         bootstrapBallot.vote(true);
         vm.stopPrank();
 
         vm.startPrank(bob);
-        accessManager.grantAccess();
         bootstrapBallot.vote(true);
         vm.stopPrank();
 
@@ -230,12 +230,10 @@ contract TestBootstrapBallot is Deployment
 
         // Voting stage (yesVotes: 2, noVotes: 0)
         vm.startPrank(alice);
-        accessManager.grantAccess();
         bootstrapBallot.vote(false);
         vm.stopPrank();
 
         vm.startPrank(bob);
-        accessManager.grantAccess();
         bootstrapBallot.vote(false);
         vm.stopPrank();
 
@@ -262,17 +260,14 @@ contract TestBootstrapBallot is Deployment
 
         // Cast votes (yesVotes: 2, noVotes: 1)
         vm.startPrank(alice);
-        accessManager.grantAccess();
         bootstrapBallot.vote(true);
         vm.stopPrank();
 
         vm.startPrank(bob);
-        accessManager.grantAccess();
         bootstrapBallot.vote(true);
         vm.stopPrank();
 
         vm.startPrank(charlie);
-        accessManager.grantAccess();
         bootstrapBallot.vote(false);
         vm.stopPrank();
 
@@ -299,6 +294,9 @@ contract TestBootstrapBallot is Deployment
         vm.prank(DEPLOYER);
         airdrop.whitelistWallet(bob);
 
+		vm.prank(address(dao));
+		accessManager.excludedCountriesUpdated();
+
     	vm.startPrank(bob);
     	vm.expectRevert("User does not have exchange access");
     	bootstrapBallot.vote(true);
@@ -313,7 +311,6 @@ contract TestBootstrapBallot is Deployment
 
         // Alice casts her vote
         vm.startPrank(alice);
-        accessManager.grantAccess();
         bootstrapBallot.vote(true);
 
         // Alice tries to vote again
@@ -359,7 +356,6 @@ contract TestBootstrapBallot is Deployment
     // A unit test to check the vote function when a voter votes No. Verify that the noVotes count is correctly incremented.
 	function test_vote_No() public {
 		vm.startPrank(alice);
-		accessManager.grantAccess();
 		bootstrapBallot.vote(false);
 		vm.stopPrank();
 
@@ -376,12 +372,10 @@ contract TestBootstrapBallot is Deployment
 
         // Voting stage (yesVotes: 1, noVotes: 1)
         vm.startPrank(alice);
-        accessManager.grantAccess();
         bootstrapBallot.vote(true);
         vm.stopPrank();
 
         vm.startPrank(bob);
-        accessManager.grantAccess();
         bootstrapBallot.vote(false);
         vm.stopPrank();
 
@@ -422,7 +416,6 @@ contract TestBootstrapBallot is Deployment
 
             // Vote stage
             vm.startPrank(alice);
-            accessManager.grantAccess();
             bootstrapBallot.vote(true);
             vm.stopPrank();
 

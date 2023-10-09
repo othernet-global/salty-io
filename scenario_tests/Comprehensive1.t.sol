@@ -17,6 +17,14 @@ contract TestComprehensive1 is Deployment
 
     function setUp() public
 		{
+
+		grantAccessAlice();
+		grantAccessBob();
+		grantAccessCharlie();
+		grantAccessDeployer();
+		grantAccessDefault();
+
+
 		// Give some WBTC and WETH to Alice, Bob and Charlie
 		vm.startPrank(DEPLOYER);
 		wbtc.transfer(alice, 1000 * 10**8 );
@@ -75,17 +83,14 @@ contract TestComprehensive1 is Deployment
 
 		// Cast votes for the BootstrapBallot so that the initialDistribution can happen
 		vm.startPrank(alice);
-		accessManager.grantAccess();
 		bootstrapBallot.vote(true);
 		vm.stopPrank();
 
 		vm.startPrank(bob);
-		accessManager.grantAccess();
 		bootstrapBallot.vote(true);
 		vm.stopPrank();
 
 		vm.startPrank(charlie);
-		accessManager.grantAccess();
 		bootstrapBallot.vote(false);
 		vm.stopPrank();
 

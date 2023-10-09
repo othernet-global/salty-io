@@ -23,16 +23,11 @@ contract StakingTest is Deployment
 		vm.prank(address(initialDistribution));
 		salt.transfer(DEPLOYER, 100000000 ether);
 
-				accessManager.grantAccess();
-        		vm.prank(DEPLOYER);
-        		accessManager.grantAccess();
-        		vm.prank(alice);
-        		accessManager.grantAccess();
-        		vm.prank(bob);
-        		accessManager.grantAccess();
-        		vm.prank(charlie);
-        		accessManager.grantAccess();
-
+		grantAccessAlice();
+		grantAccessBob();
+		grantAccessCharlie();
+		grantAccessDeployer();
+		grantAccessDefault();
 		}
 
 

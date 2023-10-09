@@ -120,12 +120,12 @@ contract TestUpkeep2 is Deployment
 //		vm.prank(address(daoVestingWallet));
 //		salt.transfer(DEPLOYER, 1000000 ether);
 
+		grantAccessAlice();
+		grantAccessBob();
+		grantAccessCharlie();
+		grantAccessDeployer();
+		grantAccessDefault();
 
-		accessManager.grantAccess();
-		vm.prank(DEPLOYER);
-		accessManager.grantAccess();
-		vm.prank(alice);
-		accessManager.grantAccess();
 		}
 
 

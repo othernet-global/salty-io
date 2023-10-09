@@ -111,14 +111,17 @@ contract TestCounterswap2 is Deployment
 		vm.prank(DEPLOYER);
 		salt.transfer(address(initialDistribution), 100000000 ether);
 
+
+		grantAccessAlice();
+		grantAccessBob();
+		grantAccessCharlie();
+		grantAccessDeployer();
+		grantAccessDefault();
+
 		finalizeBootstrap();
 
 		vm.prank(address(daoVestingWallet));
 		salt.transfer(DEPLOYER, 25000000 ether);
-
-		accessManager.grantAccess();
-		vm.prank(DEPLOYER);
-		accessManager.grantAccess();
 		}
 
 

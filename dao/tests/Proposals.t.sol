@@ -18,6 +18,12 @@ contract TestProposals is Deployment
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 			initializeContracts();
 
+		grantAccessAlice();
+		grantAccessBob();
+		grantAccessCharlie();
+		grantAccessDeployer();
+		grantAccessDefault();
+
 		vm.prank(address(initialDistribution));
 		salt.transfer(DEPLOYER, 100000000 ether);
 
@@ -31,14 +37,6 @@ contract TestProposals is Deployment
 		usds.mintTo( DEPLOYER, 2000000 ether );
 		usds.mintTo( alice, 1000000 ether );
 		vm.stopPrank();
-
-		accessManager.grantAccess();
-		vm.prank(alice);
-		accessManager.grantAccess();
-		vm.prank(bob);
-		accessManager.grantAccess();
-		vm.prank(DEPLOYER);
-		accessManager.grantAccess();
 		}
 
 

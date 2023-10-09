@@ -19,6 +19,12 @@ contract TestDAO is Deployment
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 			initializeContracts();
 
+		grantAccessAlice();
+		grantAccessBob();
+		grantAccessCharlie();
+		grantAccessDeployer();
+		grantAccessDefault();
+
 		finalizeBootstrap();
 
 		vm.prank(address(daoVestingWallet));
@@ -32,16 +38,6 @@ contract TestDAO is Deployment
 
 		vm.prank( DEPLOYER );
 		salt.transfer( alice, 10000000 ether );
-
-
-		vm.prank(alice);
-		accessManager.grantAccess();
-		vm.prank(bob);
-		accessManager.grantAccess();
-		vm.prank(DEPLOYER);
-		accessManager.grantAccess();
-
-		accessManager.grantAccess();
 		}
 
 
@@ -420,9 +416,15 @@ contract TestDAO is Deployment
 		_voteForAndFinalizeBallot(1, Vote.YES);
 
 		assertTrue( dao.countryIsExcluded( "US" ), "US should be excluded" );
+		vm.stopPrank();
 
-        accessManager.grantAccess();
+		// GeoVersion is now 1 and effectively has cleared access
+		bytes memory sig = abi.encodePacked(hex"8b213e0ebbb653419203488db6b2ea3dcd35067906b813aee2e2ae20db4218233a72959b5aa61d2e1673aac95a75ac46cb80d93630f7b2d98de5e7344e6f14821c");
+		vm.prank( alice );
+		accessManager.grantAccess(sig);
 
+
+        vm.startPrank(alice);
         proposals.proposeCountryInclusion( "US", "description" );
 		_voteForAndFinalizeBallot(2, Vote.YES);
 
@@ -440,9 +442,15 @@ contract TestDAO is Deployment
 		_voteForAndFinalizeBallot(1, Vote.YES);
 
 		assertTrue( dao.countryIsExcluded( "US" ), "US should be excluded" );
+		vm.stopPrank();
 
-        accessManager.grantAccess();
+		// GeoVersion is now 1 and effectively has cleared access
+		bytes memory sig = abi.encodePacked(hex"8b213e0ebbb653419203488db6b2ea3dcd35067906b813aee2e2ae20db4218233a72959b5aa61d2e1673aac95a75ac46cb80d93630f7b2d98de5e7344e6f14821c");
+		vm.prank( alice );
+		accessManager.grantAccess(sig);
 
+
+        vm.startPrank(alice);
         proposals.proposeCountryInclusion( "US", "description" );
 		_voteForAndFinalizeBallot(2, Vote.NO);
 

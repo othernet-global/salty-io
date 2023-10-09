@@ -116,6 +116,12 @@ contract TestAirdrop is Deployment
 			vm.stopPrank();
 			}
 
+		grantAccessAlice();
+		grantAccessBob();
+		grantAccessCharlie();
+		grantAccessDeployer();
+		grantAccessDefault();
+
 		vm.prank(DEPLOYER);
 		airdrop.whitelistWallet(alice);
 		}
@@ -249,41 +255,47 @@ contract TestAirdrop is Deployment
 	function testClaimAirdrop() external {
 
 		// Revert as claiming is not allowed yet
-    	vm.prank(bob);
+    	vm.prank(alice);
     	vm.expectRevert("Claiming is not allowed yet");
     	airdrop.claimAirdrop();
 
 		// Whitelist
     	vm.prank(DEPLOYER);
-    	airdrop.whitelistWallet(bob);
+    	airdrop.whitelistWallet(alice);
 
     	// Approve the distribution to allow claiming
     	vm.prank(address(bootstrapBallot));
     	initialDistribution.distributionApproved();
     	assertTrue(airdrop.claimingAllowed(), "Claiming should be allowed for the test");
 
+		vm.prank(address(dao));
+		accessManager.excludedCountriesUpdated();
+
     	// Check revert for no exchange access
-    	vm.prank(bob);
+    	vm.prank(alice);
     	vm.expectRevert("Sender does not have exchange access");
     	airdrop.claimAirdrop();
 
     	// Grant access
-    	vm.prank(bob);
-    	accessManager.grantAccess();
-    	assertTrue(exchangeConfig.walletHasAccess(bob), "Bob should have exchange access for the test");
+		// GeoVersion is now 1 and effectively has cleared access
+		bytes memory sig = abi.encodePacked(hex"8b213e0ebbb653419203488db6b2ea3dcd35067906b813aee2e2ae20db4218233a72959b5aa61d2e1673aac95a75ac46cb80d93630f7b2d98de5e7344e6f14821c");
+		vm.prank( alice );
+		accessManager.grantAccess(sig);
 
-    	// Make sure bob has not claimed yet
-    	assertFalse(airdrop.claimed(bob), "Bob should not have claimed for the test");
+    	assertTrue(exchangeConfig.walletHasAccess(alice), "Alice should have exchange access for the test");
+
+    	// Make sure alice has not claimed yet
+    	assertFalse(airdrop.claimed(alice), "Alice should not have claimed for the test");
 
     	// Claim airdrop
-    	vm.prank(bob);
+    	vm.prank(alice);
     	airdrop.claimAirdrop();
 
     	// Verify that Bob successfully claimed
-    	assertTrue(airdrop.claimed(bob), "Bob should have successfully claimed the airdrop");
+    	assertTrue(airdrop.claimed(alice), "Alice should have successfully claimed the airdrop");
 
     	// Claim airdrop again (expect to revert)
-    	vm.prank(bob);
+    	vm.prank(alice);
     	vm.expectRevert("Wallet already claimed the airdrop");
     	airdrop.claimAirdrop();
     }
@@ -371,7 +383,6 @@ contract TestAirdrop is Deployment
 
         // Claim airdrop for Alice
         vm.startPrank(alice);
-        accessManager.grantAccess();
         airdrop.claimAirdrop();
         vm.stopPrank();
 

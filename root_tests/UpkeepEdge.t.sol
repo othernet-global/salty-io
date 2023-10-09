@@ -122,12 +122,12 @@ contract TestUpkeepEdge is Deployment
 //		vm.prank(address(daoVestingWallet));
 //		salt.transfer(DEPLOYER, 1000000 ether);
 
+		grantAccessAlice();
+		grantAccessBob();
+		grantAccessCharlie();
+		grantAccessDeployer();
+		grantAccessDefault();
 
-		accessManager.grantAccess();
-		vm.prank(DEPLOYER);
-		accessManager.grantAccess();
-		vm.prank(alice);
-		accessManager.grantAccess();
 		}
 
 
@@ -556,7 +556,6 @@ contract TestUpkeepEdge is Deployment
 		usds.mintTo(DEPLOYER, 1000 ether);
 
 		vm.startPrank(DEPLOYER);
-		accessManager.grantAccess();
 		salt.approve(address(liquidity), type(uint256).max);
 		wbtc.approve(address(liquidity), type(uint256).max);
 		weth.approve(address(liquidity), type(uint256).max);

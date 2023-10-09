@@ -115,12 +115,6 @@ contract TestUpkeepFlawed is Deployment
 		vm.prank(DEPLOYER);
 		salt.transfer(address(initialDistribution), 100000000 ether);
 
-		accessManager.grantAccess();
-		vm.prank(DEPLOYER);
-		accessManager.grantAccess();
-		vm.prank(alice);
-		accessManager.grantAccess();
-
 		vm.prank(DEPLOYER);
 		airdrop.whitelistWallet(alice);
 		}

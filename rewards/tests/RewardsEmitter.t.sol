@@ -23,6 +23,12 @@ contract TestRewardsEmitter is Deployment
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 			initializeContracts();
 
+		grantAccessAlice();
+		grantAccessBob();
+		grantAccessCharlie();
+		grantAccessDeployer();
+		grantAccessDefault();
+
 		finalizeBootstrap();
 
 		vm.prank(address(daoVestingWallet));
@@ -106,13 +112,6 @@ contract TestRewardsEmitter is Deployment
 		for ( uint256 i = 0; i < 6; i++ )
 			rewardsConfig.changeRewardsEmitterDailyPercent(true);
 		vm.stopPrank();
-
-		vm.prank(alice);
-		accessManager.grantAccess();
-		vm.prank(bob);
-		accessManager.grantAccess();
-		vm.prank(charlie);
-		accessManager.grantAccess();
     	}
 
 

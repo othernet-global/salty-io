@@ -13,8 +13,12 @@ contract USDSTest is Deployment
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 			initializeContracts();
 
-		vm.prank(DEPLOYER);
-		accessManager.grantAccess();
+		grantAccessAlice();
+		grantAccessBob();
+		grantAccessCharlie();
+		grantAccessDeployer();
+		grantAccessDefault();
+
 
 		priceAggregator.performUpkeep();
 

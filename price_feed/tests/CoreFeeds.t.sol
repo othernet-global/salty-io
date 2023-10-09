@@ -18,6 +18,13 @@ contract TestCoreFeeds is Deployment
 
 	constructor()
 		{
+
+		grantAccessAlice();
+		grantAccessBob();
+		grantAccessCharlie();
+		grantAccessDeployer();
+		grantAccessDefault();
+
 		finalizeBootstrap();
 
 		vm.prank(address(daoVestingWallet));
@@ -43,7 +50,6 @@ contract TestCoreFeeds is Deployment
 		usds.mintTo(DEPLOYER, 100000000 ether );
 
 		vm.startPrank(DEPLOYER);
-		accessManager.grantAccess();
 		usds.approve( address(pools), type(uint256).max );
 		weth.approve( address(pools), type(uint256).max );
 		wbtc.approve( address(pools), type(uint256).max );

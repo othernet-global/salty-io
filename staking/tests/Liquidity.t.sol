@@ -26,22 +26,17 @@ contract LiquidityTest is Deployment
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 			initializeContracts();
 
+
+		grantAccessAlice();
+		grantAccessBob();
+		grantAccessCharlie();
+		grantAccessDeployer();
+		grantAccessDefault();
+
 		finalizeBootstrap();
 
 		vm.prank(address(daoVestingWallet));
 		salt.transfer(DEPLOYER, 1000000 ether);
-
-
-		accessManager.grantAccess();
-
-		vm.prank(DEPLOYER);
-		accessManager.grantAccess();
-		vm.prank(alice);
-		accessManager.grantAccess();
-		vm.prank(bob);
-		accessManager.grantAccess();
-		vm.prank(charlie);
-		accessManager.grantAccess();
 
     	token1 = new TestERC20("TEST", 18);
 		token2 = new TestERC20("TEST", 18);

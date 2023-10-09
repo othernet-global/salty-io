@@ -22,22 +22,16 @@ contract TestCollateral is Deployment
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 			initializeContracts();
 
+		grantAccessAlice();
+		grantAccessBob();
+		grantAccessCharlie();
+		grantAccessDeployer();
+		grantAccessDefault();
+
 		finalizeBootstrap();
 
 		vm.prank(address(daoVestingWallet));
 		salt.transfer(DEPLOYER, 1000000 ether);
-
-		accessManager.grantAccess();
-		vm.prank(DEPLOYER);
-		accessManager.grantAccess();
-		vm.prank(alice);
-		accessManager.grantAccess();
-		vm.prank(bob);
-		accessManager.grantAccess();
-		vm.prank(charlie);
-		accessManager.grantAccess();
-
-
 
 		priceAggregator.performUpkeep();
 
@@ -1266,7 +1260,13 @@ contract TestCollateral is Deployment
 	// A unit test that validates the borrowUSDS function behavior when a user has not deposited any collateral.
     function testBorrowUSDSWithoutCollateral() public {
 
-    	address userX = address(0xDEAD);
+    	// Give access to the user
+		bytes memory sig = abi.encodePacked(hex"140e05ee4a808d731d7a8d72d685f7335c13b502823a4ff504fb894b96b230a277a693cc4d7ad68065776e05d9b7159fdb193912611d3c3c39abffe6f0e73bbf1c");
+		vm.prank( address(0x1234) );
+		accessManager.grantAccess(sig);
+
+
+    	address userX = address(0x1234);
 
         assertEq(wbtc.balanceOf(userX), 0, "userX should start with zero WBTC");
         assertEq(weth.balanceOf(userX), 0, "userX should start with zero WETH");
@@ -1274,7 +1274,6 @@ contract TestCollateral is Deployment
 
         // Alice tries to borrow USDS without having deposited any collateral
         vm.startPrank(userX);
-        accessManager.grantAccess();
         vm.expectRevert("User does not have any collateral");
         collateral.borrowUSDS(1 ether);
         vm.stopPrank();
