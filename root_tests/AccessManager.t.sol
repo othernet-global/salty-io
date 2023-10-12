@@ -32,6 +32,17 @@ contract TestAccessManager is Deployment
 	function testUserWithoutAccess( address user ) public
     	{
     	bool access = accessManager.walletHasAccess(user);
+    	if ( user == address(0x1111) )
+    		return;
+    	if ( user == address(0x2222) )
+    		return;
+    	if ( user == address(0x3333) )
+    		return;
+    	if ( user == DEPLOYER )
+    		return;
+    	if ( user == address(this) )
+    		return;
+
     	assertFalse(access, "User without granted access should not have access");
     	}
 

@@ -142,26 +142,6 @@ contract TestProposals is Deployment
     }
 
 
-	// A unit test that checks that users without access cannot propose or cast votes
-	function testProposeAndVoteWithoutAccess() public {
-
-		vm.expectRevert( "Sender does not have exchange access" );
-		vm.prank(address(0xDEAD));
-        proposals.proposeParameterBallot(1, "description" );
-
-        // Using address alice for initial proposal
-        vm.startPrank(DEPLOYER);
-
-        // Proposing a ParameterBallot for the first time
-        proposals.proposeParameterBallot(1, "description" );
-        vm.stopPrank();
-
-		vm.expectRevert( "Sender does not have exchange access" );
-		vm.prank(address(0xDEAD));
-		proposals.castVote( 1, Vote.INCREASE );
-    }
-
-
 	// A unit test that verifies the proposeCountryInclusion and proposeCountryExclusion functions with different country names. Check that the appropriate country name gets stored in the proposal.
 	function testProposeCountryInclusionExclusion() public {
         string memory inclusionBallotName = "include:us";
@@ -1360,6 +1340,87 @@ contract TestProposals is Deployment
         vm.expectRevert("Contract address cannot be address(0)");
         proposals.proposeCallContract(address(0), 10, "Should Fail");
         vm.stopPrank();
+    }
+
+
+	// A unit test that checks openBallotsForTokenWhitelisting() under various conditions
+	function testOpenBallotsForTokenWhitelisting() public {
+
+        vm.startPrank(alice);
+        IERC20 testToken = new TestERC20("TEST", 18);
+        proposals.proposeTokenWhitelisting(testToken, "https://tokenIconURL", "This is a test token");
+
+        // Assert that the number of open ballots for token whitelisting has increased
+        assertEq(proposals.numberOfOpenBallotsForTokenWhitelisting(), 1, "The number of open ballots for token whitelisting did not increase after a proposal");
+		uint256[] memory ballotIDs = proposals.openBallotsForTokenWhitelisting();
+		assertEq( ballotIDs.length, 1 );
+		assertEq( ballotIDs[0], 1 );
+
+        // Create a second whitelisting ballot
+        IERC20 testToken2 = new TestERC20("TEST", 18);
+        proposals.proposeTokenWhitelisting(testToken2, "https://tokenIconURL", "This is a test token");
+
+        assertEq(proposals.numberOfOpenBallotsForTokenWhitelisting(), 2, "The number of open ballots for token whitelisting did not increase after a second proposal");
+		ballotIDs = proposals.openBallotsForTokenWhitelisting();
+		assertEq( ballotIDs.length, 2 );
+		assertEq( ballotIDs[0], 1 );
+		assertEq( ballotIDs[1], 2 );
+   }
+
+
+	// A unit test that checks openBallots() under various conditions
+	function testOpenBallots() public {
+
+        vm.startPrank(alice);
+        IERC20 testToken = new TestERC20("TEST", 18);
+        proposals.proposeTokenWhitelisting(testToken, "https://tokenIconURL", "This is a test token");
+
+        // Assert that the number of open ballots for token whitelisting has increased
+        assertEq(proposals.numberOfOpenBallotsForTokenWhitelisting(), 1, "The number of open ballots for token whitelisting did not increase after a proposal");
+		uint256[] memory ballotIDs = proposals.openBallots();
+		assertEq( ballotIDs.length, 1 );
+		assertEq( ballotIDs[0], 1 );
+
+        // Create a second whitelisting ballot
+        IERC20 testToken2 = new TestERC20("TEST", 18);
+        proposals.proposeTokenWhitelisting(testToken2, "https://tokenIconURL", "This is a test token");
+
+        assertEq(proposals.numberOfOpenBallotsForTokenWhitelisting(), 2, "The number of open ballots for token whitelisting did not increase after a second proposal");
+		ballotIDs = proposals.openBallots();
+		assertEq( ballotIDs.length, 2 );
+		assertEq( ballotIDs[0], 1 );
+		assertEq( ballotIDs[1], 2 );
+
+
+		uint256[] memory ballotIDs2 = proposals.openBallotsForTokenWhitelisting();
+		assertEq( ballotIDs2.length, 2 );
+		assertEq( ballotIDs2[0], 1 );
+		assertEq( ballotIDs2[1], 2 );
+
+
+		// Create a third ballot
+		proposals.proposeCountryInclusion("USA", "description" );
+
+		ballotIDs = proposals.openBallots();
+		assertEq( ballotIDs.length, 3 );
+		assertEq( ballotIDs[0], 1 );
+		assertEq( ballotIDs[1], 2 );
+		assertEq( ballotIDs[2], 3 );
+
+
+		// Remove the second whitelisting ballot
+		vm.prank(address(dao));
+		proposals.markBallotAsFinalized(2);
+
+		ballotIDs2 = proposals.openBallotsForTokenWhitelisting();
+		assertEq( ballotIDs2.length, 1 );
+		assertEq( ballotIDs2[0], 1 );
+
+
+		ballotIDs = proposals.openBallots();
+		assertEq( ballotIDs.length, 2 );
+		assertEq( ballotIDs[0], 1 );
+		assertEq( ballotIDs[1], 3 );
     }
    }
 

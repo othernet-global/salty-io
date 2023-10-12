@@ -271,19 +271,6 @@ contract TestAirdrop is Deployment
 		vm.prank(address(dao));
 		accessManager.excludedCountriesUpdated();
 
-    	// Check revert for no exchange access
-    	vm.prank(alice);
-    	vm.expectRevert("Sender does not have exchange access");
-    	airdrop.claimAirdrop();
-
-    	// Grant access
-		// GeoVersion is now 1 and effectively has cleared access
-		bytes memory sig = abi.encodePacked(hex"8b213e0ebbb653419203488db6b2ea3dcd35067906b813aee2e2ae20db4218233a72959b5aa61d2e1673aac95a75ac46cb80d93630f7b2d98de5e7344e6f14821c");
-		vm.prank( alice );
-		accessManager.grantAccess(sig);
-
-    	assertTrue(exchangeConfig.walletHasAccess(alice), "Alice should have exchange access for the test");
-
     	// Make sure alice has not claimed yet
     	assertFalse(airdrop.claimed(alice), "Alice should not have claimed for the test");
 

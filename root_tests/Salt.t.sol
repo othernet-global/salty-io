@@ -3,7 +3,7 @@ pragma solidity =0.8.21;
 
 import "forge-std/Test.sol";
 import "../dev/Deployment.sol";
-import "../Salt.sol";
+import "../SALT.sol";
 
 
 contract TestSalt is Deployment
@@ -89,7 +89,7 @@ contract TestSalt is Deployment
     // A unit test to check the constructor to ensure that it correctly mints the initial supply of tokens to the deployer of the contract.
 	function test_initialSupply() public
         {
-        salt = new Salt();
+        salt = new SALT();
 
         uint preBurnTotalSupply = salt.totalSupply();
         assertEq(preBurnTotalSupply, 100 * MILLION_ETHER); // Assert that total supply is equal to INITIAL_SUPPLY.

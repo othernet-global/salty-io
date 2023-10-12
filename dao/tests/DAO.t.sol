@@ -802,6 +802,7 @@ contract TestDAO is Deployment
     	}
 
 
+
     // A unit test to check if a non-excluded country, countryIsExcluded returns false
     function testCountryIsExcluded() public
         {
@@ -892,5 +893,238 @@ contract TestDAO is Deployment
 		// Sufficient
         assertEq(dao.sufficientBootstrappingRewardsExistForWhitelisting(), true, "DAO should have sufficient bootstrapping rewards");
     }
+
+
+	// A unit test to validate that geo exclusion succeeds
+	function testGeoExclusionYes1() public
+    	{
+    	vm.startPrank(address(bootstrapBallot));
+
+		uint256[] memory dummyYes = new uint256[](5);
+		uint256[] memory dummyNo = new uint256[](5);
+
+		dummyYes[0] = 2;
+		dummyNo[0] = 1;
+
+		assertFalse( dao.countryIsExcluded( "USA") );
+
+    	dao.initialGeoExclusion(dummyYes, dummyNo);
+
+		assertTrue( dao.countryIsExcluded( "USA") );
+    	}
+
+
+	// A unit test to validate that geo exclusion fails
+	function testGeoExclusionNo1() public
+    	{
+    	vm.startPrank(address(bootstrapBallot));
+
+		uint256[] memory dummyYes = new uint256[](5);
+		uint256[] memory dummyNo = new uint256[](5);
+
+		dummyYes[0] = 1;
+		dummyNo[0] = 2;
+
+		assertFalse( dao.countryIsExcluded( "USA") );
+
+    	dao.initialGeoExclusion(dummyYes, dummyNo);
+
+		assertFalse( dao.countryIsExcluded( "USA") );
+    	}
+
+
+
+
+
+	// A unit test to validate that geo exclusion succeeds
+	function testGeoExclusionYes2() public
+    	{
+    	vm.startPrank(address(bootstrapBallot));
+
+		uint256[] memory dummyYes = new uint256[](5);
+		uint256[] memory dummyNo = new uint256[](5);
+
+		dummyYes[1] = 2;
+		dummyNo[1] = 1;
+
+		assertFalse( dao.countryIsExcluded( "CAN") );
+
+    	dao.initialGeoExclusion(dummyYes, dummyNo);
+
+		assertTrue( dao.countryIsExcluded( "CAN") );
+    	}
+
+
+	// A unit test to validate that geo exclusion fails
+	function testGeoExclusionNo2() public
+    	{
+    	vm.startPrank(address(bootstrapBallot));
+
+		uint256[] memory dummyYes = new uint256[](5);
+		uint256[] memory dummyNo = new uint256[](5);
+
+		dummyYes[1] = 1;
+		dummyNo[1] = 2;
+
+		assertFalse( dao.countryIsExcluded( "CAN") );
+
+    	dao.initialGeoExclusion(dummyYes, dummyNo);
+
+		assertFalse( dao.countryIsExcluded( "CAN") );
+    	}
+
+
+
+
+
+	// A unit test to validate that geo exclusion succeeds
+	function testGeoExclusionYes3() public
+    	{
+    	vm.startPrank(address(bootstrapBallot));
+
+		uint256[] memory dummyYes = new uint256[](5);
+		uint256[] memory dummyNo = new uint256[](5);
+
+		dummyYes[2] = 2;
+		dummyNo[2] = 1;
+
+		assertFalse( dao.countryIsExcluded( "GBR") );
+
+    	dao.initialGeoExclusion(dummyYes, dummyNo);
+
+		assertTrue( dao.countryIsExcluded( "GBR") );
+    	}
+
+
+	// A unit test to validate that geo exclusion fails
+	function testGeoExclusionNo3() public
+    	{
+    	vm.startPrank(address(bootstrapBallot));
+
+		uint256[] memory dummyYes = new uint256[](5);
+		uint256[] memory dummyNo = new uint256[](5);
+
+		dummyYes[2] = 1;
+		dummyNo[2] = 2;
+
+		assertFalse( dao.countryIsExcluded( "GBR") );
+
+    	dao.initialGeoExclusion(dummyYes, dummyNo);
+
+		assertFalse( dao.countryIsExcluded( "GBR") );
+    	}
+
+
+
+
+	// A unit test to validate that geo exclusion succeeds
+    	function testGeoExclusionYes4() public
+        	{
+        	vm.startPrank(address(bootstrapBallot));
+
+    		uint256[] memory dummyYes = new uint256[](5);
+    		uint256[] memory dummyNo = new uint256[](5);
+
+    		dummyYes[3] = 2;
+    		dummyNo[3] = 1;
+
+    		assertFalse( dao.countryIsExcluded( "CHN") );
+    		assertFalse( dao.countryIsExcluded( "CUB") );
+    		assertFalse( dao.countryIsExcluded( "IND") );
+    		assertFalse( dao.countryIsExcluded( "PAK") );
+    		assertFalse( dao.countryIsExcluded( "RUS") );
+
+        	dao.initialGeoExclusion(dummyYes, dummyNo);
+
+    		assertTrue( dao.countryIsExcluded( "CHN") );
+    		assertTrue( dao.countryIsExcluded( "CUB") );
+    		assertTrue( dao.countryIsExcluded( "IND") );
+    		assertTrue( dao.countryIsExcluded( "PAK") );
+    		assertTrue( dao.countryIsExcluded( "RUS") );
+        	}
+
+
+    	// A unit test to validate that geo exclusion fails
+    	function testGeoExclusionNo4() public
+        	{
+        	vm.startPrank(address(bootstrapBallot));
+
+    		uint256[] memory dummyYes = new uint256[](5);
+    		uint256[] memory dummyNo = new uint256[](5);
+
+    		dummyYes[3] = 1;
+    		dummyNo[3] = 2;
+
+    		assertFalse( dao.countryIsExcluded( "CHN") );
+    		assertFalse( dao.countryIsExcluded( "CUB") );
+    		assertFalse( dao.countryIsExcluded( "IND") );
+    		assertFalse( dao.countryIsExcluded( "PAK") );
+    		assertFalse( dao.countryIsExcluded( "RUS") );
+
+        	dao.initialGeoExclusion(dummyYes, dummyNo);
+
+    		assertFalse( dao.countryIsExcluded( "CHN") );
+    		assertFalse( dao.countryIsExcluded( "CUB") );
+    		assertFalse( dao.countryIsExcluded( "IND") );
+    		assertFalse( dao.countryIsExcluded( "PAK") );
+    		assertFalse( dao.countryIsExcluded( "RUS") );
+        	}
+
+
+// A unit test to validate that geo exclusion succeeds
+	function testGeoExclusionYes5() public
+    	{
+    	vm.startPrank(address(bootstrapBallot));
+
+		uint256[] memory dummyYes = new uint256[](5);
+		uint256[] memory dummyNo = new uint256[](5);
+
+		dummyYes[4] = 2;
+		dummyNo[4] = 1;
+
+		assertFalse( dao.countryIsExcluded( "AFG") );
+		assertFalse( dao.countryIsExcluded( "IRN") );
+		assertFalse( dao.countryIsExcluded( "PRK") );
+		assertFalse( dao.countryIsExcluded( "SYR") );
+		assertFalse( dao.countryIsExcluded( "VEN") );
+
+    	dao.initialGeoExclusion(dummyYes, dummyNo);
+
+		assertTrue( dao.countryIsExcluded( "AFG") );
+		assertTrue( dao.countryIsExcluded( "IRN") );
+		assertTrue( dao.countryIsExcluded( "PRK") );
+		assertTrue( dao.countryIsExcluded( "SYR") );
+		assertTrue( dao.countryIsExcluded( "VEN") );
+    	}
+
+
+	// A unit test to validate that geo exclusion fails
+	function testGeoExclusionNo5() public
+    	{
+    	vm.startPrank(address(bootstrapBallot));
+
+		uint256[] memory dummyYes = new uint256[](5);
+		uint256[] memory dummyNo = new uint256[](5);
+
+		dummyYes[4] = 1;
+		dummyNo[4] = 2;
+
+		assertFalse( dao.countryIsExcluded( "AFG") );
+		assertFalse( dao.countryIsExcluded( "IRN") );
+		assertFalse( dao.countryIsExcluded( "PRK") );
+		assertFalse( dao.countryIsExcluded( "SYR") );
+		assertFalse( dao.countryIsExcluded( "VEN") );
+
+    	dao.initialGeoExclusion(dummyYes, dummyNo);
+
+		assertFalse( dao.countryIsExcluded( "AFG") );
+		assertFalse( dao.countryIsExcluded( "IRN") );
+		assertFalse( dao.countryIsExcluded( "PRK") );
+		assertFalse( dao.countryIsExcluded( "SYR") );
+		assertFalse( dao.countryIsExcluded( "VEN") );
+    	}
+
+
+
     }
 

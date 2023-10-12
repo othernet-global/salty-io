@@ -270,17 +270,18 @@ contract TestExchangeConfig is Deployment
     }
 
 
-    // A unit test to check the setTeamWallet function when it is called by the current teamWallet address with a valid non-zero address parameter. Ensure that the teamWallet state variable is correctly updated.
-    function testSetTeamWallet() public {
+    // A unit test to test that proposeTeamWallet works as expected
+    function testProposeTeamWallet() public
+    	{
         // Initialize a random address
         address randomAddr = address(0x1234);
 
         // Update teamWallet to a random address
         vm.prank(teamWallet);
-        exchangeConfig.setTeamWallet(randomAddr);
+        exchangeConfig.proposeTeamWallet(randomAddr);
 
         // Assert that the teamWallet state variable is now equal to the random address
-        assertEq(exchangeConfig.teamWallet(), randomAddr);
+        assertEq(exchangeConfig.proposedTeamWallet(), randomAddr);
     }
 
 
@@ -291,7 +292,7 @@ contract TestExchangeConfig is Deployment
 
         // Expect function to revert with correct message
         vm.expectRevert("Only the current team can change the teamWallet");
-        exchangeConfig.setTeamWallet(address(0x1234));
+        exchangeConfig.proposeTeamWallet(address(0x1234));
     }
 
 
@@ -322,4 +323,27 @@ contract TestExchangeConfig is Deployment
     	// Call `walletHasAccess` function with a non-DAO address which is not allowed by accessManager
     	assertFalse(exchangeConfig.walletHasAccess(address(0x1234)));
     }
+
+
+    // A unit test to test that confirmTeamWallet works as expected
+    function testConfirmTeamWallet() public
+    	{
+        // Initialize a random address
+        address randomAddr = address(0x1234);
+
+        // Update teamWallet to a random address
+        vm.prank(teamWallet);
+        exchangeConfig.proposeTeamWallet(randomAddr);
+
+        assertEq(exchangeConfig.proposedTeamWallet(), randomAddr);
+
+		vm.expectRevert( "Only the proposed teamWallet can confirm the teamWallet change" );
+		exchangeConfig.confirmTeamWallet();
+
+        vm.prank(randomAddr);
+        exchangeConfig.confirmTeamWallet();
+
+        // Assert that the teamWallet state variable is now equal to the random address
+        assertEq(exchangeConfig.teamWallet(), randomAddr);
+        }
 	}
