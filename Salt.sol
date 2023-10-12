@@ -5,7 +5,7 @@ import "./openzeppelin/token/ERC20/ERC20.sol";
 import "./interfaces/ISalt.sol";
 
 
-contract Salt is ISalt, ERC20
+contract SALT is ISalt, ERC20
     {
 	uint256 public constant MILLION_ETHER = 1000000 ether;
 	uint256 public constant INITIAL_SUPPLY = 100 * MILLION_ETHER ;
