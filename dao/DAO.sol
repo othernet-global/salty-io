@@ -66,26 +66,6 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		daoConfig = _daoConfig;
 		priceAggregator = _priceAggregator;
         liquidityRewardsEmitter = _liquidityRewardsEmitter;
-
-   		// Initially excluded countries (to limit regulatory risk for the launch).
-   		// Afghanistan, Canada, China, Cuba, India, Iran, North Korea, Pakistan, Russia, Syria, United Kingdom, USA, Venezuela
-
-   		// These countries will not initially be able to take part in the airdrop or use the DEX.
-   		// The DAO can reinclude them at any time (or even modify the AccessManager itself to alter geo restriction entirely).
-
-		excludedCountries["AFG"] = true;
-		excludedCountries["CAN"] = true;
-		excludedCountries["CHN"] = true;
-		excludedCountries["CUB"] = true;
-		excludedCountries["IND"] = true;
-		excludedCountries["IRN"] = true;
-		excludedCountries["PRK"] = true;
-		excludedCountries["PAK"] = true;
-		excludedCountries["RUS"] = true;
-		excludedCountries["SYR"] = true;
-		excludedCountries["GBR"] = true;
-		excludedCountries["USA"] = true;
-		excludedCountries["VEN"] = true;
         }
 
 
@@ -313,6 +293,46 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 
 		salt.safeTransfer( address(salt), saltToBurn );
 		salt.burnTokensInContract();
+		}
+
+
+	// Initially excluded countries as voted on by the airdrop recipients on the bootstrap ballot
+	// Any excluded country can be re-included by the DAO after launch as needed.
+	function initialGeoExclusion(uint256[] memory geoExclusionYes, uint256[] memory geoExclusionNo) public
+		{
+		require( msg.sender == address(exchangeConfig.initialDistribution().bootstrapBallot()), "DAO.initialGeoExclusion can only be called from the BootstrapBallot" );
+
+		// Exclude the United States?
+		if ( geoExclusionYes[0] > geoExclusionNo[0] )
+			excludedCountries["USA"] = true;
+
+		// Exclude Canada?
+		if ( geoExclusionYes[1] > geoExclusionNo[1] )
+			excludedCountries["CAN"] = true;
+
+		// Exclude the United Kingdom?
+		if ( geoExclusionYes[2] > geoExclusionNo[2] )
+			excludedCountries["GBR"] = true;
+
+		// Exclude China, Cuba, India, Pakistan, Russia?
+		if ( geoExclusionYes[3] > geoExclusionNo[3] )
+			{
+			excludedCountries["CHN"] = true;
+			excludedCountries["CUB"] = true;
+			excludedCountries["IND"] = true;
+			excludedCountries["PAK"] = true;
+			excludedCountries["RUS"] = true;
+			}
+
+		// Exclude Afghanistan, Iran, North Korea, Syria, Venezuela?
+		if ( geoExclusionYes[4] > geoExclusionNo[4] )
+			{
+			excludedCountries["AFG"] = true;
+			excludedCountries["IRN"] = true;
+			excludedCountries["PRK"] = true;
+			excludedCountries["SYR"] = true;
+			excludedCountries["VEN"] = true;
+			}
 		}
 
 
