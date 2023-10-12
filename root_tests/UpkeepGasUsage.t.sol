@@ -175,6 +175,8 @@ contract TestMaxUpkeep is Deployment
 			tokenB.approve(address(liquidity), type(uint256).max);
     		tokenA.approve(address(pools), type(uint256).max);
 			tokenB.approve(address(pools), type(uint256).max);
+
+			// Multiple pools will be needed for arbitrage
             liquidity.addLiquidityAndIncreaseShare(tokenA, tokenB, 100 ether, 100 ether, 0, block.timestamp, false);
             liquidity.addLiquidityAndIncreaseShare(tokenA, weth, 100 ether, 100 ether, 0, block.timestamp, false);
             liquidity.addLiquidityAndIncreaseShare(tokenA, wbtc, 100 ether, 100 * 10**8, 0, block.timestamp, false);
@@ -196,7 +198,7 @@ contract TestMaxUpkeep is Deployment
     		{
     		(IERC20 tokenA, IERC20 tokenB) = poolsConfig.underlyingTokenPair(poolIDs[i]);
 
-            pools.depositSwapWithdraw(tokenA, tokenB, 1 ether, 0, block.timestamp);
+            pools.depositSwapWithdraw(tokenA, tokenB, 10 ether, 0, block.timestamp);
     		}
     	vm.stopPrank();
     	}
