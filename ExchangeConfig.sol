@@ -28,6 +28,7 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 	IAirdrop public airdrop;
 
 	address public teamWallet;
+	address public proposedTeamWallet;
 
 	// Gradually distribute SALT to the teamWallet and DAO over 10 years
 	address public teamVestingWallet;	// can only be set once
@@ -123,11 +124,19 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 		}
 
 
-	function setTeamWallet( address _teamWallet ) public
+	function proposeTeamWallet( address _teamWallet ) public
 		{
 		require( msg.sender == teamWallet, "Only the current team can change the teamWallet" );
 
-		teamWallet = _teamWallet;
+		proposedTeamWallet = _teamWallet;
+		}
+
+
+	function confirmTeamWallet() public
+		{
+		require( msg.sender == proposedTeamWallet, "Only the proposed teamWallet can confirm the teamWallet change" );
+
+		teamWallet = proposedTeamWallet;
 		}
 
 

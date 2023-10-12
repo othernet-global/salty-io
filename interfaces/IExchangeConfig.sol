@@ -23,7 +23,8 @@ interface IExchangeConfig
 	function setLiquidityRewardsEmitter( IRewardsEmitter _rewardsEmitter ) external; // onlyOwner
 	function setAirdrop( IAirdrop _airdrop ) external; // onlyOwner
 
-	function setTeamWallet( address _teamWallet ) external;
+	function proposeTeamWallet( address _teamWallet ) external;
+	function confirmTeamWallet() external;
 	function setVestingWallets( address _teamVestingWallet, address _daoVestingWallet ) external;
 	function setInitialDistribution( IInitialDistribution _initialDistribution ) external;
 
@@ -35,6 +36,7 @@ interface IExchangeConfig
 	function usds() external view returns (IUSDS);
 
 	function teamWallet() external view returns (address);
+	function proposedTeamWallet() external view returns (address);
 	function daoVestingWallet() external view returns (address);
     function teamVestingWallet() external view returns (address);
     function initialDistribution() external view returns (IInitialDistribution);
