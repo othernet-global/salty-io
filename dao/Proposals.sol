@@ -35,6 +35,9 @@ contract Proposals is IProposals, ReentrancyGuard
 	mapping(uint256=>Ballot) public ballots;
 	uint256 public nextBallotID = 1;
 
+	// All of the ballotIDs that are currently open for voting
+	EnumerableSet.UintSet private _allOpenBallots;
+
 	// The ballotIDs of the tokens currently being proposed for whitelisting
 	EnumerableSet.UintSet private _openBallotsForTokenWhitelisting;
 
@@ -60,11 +63,8 @@ contract Proposals is IProposals, ReentrancyGuard
         }
 
 
-	// Requires exchange access for the sending wallet
 	function _possiblyCreateProposal( string memory ballotName, BallotType ballotType, address address1, uint256 number1, string memory string1, string memory string2, uint256 proposalCost ) internal returns (uint256 ballotID)
 		{
-		require( exchangeConfig.walletHasAccess(msg.sender), "Sender does not have exchange access" );
-
 		// Make sure that a proposal of the same name is not already open for the ballot
 		require( openBallotsByName[ballotName] == 0, "Cannot create a proposal similar to a ballot that is still open" );
 		require( openBallotsByName[ string.concat(ballotName, "_confirm")] == 0, "Cannot create a proposal for a ballot with a secondary confirmation" );
@@ -75,6 +75,7 @@ contract Proposals is IProposals, ReentrancyGuard
 		ballotID = nextBallotID++;
 		ballots[ballotID] = Ballot( ballotID, true, ballotType, ballotName, address1, number1, string1, string2, ballotMinimumEndTime );
 		openBallotsByName[ballotName] = ballotID;
+		_allOpenBallots.add( ballotID );
 
 		// Send the proposalFee (in USDS) from msg.sender to the USDS contract to increase the safety buffer for future collateral liquidations (when borrowed USDS from liquidated collateral positions must be burned)
 		if ( proposalCost > 0 )
@@ -100,6 +101,9 @@ contract Proposals is IProposals, ReentrancyGuard
 		// Remove finalized whitelist token ballots from the list of open whitelisting proposals
 		if ( ballot.ballotType == BallotType.WHITELIST_TOKEN )
 			_openBallotsForTokenWhitelisting.remove( ballot.ballotID );
+
+		// Remove from the list of all open ballots
+		_allOpenBallots.remove( ballot.ballotID );
 
 		ballot.ballotIsLive = false;
 
@@ -207,11 +211,8 @@ contract Proposals is IProposals, ReentrancyGuard
 
 
 	// Cast a vote on an open ballot
-	// Requires exchange access for the sending wallet
 	function castVote( uint256 ballotID, Vote vote ) public nonReentrant
 		{
-		require( exchangeConfig.walletHasAccess(msg.sender), "Sender does not have exchange access" );
-
 		Ballot memory ballot = ballots[ballotID];
 
 		// Require that the ballot is actually live
@@ -345,14 +346,32 @@ contract Proposals is IProposals, ReentrancyGuard
 	    }
 
 
+	function numberOfOpenBallots() public view returns (uint256)
+		{
+		return _allOpenBallots.length();
+		}
+
+
+	function openBallots() public view returns (uint256[] memory)
+		{
+		return _allOpenBallots.values();
+		}
+
+
 	function numberOfOpenBallotsForTokenWhitelisting() public view returns (uint256)
 		{
 		return _openBallotsForTokenWhitelisting.length();
 		}
 
 
+	function openBallotsForTokenWhitelisting() public view returns (uint256[] memory)
+		{
+		return _openBallotsForTokenWhitelisting.values();
+		}
+
+
 	// Returns the ballotID of the whitelisting ballot that currently has the most yes votes
-	// Requires that the quorum has been reached and that the numbe rof yes votes is greater than the number no votes
+	// Requires that the quorum has been reached and that the number of yes votes is greater than the number no votes
 	function tokenWhitelistingBallotWithTheMostVotes() public view returns (uint256)
 		{
 		uint256 bestID = 0;

@@ -59,6 +59,9 @@ interface IProposals
 	function ballotIsApproved( uint256 ballotID ) external view returns (bool);
 	function winningParameterVote( uint256 ballotID ) external view returns (Vote);
 	function canFinalizeBallot( uint256 ballotID ) external view returns (bool);
+	function numberOfOpenBallots() external view returns (uint256);
+	function openBallots() external view returns (uint256[] memory);
 	function numberOfOpenBallotsForTokenWhitelisting() external view returns (uint256);
+	function openBallotsForTokenWhitelisting() external view returns (uint256[] memory);
 	function tokenWhitelistingBallotWithTheMostVotes() external view returns (uint256);
 	}
