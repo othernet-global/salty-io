@@ -23,12 +23,6 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
     {
 	using SafeERC20 for ISalt;
 
-	event eIncreaseShare(address indexed wallet, bytes32 indexed poolID, uint256 amount);
-	event eDecreaseShareAndClaim(address indexed wallet, bytes32 indexed poolID, uint256 amount);
-	event eClaimRewards(address indexed wallet, bytes32 indexed poolID, uint256 amount);
-	event eClaimAllRewards(address indexed wallet, uint256 amount);
-
-
 	ISalt immutable public salt;
 	IExchangeConfig immutable public exchangeConfig;
     IStakingConfig immutable public stakingConfig;
