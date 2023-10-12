@@ -39,11 +39,11 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	// User token balances for deposited tokens
 	mapping(address=>mapping(IERC20=>uint256)) private _userDeposits;
 
-	// Keep track of the amount of liquidity owned by users for each poolID
+	// Keeps track of the amount of liquidity owned by users for each poolID
 	mapping(address=>mapping(bytes32=>uint256)) private _userLiquidity;
 
 	// Cache of the whitelisted pools so we don't need an external call to access poolsConfig.isWhitelisted on swaps (to determine arbitrage type)
-	mapping(bytes32=>bool) public _isWhitelisted;
+	mapping(bytes32=>bool) public _isWhitelistedCache;
 
 
 	constructor( IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig )
@@ -80,7 +80,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		{
 		require(msg.sender == address(poolsConfig), "Pools.setIsWhitelisted is only callable from the PoolsConfig contract" );
 
-		_isWhitelisted[poolID] = true;
+		_isWhitelistedCache[poolID] = true;
 		}
 
 
@@ -89,7 +89,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		{
 		require(msg.sender == address(poolsConfig), "Pools.clearIsWhitelisted is only callable from the PoolsConfig contract" );
 
-		_isWhitelisted[poolID] = false;
+		_isWhitelistedCache[poolID] = false;
 		}
 
 
@@ -149,7 +149,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	// Add liquidity for the specified trading pair (must be whitelisted)
 	function addLiquidity( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 deadline ) public nonReentrant ensureNotExpired(deadline) returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
 		{
-		require( exchangeConfig.initialDistribution().bootstrapBallot().ballotApproved(), "The exchange is not yet live" );
+		require( exchangeConfig.initialDistribution().bootstrapBallot().startExchangeApproved(), "The exchange is not yet live" );
 		require( address(tokenA) != address(tokenB), "Cannot add liquidity for duplicate tokens" );
 
 		require( maxAmountA > PoolUtils.DUST, "The amount of tokenA to add is too small" );
@@ -377,15 +377,12 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 	// Adjust the reserves for swapping between the two specified tokens and then immediately attempt arbitrage.
 	// Perform a counterswap if possible - essentially undoing the original swap by restoring the reserves to their preswap state.
-	// Requires exchange access for the sending wallet
+	// Does not require exchange access for the sending wallet.
 	function _adjustReservesAndAttemptArbitrage( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut ) internal returns (uint256 swapAmountOut)
 		{
-		// Exchange access required - which affects the swap and depositSwapWithdraw functions
-		require( exchangeConfig.walletHasAccess(msg.sender), "Sender does not have exchange access" );
-
 		// See if tokenIn and tokenOut are whitelisted and therefore can have direct liquidity in the pool
 		(bytes32 poolID,) = PoolUtils.poolID(swapTokenIn, swapTokenOut);
-		bool isWhitelistedPair = _isWhitelisted[poolID];
+		bool isWhitelistedPair = _isWhitelistedCache[poolID];
 
 		if ( isWhitelistedPair )
 			{
@@ -438,11 +435,12 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 
     // Swap one token for another.
-    // Uses the direct pool between two tokens if available, or if not uses token1->WETH->token2 (as every token on the DEX is pooled with WETH)
+    // Uses the direct pool between two tokens if available, or if not uses token1->WETH->token2 (as every token on the DEX is pooled with both WETH and WBTC)
     // Having simpler swaps without multiple tokens in the swap chain makes it simpler (and less expensive gas wise) to find suitable arbitrage opportunities.
-    // Cheap arbitrage gas-wise is important as arbitrage will be performed at swap time.
+    // Cheap arbitrage gas-wise is important as arbitrage will be atomically attempted with every swap transaction.
     // Requires that the first token in the chain has already been deposited for the caller.
-	// Requires exchange access for the sending wallet (from _adjustReservesAndAttemptArbitrage)
+    // Does not require exchange access on the contract level - as other contracts using the swap feature may not have the ability to grant themselves access.
+	// Regional restrictions on swapping within the browser itself may be added by the DAO.
 	function swap( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline ) public nonReentrant ensureNotExpired(deadline) returns (uint256 swapAmountOut)
 		{
 		// Confirm and adjust user deposits
@@ -459,7 +457,8 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 
 	// Convenience method that allows the sender to deposit tokenIn, swap to tokenOut and then have tokenOut sent to the sender
-	// Requires exchange access for the sending wallet (from _adjustReservesAndAttemptArbitrage)
+    // Does not require exchange access on the contract level - as other contracts using the swap feature may not have the ability to grant themselves access.
+	// Regional restrictions on swapping within the browser itself may be added by the DAO.
 	function depositSwapWithdraw(IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline) public nonReentrant ensureNotExpired(deadline) returns (uint256 swapAmountOut)
 		{
 		// Transfer the tokens from the sender - only tokens without fees should be whitelsited on the DEX
