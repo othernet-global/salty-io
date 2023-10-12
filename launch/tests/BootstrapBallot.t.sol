@@ -139,11 +139,12 @@ contract TestBootstrapBallot is Deployment
 
         // Voting stage (yesVotes: 2, noVotes: 0)
         vm.startPrank(alice);
-        bootstrapBallot.vote(true);
+		uint256[] memory regionalVotes = new uint256[](5);
+		bootstrapBallot.vote(true, regionalVotes);
         vm.stopPrank();
 
         vm.startPrank(bob);
-        bootstrapBallot.vote(true);
+		bootstrapBallot.vote(true, regionalVotes);
         vm.stopPrank();
 
         // Increase current blocktime to be greater than completionTimestamp
@@ -168,11 +169,12 @@ contract TestBootstrapBallot is Deployment
 
         // Voting stage (yesVotes: 2, noVotes: 0)
         vm.startPrank(alice);
-        bootstrapBallot.vote(true);
+		uint256[] memory regionalVotes = new uint256[](5);
+		bootstrapBallot.vote(true, regionalVotes);
         vm.stopPrank();
 
         vm.startPrank(bob);
-        bootstrapBallot.vote(true);
+		bootstrapBallot.vote(true, regionalVotes);
         vm.stopPrank();
 
         // Increase current blocktime to be greater than completionTimestamp
@@ -181,7 +183,7 @@ contract TestBootstrapBallot is Deployment
 		assertEq( salt.balanceOf(address(initialDistribution)), 100000000 ether);
 
         // Call finalizeBallot()
-        vm.expectRevert( "Ballot duration is not yet complete");
+        vm.expectRevert( "Ballot is not yet complete");
         bootstrapBallot.finalizeBallot();
 
         // Verify that the InitialDistribution.distributionApproved() was called.
@@ -198,11 +200,12 @@ contract TestBootstrapBallot is Deployment
 
         // Voting stage (yesVotes: 2, noVotes: 0)
         vm.startPrank(alice);
-        bootstrapBallot.vote(true);
+		uint256[] memory regionalVotes = new uint256[](5);
+		bootstrapBallot.vote(true, regionalVotes);
         vm.stopPrank();
 
         vm.startPrank(bob);
-        bootstrapBallot.vote(true);
+		bootstrapBallot.vote(true, regionalVotes);
         vm.stopPrank();
 
         // Increase current blocktime to be greater than completionTimestamp
@@ -230,11 +233,12 @@ contract TestBootstrapBallot is Deployment
 
         // Voting stage (yesVotes: 2, noVotes: 0)
         vm.startPrank(alice);
-        bootstrapBallot.vote(false);
+		uint256[] memory regionalVotes = new uint256[](5);
+		bootstrapBallot.vote(false, regionalVotes);
         vm.stopPrank();
 
         vm.startPrank(bob);
-        bootstrapBallot.vote(false);
+		bootstrapBallot.vote(false, regionalVotes);
         vm.stopPrank();
 
         // Increase current blocktime to be greater than completionTimestamp
@@ -260,20 +264,21 @@ contract TestBootstrapBallot is Deployment
 
         // Cast votes (yesVotes: 2, noVotes: 1)
         vm.startPrank(alice);
-        bootstrapBallot.vote(true);
+		uint256[] memory regionalVotes = new uint256[](5);
+		bootstrapBallot.vote(true, regionalVotes);
         vm.stopPrank();
 
         vm.startPrank(bob);
-        bootstrapBallot.vote(true);
+		bootstrapBallot.vote(true, regionalVotes);
         vm.stopPrank();
 
         vm.startPrank(charlie);
-        bootstrapBallot.vote(false);
+		bootstrapBallot.vote(false, regionalVotes);
         vm.stopPrank();
 
         // Assertions
-        assertEq(bootstrapBallot.yesVotes(), 2, "YES vote count is incorrect");
-        assertEq(bootstrapBallot.noVotes(), 1, "NO vote count is incorrect");
+        assertEq(bootstrapBallot.startExchangeYes(), 2, "YES vote count is incorrect");
+        assertEq(bootstrapBallot.startExchangeNo(), 1, "NO vote count is incorrect");
         assertTrue(bootstrapBallot.hasVoted(alice), "Alice vote status is incorrect");
         assertTrue(bootstrapBallot.hasVoted(bob), "Bob vote status is incorrect");
         assertTrue(bootstrapBallot.hasVoted(charlie), "Charlie vote status is incorrect");
@@ -284,24 +289,10 @@ contract TestBootstrapBallot is Deployment
 	function test_vote_notWhitelisted() public {
     	vm.startPrank(bob);
     	vm.expectRevert("User is not an Airdrop recipient");
-    	bootstrapBallot.vote(true);
+		uint256[] memory regionalVotes = new uint256[](5);
+		bootstrapBallot.vote(true, regionalVotes);
     	vm.stopPrank();
     }
-
-
-    // A unit test to check the vote function when the voter lacks exchange access. Verify that it throws an error stating the user does not have exchange access.
-	function test_vote_noAccess() public {
-        vm.prank(DEPLOYER);
-        airdrop.whitelistWallet(bob);
-
-		vm.prank(address(dao));
-		accessManager.excludedCountriesUpdated();
-
-    	vm.startPrank(bob);
-    	vm.expectRevert("User does not have exchange access");
-    	bootstrapBallot.vote(true);
-    	vm.stopPrank();
-    	}
 
 
     // A unit test to check the vote function when the voter has already voted. Verify that it throws an error stating the user already voted.
@@ -311,11 +302,12 @@ contract TestBootstrapBallot is Deployment
 
         // Alice casts her vote
         vm.startPrank(alice);
-        bootstrapBallot.vote(true);
+		uint256[] memory regionalVotes = new uint256[](5);
+		bootstrapBallot.vote(true, regionalVotes);
 
         // Alice tries to vote again
         vm.expectRevert("User already voted");
-        bootstrapBallot.vote(true);
+		bootstrapBallot.vote(true, regionalVotes);
         vm.stopPrank();
     }
 
@@ -356,10 +348,11 @@ contract TestBootstrapBallot is Deployment
     // A unit test to check the vote function when a voter votes No. Verify that the noVotes count is correctly incremented.
 	function test_vote_No() public {
 		vm.startPrank(alice);
-		bootstrapBallot.vote(false);
+		uint256[] memory regionalVotes = new uint256[](5);
+		bootstrapBallot.vote(false, regionalVotes);
 		vm.stopPrank();
 
-		assertEq(bootstrapBallot.noVotes(), 1);
+		assertEq(bootstrapBallot.startExchangeNo(), 1);
 	}
 
 
@@ -372,11 +365,12 @@ contract TestBootstrapBallot is Deployment
 
         // Voting stage (yesVotes: 1, noVotes: 1)
         vm.startPrank(alice);
-        bootstrapBallot.vote(true);
+		uint256[] memory regionalVotes = new uint256[](5);
+		bootstrapBallot.vote(true, regionalVotes);
         vm.stopPrank();
 
         vm.startPrank(bob);
-        bootstrapBallot.vote(false);
+		bootstrapBallot.vote(false, regionalVotes);
         vm.stopPrank();
 
         // Increase current blocktime to be greater than completionTimestamp
@@ -416,10 +410,153 @@ contract TestBootstrapBallot is Deployment
 
             // Vote stage
             vm.startPrank(alice);
-            bootstrapBallot.vote(true);
+			uint256[] memory regionalVotes = new uint256[](5);
+			bootstrapBallot.vote(true, regionalVotes);
             vm.stopPrank();
 
             // Check if Alice voted
             assertTrue(bootstrapBallot.hasVoted(alice), "User vote not recognized");
         }
+
+
+
+        // A unit test to check that regional exclusion tallies update correct on voting
+        function _testRegionalExclusionVoting( uint256 votingIndex ) public {
+            vm.startPrank(DEPLOYER);
+            airdrop.whitelistWallet(alice);
+            vm.stopPrank();
+
+            assertTrue(bootstrapBallot.geoExclusionYes()[votingIndex] == 0, "Shouldn't be an initial yes vote");
+
+            // Vote stage
+            vm.startPrank(alice);
+			uint256[] memory regionalVotes = new uint256[](5);
+			regionalVotes[votingIndex] = 1; // yes on exclusion
+			bootstrapBallot.vote(true, regionalVotes);
+            vm.stopPrank();
+
+            assertTrue(bootstrapBallot.geoExclusionYes()[votingIndex] == 1, "User vote not recognized");
+        }
+
+
+		function testRegionalExclusionVoting0() public
+			{
+			_testRegionalExclusionVoting(0);
+			}
+
+
+		function testRegionalExclusionVoting1() public
+			{
+			_testRegionalExclusionVoting(1);
+			}
+
+
+		function testRegionalExclusionVoting2() public
+			{
+			_testRegionalExclusionVoting(2);
+			}
+
+
+		function testRegionalExclusionVoting3() public
+			{
+			_testRegionalExclusionVoting(3);
+			}
+
+
+		function testRegionalExclusionVoting4() public
+			{
+			_testRegionalExclusionVoting(4);
+			}
+
+
+
+
+
+
+
+        // A unit test to check that regional exclusion tallies update correct on voting
+        function _testRegionalExclusionVotingNo( uint256 votingIndex ) public {
+            vm.startPrank(DEPLOYER);
+            airdrop.whitelistWallet(alice);
+            vm.stopPrank();
+
+            assertTrue(bootstrapBallot.geoExclusionNo()[votingIndex] == 0, "Shouldn't be an initial yes vote");
+
+            // Vote stage
+            vm.startPrank(alice);
+			uint256[] memory regionalVotes = new uint256[](5);
+			regionalVotes[votingIndex] = 2; // no on exclusion
+			bootstrapBallot.vote(false, regionalVotes);
+            vm.stopPrank();
+
+            assertTrue(bootstrapBallot.geoExclusionNo()[votingIndex] == 1, "User vote not recognized");
+        }
+
+
+		function testRegionalExclusionVotingNo0() public
+			{
+			_testRegionalExclusionVotingNo(0);
+			}
+
+
+		function testRegionalExclusionVotingNo1() public
+			{
+			_testRegionalExclusionVotingNo(1);
+			}
+
+
+		function testRegionalExclusionVotingNo2() public
+			{
+			_testRegionalExclusionVotingNo(2);
+			}
+
+
+		function testRegionalExclusionVotingNo3() public
+			{
+			_testRegionalExclusionVotingNo(3);
+			}
+
+
+		function testRegionalExclusionVotingNo4() public
+			{
+			_testRegionalExclusionVotingNo(4);
+			}
+
+
+
+        // A unit test to check that regional exclusion tallies update correct on voting
+        function testMultipleRegionalExclusionVotes() public {
+            vm.startPrank(DEPLOYER);
+            airdrop.whitelistWallet(alice);
+            airdrop.whitelistWallet(bob);
+            airdrop.whitelistWallet(charlie);
+            vm.stopPrank();
+
+            assertTrue(bootstrapBallot.geoExclusionNo()[0] == 0, "Shouldn't be an initial yes vote");
+            assertTrue(bootstrapBallot.geoExclusionYes()[0] == 0, "Shouldn't be an initial yes vote");
+
+            // Vote stage
+            vm.startPrank(alice);
+			uint256[] memory regionalVotes = new uint256[](5);
+			regionalVotes[0] = 1; // yes on exclusion
+			bootstrapBallot.vote(true, regionalVotes);
+            vm.stopPrank();
+
+            vm.startPrank(bob);
+			regionalVotes = new uint256[](5);
+			regionalVotes[0] = 1; // yes on exclusion
+			bootstrapBallot.vote(true, regionalVotes);
+            vm.stopPrank();
+
+            vm.startPrank(charlie);
+			regionalVotes = new uint256[](5);
+			regionalVotes[0] = 2; // no on exclusion
+			bootstrapBallot.vote(true, regionalVotes);
+            vm.stopPrank();
+
+            assertTrue(bootstrapBallot.geoExclusionYes()[0] == 2, "User votes not recognized");
+            assertTrue(bootstrapBallot.geoExclusionNo()[0] == 1, "User votes not recognized");
+
+        }
+
 	}

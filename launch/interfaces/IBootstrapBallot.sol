@@ -5,13 +5,18 @@ pragma solidity =0.8.21;
 interface IBootstrapBallot
 	{
 	function finalizeBallot() external;
-	function vote( bool voteYes ) external;
+	function vote( bool voteStartExchangeYes, uint256[] memory votesRegionalExclusions ) external;
 
 	// Views
 	function completionTimestamp() external returns (uint256);
-	function yesVotes() external returns (uint256);
-	function noVotes() external returns (uint256);
 	function hasVoted(address user) external returns (bool);
+
 	function ballotFinalized() external returns (bool);
-	function ballotApproved() external returns (bool);
+	function startExchangeApproved() external returns (bool);
+
+	function startExchangeYes() external returns (uint256);
+	function startExchangeNo() external returns (uint256);
+
+	function geoExclusionYes() external returns (uint256[] memory);
+	function geoExclusionNo() external returns (uint256[] memory);
 	}

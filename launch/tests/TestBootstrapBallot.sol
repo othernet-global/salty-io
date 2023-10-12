@@ -14,7 +14,7 @@ contract TestBootstrapBallot is BootstrapBallot
 		}
 
 
-	function ballotApproved() public pure override returns (bool)
+	function startExchangeApproved() public pure override returns (bool)
 		{
 		return true;
 		}
