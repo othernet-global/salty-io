@@ -88,7 +88,6 @@ contract Airdrop is IAirdrop, Ownable, ReentrancyGuard
     	require( claimingAllowed, "Claiming is not allowed yet" );
     	require( whitelisted(msg.sender), "Wallet is not whitelisted for airdrop" );
     	require( ! claimed[msg.sender], "Wallet already claimed the airdrop" );
-		require( exchangeConfig.walletHasAccess(msg.sender), "Sender does not have exchange access" );
 
 		// Have the Airdrop contract stake a specified amount of SALT and then
 		staking.stakeSALT( saltAmountForEachUser );
