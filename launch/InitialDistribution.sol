@@ -67,23 +67,23 @@ contract InitialDistribution is IInitialDistribution
     	require( msg.sender == address(bootstrapBallot), "InitialDistribution.distributionApproved can only be called from the BootstrapBallot contract" );
 		require( salt.balanceOf(address(this)) > 0, "SALT has already been sent from the contract" );
 
-    	// Emissions							52 million
+    	// 52 million		Emissions
 		salt.safeTransfer( address(emissions), 52 * MILLION_ETHER );
 
-	    // DAO Reserve Vesting Wallet	25 million
+	    // 25 million		DAO Reserve Vesting Wallet
 		salt.safeTransfer( address(daoVestingWallet), 25 * MILLION_ETHER );
 
-	    // Initial Team Vesting Wallet	10 million
+	    // 10 million		Initial Team Vesting Wallet
 		salt.safeTransfer( address(teamVestingWallet), 10 * MILLION_ETHER );
 
-	    // Airdrop Participants				5 million
+	    // 5 million		Airdrop Participants
 		salt.safeTransfer( address(airdrop), 5 * MILLION_ETHER );
 		airdrop.allowClaiming();
 
 		bytes32[] memory poolIDs = poolsConfig.whitelistedPools();
 
-	    // Liquidity Bootstrapping		5 million
-	    // Staking Bootstrapping			3 million
+	    // 5 million		Liquidity Bootstrapping
+	    // 3 million		Staking Bootstrapping
 		salt.safeTransfer( address(saltRewards), 8 * MILLION_ETHER );
 		saltRewards.sendInitialSaltRewards(5 * MILLION_ETHER, poolIDs );
     	}
