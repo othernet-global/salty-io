@@ -131,17 +131,25 @@ contract TestMaxUpkeep is Deployment
 			vm.prank(address(dao));
 			poolsConfig.changeMaximumWhitelistedPools(true);
 			}
+
+		_setupBaselineGas();
 		}
 
 
-    function setUp() public
-    	{
-//    	vm.prank(address(bootstrapBallot));
-//    	initialDistribution.distributionApproved();
-
+	function _setupPools() public
+		{
 		vm.startPrank(DEPLOYER);
+		wbtc.approve(address(liquidity), type(uint256).max);
+		weth.approve(address(liquidity), type(uint256).max);
+		salt.approve(address(liquidity), type(uint256).max);
+
 		wbtc.approve(address(pools), type(uint256).max);
 		weth.approve(address(pools), type(uint256).max);
+		salt.approve(address(pools), type(uint256).max);
+
+        liquidity.addLiquidityAndIncreaseShare(wbtc, weth, 100 * 10**8, 100 ether, 0, block.timestamp, false);
+        liquidity.addLiquidityAndIncreaseShare(salt, wbtc, 100 ether, 100 * 10**8, 0, block.timestamp, false);
+        liquidity.addLiquidityAndIncreaseShare(salt, weth, 100 ether, 100 ether, 0, block.timestamp, false);
 		vm.stopPrank();
 
 		uint256 totalPools = 100;
@@ -155,6 +163,7 @@ contract TestMaxUpkeep is Deployment
     		vm.stopPrank();
 
     		vm.startPrank(address(dao));
+    		poolsConfig.whitelistPool(pools, tokenA, tokenB);
     		poolsConfig.whitelistPool(pools, tokenA, weth);
     		poolsConfig.whitelistPool(pools, tokenA, wbtc);
     		poolsConfig.whitelistPool(pools, tokenB, weth);
@@ -162,36 +171,45 @@ contract TestMaxUpkeep is Deployment
 			vm.stopPrank();
 
 			vm.startPrank(DEPLOYER);
+    		tokenA.approve(address(liquidity), type(uint256).max);
+			tokenB.approve(address(liquidity), type(uint256).max);
     		tokenA.approve(address(pools), type(uint256).max);
 			tokenB.approve(address(pools), type(uint256).max);
-            pools.addLiquidity(tokenA, weth, 1000 ether, 1000 ether, 0, block.timestamp);
-            pools.addLiquidity(tokenA, wbtc, 1000 ether, 1000 * 10**8, 0, block.timestamp);
-            pools.addLiquidity(tokenB, weth, 1000 ether, 1000 ether, 0, block.timestamp);
-            pools.addLiquidity(tokenB, wbtc, 1000 ether, 1000 * 10**8, 0, block.timestamp);
-
-	    	// Performs swaps on all of the pools so that arbitrage profits exist everywhere
-            pools.depositSwapWithdraw(tokenA, tokenB, 1 ether, 0, block.timestamp);
-            pools.depositSwapWithdraw(tokenA, weth, 1 ether, 0, block.timestamp);
-            pools.depositSwapWithdraw(tokenB, weth, 1 ether, 0, block.timestamp);
-            pools.depositSwapWithdraw(tokenA, wbtc, 1 ether, 0, block.timestamp);
-            pools.depositSwapWithdraw(tokenB, wbtc, 1 ether, 0, block.timestamp);
+            liquidity.addLiquidityAndIncreaseShare(tokenA, tokenB, 100 ether, 100 ether, 0, block.timestamp, false);
+            liquidity.addLiquidityAndIncreaseShare(tokenA, weth, 100 ether, 100 ether, 0, block.timestamp, false);
+            liquidity.addLiquidityAndIncreaseShare(tokenA, wbtc, 100 ether, 100 * 10**8, 0, block.timestamp, false);
+            liquidity.addLiquidityAndIncreaseShare(tokenB, weth, 100 ether, 100 ether, 0, block.timestamp, false);
+            liquidity.addLiquidityAndIncreaseShare(tokenB, wbtc, 100 ether, 100 * 10**8, 0, block.timestamp, false);
 
 	    	vm.stopPrank();
+	    	}
+		}
+
+
+    function _placeTrades() public
+    	{
+		vm.startPrank(DEPLOYER);
+    	bytes32[] memory poolIDs = poolsConfig.whitelistedPools();
+
+    	// Performs swaps on all of the added pools so that arbitrage profits exist everywhere
+    	for( uint256 i = 9; i < poolIDs.length; i++ )
+    		{
+    		(IERC20 tokenA, IERC20 tokenB) = poolsConfig.underlyingTokenPair(poolIDs[i]);
+
+            pools.depositSwapWithdraw(tokenA, tokenB, 1 ether, 0, block.timestamp);
     		}
-
-
-//    	bytes32[] memory poolIDs = poolsConfig.whitelistedPools();
-//    	uint256[] memory stats = IPoolStats(address(pools)).profitsForPools(poolIDs);
-//    	for( uint256 i = 0; i < poolIDs.length; i++ )
-//    		{
-//    		console.log( "POOL: ", i, stats[i] );
-//    		}
+    	vm.stopPrank();
     	}
 
 
 	// Set the initial storage write baseline for performUpkeep()
-    function testGasMaxUpkeepBaseline() public
+    function _setupBaselineGas() internal
     	{
+    	_setupPools();
+
+    	_placeTrades();
+
+		// One performUpkeep to write the initial storage variables (at higher gas cost)
     	vm.warp(block.timestamp + 1 hours);
     	upkeep.performUpkeep();
 
@@ -217,16 +235,17 @@ contract TestMaxUpkeep is Deployment
 
     	vm.prank(address(collateral));
     	usds.shouldBurnMoreUSDS( 100 ether );
-    	}
+
+    	_placeTrades();
+
+    	vm.warp(block.timestamp + 1 hours);
+       	}
 
 
-	// Like the above, but with an extra performUpkeep() so we can see how much gas is involved in just that call
+	// Determine gas usage for running performUpkeep() with the above pool setup, profits, and rewards to distribute to all pools
     function testGasMaxUpkeep() public
     	{
-    	testGasMaxUpkeepBaseline();
-
 		// Just an extra performUpkeep() call
-    	vm.warp(block.timestamp + 1 hours);
     	upkeep.performUpkeep();
     	}
 	}
