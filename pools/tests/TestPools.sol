@@ -13,7 +13,7 @@ contract TestPools is Pools
 
 	function isWhitelistedCache(bytes32 poolID) public view returns (bool)
 		{
-		return _isWhitelisted[poolID];
+		return _isWhitelistedCache[poolID];
 		}
 
 
