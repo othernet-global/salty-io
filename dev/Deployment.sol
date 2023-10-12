@@ -56,7 +56,7 @@ contract Deployment is Test
 	IForcedPriceFeed public forcedPriceFeed = IForcedPriceFeed(address(0x3B0Eb37f26b502bAe83df4eCc54afBDfb90B5d3a));
 
 	// The DAO contract can provide us with all other contract addresses in the protocol
-	IDAO public dao = IDAO(address(0x1c7F2244D610e4344f8877cfe1D04B93fcC9e862));
+	IDAO public dao = IDAO(address(0x1eA2c39f6E135A26D86022fD481b5b6CFe278aad));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));
@@ -272,12 +272,14 @@ contract Deployment is Test
 		vm.stopPrank();
 
 		// Voting stage (yesVotes: 2, noVotes: 0)
+		uint256[] memory regionalVotes = new uint256[](5);
+
 		vm.startPrank(alice);
-		bootstrapBallot.vote(true);
+		bootstrapBallot.vote(true, regionalVotes);
 		vm.stopPrank();
 
 		vm.startPrank(bob);
-		bootstrapBallot.vote(true);
+		bootstrapBallot.vote(true, regionalVotes);
 		vm.stopPrank();
 
 		// Increase current blocktime to be greater than completionTimestamp
