@@ -7,8 +7,7 @@ import "./interfaces/IAirdrop.sol";
 import "../interfaces/IExchangeConfig.sol";
 
 
-// Allows airdrop participants to vote on whether or not to start up the exchange by distributing SALT to the various exchange contracts.
-// The actual distribution is handled by the InitialDistribution.distributionApproved() function.
+// Allows airdrop participants to vote on whether or not to start up the exchange and which countries should be initially excluded from access.
 
 contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
     {
@@ -17,14 +16,19 @@ contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
 
 	uint256 public completionTimestamp;
 	bool public ballotFinalized;
-	bool private _ballotApproved;
+	bool private _startExchangeApproved;
 
 	// Ensures that voters can only vote once
 	mapping(address=>bool) public hasVoted;
 
-	// The tally of YES and NO votes
-	uint256 public yesVotes;
-	uint256 public noVotes;
+	// === VOTE TALLIES ===
+	// Yes/No tallies on whether or not to start the exchange and distribute SALT to the ecosystem contracts
+	uint256 public startExchangeYes;
+	uint256 public startExchangeNo;
+
+	// Yes/No tallies on whether or not to exclude specified countries/regions
+	uint256[] private _geoExclusionYes = new uint256[](5);
+	uint256[] private _geoExclusionNo = new uint256[](5);
 
 
 	constructor( IExchangeConfig _exchangeConfig, IAirdrop _airdrop, uint256 ballotDuration )
@@ -40,16 +44,18 @@ contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
 		}
 
 
-	// Ensures that the completionTimestamp has been reached and then calls InitialDistribution.distributionApproved if the voters have approved the ballot
+	// Ensures that the completionTimestamp has been reached and then calls InitialDistribution.distributionApproved and DAO.initialGeoExclusion if the voters have approved the ballot
 	function finalizeBallot() public nonReentrant
 		{
 		require( ! ballotFinalized, "Ballot has already been finalized" );
-		require( block.timestamp >= completionTimestamp, "Ballot duration is not yet complete" );
+		require( block.timestamp >= completionTimestamp, "Ballot is not yet complete" );
 
-		if ( yesVotes > noVotes )
+		if ( startExchangeYes > startExchangeNo )
 			{
 			exchangeConfig.initialDistribution().distributionApproved();
-			_ballotApproved = true;
+			exchangeConfig.dao().initialGeoExclusion(_geoExclusionYes, _geoExclusionNo);
+
+			_startExchangeApproved = true;
 			}
 
 		ballotFinalized = true;
@@ -58,22 +64,44 @@ contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
 
 	// Cast a YES or NO vote to start up the exchange (airdropped users only).
 	// Votes cannot be changed once they are cast.
-	function vote( bool voteYes ) public nonReentrant
+	// regionalVotes: 0 (no opinion), 1 (yes to exclusion), 2 (no to exclusion)
+	function vote( bool voteStartExchangeYes, uint256[] memory votesRegionalExclusions ) public nonReentrant
 		{
 		require( airdrop.whitelisted(msg.sender), "User is not an Airdrop recipient" );
-		require( exchangeConfig.walletHasAccess(msg.sender), "User does not have exchange access" );
 		require( ! hasVoted[msg.sender], "User already voted" );
 
-		if ( voteYes )
-			yesVotes++;
+		if ( voteStartExchangeYes )
+			startExchangeYes++;
 		else
-			noVotes++;
+			startExchangeNo++;
+
+		for( uint256 i = 0; i < 5; i++ )
+			{
+			if ( votesRegionalExclusions[i] == 1 )
+				_geoExclusionYes[i]++;
+
+			if ( votesRegionalExclusions[i] == 2 )
+				_geoExclusionNo[i]++;
+			}
 
 		hasVoted[msg.sender] = true;
 		}
 
 
-	function ballotApproved() public virtual returns (bool)
+	function startExchangeApproved() public virtual returns (bool)
 		{
-		return _ballotApproved;
-		}	}
+		return _startExchangeApproved;
+		}
+
+
+	function geoExclusionYes() public view returns (uint256[] memory)
+		{
+		return _geoExclusionYes;
+		}
+
+
+	function geoExclusionNo() public view returns (uint256[] memory)
+		{
+		return _geoExclusionNo;
+		}
+	}
