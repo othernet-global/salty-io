@@ -18,6 +18,8 @@ interface IDAO
 	function sendSaltToSaltRewards( ISalt salt, ISaltRewards saltRewards, uint256 amountToSend) external;
 	function processRewardsFromPOL(ILiquidity liquidity, ISalt salt, IUSDS usds) external;
 
+	function initialGeoExclusion(uint256[] memory geoExclusionYes, uint256[] memory geoExclusionNo) external;
+
 	// Views
 	function websiteURL() external returns (string memory);
 	}
