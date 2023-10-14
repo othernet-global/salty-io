@@ -116,8 +116,7 @@ contract TestInitialDistribution is Deployment
 			vm.stopPrank();
 			}
 
-		vm.prank(DEPLOYER);
-		airdrop.whitelistWallet(alice);
+		whitelistAlice();
 		}
 
 
@@ -251,23 +250,19 @@ function testConstructorInitializationWithZeroAddress() public {
 	function testAirdropSetupOnDistributionApproved() public {
 
 		// Create some dummy aidrop recipients
-		vm.startPrank(DEPLOYER);
-		airdrop.whitelistWallet(address(0x1));
-		airdrop.whitelistWallet(address(0x2));
-		airdrop.whitelistWallet(address(0x3));
-		airdrop.whitelistWallet(address(0x4));
-		airdrop.whitelistWallet(address(0x5));
-		vm.stopPrank();
+		whitelistAlice();
+		whitelistBob();
+		whitelistCharlie();
 
 		vm.prank(address(bootstrapBallot));
 		initialDistribution.distributionApproved();
 
 		// Make sure claiming has been activated for airdrop
 		assertTrue( airdrop.claimingAllowed() );
-		assertEq( airdrop.numberWhitelisted(), 6 );
+		assertEq( airdrop.numberWhitelisted(), 3 );
 		assertEq( salt.balanceOf(address(airdrop)), 5 * MILLION_ETHER );
 
-		assertEq( airdrop.saltAmountForEachUser(), 5 * MILLION_ETHER / 6 );
+		assertEq( airdrop.saltAmountForEachUser(), 5 * MILLION_ETHER / 3 );
 	}
     }
 

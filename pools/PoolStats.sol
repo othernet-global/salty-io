@@ -95,13 +95,13 @@ contract PoolStats is IPoolStats
 			arbitrageProfit = arbitrageProfit / 3;
 
 			// The arb cycle was: WETH->arbToken2->arbToken3->WETH
-			(bytes32 poolID,) = PoolUtils.poolID( weth, arbToken2 );
+			(bytes32 poolID,) = PoolUtils._poolID( weth, arbToken2 );
 			_profitsForPools[poolID] += arbitrageProfit;
 
-			(poolID,) = PoolUtils.poolID( arbToken2, arbToken3 );
+			(poolID,) = PoolUtils._poolID( arbToken2, arbToken3 );
 			_profitsForPools[poolID] += arbitrageProfit;
 
-			(poolID,) = PoolUtils.poolID( arbToken3, weth );
+			(poolID,) = PoolUtils._poolID( arbToken3, weth );
 			_profitsForPools[poolID] += arbitrageProfit;
 			}
 		else
@@ -110,16 +110,16 @@ contract PoolStats is IPoolStats
 			arbitrageProfit = arbitrageProfit / 4;
 
 			// The arb cycle was: WETH->arbToken2->wbtc->arbToken3->WETH
-			(bytes32 poolID,) = PoolUtils.poolID( weth, arbToken2 );
+			(bytes32 poolID,) = PoolUtils._poolID( weth, arbToken2 );
 			_profitsForPools[poolID] += arbitrageProfit;
 
-			(poolID,) = PoolUtils.poolID( arbToken2, wbtc );
+			(poolID,) = PoolUtils._poolID( arbToken2, wbtc );
 			_profitsForPools[poolID] += arbitrageProfit;
 
-			(poolID,) = PoolUtils.poolID( wbtc, arbToken3 );
+			(poolID,) = PoolUtils._poolID( wbtc, arbToken3 );
 			_profitsForPools[poolID] += arbitrageProfit;
 
-			(poolID,) = PoolUtils.poolID( arbToken3, weth );
+			(poolID,) = PoolUtils._poolID( arbToken3, weth );
 			_profitsForPools[poolID] += arbitrageProfit;
 			}
 		}
@@ -139,7 +139,7 @@ contract PoolStats is IPoolStats
 	// The 30 minute exponential average of the reserve ratios: reserveA / reserveB
 	function averageReserveRatio( IERC20 tokenA, IERC20 tokenB ) public view returns (bytes16 averageRatio)
 		{
-		(bytes32 poolID, bool flipped) = PoolUtils.poolID(tokenA, tokenB);
+		(bytes32 poolID, bool flipped) = PoolUtils._poolID(tokenA, tokenB);
 
 		averageRatio = averageReserveRatios[poolID];
 		if ( ABDKMathQuad.eq( averageRatio, ZERO ) )

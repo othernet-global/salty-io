@@ -35,8 +35,8 @@ contract TestEmissions is Deployment
 		IERC20 token2 = new TestERC20("TEST", 18);
 		IERC20 token3 = new TestERC20("TEST", 18);
 
-        (pool1,) = PoolUtils.poolID(token1, token2);
-        (pool2,) = PoolUtils.poolID(token2, token3);
+        (pool1,) = PoolUtils._poolID(token1, token2);
+        (pool2,) = PoolUtils._poolID(token2, token3);
 		vm.stopPrank();
 
 		// Whitelist pools

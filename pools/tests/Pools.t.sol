@@ -421,7 +421,7 @@ contract TestPools2 is Deployment
 //        assertEq(0, pools.getTotalReserveForToken(nonExistentToken)); // will fail on nonExistentToken.balanceOf
 
         assertEq(0, pools.getUserLiquidity(address(0), tokens[0], nonExistentToken));
-        (bytes32 poolID,) = PoolUtils.poolID(tokens[0], nonExistentToken);
+        (bytes32 poolID,) = PoolUtils._poolID(tokens[0], nonExistentToken);
         assertEq(0, pools.totalLiquidity(poolID));
 
 		// Will fail due to reliance on balance of
@@ -440,7 +440,7 @@ contract TestPools2 is Deployment
    		vm.startPrank(DEPLOYER);
         assertEq(0, pools.depositedBalance(address(DEPLOYER), undepositedToken));
         assertEq(0, pools.getUserLiquidity(address(DEPLOYER), tokens[0], undepositedToken));
-        (poolID,) = PoolUtils.poolID(tokens[0], undepositedToken);
+        (poolID,) = PoolUtils._poolID(tokens[0], undepositedToken);
         assertEq(0, pools.totalLiquidity(poolID));
 
         vm.expectRevert("ERC20: insufficient allowance");
@@ -653,7 +653,7 @@ contract TestPools2 is Deployment
     	assertEq(userLiquidity, 500 ether, "User liquidity mismatch");
 
     	// View total liquidity
-    	(bytes32 poolID,) = PoolUtils.poolID(token0, token1);
+    	(bytes32 poolID,) = PoolUtils._poolID(token0, token1);
     	uint256 totalLiquidity = pools.totalLiquidity(poolID);
     	assertEq(totalLiquidity, 1000 ether, "Total liquidity mismatch");
 
@@ -700,13 +700,13 @@ contract TestPools2 is Deployment
         bytes32 poolID;
         bool flipped;
 
-        (poolID, flipped) = PoolUtils.poolID(IERC20(address(0x111)), IERC20(address(0x222)));
+        (poolID, flipped) = PoolUtils._poolID(IERC20(address(0x111)), IERC20(address(0x222)));
         assertFalse(flipped, "Expected PoolUtils.poolID to return flipped as false");
 
-        (poolID, flipped) = PoolUtils.poolID(IERC20(address(0x222)), IERC20(address(0x111)));
+        (poolID, flipped) = PoolUtils._poolID(IERC20(address(0x222)), IERC20(address(0x111)));
         assertTrue(flipped, "Expected PoolUtils.poolID to return flipped as true");
 
-    	(poolID,) = PoolUtils.poolID(token0, token1);
+    	(poolID,) = PoolUtils._poolID(token0, token1);
         uint256 totalLiquidity = pools.totalLiquidity(poolID);
         assertEq(totalLiquidity, 1000 ether, "Expected totalLiquidity to return 1000 ether");
 
@@ -922,7 +922,7 @@ contract TestPools2 is Deployment
 			// Alice removes her liquidity
 			uint256 aliceLiquidity = pools.getUserLiquidity( alice, token0, token1 );
 			_assertAlmostEqual( aliceLiquidity, 141421356237309504880 );
-			(bytes32 poolID,) = PoolUtils.poolID(token0, token1);
+			(bytes32 poolID,) = PoolUtils._poolID(token0, token1);
 			_assertAlmostEqual( pools.totalLiquidity(poolID), 212132034355964257319 + pools.getUserLiquidity( charlie, token0, token1 ) );
 	//		console.log( "aliceLiquidity: ", aliceLiquidity );
 	//		console.log( "totalLiquidity: ", pools.getTotalLiquidity(token0,token1) );
@@ -972,7 +972,7 @@ contract TestPools2 is Deployment
 		poolsConfig.whitelistPool(pools, token0, token1);
 
    		vm.startPrank(DEPLOYER);
-		(bytes32 poolID,) = PoolUtils.poolID(token0, token1);
+		(bytes32 poolID,) = PoolUtils._poolID(token0, token1);
 
 		// alice, bob and charlie initially have 1000 of each token
     	token0.transfer(alice, 1000 ether);
@@ -1570,7 +1570,7 @@ function testMinLiquidityAndReclaimedAmounts() public {
 
 
 			// Check that we hold all the liquidity
-			(bytes32 poolID,) = PoolUtils.poolID(tokenA, tokenB);
+			(bytes32 poolID,) = PoolUtils._poolID(tokenA, tokenB);
 			assertEq( pools.totalLiquidity(poolID), pools.getUserLiquidity(address(this), tokenA, tokenB) );
 
         }
@@ -1606,7 +1606,7 @@ function testMinLiquidityAndReclaimedAmounts() public {
       vm.startPrank(address(poolsConfig));
 
       // Whitelist tokens[0] and tokens[1] by calling setIsWhitelisted() function
-      (bytes32 tokenPairID,) = PoolUtils.poolID(tokens[0], tokens[1]);
+      (bytes32 tokenPairID,) = PoolUtils._poolID(tokens[0], tokens[1]);
       _pools.setIsWhitelisted(tokenPairID);
 
       // Check that the tokens are whitelisted as expected
@@ -1701,7 +1701,7 @@ function testMinLiquidityAndReclaimedAmounts() public {
 
 	// A unit test that verifies that the clearIsWhitelistedCache can only be called from the PoolsConfig contract.
 	function testClearIsWhitelistedCacheOnlyCallableFromPoolsConfig() public {
-        (bytes32 poolID,) = PoolUtils.poolID(tokens[0], tokens[1]);
+        (bytes32 poolID,) = PoolUtils._poolID(tokens[0], tokens[1]);
 
         // Try to call clearIsWhitelisted as bob, which should fail
         vm.startPrank(bob);

@@ -155,7 +155,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		require( maxAmountA > PoolUtils.DUST, "The amount of tokenA to add is too small" );
 		require( maxAmountB > PoolUtils.DUST, "The amount of tokenB to add is too small" );
 
-		(bytes32 poolID, bool flipped) = PoolUtils.poolID(tokenA, tokenB);
+		(bytes32 poolID, bool flipped) = PoolUtils._poolID(tokenA, tokenB);
 
 		// Note that addedAmountA and addedAmountB here are in reserve token order and may be flipped from the call token order specified in the arguments.
 		(addedAmountA, addedAmountB, addedLiquidity) = _addLiquidity( poolID, flipped, tokenA, tokenB, maxAmountA, maxAmountB );
@@ -182,7 +182,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		{
 		require( liquidityToRemove > 0, "The amount of liquidityToRemove cannot be zero" );
 
-		(bytes32 poolID, bool flipped) = PoolUtils.poolID(tokenA, tokenB);
+		(bytes32 poolID, bool flipped) = PoolUtils._poolID(tokenA, tokenB);
 
 		uint256 _totalLiquidity = totalLiquidity[poolID];
 		require( _userLiquidity[msg.sender][poolID] >= liquidityToRemove, "Cannot remove more liquidity than the current balance" );
@@ -242,7 +242,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	// Only the reserves are updated - the function does not adjust deposited user balances or do ERC20 transfers.
     function _adjustReservesForSwap( IERC20 tokenIn, IERC20 tokenOut, uint256 amountIn ) internal returns (uint256 amountOut)
     	{
-        (bytes32 poolID, bool flipped) = PoolUtils.poolID(tokenIn, tokenOut);
+        (bytes32 poolID, bool flipped) = PoolUtils._poolID(tokenIn, tokenOut);
 
         PoolReserves storage reserves = _poolReserves[poolID];
         uint256 reserve0 = reserves.reserve0;
@@ -381,7 +381,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	function _adjustReservesAndAttemptArbitrage( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut ) internal returns (uint256 swapAmountOut)
 		{
 		// See if tokenIn and tokenOut are whitelisted and therefore can have direct liquidity in the pool
-		(bytes32 poolID,) = PoolUtils.poolID(swapTokenIn, swapTokenOut);
+		(bytes32 poolID,) = PoolUtils._poolID(swapTokenIn, swapTokenOut);
 		bool isWhitelistedPair = _isWhitelistedCache[poolID];
 
 		if ( isWhitelistedPair )
@@ -567,7 +567,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	// The reserves are returned in the order specified by the token arguments - which may not be the address(tokenA) < address(tokenB) order stored in the PoolInfo struct itself.
 	function getPoolReserves(IERC20 tokenA, IERC20 tokenB) public view returns (uint256 reserveA, uint256 reserveB)
 		{
-		(bytes32 poolID, bool flipped) = PoolUtils.poolID(tokenA, tokenB);
+		(bytes32 poolID, bool flipped) = PoolUtils._poolID(tokenA, tokenB);
 		PoolReserves memory reserves = _poolReserves[poolID];
 		reserveA = reserves.reserve0;
 		reserveB = reserves.reserve1;
@@ -588,7 +588,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	// A user's liquidity in a pool
 	function getUserLiquidity(address user, IERC20 tokenA, IERC20 tokenB) public view returns (uint256)
 		{
-		(bytes32 poolID,) = PoolUtils.poolID(tokenA, tokenB);
+		(bytes32 poolID,) = PoolUtils._poolID(tokenA, tokenB);
 
 		return _userLiquidity[user][poolID];
 		}

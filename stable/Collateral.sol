@@ -62,7 +62,7 @@ contract Collateral is Liquidity, ICollateral
 		wbtcDecimals = ERC20(address(wbtc)).decimals();
 		wethDecimals = ERC20(address(weth)).decimals();
 
-        (collateralPoolID,) = PoolUtils.poolID( wbtc, weth );
+        (collateralPoolID,) = PoolUtils._poolID( wbtc, weth );
     	}
 
 

@@ -19,7 +19,7 @@ library PoolUtils
     // Return the unique poolID for the given two tokens.
     // Tokens are sorted before being hashed to make reversed pairs equivalent.
     // flipped = address(tokenB) < address(tokenA)
-    function poolID( IERC20 tokenA, IERC20 tokenB ) internal pure returns (bytes32 _poolID, bool _flipped)
+    function _poolID( IERC20 tokenA, IERC20 tokenB ) internal pure returns (bytes32 poolID, bool flipped)
     	{
         // See if the token orders are flipped
         if ( uint160(address(tokenB)) < uint160(address(tokenA)) )

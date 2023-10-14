@@ -113,8 +113,7 @@ contract TestUpkeep2 is Deployment
 		vm.prank(DEPLOYER);
 		salt.transfer(address(initialDistribution), 100000000 ether);
 
-		vm.prank(DEPLOYER);
-		airdrop.whitelistWallet(alice);
+		whitelistAlice();
 
 //		finalizeBootstrap();
 //		vm.prank(address(daoVestingWallet));
@@ -445,7 +444,7 @@ contract TestUpkeep2 is Deployment
 		assertEq(reserve0, 15 ether);
 		assertEq(reserve1, 30 ether);
 
-		(bytes32 poolID,) = PoolUtils.poolID(salt, usds);
+		(bytes32 poolID,) = PoolUtils._poolID(salt, usds);
 
 		// liquidity should hold the actually LP in the Pools contract
     	assertEq( pools.getUserLiquidity(address(liquidity), salt, usds), pools.totalLiquidity(poolID) );
@@ -506,10 +505,10 @@ contract TestUpkeep2 is Deployment
     	vm.stopPrank();
 
 		bytes32[] memory poolIDs = new bytes32[](4);
-		(poolIDs[0],) = PoolUtils.poolID(salt,weth);
-		(poolIDs[1],) = PoolUtils.poolID(salt,wbtc);
-		(poolIDs[2],) = PoolUtils.poolID(wbtc,weth);
-		(poolIDs[3],) = PoolUtils.poolID(salt,usds);
+		(poolIDs[0],) = PoolUtils._poolID(salt,weth);
+		(poolIDs[1],) = PoolUtils._poolID(salt,wbtc);
+		(poolIDs[2],) = PoolUtils._poolID(wbtc,weth);
+		(poolIDs[3],) = PoolUtils._poolID(salt,usds);
 
 		// Add some dummy initial liquidity
 		vm.prank(address(collateral));
@@ -539,7 +538,7 @@ contract TestUpkeep2 is Deployment
 
 		// Check that 10% of the rewards were sent to the SALT/USDS liquidityRewardsEmitter
 		bytes32[] memory poolIDsB = new bytes32[](1);
-		(poolIDsB[0],) = PoolUtils.poolID(salt, usds);
+		(poolIDsB[0],) = PoolUtils._poolID(salt, usds);
 		assertEq( liquidityRewardsEmitter.pendingRewardsForPools(poolIDsB)[0], 10 ether );
 
 		// Check that rewards were sent to the stakingRewardsEmitter
@@ -570,10 +569,10 @@ contract TestUpkeep2 is Deployment
     	vm.stopPrank();
 
 		bytes32[] memory poolIDs = new bytes32[](4);
-		(poolIDs[0],) = PoolUtils.poolID(salt,weth);
-		(poolIDs[1],) = PoolUtils.poolID(salt,wbtc);
-		(poolIDs[2],) = PoolUtils.poolID(wbtc,weth);
-		(poolIDs[3],) = PoolUtils.poolID(salt,usds);
+		(poolIDs[0],) = PoolUtils._poolID(salt,weth);
+		(poolIDs[1],) = PoolUtils._poolID(salt,wbtc);
+		(poolIDs[2],) = PoolUtils._poolID(wbtc,weth);
+		(poolIDs[3],) = PoolUtils._poolID(salt,usds);
 
 		// Add some dummy initial liquidity
 		vm.prank(address(collateral));
@@ -635,7 +634,7 @@ contract TestUpkeep2 is Deployment
 
 		// DAO should have formed SALT/USDS liquidity and owns all the shares
 		// Mimic reward emission
-		(bytes32 poolID,) = PoolUtils.poolID(salt, usds);
+		(bytes32 poolID,) = PoolUtils._poolID(salt, usds);
 		AddedReward[] memory addedRewards = new AddedReward[](1);
 		addedRewards[0] = AddedReward( poolID, 100 ether );
 

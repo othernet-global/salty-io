@@ -56,7 +56,7 @@ contract Deployment is Test
 	IForcedPriceFeed public forcedPriceFeed = IForcedPriceFeed(address(0x3B0Eb37f26b502bAe83df4eCc54afBDfb90B5d3a));
 
 	// The DAO contract can provide us with all other contract addresses in the protocol
-	IDAO public dao = IDAO(address(0x1eA2c39f6E135A26D86022fD481b5b6CFe278aad));
+	IDAO public dao = IDAO(address(0x8FbA07A1Cc4EFA10fc387230845E88a9323dD691));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));
@@ -261,15 +261,36 @@ contract Deployment is Test
 		}
 
 
+	function whitelistAlice() public
+		{
+		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
+		vm.prank(address(0x1111));
+		airdrop.whitelistWallet(sig);
+		}
+
+
+	function whitelistBob() public
+		{
+		bytes memory sig = abi.encodePacked(hex"98ea2c8a10e4fc75b13147210b54aaaf5d45922fa576ca9968db642afa6241b100bcb8139fd7f4fce46b028a68941769f70b3085375c9ae22d69d80fc35f90551c");
+		vm.prank(address(0x2222));
+		airdrop.whitelistWallet(sig);
+		}
+
+
+	function whitelistCharlie() public
+		{
+		bytes memory sig = abi.encodePacked(hex"8c7115467b37b4409a2781c8aa4ac8b3eb3a75542ec698b675a1c92c88e018db2ea8edd25c67920a980ae969ac5a77fb0bb1a2b0e0ffffe2edb823bb84b3ee141b");
+		vm.prank(address(0x3333));
+		airdrop.whitelistWallet(sig);
+		}
+
 	function finalizeBootstrap() public
 		{
 		address alice = address(0x1111);
 		address bob = address(0x2222);
 
-		vm.startPrank(DEPLOYER);
-		airdrop.whitelistWallet(alice);
-		airdrop.whitelistWallet(bob);
-		vm.stopPrank();
+		whitelistAlice();
+		whitelistBob();
 
 		// Voting stage (yesVotes: 2, noVotes: 0)
 		uint256[] memory regionalVotes = new uint256[](5);

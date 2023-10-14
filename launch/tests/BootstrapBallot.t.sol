@@ -125,17 +125,14 @@ contract TestBootstrapBallot is Deployment
 		grantAccessDeployer();
 		grantAccessDefault();
 
-		vm.prank(DEPLOYER);
-		airdrop.whitelistWallet(alice);
+		whitelistAlice();
 		}
 
 
     // A unit test to check the finalizeBallot function when ballotFinalized is false, the current timestamp is greater than completionTimestamp, and yesVotes are more than noVotes. Verify that the InitialDistribution.distributionApproved function is called.
 	function test_finalizeBallot() public {
-		vm.startPrank(DEPLOYER);
-		airdrop.whitelistWallet(alice);
-		airdrop.whitelistWallet(bob);
-		vm.stopPrank();
+		whitelistAlice();
+    	whitelistBob();
 
         // Voting stage (yesVotes: 2, noVotes: 0)
         vm.startPrank(alice);
@@ -162,10 +159,8 @@ contract TestBootstrapBallot is Deployment
 
     // A unit test to check the finalizeBallot function when ballotFinalized is false, the current timestamp is less than completionTimestamp. Verify that it throws an error as ballot duration is not yet complete.
 	function test_finalizeBallotNotComplete() public {
-		vm.startPrank(DEPLOYER);
-		airdrop.whitelistWallet(alice);
-		airdrop.whitelistWallet(bob);
-		vm.stopPrank();
+		whitelistAlice();
+		whitelistBob();
 
         // Voting stage (yesVotes: 2, noVotes: 0)
         vm.startPrank(alice);
@@ -193,10 +188,8 @@ contract TestBootstrapBallot is Deployment
 
     // A unit test to check the finalizeBallot function when ballotFinalized is already true. Verify that it throws an error stating the ballot has already been finalized.
 	function test_finalizeBallotAlreadyFinalized() public {
-		vm.startPrank(DEPLOYER);
-		airdrop.whitelistWallet(alice);
-		airdrop.whitelistWallet(bob);
-		vm.stopPrank();
+		whitelistAlice();
+		whitelistBob();
 
         // Voting stage (yesVotes: 2, noVotes: 0)
         vm.startPrank(alice);
@@ -226,10 +219,8 @@ contract TestBootstrapBallot is Deployment
 
     // A unit test to check the finalizeBallot function when yesVotes are less than noVotes. Verify that the InitialDistribution.distributionApproved function is not called.
 	function test_finalizeBallotFailedVote() public {
-		vm.startPrank(DEPLOYER);
-		airdrop.whitelistWallet(alice);
-		airdrop.whitelistWallet(bob);
-		vm.stopPrank();
+		whitelistAlice();
+		whitelistBob();
 
         // Voting stage (yesVotes: 2, noVotes: 0)
         vm.startPrank(alice);
@@ -256,11 +247,9 @@ contract TestBootstrapBallot is Deployment
 
     // A unit test to check the vote function when the voter is whitelisted, has exchange access, and has not yet voted. Verify that the vote count is correctly incremented and the voter is marked as having voted.
     function test_vote() public {
-        vm.startPrank(DEPLOYER);
-        airdrop.whitelistWallet(alice);
-        airdrop.whitelistWallet(bob);
-        airdrop.whitelistWallet(charlie);
-        vm.stopPrank();
+		whitelistAlice();
+		whitelistBob();
+		whitelistCharlie();
 
         // Cast votes (yesVotes: 2, noVotes: 1)
         vm.startPrank(alice);
@@ -297,8 +286,7 @@ contract TestBootstrapBallot is Deployment
 
     // A unit test to check the vote function when the voter has already voted. Verify that it throws an error stating the user already voted.
     function test_votesTwice() public {
-        vm.prank(DEPLOYER);
-        airdrop.whitelistWallet(alice);
+		whitelistAlice();
 
         // Alice casts her vote
         vm.startPrank(alice);
@@ -358,10 +346,8 @@ contract TestBootstrapBallot is Deployment
 
     // A unit test to check the finalizeBallot function when yesVotes are equal to noVotes. Verify that the InitialDistribution.distributionApproved function is not called.
 	function test_finalizeBallotTieVote() public {
-		vm.startPrank(DEPLOYER);
-		airdrop.whitelistWallet(alice);
-		airdrop.whitelistWallet(bob);
-		vm.stopPrank();
+		whitelistAlice();
+		whitelistBob();
 
         // Voting stage (yesVotes: 1, noVotes: 1)
         vm.startPrank(alice);
@@ -404,9 +390,7 @@ contract TestBootstrapBallot is Deployment
 
         // A unit test to check if the mapping hasVoted correctly recognizes an address after that address has called the vote function.
         function test_MapHasVotedAfterVoteCalled() public {
-            vm.startPrank(DEPLOYER);
-            airdrop.whitelistWallet(alice);
-            vm.stopPrank();
+			whitelistAlice();
 
             // Vote stage
             vm.startPrank(alice);
@@ -422,9 +406,7 @@ contract TestBootstrapBallot is Deployment
 
         // A unit test to check that regional exclusion tallies update correct on voting
         function _testRegionalExclusionVoting( uint256 votingIndex ) public {
-            vm.startPrank(DEPLOYER);
-            airdrop.whitelistWallet(alice);
-            vm.stopPrank();
+			whitelistAlice();
 
             assertTrue(bootstrapBallot.geoExclusionYes()[votingIndex] == 0, "Shouldn't be an initial yes vote");
 
@@ -476,9 +458,7 @@ contract TestBootstrapBallot is Deployment
 
         // A unit test to check that regional exclusion tallies update correct on voting
         function _testRegionalExclusionVotingNo( uint256 votingIndex ) public {
-            vm.startPrank(DEPLOYER);
-            airdrop.whitelistWallet(alice);
-            vm.stopPrank();
+			whitelistAlice();
 
             assertTrue(bootstrapBallot.geoExclusionNo()[votingIndex] == 0, "Shouldn't be an initial yes vote");
 
@@ -526,11 +506,9 @@ contract TestBootstrapBallot is Deployment
 
         // A unit test to check that regional exclusion tallies update correct on voting
         function testMultipleRegionalExclusionVotes() public {
-            vm.startPrank(DEPLOYER);
-            airdrop.whitelistWallet(alice);
-            airdrop.whitelistWallet(bob);
-            airdrop.whitelistWallet(charlie);
-            vm.stopPrank();
+			whitelistAlice();
+			whitelistBob();
+			whitelistCharlie();
 
             assertTrue(bootstrapBallot.geoExclusionNo()[0] == 0, "Shouldn't be an initial yes vote");
             assertTrue(bootstrapBallot.geoExclusionYes()[0] == 0, "Shouldn't be an initial yes vote");

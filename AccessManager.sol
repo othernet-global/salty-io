@@ -3,6 +3,7 @@ pragma solidity =0.8.21;
 
 import "./interfaces/IAccessManager.sol";
 import "./dao/interfaces/IDAO.sol";
+import "./SigningTools.sol";
 
 
 // A simple AccessManager in which user IP is mapped offchain to a geolocation and then whitelisted user status is stored in the contract.
@@ -18,8 +19,6 @@ import "./dao/interfaces/IDAO.sol";
 
 contract AccessManager is IAccessManager
 	{
-	address constant public EXPECTED_SIGNER = 0x1234519DCA2ef23207E1CA7fd70b96f281893bAa;
-
     uint256 public geoVersion;
     mapping(uint256 => mapping(address => bool)) private _walletsWithAccess;
 
@@ -44,30 +43,13 @@ contract AccessManager is IAccessManager
     	}
 
 
-	function _slice32(bytes memory array, uint index) internal pure returns (bytes32 result)
-		{
-		result = 0;
-
-		for (uint i = 0; i < 32; i++)
-			{
-			uint8 temp = uint8(array[index+i]);
-			result |= bytes32((uint(temp) & 0xFF) * 2**(8*(31-i)));
-			}
-		}
-
-
 	// Verify that the whitelist was signed by the authoratative signer.
 	// Note that this is only the default mechanism and can be changed by the DAO at any time (either aletering the regional restrictions themselves or replacing the access mechanism entirely).
     function verifyWhitelist(address wallet, bytes memory signature ) public view returns (bool)
     	{
-		bytes32 r = _slice32(signature, 0);
-		bytes32 s = _slice32(signature, 32);
-		uint8 v = uint8(signature[64]);
-
 		bytes32 messageHash = keccak256(abi.encodePacked(geoVersion, wallet));
-		address recoveredAddress = ecrecover(messageHash, v, r, s);
 
-        return (recoveredAddress == EXPECTED_SIGNER);
+		return SigningTools._verifySignature(messageHash, signature);
     	}
 
 
@@ -75,7 +57,7 @@ contract AccessManager is IAccessManager
 	// Requires the accompanying correct message signature from the offchain verifier.
     function grantAccess(bytes memory signature) public
     	{
-    	require( verifyWhitelist(msg.sender, signature), "Incorrect grantAccess signer" );
+    	require( verifyWhitelist(msg.sender, signature), "Incorrect AccessManager.grantAccess signer" );
 
         _walletsWithAccess[geoVersion][msg.sender] = true;
     	}

@@ -35,7 +35,7 @@ contract TestCollateral is Deployment
 
 		priceAggregator.performUpkeep();
 
-		(collateralPoolID,) = PoolUtils.poolID( wbtc, weth );
+		(collateralPoolID,) = PoolUtils._poolID( wbtc, weth );
 
 		// Mint some USDS to the DEPLOYER
 		vm.prank( address(collateral) );

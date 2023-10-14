@@ -42,7 +42,7 @@ contract SharedRewardsTest is Deployment
 		// Pools for testing
         poolIDs = new bytes32[](2);
         poolIDs[0] = PoolUtils.STAKED_SALT;
-        (poolIDs[1],) = PoolUtils.poolID(token1, token2);
+        (poolIDs[1],) = PoolUtils._poolID(token1, token2);
 
         // This contract approves max so that SALT rewards can be added
         salt.approve(address(stakingRewards), type(uint256).max);

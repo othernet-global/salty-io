@@ -190,8 +190,8 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 			poolsConfig.whitelistPool(pools,  IERC20(ballot.address1), exchangeConfig.wbtc() );
 			poolsConfig.whitelistPool(pools,  IERC20(ballot.address1), exchangeConfig.weth() );
 
-			(bytes32 pool1,) = PoolUtils.poolID( IERC20(ballot.address1), exchangeConfig.wbtc() );
-			(bytes32 pool2,) = PoolUtils.poolID( IERC20(ballot.address1), exchangeConfig.weth() );
+			(bytes32 pool1,) = PoolUtils._poolID( IERC20(ballot.address1), exchangeConfig.wbtc() );
+			(bytes32 pool2,) = PoolUtils._poolID( IERC20(ballot.address1), exchangeConfig.weth() );
 
 
 			uint256 bootstrappingRewards = daoConfig.bootstrappingRewards();
@@ -278,7 +278,7 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 
 		// The DAO owns SALT/USDS which it forms on an ongoing basis
 		bytes32[] memory protocolOwnedLiquidityPoolIDs = new bytes32[](1);
-		(protocolOwnedLiquidityPoolIDs[0],) = PoolUtils.poolID(salt, usds);
+		(protocolOwnedLiquidityPoolIDs[0],) = PoolUtils._poolID(salt, usds);
 
 		uint256 claimedAmount = liquidity.claimAllRewards(protocolOwnedLiquidityPoolIDs);
 

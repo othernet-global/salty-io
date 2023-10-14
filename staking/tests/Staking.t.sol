@@ -39,8 +39,8 @@ contract StakingTest is Deployment
 
         poolIDs = new bytes32[](3);
         poolIDs[0] = PoolUtils.STAKED_SALT;
-        (poolIDs[1],) = PoolUtils.poolID(token1, token2);
-        (poolIDs[2],) = PoolUtils.poolID(token2, token3);
+        (poolIDs[1],) = PoolUtils._poolID(token1, token2);
+        (poolIDs[2],) = PoolUtils._poolID(token2, token3);
 
         // Whitelist lp
 		vm.startPrank( address(dao) );

@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.21;
 
+import "forge-std/Test.sol";
 import "./interfaces/IAirdrop.sol";
-import "../openzeppelin/access/Ownable.sol";
 import "../openzeppelin/utils/structs/EnumerableSet.sol";
 import "../interfaces/IExchangeConfig.sol";
 import "../staking/interfaces/IStaking.sol";
 import "../openzeppelin/security/ReentrancyGuard.sol";
+import "../SigningTools.sol";
 
 
 // The Airdrop contract keeps track of users who qualify for the Salty.IO Airdrop (participants of prominent DeFi protocols who perform a basic social media task).
 // The airdrop participants are able to claim staked SALT after the airdrop whitelisting period has ending (after the BootingstappingBallot has concluded).
-contract Airdrop is IAirdrop, Ownable, ReentrancyGuard
+contract Airdrop is IAirdrop, ReentrancyGuard
     {
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -39,29 +40,16 @@ contract Airdrop is IAirdrop, Ownable, ReentrancyGuard
 		}
 
 
-	// Whitelist a wallet as being able to claim the airdrop and vote in the BootstappingBallot
-    function whitelistWallet( address wallet ) public onlyOwner
+	// Whitelist the msg.sender as being able to claim the airdrop and vote in the BootstappingBallot.
+	// Requires a valid signature to authorize that the wallet should actually be whitelisted.
+    function whitelistWallet( bytes memory signature ) public
     	{
     	require( ! claimingAllowed, "Cannot whitelist after claiming is allowed" );
 
-		_whitelist.add(wallet);
-    	}
+		bytes32 messageHash = keccak256(abi.encodePacked(msg.sender));
+		require(SigningTools._verifySignature(messageHash, signature), "Incorrect Airdrop.whitelistWallet signer" );
 
-
-	// Whitelist multiple wallets as being able to claim the airdrop and vote in the BootstappingBallot
-    function whitelistWallets( address[] memory wallets ) public onlyOwner
-    	{
-    	require( ! claimingAllowed, "Cannot whitelist after claiming is allowed" );
-
-    	for ( uint256 i = 0; i < wallets.length; i++ )
-			_whitelist.add(wallets[i]);
-    	}
-
-
-	// Unwhitelist a specified wallet
-    function unwhitelistWallet( address wallet ) public onlyOwner
-    	{
-		_whitelist.remove(wallet);
+		_whitelist.add(msg.sender);
     	}
 
 

@@ -53,7 +53,7 @@ contract Liquidity is ILiquidity, StakingRewards
 
 		// Avoid stack too deep
 			{
-			(bytes32 poolID,) = PoolUtils.poolID( tokenA, tokenB );
+			(bytes32 poolID,) = PoolUtils._poolID( tokenA, tokenB );
 
 			// Increase the user's liquidity share by the amount of addedLiquidity.
 			// Cooldown is specified to prevent reward hunting (ie - quickly depositing and withdrawing large amounts of liquidity to snipe rewards)
@@ -79,7 +79,7 @@ contract Liquidity is ILiquidity, StakingRewards
 		// Make sure that the DAO isn't trying to remove liquidity
 		require( msg.sender != address(exchangeConfig.dao()), "DAO is not allowed to withdraw liquidity" );
 
-		(bytes32 poolID,) = PoolUtils.poolID( tokenA, tokenB );
+		(bytes32 poolID,) = PoolUtils._poolID( tokenA, tokenB );
 
 		// Reduce the user's liqudiity share for the specified pool so that they receive less rewards.
 		// Cooldown is specified to prevent reward hunting (ie - quickly depositing and withdrawing large amounts of liquidity to snipe rewards)

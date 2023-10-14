@@ -27,10 +27,10 @@ contract TestPoolStats is Test, PoolStats
 	PoolStats(deployment.exchangeConfig())
 		{
 		// Different decimals
-		(poolID,) = PoolUtils.poolID( tokenA, tokenB );
+		(poolID,) = PoolUtils._poolID( tokenA, tokenB );
 
 		// Same decimals
-		(poolID2,) = PoolUtils.poolID( tokenB, tokenC );
+		(poolID2,) = PoolUtils._poolID( tokenB, tokenC );
 		}
 
 
@@ -172,7 +172,7 @@ contract TestPoolStats is Test, PoolStats
         uint256 initialProfit;
         uint256 arbitrageProfit = 0;  // no profit
 
-        (poolID,) = PoolUtils.poolID( arbToken2, arbToken3 );
+        (poolID,) = PoolUtils._poolID( arbToken2, arbToken3 );
         initialProfit = _profitsForPools[poolID];
 
         _updateProfitsFromArbitrage(isWhitelistedPair, arbToken2, arbToken3, wbtc, exchangeConfig.weth(), arbitrageProfit);
@@ -188,7 +188,7 @@ contract TestPoolStats is Test, PoolStats
         IERC20 arbToken3 = tokenB;
         uint256 arbitrageProfit = 1 ether;
 
-        (poolID,) = PoolUtils.poolID( arbToken2, arbToken3 );
+        (poolID,) = PoolUtils._poolID( arbToken2, arbToken3 );
 
         uint256 initialProfit = _profitsForPools[poolID];
 
@@ -206,8 +206,8 @@ contract TestPoolStats is Test, PoolStats
 
         _updateProfitsFromArbitrage(isWhitelistedPair, tokenA, tokenC, wbtc, exchangeConfig.weth(), arbitrageProfit);
 
-        (bytes32 poolIDA,) = PoolUtils.poolID( tokenA, wbtc );
-        (bytes32 poolIDB,) = PoolUtils.poolID( tokenC, wbtc );
+        (bytes32 poolIDA,) = PoolUtils._poolID( tokenA, wbtc );
+        (bytes32 poolIDB,) = PoolUtils._poolID( tokenC, wbtc );
 
         // Check that the profits for the non-whitelisted pairs are updated correctly
         assertEq(_profitsForPools[poolIDA], arbitrageProfit / 4, "Profit for the second pair should be updated");
@@ -249,7 +249,7 @@ contract TestPoolStats is Test, PoolStats
 	// A unit test for `clearProfitsForPools` that verifies an exception is thrown when an unauthorized account tries to call it
 	function testClearProfitsForPoolsNotAuthorized() public {
         bytes32[] memory poolIDs = new bytes32[](1);
-        (poolIDs[0],) = PoolUtils.poolID(tokenA, tokenB);
+        (poolIDs[0],) = PoolUtils._poolID(tokenA, tokenB);
 
         vm.expectRevert("PoolStats.clearProfitsForPools is only callable from the Upkeep contract");
         this.clearProfitsForPools(poolIDs);
@@ -286,13 +286,13 @@ contract TestPoolStats is Test, PoolStats
 		_updateProfitsFromArbitrage(true, tokenB, tokenC, wbtc, exchangeConfig.weth(), 5 ether); // 5 ether profit for arbToken2/arbToken3 pool
 
 		bytes32[] memory poolIDs = new bytes32[](6);
-		(poolIDs[0],) = PoolUtils.poolID(tokenA, tokenB);
-		(poolIDs[1],) = PoolUtils.poolID(tokenA, exchangeConfig.weth());
-		(poolIDs[2],) = PoolUtils.poolID(tokenB, exchangeConfig.weth());
+		(poolIDs[0],) = PoolUtils._poolID(tokenA, tokenB);
+		(poolIDs[1],) = PoolUtils._poolID(tokenA, exchangeConfig.weth());
+		(poolIDs[2],) = PoolUtils._poolID(tokenB, exchangeConfig.weth());
 
-		(poolIDs[3],) = PoolUtils.poolID(tokenB, tokenC);
-		(poolIDs[4],) = PoolUtils.poolID(tokenB, exchangeConfig.weth());
-		(poolIDs[5],) = PoolUtils.poolID(tokenC, exchangeConfig.weth());
+		(poolIDs[3],) = PoolUtils._poolID(tokenB, tokenC);
+		(poolIDs[4],) = PoolUtils._poolID(tokenB, exchangeConfig.weth());
+		(poolIDs[5],) = PoolUtils._poolID(tokenC, exchangeConfig.weth());
 
 		uint256[] memory profits = this.profitsForPools(poolIDs);
 
@@ -322,7 +322,7 @@ contract TestPoolStats is Test, PoolStats
 	// A unit test for `profitsForPools` that verifies it returns zero for pools without profits
 	function testPoolWithoutProfits() public
 	{
-		(bytes32 _poolID2,) = PoolUtils.poolID( tokenA, tokenB );
+		(bytes32 _poolID2,) = PoolUtils._poolID( tokenA, tokenB );
 		// Checking initial profit of pool to be zero
 		assertEq(_profitsForPools[_poolID2], 0, "Initial profit should be zero");
 	}

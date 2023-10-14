@@ -117,8 +117,7 @@ contract TestMaxUpkeep is Deployment
 		grantAccessDeployer();
 		grantAccessDefault();
 
-		vm.prank(DEPLOYER);
-		airdrop.whitelistWallet(alice);
+		whitelistAlice();
 
 		finalizeBootstrap();
 

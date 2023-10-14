@@ -17,7 +17,6 @@ contract TestComprehensive1 is Deployment
 
     function setUp() public
 		{
-
 		grantAccessAlice();
 		grantAccessBob();
 		grantAccessCharlie();
@@ -75,11 +74,9 @@ contract TestComprehensive1 is Deployment
 	function testComprehensive() public
 		{
 		// Start by whitelisting some wallets for the airdrop
-		vm.startPrank(DEPLOYER);
-		airdrop.whitelistWallet(alice);
-		airdrop.whitelistWallet(bob);
-		airdrop.whitelistWallet(charlie);
-		vm.stopPrank();
+		whitelistAlice();
+		whitelistBob();
+		whitelistCharlie();
 
 		// Cast votes for the BootstrapBallot so that the initialDistribution can happen
 		vm.startPrank(alice);

@@ -122,8 +122,7 @@ contract TestAirdrop is Deployment
 		grantAccessDeployer();
 		grantAccessDefault();
 
-		vm.prank(DEPLOYER);
-		airdrop.whitelistWallet(alice);
+		whitelistAlice();
 		}
 
 
@@ -146,9 +145,11 @@ contract TestAirdrop is Deployment
     	// Check that Alice is already whitelisted
     	assertTrue(airdrop.whitelisted(alice), "Alice should be whitelisted");
 
+    	assertFalse(airdrop.whitelisted(bob), "Bob shouldn't be whitelisted");
+
     	// Whitelist Bob
-    	vm.prank(DEPLOYER);
-    	airdrop.whitelistWallet(bob);
+    	whitelistBob();
+
     	assertTrue(airdrop.whitelisted(bob), "Bob should be whitelisted");
 
     	// Try to whitelist when claimingAllowed is true, expect to revert
@@ -156,45 +157,9 @@ contract TestAirdrop is Deployment
     	airdrop.allowClaiming();
 
     	vm.expectRevert("Cannot whitelist after claiming is allowed");
-    	vm.prank(DEPLOYER);
-    	airdrop.whitelistWallet(bob);
+    	whitelistBob();
     }
 
-
-	// A unit test to examine that the `whitelistWallets` function properly adds multiple non-zero addresses to the `_whitelist` and confirm that the function reverts when `claimingAllowed` is true.
-	function testWhitelistWallets() external {
-        // Whitelist Bob and Alice
-        address[] memory wallets = new address[](2);
-        wallets[0] = alice;
-        wallets[1] = bob;
-        vm.prank(DEPLOYER);
-        airdrop.whitelistWallets(wallets);
-        assertTrue(airdrop.whitelisted(alice), "Alice should be whitelisted");
-        assertTrue(airdrop.whitelisted(bob), "Bob should be whitelisted");
-
-        // Verify the number of whitelisted wallets
-        assertEq(airdrop.numberWhitelisted(), 2, "The number of whitelisted wallets should be 2");
-
-        // Try to whitelist when claimingAllowed is true, expect to revert
-        vm.prank(address(initialDistribution));
-        airdrop.allowClaiming();
-
-        vm.expectRevert("Cannot whitelist after claiming is allowed");
-        vm.prank(DEPLOYER);
-        airdrop.whitelistWallets(wallets);
-    }
-
-
-	// A unit test to confirm that the `unwhitelistWallet` function successfully removes an already whitelisted address from the `_whitelist`.
-	function testUnwhitelistWallet() external {
-		// Check that Alice is already whitelisted
-		assertTrue(airdrop.whitelisted(alice), "Alice should already be whitelisted");
-
-		// Unwhitelist Alice
-		vm.prank(DEPLOYER);
-		airdrop.unwhitelistWallet(alice);
-		assertFalse(airdrop.whitelisted(alice), "Alice should now be unwhitelisted");
-	}
 
 
 	// A unit test to verify that the `allowClaiming` function sets `claimingAllowed` to true and calculate `saltAmountForEachUser` correctly when the number of whitelisted addresses is more than zero and the caller is the `InitialDistribution` contract.
@@ -225,25 +190,17 @@ contract TestAirdrop is Deployment
 
 	// A unit test to confirm that the `allowClaiming` function reverts when the number of whitelisted addresses is zero or the caller is not the `InitialDistribution` contract.
 	function testAllowClaimingRevert() external {
+		airdrop = new Airdrop(exchangeConfig, staking);
+
         // Check that claiming is initially not allowed
         assertFalse(airdrop.claimingAllowed(), "Claiming should not be allowed initially");
-
-        // Try to allow claiming when the number of whitelisted addresses is zero, expect to revert with the message "No addresses whitelisted to claim airdrop."
-        // Ensure all whitelisted wallets are unwhitelisted.
-        for (uint256 i = 0; i < airdrop.numberWhitelisted(); i++)
-        	{
-            address wallet = airdrop.whitelistedWallets()[i];
-            vm.prank(DEPLOYER);
-            airdrop.unwhitelistWallet(wallet);
-        	}
 
         vm.expectRevert("No addresses whitelisted to claim airdrop.");
         vm.prank(address(initialDistribution));
         airdrop.allowClaiming();
 
         // Whitelist a wallet.
-        vm.prank(DEPLOYER);
-        airdrop.whitelistWallet(alice);
+		whitelistAlice();
 
         // Try to allow claiming when caller is not the `InitialDistribution` contract, expect to revert
         vm.expectRevert("Airdrop.allowClaiming can only be called by the InitialDistribution contract");
@@ -260,8 +217,7 @@ contract TestAirdrop is Deployment
     	airdrop.claimAirdrop();
 
 		// Whitelist
-    	vm.prank(DEPLOYER);
-    	airdrop.whitelistWallet(alice);
+		whitelistAlice();
 
     	// Approve the distribution to allow claiming
     	vm.prank(address(bootstrapBallot));
@@ -291,8 +247,7 @@ contract TestAirdrop is Deployment
 	// A unit test to verify that the `whitelisted` function returns true for a whitelisted address and false for a non-whitelisted address.
 	function testWhitelistedFunction() public {
         // Whitelist Alice
-        vm.prank(DEPLOYER);
-        airdrop.whitelistWallet(alice);
+		whitelistAlice();
 
         // Verify the Alice is whitelisted
         assertTrue(airdrop.whitelisted(alice), "Alice should be whitelisted");
@@ -309,55 +264,18 @@ contract TestAirdrop is Deployment
     		assertEq(airdrop.numberWhitelisted(), 1, "There should be 1 whitelisted address initially");
 
     		// Whitelist Bob
-    		vm.prank(DEPLOYER);
-    		airdrop.whitelistWallet(bob);
+    		whitelistBob();
 
     		// After whitelisting Bob, there should be two whitelisted addresses
     		assertEq(airdrop.numberWhitelisted(), 2, "There should be 2 whitelisted addresses after adding Bob");
-
-    		// unwhitelist Bob
-    		vm.prank(DEPLOYER);
-    		airdrop.unwhitelistWallet(bob);
-
-    		// After unwhitelisting Bob, there should be one whitelisted addresses (Alice)
-    		assertEq(airdrop.numberWhitelisted(), 1, "There should be 1 whitelisted address after unwhitelisting Bob");
     	}
 
-
-	// A unit test to ensure that the `whitelistedWallets` function returns an array of all whitelisted addresses.
-	function testWhitelistedWallets() external {
-        // Whitelist Alice and Bob
-        address[] memory wallets = new address[](2);
-        wallets[0] = alice;
-        wallets[1] = bob;
-        vm.prank(DEPLOYER);
-        airdrop.whitelistWallets(wallets);
-
-        // Fetch the list of whitelisted wallets
-        address[] memory whitelistedWallets = airdrop.whitelistedWallets();
-        assertEq(whitelistedWallets.length, 2, "There should be two whitelisted wallets");
-
-        // Check if Alice and Bob are in the list
-        bool isAliceFound = false;
-        bool isBobFound = false;
-        for (uint256 i = 0; i < whitelistedWallets.length; i++) {
-            if (whitelistedWallets[i] == alice) {
-                isAliceFound = true;
-            } else if (whitelistedWallets[i] == bob) {
-                isBobFound = true;
-            }
-        }
-        assertTrue(isAliceFound, "Alice should be in the list of whitelisted wallets");
-        assertTrue(isBobFound, "Bob should be in the list of whitelisted wallets");
-    }
 
 
 	// A unit test to ensure that the `claimed` mapping returns true for an address after it has successfully claimed the airdrop.
 	function testClaimAirdrop2() external {
         // Ensure Alice is whitelisted and claiming is allowed
-        vm.startPrank(DEPLOYER);
-        airdrop.whitelistWallet(alice);
-        vm.stopPrank();
+		whitelistAlice();
 
     	vm.prank(address(bootstrapBallot));
     	initialDistribution.distributionApproved();
@@ -390,20 +308,13 @@ contract TestAirdrop is Deployment
     }
 
 
-	// A unit test to check that onlyOwner functions revert when not called by the owner.
-	function testOnlyOwnerFunctionsRevertWhenNotByOwner() external {
-		// Attempt to whitelist an address from a non-owner address and expect to revert
-		vm.expectRevert("Ownable: caller is not the owner");
-		airdrop.whitelistWallet(bob);
+	// A unit test which checks that an incorrect signature for airdrop whitelisting fails
+	function testIncorrectWhitelistingSignature() public
+		{
+		bytes memory sig = abi.encodePacked(hex"1234567890");
 
-		// Attempt to whitelist multiple addresses from a non-owner address and expect to revert
-		vm.expectRevert("Ownable: caller is not the owner");
-		address[] memory wallets = new address[](1);
-		wallets[0] = bob;
-		airdrop.whitelistWallets(wallets);
-
-		// Attempt to unwhitelist an address from a non-owner address and expect to revert
-		vm.expectRevert("Ownable: caller is not the owner");
-		airdrop.unwhitelistWallet(alice);
-	}
+		vm.expectRevert();
+		vm.prank(address(0x1111));
+		airdrop.whitelistWallet(sig);
+		}
 	}

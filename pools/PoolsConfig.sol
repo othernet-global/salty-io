@@ -38,7 +38,7 @@ contract PoolsConfig is IPoolsConfig, Ownable
 		require( _whitelist.length() < maximumWhitelistedPools, "Maximum number of whitelisted pools already reached" );
 		require(tokenA != tokenB, "tokenA and tokenB cannot be the same token");
 
-		(bytes32 poolID, ) = PoolUtils.poolID(tokenA, tokenB);
+		(bytes32 poolID, ) = PoolUtils._poolID(tokenA, tokenB);
 
 		underlyingPoolTokens[poolID] = TokenPair(tokenA, tokenB);
 
@@ -49,7 +49,7 @@ contract PoolsConfig is IPoolsConfig, Ownable
 
 	function unwhitelistPool( IPools pools, IERC20 tokenA, IERC20 tokenB ) public onlyOwner
 		{
-		(bytes32 poolID, ) = PoolUtils.poolID(tokenA,tokenB);
+		(bytes32 poolID, ) = PoolUtils._poolID(tokenA,tokenB);
 
 		if ( _whitelist.remove(poolID) )
 			pools.clearIsWhitelisted(poolID);
@@ -115,8 +115,8 @@ contract PoolsConfig is IPoolsConfig, Ownable
 	function tokenHasBeenWhitelisted( IERC20 token, IERC20 wbtc, IERC20 weth ) public view returns (bool)
 		{
 		// See if the token has been whitelisted with either WBTC or WETH, as all whitelisted tokens are pooled with both WBTC and WETH
-		(bytes32 poolID1,) = PoolUtils.poolID( token, wbtc );
-		(bytes32 poolID2,) = PoolUtils.poolID( token, weth );
+		(bytes32 poolID1,) = PoolUtils._poolID( token, wbtc );
+		(bytes32 poolID2,) = PoolUtils._poolID( token, weth );
 
 		if ( isWhitelisted(poolID1) || isWhitelisted(poolID2) )
 			return true;
