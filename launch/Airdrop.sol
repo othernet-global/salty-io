@@ -41,7 +41,6 @@ contract Airdrop is IAirdrop, ReentrancyGuard
 
 
 	// Authorize the wallet as being able to claim the airdrop.
-	// Only callable by the BootstrapBallot.
     function authorizeWallet( address wallet ) public
     	{
     	require( msg.sender == address(exchangeConfig.initialDistribution().bootstrapBallot()), "Only the BootstrapBallot can call Airdrop.authorizeWallet" );
@@ -75,7 +74,7 @@ contract Airdrop is IAirdrop, ReentrancyGuard
     	require( isAuthorized(msg.sender), "Wallet is not authorized for airdrop" );
     	require( ! claimed[msg.sender], "Wallet already claimed the airdrop" );
 
-		// Have the Airdrop contract stake a specified amount of SALT and then
+		// Have the Airdrop contract stake a specified amount of SALT and then transfer it to the user
 		staking.stakeSALT( saltAmountForEachUser );
 		staking.transferXSaltFromAirdrop( msg.sender, saltAmountForEachUser );
 
