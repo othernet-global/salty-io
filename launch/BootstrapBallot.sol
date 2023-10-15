@@ -53,9 +53,9 @@ contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
 		{
 		require( ! hasVoted[msg.sender], "User already voted" );
 
-		// Verify the signature to confirm voting authorization
+		// Verify the signature to confirm the user is authorized to vote
 		bytes32 messageHash = keccak256(abi.encodePacked(msg.sender));
-		require(SigningTools._verifySignature(messageHash, signature), "Incorrect BootstrapBallot.vote signer" );
+		require(SigningTools._verifySignature(messageHash, signature), "Incorrect BootstrapBallot.vote signatory" );
 
 		if ( voteStartExchangeYes )
 			startExchangeYes++;
