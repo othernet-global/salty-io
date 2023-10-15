@@ -73,11 +73,6 @@ contract TestComprehensive1 is Deployment
 
 	function testComprehensive() public
 		{
-		// Start by whitelisting some wallets for the airdrop
-		whitelistAlice();
-		whitelistBob();
-		whitelistCharlie();
-
 		// Cast votes for the BootstrapBallot so that the initialDistribution can happen
 		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
 		vm.startPrank(alice);

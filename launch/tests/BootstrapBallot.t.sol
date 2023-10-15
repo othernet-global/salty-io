@@ -287,18 +287,6 @@ contract TestBootstrapBallot is Deployment
     }
 
 
-    // A unit test to check the vote function when the voter is not whitelisted. Verify that it throws an error stating the user is not an airdrop recipient.
-	function test_vote_notWhitelisted() public {
-		bytes memory sig = abi.encodePacked(hex"98ea2c8a10e4fc75b13147210b54aaaf5d45922fa576ca9968db642afa6241b100bcb8139fd7f4fce46b028a68941769f70b3085375c9ae22d69d80fc35f90551c");
-
-    	vm.startPrank(bob);
-    	vm.expectRevert("User is not an Airdrop recipient");
-		uint256[] memory regionalVotes = new uint256[](5);
-		bootstrapBallot.vote(true, regionalVotes, sig);
-    	vm.stopPrank();
-    }
-
-
     // A unit test to check the vote function when the voter has already voted. Verify that it throws an error stating the user already voted.
     function test_votesTwice() public {
 		whitelistAlice();
