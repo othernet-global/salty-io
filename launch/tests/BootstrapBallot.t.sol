@@ -124,16 +124,11 @@ contract TestBootstrapBallot is Deployment
 		grantAccessCharlie();
 		grantAccessDeployer();
 		grantAccessDefault();
-
-		whitelistAlice();
 		}
 
 
     // A unit test to check the finalizeBallot function when ballotFinalized is false, the current timestamp is greater than completionTimestamp, and yesVotes are more than noVotes. Verify that the InitialDistribution.distributionApproved function is called.
 	function test_finalizeBallot() public {
-		whitelistAlice();
-    	whitelistBob();
-
         // Voting stage (yesVotes: 2, noVotes: 0)
 		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
         vm.startPrank(alice);
@@ -161,9 +156,6 @@ contract TestBootstrapBallot is Deployment
 
     // A unit test to check the finalizeBallot function when ballotFinalized is false, the current timestamp is less than completionTimestamp. Verify that it throws an error as ballot duration is not yet complete.
 	function test_finalizeBallotNotComplete() public {
-		whitelistAlice();
-		whitelistBob();
-
 		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
 
         // Voting stage (yesVotes: 2, noVotes: 0)
@@ -193,9 +185,6 @@ contract TestBootstrapBallot is Deployment
 
     // A unit test to check the finalizeBallot function when ballotFinalized is already true. Verify that it throws an error stating the ballot has already been finalized.
 	function test_finalizeBallotAlreadyFinalized() public {
-		whitelistAlice();
-		whitelistBob();
-
 		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
 
         // Voting stage (yesVotes: 2, noVotes: 0)
@@ -227,9 +216,6 @@ contract TestBootstrapBallot is Deployment
 
     // A unit test to check the finalizeBallot function when yesVotes are less than noVotes. Verify that the InitialDistribution.distributionApproved function is not called.
 	function test_finalizeBallotFailedVote() public {
-		whitelistAlice();
-		whitelistBob();
-
         // Voting stage (yesVotes: 2, noVotes: 0)
 		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
         vm.startPrank(alice);
@@ -257,10 +243,6 @@ contract TestBootstrapBallot is Deployment
 
     // A unit test to check the vote function when the voter is whitelisted, has exchange access, and has not yet voted. Verify that the vote count is correctly incremented and the voter is marked as having voted.
     function test_vote() public {
-		whitelistAlice();
-		whitelistBob();
-		whitelistCharlie();
-
         // Cast votes (yesVotes: 2, noVotes: 1)
 		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
         vm.startPrank(alice);
@@ -289,8 +271,6 @@ contract TestBootstrapBallot is Deployment
 
     // A unit test to check the vote function when the voter has already voted. Verify that it throws an error stating the user already voted.
     function test_votesTwice() public {
-		whitelistAlice();
-
 		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
 
         // Alice casts her vote
@@ -353,9 +333,6 @@ contract TestBootstrapBallot is Deployment
 
     // A unit test to check the finalizeBallot function when yesVotes are equal to noVotes. Verify that the InitialDistribution.distributionApproved function is not called.
 	function test_finalizeBallotTieVote() public {
-		whitelistAlice();
-		whitelistBob();
-
 		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
 
         // Voting stage (yesVotes: 1, noVotes: 1)
@@ -400,8 +377,6 @@ contract TestBootstrapBallot is Deployment
 
         // A unit test to check if the mapping hasVoted correctly recognizes an address after that address has called the vote function.
         function test_MapHasVotedAfterVoteCalled() public {
-			whitelistAlice();
-
 		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
 
             // Vote stage
@@ -418,8 +393,6 @@ contract TestBootstrapBallot is Deployment
 
         // A unit test to check that regional exclusion tallies update correct on voting
         function _testRegionalExclusionVoting( uint256 votingIndex ) public {
-			whitelistAlice();
-
             assertTrue(bootstrapBallot.geoExclusionYes()[votingIndex] == 0, "Shouldn't be an initial yes vote");
 
 		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
@@ -465,15 +438,8 @@ contract TestBootstrapBallot is Deployment
 			}
 
 
-
-
-
-
-
         // A unit test to check that regional exclusion tallies update correct on voting
         function _testRegionalExclusionVotingNo( uint256 votingIndex ) public {
-			whitelistAlice();
-
             assertTrue(bootstrapBallot.geoExclusionNo()[votingIndex] == 0, "Shouldn't be an initial yes vote");
 
 		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
@@ -522,10 +488,6 @@ contract TestBootstrapBallot is Deployment
 
         // A unit test to check that regional exclusion tallies update correct on voting
         function testMultipleRegionalExclusionVotes() public {
-			whitelistAlice();
-			whitelistBob();
-			whitelistCharlie();
-
             assertTrue(bootstrapBallot.geoExclusionNo()[0] == 0, "Shouldn't be an initial yes vote");
             assertTrue(bootstrapBallot.geoExclusionYes()[0] == 0, "Shouldn't be an initial yes vote");
 
@@ -587,8 +549,6 @@ contract TestBootstrapBallot is Deployment
 
     // A unit test to check the the the signature has to be correct oto have the user vote
 	function testVoteSignatureRequirement() public {
-		whitelistAlice();
-
 		bytes memory sig = abi.encodePacked(hex"123456");
 		uint256[] memory regionalVotes = new uint256[](5);
 
