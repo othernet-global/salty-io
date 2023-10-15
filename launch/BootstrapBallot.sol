@@ -45,7 +45,7 @@ contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
 		}
 
 
-	// Cast a YES or NO vote to start up the exchange and establish initial geo restrictions (airdropped users only).
+	// Cast a YES or NO vote to start up the exchange, distribute SALT and establish initial geo restrictions (airdropped users only).
 	// votesRegionalExclusions: 0 (no opinion), 1 (yes to exclusion), 2 (no to exclusion)
 	// Votes cannot be changed once they are cast.
 	// Requires a valid signature to signify that the msg.sender is authorized to vote (being whitelisted and the retweeting exchange launch posting - checked offchain)
