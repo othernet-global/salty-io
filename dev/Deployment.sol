@@ -56,7 +56,7 @@ contract Deployment is Test
 	IForcedPriceFeed public forcedPriceFeed = IForcedPriceFeed(address(0x3B0Eb37f26b502bAe83df4eCc54afBDfb90B5d3a));
 
 	// The DAO contract can provide us with all other contract addresses in the protocol
-	IDAO public dao = IDAO(address(0xcFAC8A691465ce375C66a92a24179F26c45Bf1e9));
+	IDAO public dao = IDAO(address(0x6c06E51DEDb71aaFD0D2E0D8578fA7EfB93C96d5));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));
