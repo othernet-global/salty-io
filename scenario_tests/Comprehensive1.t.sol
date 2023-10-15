@@ -79,17 +79,20 @@ contract TestComprehensive1 is Deployment
 		whitelistCharlie();
 
 		// Cast votes for the BootstrapBallot so that the initialDistribution can happen
+		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
 		vm.startPrank(alice);
 		uint256[] memory regionalVotes = new uint256[](5);
-		bootstrapBallot.vote(true, regionalVotes);
+		bootstrapBallot.vote(true, regionalVotes, sig);
 		vm.stopPrank();
 
+		sig = abi.encodePacked(hex"98ea2c8a10e4fc75b13147210b54aaaf5d45922fa576ca9968db642afa6241b100bcb8139fd7f4fce46b028a68941769f70b3085375c9ae22d69d80fc35f90551c");
 		vm.startPrank(bob);
-		bootstrapBallot.vote(true, regionalVotes);
+		bootstrapBallot.vote(true, regionalVotes, sig);
 		vm.stopPrank();
 
+		sig = abi.encodePacked(hex"8c7115467b37b4409a2781c8aa4ac8b3eb3a75542ec698b675a1c92c88e018db2ea8edd25c67920a980ae969ac5a77fb0bb1a2b0e0ffffe2edb823bb84b3ee141b");
 		vm.startPrank(charlie);
-		bootstrapBallot.vote(false, regionalVotes);
+		bootstrapBallot.vote(false, regionalVotes, sig);
 		vm.stopPrank();
 
 		// Finalize the ballot to distribute SALT to the protocol contracts and start up the exchange

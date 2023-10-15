@@ -135,13 +135,15 @@ contract TestBootstrapBallot is Deployment
     	whitelistBob();
 
         // Voting stage (yesVotes: 2, noVotes: 0)
+		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
         vm.startPrank(alice);
 		uint256[] memory regionalVotes = new uint256[](5);
-		bootstrapBallot.vote(true, regionalVotes);
+		bootstrapBallot.vote(true, regionalVotes, sig);
         vm.stopPrank();
 
+		sig = abi.encodePacked(hex"98ea2c8a10e4fc75b13147210b54aaaf5d45922fa576ca9968db642afa6241b100bcb8139fd7f4fce46b028a68941769f70b3085375c9ae22d69d80fc35f90551c");
         vm.startPrank(bob);
-		bootstrapBallot.vote(true, regionalVotes);
+		bootstrapBallot.vote(true, regionalVotes, sig);
         vm.stopPrank();
 
         // Increase current blocktime to be greater than completionTimestamp
@@ -162,14 +164,17 @@ contract TestBootstrapBallot is Deployment
 		whitelistAlice();
 		whitelistBob();
 
+		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
+
         // Voting stage (yesVotes: 2, noVotes: 0)
         vm.startPrank(alice);
 		uint256[] memory regionalVotes = new uint256[](5);
-		bootstrapBallot.vote(true, regionalVotes);
+		bootstrapBallot.vote(true, regionalVotes, sig);
         vm.stopPrank();
 
+		sig = abi.encodePacked(hex"98ea2c8a10e4fc75b13147210b54aaaf5d45922fa576ca9968db642afa6241b100bcb8139fd7f4fce46b028a68941769f70b3085375c9ae22d69d80fc35f90551c");
         vm.startPrank(bob);
-		bootstrapBallot.vote(true, regionalVotes);
+		bootstrapBallot.vote(true, regionalVotes, sig);
         vm.stopPrank();
 
         // Increase current blocktime to be greater than completionTimestamp
@@ -191,14 +196,17 @@ contract TestBootstrapBallot is Deployment
 		whitelistAlice();
 		whitelistBob();
 
+		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
+
         // Voting stage (yesVotes: 2, noVotes: 0)
         vm.startPrank(alice);
 		uint256[] memory regionalVotes = new uint256[](5);
-		bootstrapBallot.vote(true, regionalVotes);
+		bootstrapBallot.vote(true, regionalVotes, sig);
         vm.stopPrank();
 
+		sig = abi.encodePacked(hex"98ea2c8a10e4fc75b13147210b54aaaf5d45922fa576ca9968db642afa6241b100bcb8139fd7f4fce46b028a68941769f70b3085375c9ae22d69d80fc35f90551c");
         vm.startPrank(bob);
-		bootstrapBallot.vote(true, regionalVotes);
+		bootstrapBallot.vote(true, regionalVotes, sig);
         vm.stopPrank();
 
         // Increase current blocktime to be greater than completionTimestamp
@@ -223,13 +231,15 @@ contract TestBootstrapBallot is Deployment
 		whitelistBob();
 
         // Voting stage (yesVotes: 2, noVotes: 0)
+		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
         vm.startPrank(alice);
 		uint256[] memory regionalVotes = new uint256[](5);
-		bootstrapBallot.vote(false, regionalVotes);
+		bootstrapBallot.vote(false, regionalVotes, sig);
         vm.stopPrank();
 
+		sig = abi.encodePacked(hex"98ea2c8a10e4fc75b13147210b54aaaf5d45922fa576ca9968db642afa6241b100bcb8139fd7f4fce46b028a68941769f70b3085375c9ae22d69d80fc35f90551c");
         vm.startPrank(bob);
-		bootstrapBallot.vote(false, regionalVotes);
+		bootstrapBallot.vote(false, regionalVotes, sig);
         vm.stopPrank();
 
         // Increase current blocktime to be greater than completionTimestamp
@@ -252,17 +262,20 @@ contract TestBootstrapBallot is Deployment
 		whitelistCharlie();
 
         // Cast votes (yesVotes: 2, noVotes: 1)
+		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
         vm.startPrank(alice);
 		uint256[] memory regionalVotes = new uint256[](5);
-		bootstrapBallot.vote(true, regionalVotes);
+		bootstrapBallot.vote(true, regionalVotes, sig);
         vm.stopPrank();
 
+		sig = abi.encodePacked(hex"98ea2c8a10e4fc75b13147210b54aaaf5d45922fa576ca9968db642afa6241b100bcb8139fd7f4fce46b028a68941769f70b3085375c9ae22d69d80fc35f90551c");
         vm.startPrank(bob);
-		bootstrapBallot.vote(true, regionalVotes);
+		bootstrapBallot.vote(true, regionalVotes, sig);
         vm.stopPrank();
 
+		sig = abi.encodePacked(hex"8c7115467b37b4409a2781c8aa4ac8b3eb3a75542ec698b675a1c92c88e018db2ea8edd25c67920a980ae969ac5a77fb0bb1a2b0e0ffffe2edb823bb84b3ee141b");
         vm.startPrank(charlie);
-		bootstrapBallot.vote(false, regionalVotes);
+		bootstrapBallot.vote(false, regionalVotes, sig);
         vm.stopPrank();
 
         // Assertions
@@ -276,10 +289,12 @@ contract TestBootstrapBallot is Deployment
 
     // A unit test to check the vote function when the voter is not whitelisted. Verify that it throws an error stating the user is not an airdrop recipient.
 	function test_vote_notWhitelisted() public {
+		bytes memory sig = abi.encodePacked(hex"98ea2c8a10e4fc75b13147210b54aaaf5d45922fa576ca9968db642afa6241b100bcb8139fd7f4fce46b028a68941769f70b3085375c9ae22d69d80fc35f90551c");
+
     	vm.startPrank(bob);
     	vm.expectRevert("User is not an Airdrop recipient");
 		uint256[] memory regionalVotes = new uint256[](5);
-		bootstrapBallot.vote(true, regionalVotes);
+		bootstrapBallot.vote(true, regionalVotes, sig);
     	vm.stopPrank();
     }
 
@@ -288,14 +303,16 @@ contract TestBootstrapBallot is Deployment
     function test_votesTwice() public {
 		whitelistAlice();
 
+		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
+
         // Alice casts her vote
         vm.startPrank(alice);
 		uint256[] memory regionalVotes = new uint256[](5);
-		bootstrapBallot.vote(true, regionalVotes);
+		bootstrapBallot.vote(true, regionalVotes, sig);
 
         // Alice tries to vote again
         vm.expectRevert("User already voted");
-		bootstrapBallot.vote(true, regionalVotes);
+		bootstrapBallot.vote(true, regionalVotes, sig);
         vm.stopPrank();
     }
 
@@ -335,9 +352,11 @@ contract TestBootstrapBallot is Deployment
 
     // A unit test to check the vote function when a voter votes No. Verify that the noVotes count is correctly incremented.
 	function test_vote_No() public {
+		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
+
 		vm.startPrank(alice);
 		uint256[] memory regionalVotes = new uint256[](5);
-		bootstrapBallot.vote(false, regionalVotes);
+		bootstrapBallot.vote(false, regionalVotes, sig);
 		vm.stopPrank();
 
 		assertEq(bootstrapBallot.startExchangeNo(), 1);
@@ -349,14 +368,17 @@ contract TestBootstrapBallot is Deployment
 		whitelistAlice();
 		whitelistBob();
 
+		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
+
         // Voting stage (yesVotes: 1, noVotes: 1)
         vm.startPrank(alice);
 		uint256[] memory regionalVotes = new uint256[](5);
-		bootstrapBallot.vote(true, regionalVotes);
+		bootstrapBallot.vote(true, regionalVotes, sig);
         vm.stopPrank();
 
+		sig = abi.encodePacked(hex"98ea2c8a10e4fc75b13147210b54aaaf5d45922fa576ca9968db642afa6241b100bcb8139fd7f4fce46b028a68941769f70b3085375c9ae22d69d80fc35f90551c");
         vm.startPrank(bob);
-		bootstrapBallot.vote(false, regionalVotes);
+		bootstrapBallot.vote(false, regionalVotes, sig);
         vm.stopPrank();
 
         // Increase current blocktime to be greater than completionTimestamp
@@ -392,10 +414,12 @@ contract TestBootstrapBallot is Deployment
         function test_MapHasVotedAfterVoteCalled() public {
 			whitelistAlice();
 
+		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
+
             // Vote stage
             vm.startPrank(alice);
 			uint256[] memory regionalVotes = new uint256[](5);
-			bootstrapBallot.vote(true, regionalVotes);
+			bootstrapBallot.vote(true, regionalVotes,sig);
             vm.stopPrank();
 
             // Check if Alice voted
@@ -410,11 +434,13 @@ contract TestBootstrapBallot is Deployment
 
             assertTrue(bootstrapBallot.geoExclusionYes()[votingIndex] == 0, "Shouldn't be an initial yes vote");
 
+		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
+
             // Vote stage
             vm.startPrank(alice);
 			uint256[] memory regionalVotes = new uint256[](5);
 			regionalVotes[votingIndex] = 1; // yes on exclusion
-			bootstrapBallot.vote(true, regionalVotes);
+			bootstrapBallot.vote(true, regionalVotes, sig);
             vm.stopPrank();
 
             assertTrue(bootstrapBallot.geoExclusionYes()[votingIndex] == 1, "User vote not recognized");
@@ -462,11 +488,13 @@ contract TestBootstrapBallot is Deployment
 
             assertTrue(bootstrapBallot.geoExclusionNo()[votingIndex] == 0, "Shouldn't be an initial yes vote");
 
+		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
+
             // Vote stage
             vm.startPrank(alice);
 			uint256[] memory regionalVotes = new uint256[](5);
 			regionalVotes[votingIndex] = 2; // no on exclusion
-			bootstrapBallot.vote(false, regionalVotes);
+			bootstrapBallot.vote(false, regionalVotes, sig);
             vm.stopPrank();
 
             assertTrue(bootstrapBallot.geoExclusionNo()[votingIndex] == 1, "User vote not recognized");
@@ -514,27 +542,71 @@ contract TestBootstrapBallot is Deployment
             assertTrue(bootstrapBallot.geoExclusionYes()[0] == 0, "Shouldn't be an initial yes vote");
 
             // Vote stage
+		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
+
             vm.startPrank(alice);
 			uint256[] memory regionalVotes = new uint256[](5);
 			regionalVotes[0] = 1; // yes on exclusion
-			bootstrapBallot.vote(true, regionalVotes);
+			bootstrapBallot.vote(true, regionalVotes, sig);
             vm.stopPrank();
+
+		sig = abi.encodePacked(hex"98ea2c8a10e4fc75b13147210b54aaaf5d45922fa576ca9968db642afa6241b100bcb8139fd7f4fce46b028a68941769f70b3085375c9ae22d69d80fc35f90551c");
 
             vm.startPrank(bob);
 			regionalVotes = new uint256[](5);
 			regionalVotes[0] = 1; // yes on exclusion
-			bootstrapBallot.vote(true, regionalVotes);
+			bootstrapBallot.vote(true, regionalVotes, sig);
             vm.stopPrank();
 
+
+		sig = abi.encodePacked(hex"8c7115467b37b4409a2781c8aa4ac8b3eb3a75542ec698b675a1c92c88e018db2ea8edd25c67920a980ae969ac5a77fb0bb1a2b0e0ffffe2edb823bb84b3ee141b");
             vm.startPrank(charlie);
 			regionalVotes = new uint256[](5);
 			regionalVotes[0] = 2; // no on exclusion
-			bootstrapBallot.vote(true, regionalVotes);
+			bootstrapBallot.vote(true, regionalVotes, sig);
             vm.stopPrank();
 
             assertTrue(bootstrapBallot.geoExclusionYes()[0] == 2, "User votes not recognized");
             assertTrue(bootstrapBallot.geoExclusionNo()[0] == 1, "User votes not recognized");
-
         }
 
+
+
+
+
+	// A unit test which checks that an incorrect signature for airdrop whitelisting fails
+	function testIncorrectVotingSignature() public
+		{
+		bytes memory sig = abi.encodePacked(hex"1234567890");
+
+		uint256[] memory regionalVotes = new uint256[](5);
+        vm.startPrank(alice);
+
+		vm.expectRevert();
+		bootstrapBallot.vote(true, regionalVotes, sig);
+        vm.stopPrank();
+		}
+
+
+	// A unit test to ensure that only the bootstrapBallot can call Airdrop.authorizeWallet
+	function testAuthorizationRestrictions() public
+		{
+		vm.expectRevert("Only the BootstrapBallot can call Airdrop.authorizeWallet");
+		vm.prank( address(0x12345) );
+		airdrop.authorizeWallet(address(0x1111));
+		}
+
+
+    // A unit test to check the the the signature has to be correct oto have the user vote
+	function testVoteSignatureRequirement() public {
+		whitelistAlice();
+
+		bytes memory sig = abi.encodePacked(hex"123456");
+		uint256[] memory regionalVotes = new uint256[](5);
+
+		vm.expectRevert();
+        vm.startPrank(alice);
+		bootstrapBallot.vote(true, regionalVotes, sig);
+        vm.stopPrank();
+        }
 	}

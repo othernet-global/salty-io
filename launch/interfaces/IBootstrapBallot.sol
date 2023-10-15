@@ -4,8 +4,8 @@ pragma solidity =0.8.21;
 
 interface IBootstrapBallot
 	{
+	function vote( bool voteStartExchangeYes, uint256[] memory votesRegionalExclusions, bytes memory signature  ) external;
 	function finalizeBallot() external;
-	function vote( bool voteStartExchangeYes, uint256[] memory votesRegionalExclusions ) external;
 
 	// Views
 	function completionTimestamp() external returns (uint256);

@@ -5,6 +5,7 @@ import "./interfaces/IBootstrapBallot.sol";
 import "../openzeppelin/security/ReentrancyGuard.sol";
 import "./interfaces/IAirdrop.sol";
 import "../interfaces/IExchangeConfig.sol";
+import "../SigningTools.sol";
 
 
 // Allows airdrop participants to vote on whether or not to start up the exchange and which countries should be initially excluded from access.
@@ -44,6 +45,40 @@ contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
 		}
 
 
+	// Cast a YES or NO vote to start up the exchange and establish initial geo restrictions (airdropped users only).
+	// votesRegionalExclusions: 0 (no opinion), 1 (yes to exclusion), 2 (no to exclusion)
+	// Votes cannot be changed once they are cast.
+	// Requires a valid signature to signify that the msg.sender is authorized to vote (being whitelisted and the retweeting exchange launch posting)
+	function vote( bool voteStartExchangeYes, uint256[] memory votesRegionalExclusions, bytes memory signature ) public nonReentrant
+		{
+		require( airdrop.isAuthorized(msg.sender), "User is not an Airdrop recipient" );
+		require( ! hasVoted[msg.sender], "User already voted" );
+
+		// Verify the signature to confirm voting authorization
+		bytes32 messageHash = keccak256(abi.encodePacked(msg.sender));
+		require(SigningTools._verifySignature(messageHash, signature), "Incorrect BootstrapBallot.vote signer" );
+
+		if ( voteStartExchangeYes )
+			startExchangeYes++;
+		else
+			startExchangeNo++;
+
+		for( uint256 i = 0; i < 5; i++ )
+			{
+			if ( votesRegionalExclusions[i] == 1 )
+				_geoExclusionYes[i]++;
+
+			if ( votesRegionalExclusions[i] == 2 )
+				_geoExclusionNo[i]++;
+			}
+
+		hasVoted[msg.sender] = true;
+
+		// Now that the whitelisted user has retweeted the launch message and voted, they are authorized to the receive the airdrop
+		airdrop.authorizeWallet(msg.sender);
+		}
+
+
 	// Ensures that the completionTimestamp has been reached and then calls InitialDistribution.distributionApproved and DAO.initialGeoExclusion if the voters have approved the ballot
 	function finalizeBallot() public nonReentrant
 		{
@@ -62,32 +97,7 @@ contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
 		}
 
 
-	// Cast a YES or NO vote to start up the exchange (airdropped users only).
-	// Votes cannot be changed once they are cast.
-	// regionalVotes: 0 (no opinion), 1 (yes to exclusion), 2 (no to exclusion)
-	function vote( bool voteStartExchangeYes, uint256[] memory votesRegionalExclusions ) public nonReentrant
-		{
-		require( airdrop.whitelisted(msg.sender), "User is not an Airdrop recipient" );
-		require( ! hasVoted[msg.sender], "User already voted" );
-
-		if ( voteStartExchangeYes )
-			startExchangeYes++;
-		else
-			startExchangeNo++;
-
-		for( uint256 i = 0; i < 5; i++ )
-			{
-			if ( votesRegionalExclusions[i] == 1 )
-				_geoExclusionYes[i]++;
-
-			if ( votesRegionalExclusions[i] == 2 )
-				_geoExclusionNo[i]++;
-			}
-
-		hasVoted[msg.sender] = true;
-		}
-
-
+	// === VIEWS ===
 	function startExchangeApproved() public virtual returns (bool)
 		{
 		return _startExchangeApproved;

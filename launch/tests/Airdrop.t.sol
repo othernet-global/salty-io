@@ -143,20 +143,20 @@ contract TestAirdrop is Deployment
 	// A unit test to ensure the `whitelistWallet` function successfully adds a non-zero address to the `_whitelist` and verify that the function reverts when `claimingAllowed` is true.
 	function testWhitelistWallet() external {
     	// Check that Alice is already whitelisted
-    	assertTrue(airdrop.whitelisted(alice), "Alice should be whitelisted");
+    	assertTrue(airdrop.isAuthorized(alice), "Alice should be whitelisted");
 
-    	assertFalse(airdrop.whitelisted(bob), "Bob shouldn't be whitelisted");
+    	assertFalse(airdrop.isAuthorized(bob), "Bob shouldn't be whitelisted");
 
     	// Whitelist Bob
     	whitelistBob();
 
-    	assertTrue(airdrop.whitelisted(bob), "Bob should be whitelisted");
+    	assertTrue(airdrop.isAuthorized(bob), "Bob should be whitelisted");
 
     	// Try to whitelist when claimingAllowed is true, expect to revert
     	vm.prank(address(initialDistribution));
     	airdrop.allowClaiming();
 
-    	vm.expectRevert("Cannot whitelist after claiming is allowed");
+    	vm.expectRevert("Cannot authorize after claiming is allowed");
     	whitelistBob();
     }
 
@@ -183,7 +183,7 @@ contract TestAirdrop is Deployment
         airdrop.allowClaiming();
 
         // Check that saltAmountForEachUser is calculated correctly
-        uint256 expectedSaltAmountForEachUser = initialSaltBalance / airdrop.numberWhitelisted();
+        uint256 expectedSaltAmountForEachUser = initialSaltBalance / airdrop.numberAuthorized();
         assertEq(airdrop.saltAmountForEachUser(), expectedSaltAmountForEachUser, "saltAmountForEachUser should be calculated correctly");
     }
 
@@ -195,7 +195,7 @@ contract TestAirdrop is Deployment
         // Check that claiming is initially not allowed
         assertFalse(airdrop.claimingAllowed(), "Claiming should not be allowed initially");
 
-        vm.expectRevert("No addresses whitelisted to claim airdrop.");
+        vm.expectRevert("No addresses authorized to claim airdrop.");
         vm.prank(address(initialDistribution));
         airdrop.allowClaiming();
 
@@ -250,10 +250,10 @@ contract TestAirdrop is Deployment
 		whitelistAlice();
 
         // Verify the Alice is whitelisted
-        assertTrue(airdrop.whitelisted(alice), "Alice should be whitelisted");
+        assertTrue(airdrop.isAuthorized(alice), "Alice should be whitelisted");
 
         // Verify that the Bob is not whitelisted
-        assertFalse(airdrop.whitelisted(bob), "Bob should not be whitelisted");
+        assertFalse(airdrop.isAuthorized(bob), "Bob should not be whitelisted");
     }
 
 
@@ -261,13 +261,13 @@ contract TestAirdrop is Deployment
 	    // A unit test to confirm that the `numberWhitelisted` function returns the correct number of whitelisted addresses.
     	function testNumberWhitelisted() external {
     		// Before whitelisting Bob, there should only be one whitelisted address (Alice)
-    		assertEq(airdrop.numberWhitelisted(), 1, "There should be 1 whitelisted address initially");
+    		assertEq(airdrop.numberAuthorized(), 1, "There should be 1 whitelisted address initially");
 
     		// Whitelist Bob
     		whitelistBob();
 
     		// After whitelisting Bob, there should be two whitelisted addresses
-    		assertEq(airdrop.numberWhitelisted(), 2, "There should be 2 whitelisted addresses after adding Bob");
+    		assertEq(airdrop.numberAuthorized(), 2, "There should be 2 whitelisted addresses after adding Bob");
     	}
 
 
@@ -306,15 +306,4 @@ contract TestAirdrop is Deployment
 	function testNotYetClaimed() public {
         assertFalse(airdrop.claimed(alice), "Alice should not have claimed the airdrop yet");
     }
-
-
-	// A unit test which checks that an incorrect signature for airdrop whitelisting fails
-	function testIncorrectWhitelistingSignature() public
-		{
-		bytes memory sig = abi.encodePacked(hex"1234567890");
-
-		vm.expectRevert();
-		vm.prank(address(0x1111));
-		airdrop.whitelistWallet(sig);
-		}
 	}

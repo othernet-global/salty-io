@@ -7,11 +7,10 @@ import "../openzeppelin/utils/structs/EnumerableSet.sol";
 import "../interfaces/IExchangeConfig.sol";
 import "../staking/interfaces/IStaking.sol";
 import "../openzeppelin/security/ReentrancyGuard.sol";
-import "../SigningTools.sol";
 
 
-// The Airdrop contract keeps track of users who qualify for the Salty.IO Airdrop (participants of prominent DeFi protocols who perform a basic social media task).
-// The airdrop participants are able to claim staked SALT after the airdrop whitelisting period has ending (after the BootingstappingBallot has concluded).
+// The Airdrop contract keeps track of users who qualify for the Salty.IO Airdrop (participants of prominent DeFi protocols who perform a basic social media task and vote).
+// The airdrop participants are able to claim staked SALT after the airdrop authorization period has ending (after the BootingstappingBallot has concluded).
 contract Airdrop is IAirdrop, ReentrancyGuard
     {
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -20,7 +19,8 @@ contract Airdrop is IAirdrop, ReentrancyGuard
     IStaking public staking;
     ISalt public salt;
 
-	EnumerableSet.AddressSet private _whitelist;
+	// These are authorized users who have retweeted the launch announcement and voted and have been authorized to receive the airdrop
+	EnumerableSet.AddressSet private _authorizedUsers;
 
 	bool public claimingAllowed;
 	mapping(address=>bool) public claimed;
@@ -40,28 +40,26 @@ contract Airdrop is IAirdrop, ReentrancyGuard
 		}
 
 
-	// Whitelist the msg.sender as being able to claim the airdrop and vote in the BootstappingBallot.
-	// Requires a valid signature to authorize that the wallet should actually be whitelisted.
-    function whitelistWallet( bytes memory signature ) public
+	// Authorize the wallet as being able to claim the airdrop.
+	// Only callable by the BootstrapBallot.
+    function authorizeWallet( address wallet ) public
     	{
-    	require( ! claimingAllowed, "Cannot whitelist after claiming is allowed" );
+    	require( msg.sender == address(exchangeConfig.initialDistribution().bootstrapBallot()), "Only the BootstrapBallot can call Airdrop.authorizeWallet" );
+    	require( ! claimingAllowed, "Cannot authorize after claiming is allowed" );
 
-		bytes32 messageHash = keccak256(abi.encodePacked(msg.sender));
-		require(SigningTools._verifySignature(messageHash, signature), "Incorrect Airdrop.whitelistWallet signer" );
-
-		_whitelist.add(msg.sender);
+		_authorizedUsers.add(wallet);
     	}
 
 
 	// Called by the InitialDistribution contract during its distributionApproved() function - which is called on successful conclusion of the BootstrappingBallot
     function allowClaiming() public
     	{
-    	require( ! claimingAllowed, "Claiming is already allowed" );
-		require(numberWhitelisted() > 0, "No addresses whitelisted to claim airdrop.");
     	require( msg.sender == address(exchangeConfig.initialDistribution()), "Airdrop.allowClaiming can only be called by the InitialDistribution contract" );
+    	require( ! claimingAllowed, "Claiming is already allowed" );
+		require(numberAuthorized() > 0, "No addresses authorized to claim airdrop.");
 
     	// All users receive an equal share of the airdrop
-		saltAmountForEachUser = salt.balanceOf(address(this)) / numberWhitelisted();
+		saltAmountForEachUser = salt.balanceOf(address(this)) / numberAuthorized();
 
 		// Have the Airdrop contract stake all of the SALT that it holds so that that xSALT (staked SALT) can later be transferred to airdrop recipients
 		salt.approve( address(staking), type(uint256).max );
@@ -74,7 +72,7 @@ contract Airdrop is IAirdrop, ReentrancyGuard
     function claimAirdrop() public nonReentrant
     	{
     	require( claimingAllowed, "Claiming is not allowed yet" );
-    	require( whitelisted(msg.sender), "Wallet is not whitelisted for airdrop" );
+    	require( isAuthorized(msg.sender), "Wallet is not authorized for airdrop" );
     	require( ! claimed[msg.sender], "Wallet already claimed the airdrop" );
 
 		// Have the Airdrop contract stake a specified amount of SALT and then
@@ -86,23 +84,23 @@ contract Airdrop is IAirdrop, ReentrancyGuard
 
 
     // === VIEWS ===
-    // Returns true if the specified wallet has been whitelisted
-    function whitelisted(address wallet) public view returns (bool)
+    // Returns true if the specified wallet has been authorized
+    function isAuthorized(address wallet) public view returns (bool)
     	{
-    	return _whitelist.contains(wallet);
+    	return _authorizedUsers.contains(wallet);
     	}
 
 
-	// The current number of whitelisted wallets
-    function numberWhitelisted() public view returns (uint256)
+	// The current number of authorized wallets
+    function numberAuthorized() public view returns (uint256)
     	{
-    	return _whitelist.length();
+    	return _authorizedUsers.length();
     	}
 
 
-	// Returns an array of the currently whitelisted wallets
-	function whitelistedWallets() public view returns (address[] memory)
+	// Returns an array of the currently authorized wallets
+	function authorizedWallets() public view returns (address[] memory)
 		{
-		return _whitelist.values();
+		return _authorizedUsers.values();
 		}
 	}

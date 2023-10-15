@@ -4,7 +4,7 @@ pragma solidity =0.8.21;
 
 interface IAirdrop
 	{
-	function whitelistWallet( bytes memory signature ) external;
+	function authorizeWallet( address wallet ) external;
 	function allowClaiming() external;
 	function claimAirdrop() external;
 
@@ -13,7 +13,7 @@ interface IAirdrop
 	function claimingAllowed() external returns (bool);
 	function claimed(address wallet) external returns (bool);
 
-	function whitelisted(address wallet) external returns (bool);
-	function numberWhitelisted() external returns (uint256);
-	function whitelistedWallets() external view returns (address[] calldata);
+	function isAuthorized(address wallet) external returns (bool);
+	function numberAuthorized() external returns (uint256);
+	function authorizedWallets() external view returns (address[] calldata);
 	}

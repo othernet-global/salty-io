@@ -259,7 +259,7 @@ function testConstructorInitializationWithZeroAddress() public {
 
 		// Make sure claiming has been activated for airdrop
 		assertTrue( airdrop.claimingAllowed() );
-		assertEq( airdrop.numberWhitelisted(), 3 );
+		assertEq( airdrop.numberAuthorized(), 3 );
 		assertEq( salt.balanceOf(address(airdrop)), 5 * MILLION_ETHER );
 
 		assertEq( airdrop.saltAmountForEachUser(), 5 * MILLION_ETHER / 3 );
