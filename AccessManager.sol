@@ -57,7 +57,7 @@ contract AccessManager is IAccessManager
 	// Requires the accompanying correct message signature from the offchain verifier.
     function grantAccess(bytes memory signature) public
     	{
-    	require( verifyWhitelist(msg.sender, signature), "Incorrect AccessManager.grantAccess signer" );
+    	require( verifyWhitelist(msg.sender, signature), "Incorrect AccessManager.grantAccess signatory" );
 
         _walletsWithAccess[geoVersion][msg.sender] = true;
     	}
