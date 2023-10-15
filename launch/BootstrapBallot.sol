@@ -51,6 +51,7 @@ contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
 	// Requires a valid signature to signify that the msg.sender is authorized to vote (being whitelisted and the retweeting exchange launch posting - checked offchain)
 	function vote( bool voteStartExchangeYes, uint256[] memory votesRegionalExclusions, bytes memory signature ) public nonReentrant
 		{
+		require( votesRegionalExclusions.length == 5, "Incorrect length for votesRegionalExclusions" );
 		require( ! hasVoted[msg.sender], "User already voted" );
 
 		// Verify the signature to confirm the user is authorized to vote
