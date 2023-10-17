@@ -1,5 +1,3 @@
-Here is the text formatted as Markdown:
-
 # Technical Overview
 
 The Salty.IO codebase is divided up into the following folders:
