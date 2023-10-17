@@ -3,5 +3,8 @@ src = "src"
 out = "out"
 libs = ["lib"]
 optimizer_runs = 10000
+fork_block_number = 4508956
+rpc_storage_caching = { chains = "all", endpoints = "all" }
+no_storage_caching = false
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
