@@ -32,3 +32,8 @@ The Salty.IO codebase is divided up into the following folders:
 *Uniswap/v3-core@0.8*
 
 *smartcontractkit/chainlink@v2.5.0*
+
+\
+**Build Instructions**
+
+forge build
