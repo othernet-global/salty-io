@@ -1,5 +1,5 @@
 # Technical Overview
-
+\
 The Salty.IO codebase is divided up into the following folders:
 
 **/arbitrage** - handles searching for arbitrage opportunities at user swap time - with the actual arbitrage swaps being done within Pools.sol itself.
