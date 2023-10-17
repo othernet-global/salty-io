@@ -23,6 +23,11 @@ The Salty.IO codebase is divided up into the following folders:
 *counterswaps allow the protocol itself to swap one given token for another in a way that doesn't impact the market directly (by waiting for users to swap in the opposite direction and then swapping in the desired direction within the same transaction). Used internally for forming POL and liquidating WBTC/WETH LP rather than being accessible to users.
 
 \
+**Build Instructions**
+
+forge build
+
+\
 **Dependencies**
 
 *openzeppelin/openzeppelin-contracts@v4.9.3*
@@ -32,8 +37,3 @@ The Salty.IO codebase is divided up into the following folders:
 *Uniswap/v3-core@0.8*
 
 *smartcontractkit/chainlink@v2.5.0*
-
-\
-**Build Instructions**
-
-forge build
