@@ -557,10 +557,10 @@ contract TestPools2 is Deployment
         pools.removeLiquidity(token0, token1, liquidityAdded, added0, added1 + 1, deadline);
 
         // Test successful operation
-        (uint256 reclaimed0, uint256 reclaimed1) = pools.removeLiquidity(token0, token1, liquidityAdded, added0, added1, deadline);
+        (uint256 reclaimed0, uint256 reclaimed1) = pools.removeLiquidity(token0, token1, liquidityAdded, added0 - PoolUtils.DUST, added1 - PoolUtils.DUST, deadline);
 
-        assertEq(reclaimed0, added0, "Reclaimed amount for token0 does not match expected amount");
-        assertEq(reclaimed1, added1, "Reclaimed amount for token1 does not match expected amount");
+        assertEq(reclaimed0, added0 - PoolUtils.DUST, "Reclaimed amount for token0 does not match expected amount");
+        assertEq(reclaimed1, added1 - PoolUtils.DUST, "Reclaimed amount for token1 does not match expected amount");
 
         vm.stopPrank();
     }
@@ -1091,11 +1091,11 @@ contract TestPools2 is Deployment
 		// As there were no swaps the pulled liquidity should result in the original balances
 		assertEq( token0.balanceOf(alice), 1000 ether );
 		assertEq( token0.balanceOf(bob), 1000 ether );
-		assertEq( token0.balanceOf(charlie), 1000 ether );
+		assertEq( token0.balanceOf(charlie), 1000 ether - PoolUtils.DUST );
 
 		assertEq( token1.balanceOf(alice), 1000 ether );
 		assertEq( token1.balanceOf(bob), 1000 ether );
-		assertEq( token1.balanceOf(charlie), 1000 ether );
+		assertEq( token1.balanceOf(charlie), 1000 ether - PoolUtils.DUST );
 	    }
 
 
@@ -1750,7 +1750,7 @@ function testMinLiquidityAndReclaimedAmounts() public {
    		vm.startPrank(other);
         _eth.approve(address(pools), type(uint256).max);
         _dai.approve(address(pools), type(uint256).max);
-        (,, uint256 otherLiquidityAdded) = pools.addLiquidity(_eth, _dai, otherAddedETH, otherAddedDAI, 0, block.timestamp );
+        pools.addLiquidity(_eth, _dai, otherAddedETH, otherAddedDAI, 0, block.timestamp );
 		vm.stopPrank();
 
 
