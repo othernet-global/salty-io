@@ -195,13 +195,13 @@ contract TestCollateral is Deployment
         assertEq( collateral.usdsBorrowedByUsers(alice), 0 );
 
 		// Verify that Bob has received WETH for the liquidation
-		uint256 bobExpectedReward = depositedWETH * 10 / 100;
+		uint256 bobExpectedReward = depositedWETH * 10 / 100 - PoolUtils.DUST / 10;
 
 		assertEq(bobExpectedReward, bobRewardWETH , "Bob should have received WETH for liquidating Alice");
 
 		// Verify that USDS received the WBTC and WETH form Alice's liquidated collateral
-		assertEq(wbtc.balanceOf(address(usds)), depositedWBTC, "The USDS contract should have received Alice's WBTC");
-		assertEq(weth.balanceOf(address(usds)), depositedWETH - bobRewardWETH, "The USDS contract should have received Alice's WETH - Bob's WETH reward");
+		assertEq(wbtc.balanceOf(address(usds)), depositedWBTC - PoolUtils.DUST, "The USDS contract should have received Alice's WBTC");
+		assertEq(weth.balanceOf(address(usds)), depositedWETH - bobRewardWETH - PoolUtils.DUST, "The USDS contract should have received Alice's WETH - Bob's WETH reward");
 		}
 
 
@@ -285,6 +285,10 @@ contract TestCollateral is Deployment
 
 	// A unit test where a user is liquidated and then adds another position which is then liquidated as well
 	function testUserLiquidationTwice() public {
+
+		// Have bob deposit so alice can withdraw everything without DUST reserves restriction
+        _depositHalfCollateralAndBorrowMax(bob);
+
         // Deposit and borrow for Alice
         _depositHalfCollateralAndBorrowMax(alice);
 
