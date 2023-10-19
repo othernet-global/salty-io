@@ -1709,5 +1709,66 @@ function testMinLiquidityAndReclaimedAmounts() public {
         vm.expectRevert("Pools.clearIsWhitelisted is only callable from the PoolsConfig contract");
         pools.clearIsWhitelisted(poolID);
         }
+
+
+    // A unit test which checks the viability of withdrawing all liquidity to manipulate the reserves
+    function testLiquidityManipulation() public
+    	{
+		address eve = address(0x8888);
+		address other = address(0x9999);
+
+   		vm.startPrank(DEPLOYER);
+        IERC20 _eth = new TestERC20("TEST", 18);
+        IERC20 _dai = new TestERC20("TEST", 18);
+
+        _eth.transfer( eve, 10000000 ether );
+        _dai.transfer( eve, 10000000 ether );
+
+        _eth.transfer( other, 10000000 ether );
+        _dai.transfer( other, 10000000 ether );
+		vm.stopPrank();
+
+		vm.prank(address(dao));
+		poolsConfig.whitelistPool(pools, _eth, _dai);
+
+
+		// Eve will hold about 99% of the pool
+		uint256 evePercent = 99;
+		uint256 eveAddedETH = 100 ether;
+		uint256 eveAddedDAI = 200000 ether; // implied eth/dai price $2000
+
+		uint256 otherAddedETH = eveAddedETH * (100-evePercent) / 100;
+		uint256 otherAddedDAI = eveAddedDAI * (100-evePercent) / 100;
+
+
+   		vm.startPrank(eve);
+        _eth.approve(address(pools), type(uint256).max);
+        _dai.approve(address(pools), type(uint256).max);
+        (,, uint256 eveLiquidityAdded) = pools.addLiquidity(_eth, _dai, eveAddedETH, eveAddedDAI, 0, block.timestamp );
+		vm.stopPrank();
+
+   		vm.startPrank(other);
+        _eth.approve(address(pools), type(uint256).max);
+        _dai.approve(address(pools), type(uint256).max);
+        (,, uint256 otherLiquidityAdded) = pools.addLiquidity(_eth, _dai, otherAddedETH, otherAddedDAI, 0, block.timestamp );
+		vm.stopPrank();
+
+
+		// Eve tries to manipulate price and sells a massive amount of ETH to try and deplete the DAI reserves
+   		vm.startPrank(eve);
+   		pools.depositSwapWithdraw(_eth, _dai, 1000000 ether, 0, block.timestamp);
+
+		(uint256 reserves0, uint256 reserves1) = pools.getPoolReserves(_eth, _dai);
+//		console.log( "RESERVES0: ", reserves0 );
+//		console.log( "RESERVES1: ", reserves1 );
+
+		// Eve tries to remove all liquidity to deplete DAI below dust so she can reset the pool reserves for an attack
+		pools.removeLiquidity(_eth, _dai, eveLiquidityAdded, 0, 0, block.timestamp);
+		vm.stopPrank();
+
+		(reserves0, reserves1) = pools.getPoolReserves(_eth, _dai);
+//		console.log( "RESERVES0: ", reserves0 );
+//		console.log( "RESERVES1: ", reserves1 );
+    	}
     }
 
