@@ -22,8 +22,8 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 	struct PoolReserves
 		{
-		uint256 reserve0;						// The token reserves such that address(token0) < address(token1)
-		uint256 reserve1;
+		uint128 reserve0;						// The token reserves such that address(token0) < address(token1)
+		uint128 reserve1;
 		}
 
 	IPoolsConfig immutable public poolsConfig;
@@ -110,11 +110,11 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		uint256 reserve1 = reserves.reserve1;
 
 		// If either reserve is less than dust then consider the pool to be empty and that the added liquidity will become the initial token ratio
-		if ( ( reserve0 <= PoolUtils.DUST ) || ( reserve1 <= PoolUtils.DUST ) )
+		if ( ( reserve0 < PoolUtils.DUST ) || ( reserve1 < PoolUtils.DUST ) )
 			{
 			// Update the reserves
-			reserves.reserve0 += maxAmountA;
-			reserves.reserve1 += maxAmountB;
+			reserves.reserve0 += uint128(maxAmountA);
+			reserves.reserve1 += uint128(maxAmountB);
 
 			return ( maxAmountA, maxAmountB, Math.sqrt(maxAmountA * maxAmountB) );
 			}
@@ -137,8 +137,8 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 			}
 
 		// Update the reserves
-		reserves.reserve0 += addedAmount0;
-		reserves.reserve1 += addedAmount1;
+		reserves.reserve0 += uint128(addedAmount0);
+		reserves.reserve1 += uint128(addedAmount1);
 
 		// Determine the amount of liquidity that will be given to the user to reflect their share of the total liquidity.
 		// Rounded down in favor of the protocol
@@ -192,8 +192,15 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		reclaimedA = ( reserves.reserve0 * liquidityToRemove ) / _totalLiquidity;
 		reclaimedB = ( reserves.reserve1 * liquidityToRemove ) / _totalLiquidity;
 
-		reserves.reserve0 -= reclaimedA;
-		reserves.reserve1 -= reclaimedB;
+		// Make sure that removing liquidity doesn't drive the reserves below DUST
+		if ( ( reserves.reserve0 - reclaimedA ) < PoolUtils.DUST )
+			reclaimedA = reserves.reserve0 - PoolUtils.DUST;
+
+		if ( ( reserves.reserve1 - reclaimedB ) < PoolUtils.DUST )
+			reclaimedB = reserves.reserve1 - PoolUtils.DUST;
+
+		reserves.reserve0 -= uint128(reclaimedA);
+		reserves.reserve1 -= uint128(reclaimedB);
 
 		_userLiquidity[msg.sender][poolID] -= liquidityToRemove;
         totalLiquidity[poolID] = _totalLiquidity - liquidityToRemove;
@@ -268,8 +275,8 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
         	}
 
 		// Update poolInfo
-		reserves.reserve0 = reserve0;
-		reserves.reserve1 = reserve1;
+		reserves.reserve0 = uint128(reserve0);
+		reserves.reserve1 = uint128(reserve1);
     	}
 
 
@@ -345,7 +352,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 			{
 			(uint256 reservesWETH, uint256 reservesTokenIn) = getPoolReserves(weth, swapTokenIn);
 
-			if ( (reservesWETH<=PoolUtils.DUST) || (reservesTokenIn<=PoolUtils.DUST) )
+			if ( (reservesWETH < PoolUtils.DUST) || (reservesTokenIn < PoolUtils.DUST) )
 				return; // can't arbitrage as there are not enough reserves to determine value in ETH
 
 			swapAmountInValueInETH = ( swapAmountIn * reservesWETH ) / reservesTokenIn;
