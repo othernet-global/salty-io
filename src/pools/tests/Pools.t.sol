@@ -1711,6 +1711,16 @@ function testMinLiquidityAndReclaimedAmounts() public {
         }
 
 
+	// A unit test that verifies that the startExchangeApproved can only be called from the BootstrapBallot contract.
+	function testStartExchangeApprovedOnlyCallableFromBootstrapBallot() public {
+
+        vm.startPrank(bob);
+
+        vm.expectRevert("Pools.startExchangeApproved can only be called from the BootstrapBallot contract");
+        pools.startExchangeApproved();
+        }
+
+
     // A unit test which checks the viability of withdrawing all liquidity to manipulate the reserves
     function testLiquidityManipulation() public
     	{
