@@ -123,9 +123,7 @@ contract TestUpkeepFlawed is Deployment
 	function testRevertStep1() public
 		{
 		_initFlawed(1);
-
-		vm.prank(address(bootstrapBallot));
-		initialDistribution.distributionApproved();
+		finalizeBootstrap();
 
 		// Set an initial price
 		vm.startPrank(DEPLOYER);
@@ -308,9 +306,7 @@ contract TestUpkeepFlawed is Deployment
 	function testRevertStep2() public
 		{
 		_initFlawed(2);
-
-		vm.prank(address(bootstrapBallot));
-		initialDistribution.distributionApproved();
+		finalizeBootstrap();
 
 		// Set an initial price
 		vm.startPrank(DEPLOYER);
@@ -494,9 +490,7 @@ contract TestUpkeepFlawed is Deployment
 	function testRevertStep3() public
 		{
 		_initFlawed(3);
-
-		vm.prank(address(bootstrapBallot));
-		initialDistribution.distributionApproved();
+		finalizeBootstrap();
 
 		// Set an initial price
 		vm.startPrank(DEPLOYER);
@@ -683,9 +677,7 @@ contract TestUpkeepFlawed is Deployment
 	function testRevertStep4() public
 		{
 		_initFlawed(4);
-
-		vm.prank(address(bootstrapBallot));
-		initialDistribution.distributionApproved();
+		finalizeBootstrap();
 
 		// Set an initial price
 		vm.startPrank(DEPLOYER);
@@ -872,9 +864,7 @@ contract TestUpkeepFlawed is Deployment
 	function testRevertStep5() public
 		{
 		_initFlawed(5);
-
-		vm.prank(address(bootstrapBallot));
-		initialDistribution.distributionApproved();
+		finalizeBootstrap();
 
 		// Set an initial price
 		vm.startPrank(DEPLOYER);
@@ -1059,9 +1049,7 @@ contract TestUpkeepFlawed is Deployment
 	function testRevertStep6() public
 		{
 		_initFlawed(6);
-
-		vm.prank(address(bootstrapBallot));
-		initialDistribution.distributionApproved();
+		finalizeBootstrap();
 
 		// Set an initial price
 		vm.startPrank(DEPLOYER);
@@ -1247,9 +1235,7 @@ contract TestUpkeepFlawed is Deployment
 	function testRevertStep7() public
 		{
 		_initFlawed(7);
-
-		vm.prank(address(bootstrapBallot));
-		initialDistribution.distributionApproved();
+		finalizeBootstrap();
 
 		// Set an initial price
 		vm.startPrank(DEPLOYER);
@@ -1433,9 +1419,7 @@ contract TestUpkeepFlawed is Deployment
 	function testRevertStep8() public
 		{
 		_initFlawed(8);
-
-		vm.prank(address(bootstrapBallot));
-		initialDistribution.distributionApproved();
+		finalizeBootstrap();
 
 		// Set an initial price
 		vm.startPrank(DEPLOYER);
@@ -1620,9 +1604,7 @@ contract TestUpkeepFlawed is Deployment
 	function testRevertStep9() public
 		{
 		_initFlawed(9);
-
-		vm.prank(address(bootstrapBallot));
-		initialDistribution.distributionApproved();
+		finalizeBootstrap();
 
 		// Set an initial price
 		vm.startPrank(DEPLOYER);
@@ -1808,9 +1790,7 @@ contract TestUpkeepFlawed is Deployment
 	function testRevertStep10() public
 		{
 		_initFlawed(10);
-
-		vm.prank(address(bootstrapBallot));
-		initialDistribution.distributionApproved();
+		finalizeBootstrap();
 
 		// Set an initial price
 		vm.startPrank(DEPLOYER);
@@ -1995,9 +1975,7 @@ contract TestUpkeepFlawed is Deployment
 	function testRevertStep11() public
 		{
 		_initFlawed(11);
-
-		vm.prank(address(bootstrapBallot));
-		initialDistribution.distributionApproved();
+		finalizeBootstrap();
 
 		// Set an initial price
 		vm.startPrank(DEPLOYER);
@@ -2184,9 +2162,7 @@ contract TestUpkeepFlawed is Deployment
 	function testRevertStep12() public
 		{
 		_initFlawed(12);
-
-		vm.prank(address(bootstrapBallot));
-		initialDistribution.distributionApproved();
+		finalizeBootstrap();
 
 		// Set an initial price
 		vm.startPrank(DEPLOYER);
@@ -2373,9 +2349,7 @@ contract TestUpkeepFlawed is Deployment
     	function testRevertStep13() public
     		{
     		_initFlawed(13);
-
-    		vm.prank(address(bootstrapBallot));
-    		initialDistribution.distributionApproved();
+			finalizeBootstrap();
 
     		// Set an initial price
     		vm.startPrank(DEPLOYER);
@@ -2563,9 +2537,7 @@ contract TestUpkeepFlawed is Deployment
 	function testRevertStep14() public
 		{
 		_initFlawed(14);
-
-		vm.prank(address(bootstrapBallot));
-		initialDistribution.distributionApproved();
+		finalizeBootstrap();
 
 		// Set an initial price
 		vm.startPrank(DEPLOYER);
@@ -2750,9 +2722,7 @@ contract TestUpkeepFlawed is Deployment
     	function testRevertStep15() public
     		{
     		_initFlawed(15);
-
-    		vm.prank(address(bootstrapBallot));
-    		initialDistribution.distributionApproved();
+			finalizeBootstrap();
 
     		// Set an initial price
     		vm.startPrank(DEPLOYER);
@@ -2937,9 +2907,7 @@ contract TestUpkeepFlawed is Deployment
 	function testRevertStep16() public
 		{
 		_initFlawed(16);
-
-		vm.prank(address(bootstrapBallot));
-		initialDistribution.distributionApproved();
+		finalizeBootstrap();
 
 		// Set an initial price
 		vm.startPrank(DEPLOYER);

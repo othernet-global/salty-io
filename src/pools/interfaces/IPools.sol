@@ -7,6 +7,7 @@ import "../../dao/interfaces/IDAO.sol";
 
 interface IPools
 	{
+	function startExchangeApproved() external;
 	function setDAO( IDAO _dao ) external;
 
 	function addLiquidity( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 deadline ) external returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity);

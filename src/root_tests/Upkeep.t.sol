@@ -423,11 +423,13 @@ contract TestUpkeep2 is Deployment
     // A unit test to verify that step9() functions correctly
     function testSuccessStep9() public
     	{
+		finalizeBootstrap();
+
     	// SALT and USDS to the Upkeep contract
     	vm.prank(address(collateral));
     	usds.mintTo(address(upkeep), 30 ether );
 
-    	vm.prank(address(initialDistribution));
+    	vm.prank(address(teamVestingWallet));
     	salt.transfer(address(upkeep), 15 ether);
 
 		// Check that the initial SALT/USDS reserves are zero
@@ -497,8 +499,10 @@ contract TestUpkeep2 is Deployment
     // A unit test to verify that step12() functions correctly
     function testSuccessStep12() public
     	{
+		finalizeBootstrap();
+
     	// Prepare
-    	vm.startPrank(address(initialDistribution));
+    	vm.startPrank(address(daoVestingWallet));
     	salt.approve(address(saltRewards), 100 ether);
     	saltRewards.addSALTRewards(100 ether);
     	salt.transfer(DEPLOYER, 1000000 ether);
@@ -533,24 +537,28 @@ contract TestUpkeep2 is Deployment
 		pools.depositSwapWithdraw(weth, wbtc, 1 ether, 0, block.timestamp);
 		vm.stopPrank();
 
+		bytes32[] memory poolIDsB = new bytes32[](1);
+		(poolIDsB[0],) = PoolUtils._poolID(salt, usds);
+		uint256 baseRewardsB = liquidityRewardsEmitter.pendingRewardsForPools(poolIDsB)[0];
+
+		bytes32[] memory poolIDsA = new bytes32[](1);
+		poolIDsA[0] = PoolUtils.STAKED_SALT;
+		uint256 baseRewardsA = stakingRewardsEmitter.pendingRewardsForPools(poolIDsA)[0];
+
 		// Step 12. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter and call clearProfitsForPools.
     	vm.prank(address(upkeep));
     	ITestUpkeep(address(upkeep)).step12(poolIDs);
 
 		// Check that 10% of the rewards were sent to the SALT/USDS liquidityRewardsEmitter
-		bytes32[] memory poolIDsB = new bytes32[](1);
-		(poolIDsB[0],) = PoolUtils._poolID(salt, usds);
-		assertEq( liquidityRewardsEmitter.pendingRewardsForPools(poolIDsB)[0], 10 ether );
+		assertEq( liquidityRewardsEmitter.pendingRewardsForPools(poolIDsB)[0], baseRewardsB + 10 ether );
 
 		// Check that rewards were sent to the stakingRewardsEmitter
-		bytes32[] memory poolIDsA = new bytes32[](1);
-		poolIDsA[0] = PoolUtils.STAKED_SALT;
-		assertEq( stakingRewardsEmitter.pendingRewardsForPools(poolIDsA)[0], 45 ether );
+		assertEq( stakingRewardsEmitter.pendingRewardsForPools(poolIDsA)[0], baseRewardsA + 45 ether );
 
 		// Check that rewards were sent proportionally to the three pools involved in generating the above arbitrage
-		assertEq( liquidityRewardsEmitter.pendingRewardsForPools(poolIDs)[0], uint256(45 ether) / 3 );
-		assertEq( liquidityRewardsEmitter.pendingRewardsForPools(poolIDs)[1], uint256(45 ether) / 3 );
-		assertEq( liquidityRewardsEmitter.pendingRewardsForPools(poolIDs)[2], uint256(45 ether) / 3 );
+		assertEq( liquidityRewardsEmitter.pendingRewardsForPools(poolIDs)[0], baseRewardsB + uint256(45 ether) / 3 );
+		assertEq( liquidityRewardsEmitter.pendingRewardsForPools(poolIDs)[1], baseRewardsB + uint256(45 ether) / 3 );
+		assertEq( liquidityRewardsEmitter.pendingRewardsForPools(poolIDs)[2], baseRewardsB + uint256(45 ether) / 3 );
 
 		// Check that the rewards were reset
 		uint256[] memory profitsForPools = IPoolStats(address(pools)).profitsForPools(poolIDs);
@@ -562,8 +570,10 @@ contract TestUpkeep2 is Deployment
     // A unit test to verify that step13() functions correctly
     function testSuccessStep13() public
     	{
+		finalizeBootstrap();
+
     	// Prepare
-    	vm.startPrank(address(initialDistribution));
+    	vm.startPrank(address(daoVestingWallet));
     	salt.approve(address(saltRewards), 100 ether);
     	saltRewards.addSALTRewards(100 ether);
     	salt.transfer(DEPLOYER, 1000000 ether);
@@ -602,6 +612,12 @@ contract TestUpkeep2 is Deployment
     	vm.prank(address(upkeep));
     	ITestUpkeep(address(upkeep)).step12(poolIDs);
 
+
+
+		bytes32[] memory poolIDsA = new bytes32[](1);
+		poolIDsA[0] = PoolUtils.STAKED_SALT;
+
+
 		// Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
     	vm.prank(address(upkeep));
     	ITestUpkeep(address(upkeep)).step13(1 days);
@@ -609,25 +625,25 @@ contract TestUpkeep2 is Deployment
 		// Check if the rewards were transferred (default 1% per day...so 1% as the above timeSinceLastUpkeep is one day) to the liquidity contract
 		uint256[] memory rewards = liquidity.totalRewardsForPools(poolIDs);
 
-		assertEq( rewards[0], uint256(45 ether) / 300 );
-		assertEq( rewards[1], uint256(45 ether) / 300 );
-		assertEq( rewards[2], uint256(45 ether) / 300 );
+		assertEq( rewards[0], 5555705555555555555555 );
+		assertEq( rewards[1], 5555705555555555555555 );
+		assertEq( rewards[2], 5555705555555555555555 );
 
 		// Check that the staking rewards were transferred to the staking contract
-		bytes32[] memory poolIDsA = new bytes32[](1);
-		poolIDsA[0] = PoolUtils.STAKED_SALT;
-		assertEq( staking.totalRewardsForPools(poolIDsA)[0], 45 ether / 100 );
+		assertEq( staking.totalRewardsForPools(poolIDsA)[0], 30000450000000000000000 );
 	  	}
 
 
     // A unit test to verify that step14() functions correctly
     function testSuccessStep14() public
     	{
+		finalizeBootstrap();
+
     	// SALT and USDS to the Upkeep contract
     	vm.prank(address(collateral));
     	usds.mintTo(address(upkeep), 30 ether );
 
-    	vm.prank(address(initialDistribution));
+    	vm.prank(address(teamVestingWallet));
     	salt.transfer(address(upkeep), 15 ether);
 
 		// Step 9. Send SALT and USDS (from steps 8 and 3) to the DAO and have it form SALT/USDS Protocol Owned Liquidity
@@ -640,7 +656,7 @@ contract TestUpkeep2 is Deployment
 		AddedReward[] memory addedRewards = new AddedReward[](1);
 		addedRewards[0] = AddedReward( poolID, 100 ether );
 
-    	vm.startPrank(address(initialDistribution));
+    	vm.startPrank(address(teamVestingWallet));
     	salt.approve(address(liquidity), type(uint256).max);
     	liquidity.addSALTRewards(addedRewards);
     	vm.stopPrank();
@@ -741,8 +757,7 @@ contract TestUpkeep2 is Deployment
 	// A unit test to verify all expected outcomes of a performUpkeep call
 	function testComprehensivePerformUpkeep() public
 		{
-		vm.prank(address(bootstrapBallot));
-		initialDistribution.distributionApproved();
+		finalizeBootstrap();
 
 		// Set an initial price
 		vm.startPrank(DEPLOYER);
@@ -931,8 +946,7 @@ contract TestUpkeep2 is Deployment
 	// A unit test to verify all expected outcomes of a performUpkeep call
 	function testComprehensivePerformUpkeepShortTimePeriod() public
 		{
-		vm.prank(address(bootstrapBallot));
-		initialDistribution.distributionApproved();
+		finalizeBootstrap();
 
 		// Set an initial price
 		vm.startPrank(DEPLOYER);

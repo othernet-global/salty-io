@@ -89,6 +89,7 @@ contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
 			{
 			exchangeConfig.initialDistribution().distributionApproved();
 			exchangeConfig.dao().initialGeoExclusion(_geoExclusionYes, _geoExclusionNo);
+			exchangeConfig.dao().pools().startExchangeApproved();
 
 			_startExchangeApproved = true;
 			}

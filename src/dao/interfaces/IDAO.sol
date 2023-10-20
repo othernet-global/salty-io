@@ -21,5 +21,6 @@ interface IDAO
 	function initialGeoExclusion(uint256[] memory geoExclusionYes, uint256[] memory geoExclusionNo) external;
 
 	// Views
+	function pools() external returns (IPools);
 	function websiteURL() external returns (string memory);
 	}

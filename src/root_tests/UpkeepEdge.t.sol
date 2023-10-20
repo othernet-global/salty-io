@@ -135,9 +135,7 @@ contract TestUpkeepEdge is Deployment
 	function testPerformUpkeepZeroPrice() public
 		{
 		whitelistAlice();
-
-		vm.prank(address(bootstrapBallot));
-		initialDistribution.distributionApproved();
+		finalizeBootstrap();
 
 		// Set an initial price
 		vm.startPrank(DEPLOYER);
@@ -539,7 +537,9 @@ contract TestUpkeepEdge is Deployment
     function testStep13() public
     	{
     	// Prepare
-    	vm.prank(address(initialDistribution));
+    	finalizeBootstrap();
+
+    	vm.prank(address(teamVestingWallet));
     	salt.transfer(DEPLOYER, 1000000 ether);
 
 		bytes32[] memory poolIDs = new bytes32[](4);

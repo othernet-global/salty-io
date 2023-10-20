@@ -30,6 +30,9 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	IUSDS immutable public usds;
 	IDAO public dao;
 
+	// Set to true when starting the exchange is approved by the bootstrapBallot
+	bool private _startExchangeApproved;
+
 	// Keeps track of the pool reserves by poolID
 	mapping(bytes32=>PoolReserves) private _poolReserves;
 
@@ -65,6 +68,14 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 		// setDAO can only be called once
 		renounceOwnership();
+		}
+
+
+	function startExchangeApproved() public
+		{
+    	require( msg.sender == address(exchangeConfig.initialDistribution().bootstrapBallot()), "Pools.startExchangeApproved can only be called from the BootstrapBallot contract" );
+
+		_startExchangeApproved = true;
 		}
 
 
@@ -149,7 +160,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	// Add liquidity for the specified trading pair (must be whitelisted)
 	function addLiquidity( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 deadline ) public nonReentrant ensureNotExpired(deadline) returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
 		{
-		require( exchangeConfig.initialDistribution().bootstrapBallot().startExchangeApproved(), "The exchange is not yet live" );
+		require( _startExchangeApproved, "The exchange is not yet live" );
 		require( address(tokenA) != address(tokenB), "Cannot add liquidity for duplicate tokens" );
 
 		require( maxAmountA > PoolUtils.DUST, "The amount of tokenA to add is too small" );
