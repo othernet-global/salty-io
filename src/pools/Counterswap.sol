@@ -7,7 +7,6 @@ import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 // Counterswaps allow the protocol to swap one given token for another in a way that doesn't impact the market directly.
 // It is done by waiting for users to swap in the opposite direction and then swapping in the desired direction within the same transaction - essentially restoring the reserves to where they were before the user swap.
 // This is done to gradually swap WETH to SALT and USDS for Protocol Owned Liquidity and liquidated WBTC and WETH collateral to USDS so that the USDS can be burned.
-// Counterswaps are only performed when the price is favorable (for the counterswap) compared to a recent average.
 // Counterswaps are deposited into the Pools contract and owned by the constant addresses below.
 
 library Counterswap

@@ -3,9 +3,10 @@ pragma solidity =0.8.21;
 
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../../dao/interfaces/IDAO.sol";
+import "./IPoolStats.sol";
 
 
-interface IPools
+interface IPools is IPoolStats
 	{
 	function startExchangeApproved() external;
 	function setDAO( IDAO _dao ) external;

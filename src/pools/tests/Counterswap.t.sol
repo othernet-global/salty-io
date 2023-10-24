@@ -164,7 +164,6 @@ contract TestCounterswap2 is Deployment
 		}
 
 
-	// A unit test in which the current reserve ratio is favorable compared to the averageRatio and different deposit amounts are attempted - causing shouldCounterswap to sometimes return true and sometimes return false.
 	function _testShouldCounterswap( IERC20 token0, IERC20 token1, uint256 swapAmountIn ) public {
 
 		address counterswapAddress = Counterswap._determineCounterswapAddress( token0, token1, wbtc, weth, salt, usds );
@@ -172,13 +171,12 @@ contract TestCounterswap2 is Deployment
 		assertEq( _pools.depositedBalance(counterswapAddress, token0), 0, "Initial token0 balance should be zero" );
 		assertEq( _pools.depositedBalance(counterswapAddress, token1), 0, "Initial token1 balance should be zero" );
 
-		// initial swap to establish EMA
 		vm.prank(DEPLOYER);
 		uint256 swapAmountOut = _pools.depositSwapWithdraw( token1, token0, swapAmountIn, 0, block.timestamp);
 
+		vm.warp( block.timestamp + 1 minutes );
+
 		// Deposit token0 for counterswapping to token1
-		// Deposit an amount that makes the ratio for counterswapping favorable compared to the average ratio (which is just the last swap)
-		// when counterswapping amountToDeposit for swapAmountIn
 		uint256 amountToDeposit = swapAmountOut * 75 / 100;
 
 		vm.prank(address(dao));
@@ -189,20 +187,33 @@ contract TestCounterswap2 is Deployment
         _pools.depositTokenForCounterswap(counterswapAddress, token0, amountToDeposit);
         vm.stopPrank();
 
+		(bytes32 poolID,) = PoolUtils._poolID( token1, token0 );
+
 		// Check the deposited balances
 		assertEq( _pools.depositedBalance(counterswapAddress, token0), amountToDeposit );
 
         // Checking shouldCounterswap when swapAmountOut is more than the deposited amount
-        bool shouldCounterswapMore = _pools.shouldCounterswap(token1, token0, swapAmountIn, amountToDeposit + 100);
+        bool shouldCounterswapMore = _pools.shouldCounterswap(poolID, token1, token0, amountToDeposit + 100);
         assertFalse(shouldCounterswapMore, "shouldCounterswap should return false for swapAmountOut > deposit");
 		assertEq( _pools.depositedBalance(counterswapAddress, token0), amountToDeposit );
 
-        // Checking shouldCounterswap when swapAmountOut is less than the deposited amount (which yields a favorable swap ratio with smaller amountToDeposit yielding more counterswap output)
-        bool shouldCounterswapLess = _pools.shouldCounterswap(token1, token0, swapAmountIn, amountToDeposit - 100);
+        // Checking shouldCounterswap when swapAmountOut is less than the deposited amount
+		vm.prank(DEPLOYER);
+		_pools.depositSwapWithdraw( token1, token0, swapAmountIn, 0, block.timestamp);
+		vm.warp( block.timestamp + 1 );
+
+        bool shouldCounterswapLess = _pools.shouldCounterswap(poolID, token1, token0, amountToDeposit - 100);
         assertTrue(shouldCounterswapLess, "shouldCounterswap should return true for swapAmountOut < deposit");
 		assertEq( _pools.depositedBalance(counterswapAddress, token0), amountToDeposit );
 
-		// The counterswap is not actually performed. Just the shouldCounterswap output is checked.
+		// Checking a swap made in the same block
+		vm.prank(DEPLOYER);
+		_pools.depositSwapWithdraw( token1, token0, swapAmountIn, 0, block.timestamp);
+
+        bool shouldCounterswapLess2 = _pools.shouldCounterswap(poolID, token1, token0, amountToDeposit - 100);
+        assertFalse(shouldCounterswapLess2, "shouldCounterswap should return false with a swap placed in the same block");
+		assertEq( _pools.depositedBalance(counterswapAddress, token0), amountToDeposit );
+
     }
 
 
@@ -213,60 +224,6 @@ contract TestCounterswap2 is Deployment
 		_testShouldCounterswap(weth, salt, 1 ether );
 		_testShouldCounterswap(weth, usds, 1 ether );
 		_testShouldCounterswap(wbtc, usds, 1 ether);
-		}
-
-
-	// A unit test in which the current reserve ratio is favorable to compared to the averageRatio and different deposit amounts are attempted - causing shouldCounterswap to sometimes return true and sometimes return false.
-	function _testSwapRatios( IERC20 token0, IERC20 token1, uint256 decimals1) public {
-
-		address counterswapAddress = Counterswap._determineCounterswapAddress( token0, token1, wbtc, weth, salt, usds );
-
-		assertEq( _pools.depositedBalance(counterswapAddress, token0), 0, "Initial token0 balance should be zero" );
-		assertEq( _pools.depositedBalance(counterswapAddress, token1), 0, "Initial token1 balance should be zero" );
-
-		uint256 swapAmountIn = 1 * 10**decimals1;
-
-		// initial swap to establish EMA
-		vm.prank(DEPLOYER);
-		uint256 swapAmountOut = _pools.depositSwapWithdraw( token1, token0, swapAmountIn, 0, block.timestamp);
-
-		// Deposit token0 for counterswapping to token1
-		// Excessive amountToDeposit will be deposited and the swapRatio will be adjusted and checked for proper behavior of shouldCounterswap.
-		uint256 amountToDeposit = swapAmountOut * 2;
-
-		vm.prank(address(dao));
-		token0.transfer(address(upkeep), amountToDeposit);
-
-		vm.startPrank(address(upkeep));
-		token0.approve( address(_pools), type(uint256).max );
-        _pools.depositTokenForCounterswap(counterswapAddress, token0, amountToDeposit);
-        vm.stopPrank();
-
-		// Check the deposited balances
-		assertEq( _pools.depositedBalance(counterswapAddress, token0), amountToDeposit );
-
-        // Checking shouldCounterswap with an unfavorable swap ratio
-        vm.prank(address(_pools));
-        bool shouldCounterswapUnfavorable = _pools.shouldCounterswap(token1, token0, swapAmountIn, swapAmountOut * 110 / 100);
-        assertFalse(shouldCounterswapUnfavorable, "shouldCounterswap should return false with an unfavorable swapRatio");
-
-        // Checking shouldCounterswap with a favorable swap ratio
-        // Favorable as it will cost less deposited token to get the desiredToken
-        vm.prank(address(_pools));
-        bool shouldCounterswapFavorable = _pools.shouldCounterswap(token1, token0, swapAmountIn, swapAmountOut * 90 / 100);
-        assertTrue(shouldCounterswapFavorable, "shouldCounterswap should return true with a favorable swap ratio");
-
-		// The counterswap is not actually performed. Just the shouldCounterswap output is checked.
-    }
-
-
-	// A unit test in which shouldCounterswap is tested with swapRatios larger and smaller than the current average reserve ratio
-	function testSwapRatios() public
-		{
-		_testSwapRatios(weth, wbtc, 8 );
-		_testSwapRatios(weth, salt, 18 );
-		_testSwapRatios(weth, usds, 18 );
-		_testSwapRatios(wbtc, usds, 18 );
 		}
 
 
@@ -321,7 +278,7 @@ contract TestCounterswap2 is Deployment
     }
 
 
-	// A unit test in which shouldCounterswap is tested with swapRatios larger and smaller than the current average reserve ratio
+	// A unit test ito test withdrawing tokens from counterswap
 	function testWithdrawToken() public
 		{
 		_testWithdrawToken(weth, wbtc, 1 ether );
@@ -331,40 +288,6 @@ contract TestCounterswap2 is Deployment
 		}
 
 
-	// A unit test in which the shouldCounterswap function is called with an average ratio of zero, ensuring it returns false.
-	function _testShouldNotCounterswapWithZeroAverageRatio( IERC20 token0, IERC20 token1, uint256 amountToDeposit) public {
-
-		address counterswapAddress = Counterswap._determineCounterswapAddress( token0, token1, wbtc, weth, salt, usds );
-
-		assertEq( _pools.depositedBalance(counterswapAddress, token0), 0, "Initial token0 balance should be zero" );
-		assertEq( _pools.depositedBalance(counterswapAddress, token1), 0, "Initial token1 balance should be zero" );
-
-		vm.prank(address(dao));
-		token0.transfer(address(upkeep), amountToDeposit);
-
-		vm.startPrank(address(upkeep));
-		token0.approve( address(_pools), type(uint256).max );
-        _pools.depositTokenForCounterswap(counterswapAddress, token0, amountToDeposit);
-        vm.stopPrank();
-
-		// Check the deposited balances
-		assertEq( _pools.depositedBalance(counterswapAddress, token0), amountToDeposit );
-
-        // Checking shouldCounterswap is false with no averagePrice EMA due to no swapping yet
-        vm.prank(address(_pools));
-        bool shouldCounterswap = _pools.shouldCounterswap(token1, token0, 1000 * 10**8, 1);
-        assertFalse(shouldCounterswap, "shouldCounterswap should return false no average price");
-    }
-
-
-    	// A unit test in which shouldCounterswap is tested with swapRatios larger and smaller than the current average reserve ratio
-    	function testShouldNotCounterswapWithZeroAverageRatio() public
-    		{
-    		_testShouldNotCounterswapWithZeroAverageRatio(weth, wbtc, 1 ether );
-    		_testShouldNotCounterswapWithZeroAverageRatio(weth, salt, 1 ether);
-    		_testShouldNotCounterswapWithZeroAverageRatio(weth, usds, 1 ether);
-    		_testShouldNotCounterswapWithZeroAverageRatio(wbtc, usds, 1 * 10**8);
-    		}
 
 	// A unit test to verify that withdrawTokenFromCounterswap reverts when called by any other address than the specified ones.
 	function testWithdrawTokenFromCounterswap() public {

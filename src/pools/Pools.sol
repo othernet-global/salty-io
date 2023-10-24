@@ -414,7 +414,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 			address counterswapAddress = Counterswap._determineCounterswapAddress(swapTokenOut, swapTokenIn, wbtc, weth, salt, usds);
 
 			// Check if a counterswap should be performed (for when the protocol itself wants to gradually swap some tokens at a reasonable price)
-			if ( _shouldCounterswap( swapTokenIn, swapTokenOut, counterswapAddress, swapAmountIn, swapAmountOut ) )
+			if ( _shouldCounterswap( poolID, swapTokenOut, counterswapAddress, swapAmountOut ) )
 				{
 				// Perform the counterswap (in the opposite direction of the user's swap)
 				_adjustReservesForSwap( swapTokenOut, swapTokenIn, swapAmountOut );
@@ -428,12 +428,22 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 				// No arbitrage or updating pool stats with counterswap
 				return swapAmountOut;
 				}
+
+			// Keep track of the swap timestamp for the poolID
+			_lastSwapTimestamps[poolID] = block.timestamp;
 			}
 		else
 			{
+			(bytes32 poolIDA,) = PoolUtils._poolID(swapTokenIn, weth);
+			(bytes32 poolIDB,) = PoolUtils._poolID(weth, swapTokenOut);
+
 			// Swap with WETH as the intermediate between swapTokenIn and swapTokenOut (as every token is pooled with WETH)
 			uint256 wethOut = _adjustReservesForSwap( swapTokenIn, weth, swapAmountIn );
 			swapAmountOut = _adjustReservesForSwap( weth, swapTokenOut, wethOut );
+
+			// Keep track of the swap timestamps for the poolIDs
+			_lastSwapTimestamps[poolIDA] = block.timestamp;
+			_lastSwapTimestamps[poolIDB] = block.timestamp;
 
 			// Make sure the swap meets the specified minimums
 			require( swapAmountOut >= minAmountOut, "Insufficient resulting token amount" );
@@ -441,14 +451,6 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 		// The user's swap has just been made - attempt atomic arbitrage to rebalance the pool and yield arbitrage profit
 		_attemptArbitrage( isWhitelistedPair, swapTokenIn, swapTokenOut, swapAmountIn );
-
-		// Update the stats for whitelisted pools
-		if ( isWhitelistedPair )
-			{
-	        PoolReserves memory reserves = _poolReserves[poolID];
-
-			_updatePoolStats(poolID, reserves.reserve0, reserves.reserve1 );
-			}
 		}
 
 
@@ -456,6 +458,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
     // Uses the direct pool between two tokens if available, or if not uses token1->WETH->token2 (as every token on the DEX is pooled with both WETH and WBTC)
     // Having simpler swaps without multiple tokens in the swap chain makes it simpler (and less expensive gas wise) to find suitable arbitrage opportunities.
     // Cheap arbitrage gas-wise is important as arbitrage will be atomically attempted with every swap transaction.
+
     // Requires that the first token in the chain has already been deposited for the caller.
     // Does not require exchange access on the contract level - as other contracts using the swap feature may not have the ability to grant themselves access.
 	// Regional restrictions on swapping within the browser itself may be added by the DAO.
@@ -527,25 +530,16 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	// === COUNTERSWAPS ===
 
 	// Given that the user just swapped swapTokenIn->swapTokenOut, check to see if the protocol should counterswap (swap in exactly the opposite direction essentially undoing the original trade).
-	// Checks that the rate is reasonable compared to the 30 minute EMA of the reserves ratio for the swap.
-	function _shouldCounterswap( IERC20 swapTokenIn, IERC20 swapTokenOut, address counterswapAddress, uint256 swapAmountIn, uint256 swapAmountOut ) internal view returns (bool shouldCounterswap)
+	// Checks that deposited counterswap exists and that no swap has been made within the same block.
+	function _shouldCounterswap( bytes32 poolID, IERC20 swapTokenOut, address counterswapAddress, uint256 swapAmountOut ) internal view returns (bool shouldCounterswap)
 		{
 		// Make sure at least the swapAmountOut of swapTokenOut has been deposited (as it will need to be swapped for the user's swapTokenIn)
 		uint256 amountDeposited = _userDeposits[counterswapAddress][swapTokenOut];
 		if ( amountDeposited < swapAmountOut )
 			return false;
 
-		// Check the averageRatio of reserveIn / reserveOut to see if the current opportunity to counterswap is at least more profitable than at the average ratio (to help prevent exposure to manipulation).
-		bytes16 averageRatio = averageReserveRatio(swapTokenIn, swapTokenOut);
-		if ( ABDKMathQuad.eq(averageRatio, ZERO) )
-			return false;
-
-		// Calculate the ratio of swapAmountIn to swapAmountOut from the user's swap that they just made.
-		bytes16 swapRatio = ABDKMathQuad.div(ABDKMathQuad.fromUInt(swapAmountIn), ABDKMathQuad.fromUInt(swapAmountOut));
-
-		// We want the buffer to get a reasonable amount of swapTokenIn compared to the swapTokenOut that it will need to provide the user with.
-		// So we want the swapRatio of swapAmountIn/swapAmountOut to be greater than the recent averageRatio.
-		if (ABDKMathQuad.cmp(swapRatio, averageRatio) < 0)
+		// Make sure a swap hasn't already been placed within this block (which could indicate attempted maniupulation of the counterswap)
+		if ( _lastSwapTimestamps[poolID] == block.timestamp )
 			return false;
 
 		return true;

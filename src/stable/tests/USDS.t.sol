@@ -497,6 +497,9 @@ contract USDSTest is Deployment
 		pools.depositSwapWithdraw(usds, weth, 100 ether, 0, block.timestamp);
 		vm.stopPrank();
 
+		vm.warp( block.timestamp + 1 minutes );
+
+
 		assertEq( usds.usdsThatShouldBeBurned(), amountToBurn );
 
 		uint256 usdsSupply = usds.totalSupply();

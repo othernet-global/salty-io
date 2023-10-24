@@ -88,6 +88,8 @@ contract TestPoolsAndCounterswap is Deployment
 		vm.prank(alice);
 		uint256 wethOut = pools.depositSwapWithdraw( salt, weth, 10 ether, 0, block.timestamp );
 
+		vm.warp( block.timestamp + 1 minutes );
+
 		// Determine how much of the WETH deposited into the Counterswap contract was used
 		uint256 usedWETHFromCounterswap = startingDeposited - pools.depositedBalance( counterswapAddress, weth );
 		uint256 wethThatShouldStillBeDepositedInCounterswap = 100 ether - usedWETHFromCounterswap;
@@ -105,34 +107,6 @@ contract TestPoolsAndCounterswap is Deployment
 		(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves( weth, salt );
 		assertEq( reserve0, startingReserve0, "Incorrect reserve0" );
 		assertEq( reserve1, startingReserve1 - 1, "Incorrect reserve1" );
-		}
-
-
-	// A unit test to check that counterswap is not executed when the current prices of the tokens are not favorable compared to the recent average ratio fo the two tokens.
-	function testCounterswapWithUnfavorablePrice() public
-		{
-		_prepareCounterswap();
-
-		// Initial stats
-		uint256 startingDeposited = pools.depositedBalance( counterswapAddress, weth );
-
-		// Try with prices that are not favorable compared to the recent average
-		vm.warp( block.timestamp + 5 minutes );
-
-		vm.prank(alice);
-		// Trading in the same direction as the counterswap we want to perform is not good for the exchange rate for the intended swap
-		pools.depositSwapWithdraw( weth, salt, 100 ether, 0, block.timestamp );
-
-		startingDeposited = pools.depositedBalance( counterswapAddress, weth );
-		vm.warp( block.timestamp + 5 minutes );
-
-		vm.prank(alice);
-		pools.depositSwapWithdraw( salt, weth, 10 ether, 0, block.timestamp );
-
-		uint256 usedWETHFromCounterswap = startingDeposited - pools.depositedBalance( counterswapAddress, weth );
-		assertEq( usedWETHFromCounterswap, 0, "Counterswap should not have been used when token prices are not favorable" );
-		assertEq( pools.depositedBalance( counterswapAddress, weth), startingDeposited );
-		assertEq( pools.depositedBalance( counterswapAddress, salt), 0 );
 		}
 
 

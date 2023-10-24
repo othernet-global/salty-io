@@ -1780,5 +1780,78 @@ function testMinLiquidityAndReclaimedAmounts() public {
 //		console.log( "RESERVES0: ", reserves0 );
 //		console.log( "RESERVES1: ", reserves1 );
     	}
+
+
+//    function testCounterswapManipulation() public
+//    	{
+//        IERC20 _weth = new TestERC20("TEST1", 18);
+//        IERC20 _usds = new TestERC20("TEST2", 18);
+//
+//		_weth.transfer(alice, 1000 ether);
+//		_usds.transfer(alice, 1000 ether);
+//
+//  		vm.startPrank(address(dao));
+//        poolsConfig.whitelistPool(pools, _weth, _usds);
+//		vm.stopPrank();
+//
+//        // Add liquidity
+//		_weth.approve( address(pools), type(uint256).max );
+//		_usds.approve( address(pools), type(uint256).max );
+//        pools.addLiquidity(_weth, _usds, 10000 ether, 10000 ether, 0, block.timestamp + 1 minutes);
+//
+//		// Alice wants to "counterswap" 10 WETH -> USDS
+//
+//		console.log( _weth.balanceOf(address(this)) );
+//		console.log( _usds.balanceOf(address(this)) );
+//
+//		// Attacker manipulates
+//		uint256 usdsOut = pools.depositSwapWithdraw( _weth, _usds, 1000 ether, 0, block.timestamp);
+//
+//		// Attacker swaps
+//		pools.depositSwapWithdraw( _usds, _weth, 10 ether, 0, block.timestamp);
+//
+//		// "Counterswap" happens
+//		vm.startPrank(alice);
+//		_weth.approve( address(pools), type(uint256).max );
+//		_usds.approve( address(pools), type(uint256).max );
+//
+//		pools.depositSwapWithdraw( _weth, _usds, 10 ether, 0, block.timestamp);
+//		vm.stopPrank();
+//
+//		// Attacker transfers back
+//		pools.depositSwapWithdraw(_usds, _weth, usdsOut, 0, block.timestamp);
+//
+//		console.log( _weth.balanceOf(address(this)) );
+//		console.log( _usds.balanceOf(address(this)) );
+//    	}
+
+
+    function testLastSwapTimestampUpdates() public
+    	{
+        IERC20 tokenA = new TestERC20("TEST1", 18);
+        IERC20 tokenB = new TestERC20("TEST2", 18);
+
+		tokenA.transfer(alice, 1000 ether);
+		tokenB.transfer(alice, 1000 ether);
+
+  		vm.startPrank(address(dao));
+        poolsConfig.whitelistPool(pools, tokenA, tokenB);
+		vm.stopPrank();
+
+        // Add liquidity
+		tokenA.approve( address(pools), type(uint256).max );
+		tokenB.approve( address(pools), type(uint256).max );
+        pools.addLiquidity(tokenA, tokenB, 10000 ether, 10000 ether, 0, block.timestamp + 1 minutes);
+
+		(bytes32 poolID,) = PoolUtils._poolID( tokenA, tokenB );
+
+		uint256 lastSwapTimestamp = pools.lastSwapTimestamp( poolID );
+		assertEq( lastSwapTimestamp, 0 );
+
+		pools.depositSwapWithdraw( tokenA, tokenB, 1000 ether, 0, block.timestamp);
+
+		lastSwapTimestamp = pools.lastSwapTimestamp( poolID );
+		assertEq( lastSwapTimestamp, block.timestamp );
+    	}
     }
 
