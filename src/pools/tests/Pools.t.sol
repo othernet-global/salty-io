@@ -378,7 +378,7 @@ contract TestPools2 is Deployment
         vm.warp(block.timestamp + 1 hours);
 
   		vm.startPrank(DEPLOYER);
-        vm.expectRevert("Insufficient reserve0 for swap");
+        vm.expectRevert("Insufficient reserve0 before swap");
         pools.depositSwapWithdraw(tokenIn, tokenOut, amountIn, minAmountOut, block.timestamp + 1 minutes);
 		vm.stopPrank();
 
@@ -457,7 +457,7 @@ contract TestPools2 is Deployment
         vm.expectRevert("Insufficient deposited token balance of initial token");
         pools.swap(undepositedToken, tokens[0], 1000 ether, 1 ether, block.timestamp + 300);
 
-        vm.expectRevert("Insufficient reserve0 for swap");
+        vm.expectRevert("Insufficient reserve0 before swap");
         pools.depositSwapWithdraw(undepositedToken, tokens[0], 1000 ether, 1 ether, block.timestamp + 300);
     }
 
@@ -1853,5 +1853,30 @@ function testMinLiquidityAndReclaimedAmounts() public {
 		lastSwapTimestamp = pools.lastSwapTimestamp( poolID );
 		assertEq( lastSwapTimestamp, block.timestamp );
     	}
+
+
+	// A unit test that checks that swaps must result in reserves being above DUST
+	function testSwapDustRestriction() public {
+
+		vm.startPrank(DEPLOYER);
+        IERC20 token0 = new TestERC20("TEST", 18);
+        IERC20 token1 = new TestERC20("TEST", 18);
+        vm.stopPrank();
+
+        vm.prank(address(dao));
+        poolsConfig.whitelistPool(pools, token0, token1);
+
+		vm.startPrank(DEPLOYER);
+		token0.approve( address(pools), type(uint256).max );
+		token1.approve( address(pools), type(uint256).max );
+        pools.addLiquidity(token0, token1, PoolUtils.DUST + 1, PoolUtils.DUST + 1, 0, block.timestamp);
+
+		vm.expectRevert( "Insufficient reserve0 after swap" );
+		pools.depositSwapWithdraw(token0, token1, 25, 0, block.timestamp);
+
+		vm.expectRevert( "Insufficient reserve1 after swap" );
+		pools.depositSwapWithdraw(token1, token0, 25, 0, block.timestamp);
+    }
+
     }
 
