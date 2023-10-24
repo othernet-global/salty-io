@@ -187,13 +187,11 @@ contract TestCounterswap2 is Deployment
         _pools.depositTokenForCounterswap(counterswapAddress, token0, amountToDeposit);
         vm.stopPrank();
 
-		(bytes32 poolID,) = PoolUtils._poolID( token1, token0 );
-
 		// Check the deposited balances
 		assertEq( _pools.depositedBalance(counterswapAddress, token0), amountToDeposit );
 
         // Checking shouldCounterswap when swapAmountOut is more than the deposited amount
-        bool shouldCounterswapMore = _pools.shouldCounterswap(poolID, token1, token0, amountToDeposit + 100);
+        bool shouldCounterswapMore = _pools.shouldCounterswap(token1, token0, amountToDeposit + 100);
         assertFalse(shouldCounterswapMore, "shouldCounterswap should return false for swapAmountOut > deposit");
 		assertEq( _pools.depositedBalance(counterswapAddress, token0), amountToDeposit );
 
@@ -202,7 +200,7 @@ contract TestCounterswap2 is Deployment
 		_pools.depositSwapWithdraw( token1, token0, swapAmountIn, 0, block.timestamp);
 		vm.warp( block.timestamp + 1 );
 
-        bool shouldCounterswapLess = _pools.shouldCounterswap(poolID, token1, token0, amountToDeposit - 100);
+        bool shouldCounterswapLess = _pools.shouldCounterswap(token1, token0, amountToDeposit - 100);
         assertTrue(shouldCounterswapLess, "shouldCounterswap should return true for swapAmountOut < deposit");
 		assertEq( _pools.depositedBalance(counterswapAddress, token0), amountToDeposit );
 
@@ -210,7 +208,7 @@ contract TestCounterswap2 is Deployment
 		vm.prank(DEPLOYER);
 		_pools.depositSwapWithdraw( token1, token0, swapAmountIn, 0, block.timestamp);
 
-        bool shouldCounterswapLess2 = _pools.shouldCounterswap(poolID, token1, token0, amountToDeposit - 100);
+        bool shouldCounterswapLess2 = _pools.shouldCounterswap(token1, token0, amountToDeposit - 100);
         assertFalse(shouldCounterswapLess2, "shouldCounterswap should return false with a swap placed in the same block");
 		assertEq( _pools.depositedBalance(counterswapAddress, token0), amountToDeposit );
 
