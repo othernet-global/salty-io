@@ -17,10 +17,17 @@ contract TestPools is Pools
 		}
 
 
-	function shouldCounterswap( bytes32 poolID, IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountOut ) public view returns (bool)
+	function shouldCounterswap( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountOut ) public view returns (bool)
 		{
+		(bytes32 poolID,) = PoolUtils._poolID( swapTokenIn, swapTokenOut );
+
+		// For counterswapping, make sure a swap hasn't already been placed within this block (which could indicate attempted manipulation)
+		bool counterswapDisabled = ( lastSwapTimestamp(poolID)== uint32(block.timestamp) );
+		if ( counterswapDisabled )
+			return false;
+
 		address counterswapAddress = Counterswap._determineCounterswapAddress(swapTokenOut, swapTokenIn, wbtc, weth, salt, usds);
 
-		return _shouldCounterswap(poolID, swapTokenOut, counterswapAddress, swapAmountOut );
+		return _counterswapDepositExists(counterswapAddress, swapTokenOut, swapAmountOut );
 		}
     }
