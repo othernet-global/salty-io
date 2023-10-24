@@ -25,9 +25,9 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		uint112 reserve0;						// The token reserves such that address(token0) < address(token1)
 		uint112 reserve1;
 
-		// The last timestamps that a pool was involved in a swap.
+		// The last block that a pool was involved in a swap.
 		// Used to prevent same block manipulation of counterswaps.
-		uint32 lastSwapTimestamp;
+		uint32 lastSwapBlock;
 		}
 
 	IPoolsConfig immutable public poolsConfig;
@@ -297,8 +297,8 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		reserves.reserve0 = uint112(reserve0);
 		reserves.reserve1 = uint112(reserve1);
 
-		// Keep track of the swap timestamp for the poolID
-		reserves.lastSwapTimestamp = uint32(block.timestamp);
+		// Keep track of the swapped block for the poolID
+		reserves.lastSwapBlock = uint32(block.number);
     	}
 
 
@@ -416,7 +416,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		if ( isWhitelistedPair )
 			{
 			// For counterswapping, make sure a swap hasn't already been placed within this block (which could indicate attempted manipulation)
-			bool counterswapDisabled = ( _poolReserves[poolID].lastSwapTimestamp == uint32(block.timestamp) );
+			bool counterswapDisabled = ( _poolReserves[poolID].lastSwapBlock == uint32(block.number) );
 
 			// Direct swap between the two tokens as they have a pool
 			swapAmountOut = _adjustReservesForSwap( swapTokenIn, swapTokenOut, swapAmountIn );
@@ -538,11 +538,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	function _counterswapDepositExists( address counterswapAddress, IERC20 swapTokenOut, uint256 swapAmountOut ) internal view returns (bool shouldCounterswap)
 		{
 		// Make sure at least the swapAmountOut of swapTokenOut has been deposited (as it will need to be swapped for the user's swapTokenIn)
-		uint256 amountDeposited = _userDeposits[counterswapAddress][swapTokenOut];
-		if ( amountDeposited < swapAmountOut )
-			return false;
-
-		return true;
+		return _userDeposits[counterswapAddress][swapTokenOut] >= swapAmountOut;
 		}
 
 
@@ -575,9 +571,9 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 	// === VIEWS ===
 
-	function lastSwapTimestamp( bytes32 poolID ) public view returns (uint256 _lastSwapTimestamp)
+	function lastSwapBlock( bytes32 poolID ) public view returns (uint256 _lastSwapBlock)
 		{
-		return _poolReserves[poolID].lastSwapTimestamp;
+		return _poolReserves[poolID].lastSwapBlock;
 		}
 
 

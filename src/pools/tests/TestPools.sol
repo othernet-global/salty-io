@@ -22,7 +22,7 @@ contract TestPools is Pools
 		(bytes32 poolID,) = PoolUtils._poolID( swapTokenIn, swapTokenOut );
 
 		// For counterswapping, make sure a swap hasn't already been placed within this block (which could indicate attempted manipulation)
-		bool counterswapDisabled = ( lastSwapTimestamp(poolID)== uint32(block.timestamp) );
+		bool counterswapDisabled = ( lastSwapBlock(poolID)== uint32(block.number) );
 		if ( counterswapDisabled )
 			return false;
 

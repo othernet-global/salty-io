@@ -62,7 +62,7 @@ contract TestPoolsAndCounterswap is Deployment
 		// Establish the average price in PoolStats by placing a normal swap
 		vm.startPrank(alice);
 		pools.depositSwapWithdraw( salt, weth, 10 ether, 0, block.timestamp );
-		vm.warp( block.timestamp + 5 minutes );
+		vm.roll( block.number + 1 );
 		vm.stopPrank();
 
 		vm.prank(address(dao));
@@ -129,6 +129,8 @@ contract TestPoolsAndCounterswap is Deployment
 		{
 		_prepareCounterswap();
 
+		vm.roll( block.number + 1 );
+
 		uint256 startingDeposited = pools.depositedBalance( counterswapAddress, weth );
 
 		// Initial swap and counterswap
@@ -145,7 +147,7 @@ contract TestPoolsAndCounterswap is Deployment
 		startingDeposited = pools.depositedBalance( counterswapAddress, weth );
 		(uint256 startingReserve0, uint256 startingReserve1) = pools.getPoolReserves( weth, salt );
 
-		vm.warp( block.timestamp + 1 minutes );
+		vm.roll( block.number + 1 );
 
 		// Try a successful counterswap from SALT->WETH (which will happen inside of the depositSwapWithdraw transaction)
 		vm.prank(alice);

@@ -26,7 +26,7 @@ interface IPools is IPoolStats
 	function withdrawTokenFromCounterswap( address counterswapAddress, IERC20 tokenToWithdraw, uint256 amountToWithdraw ) external;
 
 	// Views
-	function lastSwapTimestamp( bytes32 poolID ) external returns (uint256 _lastSwapTimestamp);
+	function lastSwapBlock( bytes32 poolID ) external returns (uint256 _lastSwapBlock);
 
 	function totalLiquidity(bytes32 poolID) external view returns (uint256);
 	function getPoolReserves(IERC20 tokenA, IERC20 tokenB) external view returns (uint256 reserveA, uint256 reserveB);

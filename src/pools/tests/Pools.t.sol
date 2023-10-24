@@ -1845,13 +1845,13 @@ function testMinLiquidityAndReclaimedAmounts() public {
 
 		(bytes32 poolID,) = PoolUtils._poolID( tokenA, tokenB );
 
-		uint256 lastSwapTimestamp = pools.lastSwapTimestamp( poolID );
-		assertEq( lastSwapTimestamp, 0 );
+		uint256 lastSwapBlock = pools.lastSwapBlock( poolID );
+		assertEq( lastSwapBlock, 0 );
 
 		pools.depositSwapWithdraw( tokenA, tokenB, 1000 ether, 0, block.timestamp);
 
-		lastSwapTimestamp = pools.lastSwapTimestamp( poolID );
-		assertEq( lastSwapTimestamp, block.timestamp );
+		lastSwapBlock = pools.lastSwapBlock( poolID );
+		assertEq( lastSwapBlock, block.number );
     	}
 
 

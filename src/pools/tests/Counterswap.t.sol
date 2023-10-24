@@ -174,7 +174,7 @@ contract TestCounterswap2 is Deployment
 		vm.prank(DEPLOYER);
 		uint256 swapAmountOut = _pools.depositSwapWithdraw( token1, token0, swapAmountIn, 0, block.timestamp);
 
-		vm.warp( block.timestamp + 1 minutes );
+		vm.roll( block.number + 1 );
 
 		// Deposit token0 for counterswapping to token1
 		uint256 amountToDeposit = swapAmountOut * 75 / 100;
@@ -198,7 +198,7 @@ contract TestCounterswap2 is Deployment
         // Checking shouldCounterswap when swapAmountOut is less than the deposited amount
 		vm.prank(DEPLOYER);
 		_pools.depositSwapWithdraw( token1, token0, swapAmountIn, 0, block.timestamp);
-		vm.warp( block.timestamp + 1 );
+		vm.roll( block.number + 1 );
 
         bool shouldCounterswapLess = _pools.shouldCounterswap(token1, token0, amountToDeposit - 100);
         assertTrue(shouldCounterswapLess, "shouldCounterswap should return true for swapAmountOut < deposit");
