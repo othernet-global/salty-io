@@ -9,8 +9,6 @@ contract TestArbitrage is Deployment
 	IERC20 public tokenE;	// similar price to ETH
     IERC20 public tokenB; // similar price to BTC
 
-	address public alice = address(0x1111);
-
 
 	constructor()
 		{
@@ -19,10 +17,6 @@ contract TestArbitrage is Deployment
 		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("yes" )))
 			initializeContracts();
 
-		grantAccessAlice();
-		grantAccessBob();
-		grantAccessCharlie();
-		grantAccessDeployer();
 		grantAccessDefault();
 
 		finalizeBootstrap();
@@ -34,10 +28,8 @@ contract TestArbitrage is Deployment
 		uint256 priceBTC = priceAggregator.getPriceBTC();
 		uint256 priceETH = priceAggregator.getPriceETH();
 
-		vm.startPrank(alice);
 		tokenE = new TestERC20("TEST", 18);
         tokenB = new TestERC20("TEST", 18);
-        vm.stopPrank();
 
         vm.startPrank(address(dao));
         poolsConfig.whitelistPool(pools, tokenE, wbtc);
@@ -47,11 +39,11 @@ contract TestArbitrage is Deployment
         vm.stopPrank();
 
 		vm.startPrank(DEPLOYER);
-		wbtc.transfer(alice, 1000000 *10**8);
-		weth.transfer(alice, 1000000 ether);
+		wbtc.transfer(address(this), 1000000 *10**8);
+		weth.transfer(address(this), 1000000 ether);
+		weth.transfer(address(this), 1000000 ether);
 		vm.stopPrank();
 
-		vm.startPrank(alice);
 		tokenE.approve( address(pools), type(uint256).max );
    		wbtc.approve( address(pools), type(uint256).max );
    		weth.approve( address(pools), type(uint256).max );
@@ -65,28 +57,23 @@ contract TestArbitrage is Deployment
 		// Initial transactions cost more gas so perform the first ones here
 		pools.swap( tokenE, weth, 10 ether, 0, block.timestamp );
 		pools.depositSwapWithdraw( weth, tokenE, 10 ether, 0, block.timestamp );
-
-        vm.stopPrank();
 		}
 
 
 	function testGasDepositSwapWithdrawAndArbitrage() public
 		{
-		vm.startPrank(alice);
 		pools.depositSwapWithdraw( tokenE, weth, 10 ether, 0, block.timestamp );
 		}
 
 
 	function testGasSwapAndArbitrage() public
 		{
-		vm.startPrank(alice);
 		pools.swap( tokenE, weth, 10 ether, 0, block.timestamp );
 		}
 
 
 	function testDepositSwapWithdrawAndArbitrage() public
 		{
-		vm.startPrank(alice);
 		uint256 amountOut = pools.depositSwapWithdraw( tokenE, weth, 10 ether, 0, block.timestamp );
 
 //		console.log( "amountOut: ", amountOut );
