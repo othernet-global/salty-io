@@ -89,47 +89,39 @@ contract TestPoolsAndCounterswap is Deployment
 		uint256 usedWETHFromCounterswap0 = startingDeposited - pools.depositedBalance( counterswapAddress, weth );
 		uint256 wethThatShouldStillBeDepositedInCounterswap0 = 100 ether - usedWETHFromCounterswap0;
 
-		console.log( "usedWETHFromCounterswap0: ", usedWETHFromCounterswap0 );
-		console.log( "wethThatShouldStillBeDepositedInCounterswap0: ", wethThatShouldStillBeDepositedInCounterswap0 );
+//		console.log( "usedWETHFromCounterswap0: ", usedWETHFromCounterswap0 );
+//		console.log( "wethThatShouldStillBeDepositedInCounterswap0: ", wethThatShouldStillBeDepositedInCounterswap0 );
 
 		// Initial stats
 		startingDeposited = pools.depositedBalance( counterswapAddress, weth );
 		(uint256 startingReserve0, uint256 startingReserve1) = pools.getPoolReserves( weth, salt );
 
-		// Try an unsuccessful counterswap from SALT->WETH
+		// Try an unsuccessful counterswap from SALT->WETH (unsuccessful as a swap occured in the same block)
 		vm.prank(alice);
 		uint256 wethOut = pools.depositSwapWithdraw( salt, weth, 10 ether, 0, block.timestamp );
 
 
 		// Determine how much of the WETH deposited into the Counterswap contract was used
 		uint256 usedWETHFromCounterswap = startingDeposited - pools.depositedBalance( counterswapAddress, weth );
-		uint256 wethThatShouldStillBeDepositedInCounterswap = wethThatShouldStillBeDepositedInCounterswap0 - usedWETHFromCounterswap;
-
 		assertEq( usedWETHFromCounterswap, 0, "Incorrect usedWETHFromCounterswap" );
-		assertEq( wethThatShouldStillBeDepositedInCounterswap, wethThatShouldStillBeDepositedInCounterswap0 );
 
 		// Check the updated token balances deposited into the Pools contract itself are correct
 		assertEq( pools.depositedBalance( counterswapAddress, weth), wethThatShouldStillBeDepositedInCounterswap0 );
 
-		// Counterswap should have acquire the SALT from only the first tradetrades
+		// Counterswap should have acquired the SALT from only the first swap
 		assertEq( pools.depositedBalance( counterswapAddress, salt), 10 ether );
 
-		// Reserves should have changed as the counterswap didn't undo the user swap
+		// Reserves shouldn't have changed as the counterswap didn't undo the user swap
 		(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves( weth, salt );
 		assertEq( reserve0, startingReserve0 - wethOut, "Incorrect reserve0" );
 		assertEq( reserve1, startingReserve1 + 10 ether, "Incorrect reserve1" );
 		}
 
 
-
-
-
 	// A unit test to check that counterswap behaves as expected with whitelisted pairs.
 	function testSuccessfulCounterswap() public
 		{
 		_prepareCounterswap();
-
-		vm.roll( block.number + 1 );
 
 		uint256 startingDeposited = pools.depositedBalance( counterswapAddress, weth );
 
@@ -143,11 +135,13 @@ contract TestPoolsAndCounterswap is Deployment
 //		console.log( "usedWETHFromCounterswap0: ", usedWETHFromCounterswap0 );
 //		console.log( "wethThatShouldStillBeDepositedInCounterswap0: ", wethThatShouldStillBeDepositedInCounterswap0 );
 
+		// Need to roll into the next block as counterswap won't happen if a swap occurred on the same block
+		vm.roll( block.number + 1 );
+
+
 		// Initial stats
 		startingDeposited = pools.depositedBalance( counterswapAddress, weth );
 		(uint256 startingReserve0, uint256 startingReserve1) = pools.getPoolReserves( weth, salt );
-
-		vm.roll( block.number + 1 );
 
 		// Try a successful counterswap from SALT->WETH (which will happen inside of the depositSwapWithdraw transaction)
 		vm.prank(alice);
@@ -159,12 +153,11 @@ contract TestPoolsAndCounterswap is Deployment
 		uint256 wethThatShouldStillBeDepositedInCounterswap = wethThatShouldStillBeDepositedInCounterswap0 - usedWETHFromCounterswap;
 
 		assertEq( usedWETHFromCounterswap, wethOut, "Incorrect usedWETHFromCounterswap" );
-		assertEq( pools.depositedBalance( counterswapAddress, weth ), wethThatShouldStillBeDepositedInCounterswap );
 
 		// Check the updated token balances deposited into the Pools contract itself are correct
 		assertEq( pools.depositedBalance( counterswapAddress, weth), wethThatShouldStillBeDepositedInCounterswap );
 
-		// Counterswap should have acquire the SALT from the user's two trades
+		// Counterswap should have acquire the SALT from both user trades
 		assertEq( pools.depositedBalance( counterswapAddress, salt), 20 ether );
 
 		// Reserves should have remained essentially the same (as the counterswap undid the user's swap within the same transaction)

@@ -27,10 +27,10 @@
 //	PoolStats(deployment.exchangeConfig())
 //		{
 //		// Different decimals
-//		(poolID,) = PoolUtils._poolID( tokenA, tokenB );
+//		poolID = PoolUtils._poolIDOnly( tokenA, tokenB );
 //
 //		// Same decimals
-//		(poolID2,) = PoolUtils._poolID( tokenB, tokenC );
+//		poolID2 = PoolUtils._poolIDOnly( tokenB, tokenC );
 //		}
 //
 //
@@ -43,7 +43,7 @@
 //        uint256 initialProfit;
 //        uint256 arbitrageProfit = 0;  // no profit
 //
-//        (poolID,) = PoolUtils._poolID( arbToken2, arbToken3 );
+//        poolID = PoolUtils._poolIDOnly( arbToken2, arbToken3 );
 //        initialProfit = _profitsForPools[poolID];
 //
 //        _updateProfitsFromArbitrage(isWhitelistedPair, arbToken2, arbToken3, wbtc, arbitrageProfit);
@@ -59,7 +59,7 @@
 //        IERC20 arbToken3 = tokenB;
 //        uint256 arbitrageProfit = 1 ether;
 //
-//        (poolID,) = PoolUtils._poolID( arbToken2, arbToken3 );
+//        poolID = PoolUtils._poolIDOnly( arbToken2, arbToken3 );
 //
 //        uint256 initialProfit = _profitsForPools[poolID];
 //
@@ -77,8 +77,8 @@
 //
 //        _updateProfitsFromArbitrage(isWhitelistedPair, tokenA, tokenC, arbitrageProfit);
 //
-//        (bytes32 poolIDA,) = PoolUtils._poolID( tokenA, wbtc );
-//        (bytes32 poolIDB,) = PoolUtils._poolID( tokenC, wbtc );
+//        bytes32 poolIDA = PoolUtils._poolIDOnly( tokenA, wbtc );
+//        bytes32 poolIDB = PoolUtils._poolIDOnly( tokenC, wbtc );
 //
 //        // Check that the profits for the non-whitelisted pairs are updated correctly
 //        assertEq(_profitsForPools[poolIDA], arbitrageProfit / 4, "Profit for the second pair should be updated");
@@ -120,7 +120,7 @@
 //	// A unit test for `clearProfitsForPools` that verifies an exception is thrown when an unauthorized account tries to call it
 //	function testClearProfitsForPoolsNotAuthorized() public {
 //        bytes32[] memory poolIDs = new bytes32[](1);
-//        (poolIDs[0],) = PoolUtils._poolID(tokenA, tokenB);
+//        poolIDs[0] = PoolUtils._poolIDOnly(tokenA, tokenB);
 //
 //        vm.expectRevert("PoolStats.clearProfitsForPools is only callable from the Upkeep contract");
 //        this.clearProfitsForPools(poolIDs);
@@ -157,13 +157,13 @@
 //		_updateProfitsFromArbitrage(true, tokenB, tokenC, 5 ether); // 5 ether profit for arbToken2/arbToken3 pool
 //
 //		bytes32[] memory poolIDs = new bytes32[](6);
-//		(poolIDs[0],) = PoolUtils._poolID(tokenA, tokenB);
-//		(poolIDs[1],) = PoolUtils._poolID(tokenA, exchangeConfig.weth());
-//		(poolIDs[2],) = PoolUtils._poolID(tokenB, exchangeConfig.weth());
+//		poolIDs[0] = PoolUtils._poolIDOnly(tokenA, tokenB);
+//		poolIDs[1] = PoolUtils._poolIDOnly(tokenA, exchangeConfig.weth());
+//		poolIDs[2] = PoolUtils._poolIDOnly(tokenB, exchangeConfig.weth());
 //
-//		(poolIDs[3],) = PoolUtils._poolID(tokenB, tokenC);
-//		(poolIDs[4],) = PoolUtils._poolID(tokenB, exchangeConfig.weth());
-//		(poolIDs[5],) = PoolUtils._poolID(tokenC, exchangeConfig.weth());
+//		poolIDs[3] = PoolUtils._poolIDOnly(tokenB, tokenC);
+//		poolIDs[4] = PoolUtils._poolIDOnly(tokenB, exchangeConfig.weth());
+//		poolIDs[5] = PoolUtils._poolIDOnly(tokenC, exchangeConfig.weth());
 //
 //		uint256[] memory profits = this.profitsForPools(poolIDs);
 //
@@ -193,7 +193,7 @@
 //	// A unit test for `profitsForPools` that verifies it returns zero for pools without profits
 //	function testPoolWithoutProfits() public
 //	{
-//		(bytes32 _poolID2,) = PoolUtils._poolID( tokenA, tokenB );
+//		bytes32 _poolID2 = PoolUtils._poolIDOnly( tokenA, tokenB );
 //		// Checking initial profit of pool to be zero
 //		assertEq(_profitsForPools[_poolID2], 0, "Initial profit should be zero");
 //	}

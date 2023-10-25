@@ -272,8 +272,8 @@ contract TestDAO is Deployment
 
 		// Check to see that the bootstrapping rewards have been sent
 		bytes32[] memory poolIDs = new bytes32[](2);
-		(poolIDs[0],) = PoolUtils._poolID(token,wbtc);
-		(poolIDs[1],) = PoolUtils._poolID(token,weth);
+		poolIDs[0] = PoolUtils._poolIDOnly(token,wbtc);
+		poolIDs[1] = PoolUtils._poolIDOnly(token,weth);
 
 		uint256[] memory pendingRewards = liquidityRewardsEmitter.pendingRewardsForPools( poolIDs );
 
@@ -776,7 +776,7 @@ contract TestDAO is Deployment
         assertEq(salt.balanceOf(address(dao)), 0, "DAO SALT balance incorrect after formPOL");
         assertEq(usds.balanceOf(address(dao)), 0, "DAO USDS balance incorrect after formPOL");
 
-		(bytes32 poolID,) = PoolUtils._poolID(salt,usds);
+		bytes32 poolID = PoolUtils._poolIDOnly(salt,usds);
 		assertTrue( liquidity.userShareForPool(address(dao), poolID) > 0 );
     }
 
@@ -835,7 +835,7 @@ contract TestDAO is Deployment
     	vm.warp( block.timestamp + 1 days );
 
 		bytes32[] memory poolIDs = new bytes32[](1);
-		(poolIDs[0],) = PoolUtils._poolID(salt, weth);
+		poolIDs[0] = PoolUtils._poolIDOnly(salt, weth);
 
 		uint256[] memory pendingRewards = liquidityRewardsEmitter.pendingRewardsForPools(poolIDs);
    		upkeep.performUpkeep();

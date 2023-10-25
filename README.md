@@ -27,9 +27,7 @@ The Salty.IO codebase is divided up into the following folders:
 
 *openzeppelin/openzeppelin-contracts@v4.9.3*
 
-*abdk-consulting/abdk-libraries-solidity@v3.2*
-
-*Uniswap/v3-core@0.8*
+*Uniswap/v3-core@0.8* (for price feed)
 
 *smartcontractkit/chainlink@v2.5.0*
 

@@ -42,8 +42,8 @@ contract LiquidityTest is Deployment
 		token2 = new TestERC20("TEST", 18);
 		token3 = new TestERC20("TEST", 18);
 
-        (pool1,) = PoolUtils._poolID(token1, token2);
-        (pool2,) = PoolUtils._poolID(token2, token3);
+        pool1 = PoolUtils._poolIDOnly(token1, token2);
+        pool2 = PoolUtils._poolIDOnly(token2, token3);
 
         poolIDs = new bytes32[](2);
         poolIDs[0] = pool1;
@@ -486,7 +486,7 @@ contract LiquidityTest is Deployment
     	token5 = new TestERC20("TEST", 18);
 
     	// Get pool ID of non-whitelisted pool
-    	(nonWhitelistedPool,) = PoolUtils._poolID(token4, token5);
+    	nonWhitelistedPool = PoolUtils._poolIDOnly(token4, token5);
 
     	uint256 amountA = 10 ether;
     	uint256 amountB = 20 ether;

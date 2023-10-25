@@ -98,7 +98,7 @@ contract TestPools2 is Deployment
 
 	function testGasDualZap() public
 		{
-		pools.dualZapInLiquidity( tokens[0], tokens[1], 1000 ether, 2000 ether, 0, block.timestamp, false );
+		pools.dualZapInLiquidity( tokens[0], tokens[1], 1000 ether, 2000 ether, 0, block.timestamp );
 		}
 
 
@@ -421,7 +421,7 @@ contract TestPools2 is Deployment
 //        assertEq(0, pools.getTotalReserveForToken(nonExistentToken)); // will fail on nonExistentToken.balanceOf
 
         assertEq(0, pools.getUserLiquidity(address(0), tokens[0], nonExistentToken));
-        (bytes32 poolID,) = PoolUtils._poolID(tokens[0], nonExistentToken);
+        bytes32 poolID = PoolUtils._poolIDOnly(tokens[0], nonExistentToken);
         assertEq(0, pools.totalLiquidity(poolID));
 
 		// Will fail due to reliance on balance of
@@ -440,7 +440,7 @@ contract TestPools2 is Deployment
    		vm.startPrank(DEPLOYER);
         assertEq(0, pools.depositedBalance(address(DEPLOYER), undepositedToken));
         assertEq(0, pools.getUserLiquidity(address(DEPLOYER), tokens[0], undepositedToken));
-        (poolID,) = PoolUtils._poolID(tokens[0], undepositedToken);
+        poolID = PoolUtils._poolIDOnly(tokens[0], undepositedToken);
         assertEq(0, pools.totalLiquidity(poolID));
 
         vm.expectRevert("ERC20: insufficient allowance");
@@ -653,7 +653,7 @@ contract TestPools2 is Deployment
     	assertEq(userLiquidity, 500 ether, "User liquidity mismatch");
 
     	// View total liquidity
-    	(bytes32 poolID,) = PoolUtils._poolID(token0, token1);
+    	bytes32 poolID = PoolUtils._poolIDOnly(token0, token1);
     	uint256 totalLiquidity = pools.totalLiquidity(poolID);
     	assertEq(totalLiquidity, 1000 ether, "Total liquidity mismatch");
 
@@ -706,7 +706,7 @@ contract TestPools2 is Deployment
         (poolID, flipped) = PoolUtils._poolID(IERC20(address(0x222)), IERC20(address(0x111)));
         assertTrue(flipped, "Expected PoolUtils.poolID to return flipped as true");
 
-    	(poolID,) = PoolUtils._poolID(token0, token1);
+    	poolID = PoolUtils._poolIDOnly(token0, token1);
         uint256 totalLiquidity = pools.totalLiquidity(poolID);
         assertEq(totalLiquidity, 1000 ether, "Expected totalLiquidity to return 1000 ether");
 
@@ -922,7 +922,7 @@ contract TestPools2 is Deployment
 			// Alice removes her liquidity
 			uint256 aliceLiquidity = pools.getUserLiquidity( alice, token0, token1 );
 			_assertAlmostEqual( aliceLiquidity, 141421356237309504880 );
-			(bytes32 poolID,) = PoolUtils._poolID(token0, token1);
+			bytes32 poolID = PoolUtils._poolIDOnly(token0, token1);
 			_assertAlmostEqual( pools.totalLiquidity(poolID), 212132034355964257319 + pools.getUserLiquidity( charlie, token0, token1 ) );
 	//		console.log( "aliceLiquidity: ", aliceLiquidity );
 	//		console.log( "totalLiquidity: ", pools.getTotalLiquidity(token0,token1) );
@@ -972,7 +972,7 @@ contract TestPools2 is Deployment
 		poolsConfig.whitelistPool(pools, token0, token1);
 
    		vm.startPrank(DEPLOYER);
-		(bytes32 poolID,) = PoolUtils._poolID(token0, token1);
+		bytes32 poolID = PoolUtils._poolIDOnly(token0, token1);
 
 		// alice, bob and charlie initially have 1000 of each token
     	token0.transfer(alice, 1000 ether);
@@ -1302,7 +1302,7 @@ contract TestPools2 is Deployment
 
 		// Avoid stack too deep
 			{
-			(,, uint256 addedLiquidity) = pools.dualZapInLiquidity( token0, token1, zapAmount0 * 10 ** decimals0, zapAmount1 * 10 ** decimals1, 0, block.timestamp, false );
+			(,, uint256 addedLiquidity) = pools.dualZapInLiquidity( token0, token1, zapAmount0 * 10 ** decimals0, zapAmount1 * 10 ** decimals1, 0, block.timestamp );
 
 //			console.log( "token0: ", token0.balanceOf(alice ));
 //			console.log( "token1: ", token1.balanceOf(alice ));
@@ -1402,7 +1402,7 @@ contract TestPools2 is Deployment
 
 		// Avoid stack too deep
 			{
-			(,, uint256 addedLiquidity) = pools.dualZapInLiquidity( token0, token1, zapAmount0, zapAmount1, 0, block.timestamp, false );
+			(,, uint256 addedLiquidity) = pools.dualZapInLiquidity( token0, token1, zapAmount0, zapAmount1, 0, block.timestamp );
 
 //			console.log( "addedLiquidity: ", addedLiquidity);
 //			console.log( "token0: ", token0.balanceOf(alice ));
@@ -1531,7 +1531,7 @@ function testMinLiquidityAndReclaimedAmounts() public {
             // make initial deposits
             tokenA.approve(address(pools),type(uint256).max);
             tokenB.approve(address(pools),type(uint256).max);
-            pools.dualZapInLiquidity(tokenA, tokenB, zapAmountA, zapAmountB, 0, block.timestamp, true);
+            pools.addLiquidity(tokenA, tokenB, zapAmountA, zapAmountB, 0, block.timestamp);
 
             // get actual reserves
             (uint256 actualAddedAmountA, uint256 actualAddedAmountB) = pools.getPoolReserves(tokenA, tokenB);
@@ -1542,7 +1542,7 @@ function testMinLiquidityAndReclaimedAmounts() public {
 
 
 			// Add more liquidity
-            pools.dualZapInLiquidity(tokenA, tokenB, 500 ether, 2000 ether, 0, block.timestamp, true);
+            pools.addLiquidity(tokenA, tokenB, 500 ether, 2000 ether, 0, block.timestamp);
 
             // get actual reserves
             (uint256 reservesA, uint256 reservesB) = pools.getPoolReserves(tokenA, tokenB);
@@ -1556,7 +1556,7 @@ function testMinLiquidityAndReclaimedAmounts() public {
 			uint256 startingBalanceB = tokenB.balanceOf(address(this));
 
 			// Add more liquidity
-            pools.dualZapInLiquidity(tokenA, tokenB, 100 ether, 300 ether, 0, block.timestamp, false);
+            pools.dualZapInLiquidity(tokenA, tokenB, 100 ether, 300 ether, 0, block.timestamp);
 
             // get actual reserves
             (reservesA, reservesB) = pools.getPoolReserves(tokenA, tokenB);
@@ -1570,7 +1570,7 @@ function testMinLiquidityAndReclaimedAmounts() public {
 
 
 			// Check that we hold all the liquidity
-			(bytes32 poolID,) = PoolUtils._poolID(tokenA, tokenB);
+			bytes32 poolID = PoolUtils._poolIDOnly(tokenA, tokenB);
 			assertEq( pools.totalLiquidity(poolID), pools.getUserLiquidity(address(this), tokenA, tokenB) );
 
         }
@@ -1606,7 +1606,7 @@ function testMinLiquidityAndReclaimedAmounts() public {
       vm.startPrank(address(poolsConfig));
 
       // Whitelist tokens[0] and tokens[1] by calling setIsWhitelisted() function
-      (bytes32 tokenPairID,) = PoolUtils._poolID(tokens[0], tokens[1]);
+      bytes32 tokenPairID = PoolUtils._poolIDOnly(tokens[0], tokens[1]);
       _pools.setIsWhitelisted(tokenPairID);
 
       // Check that the tokens are whitelisted as expected
@@ -1701,7 +1701,7 @@ function testMinLiquidityAndReclaimedAmounts() public {
 
 	// A unit test that verifies that the clearIsWhitelistedCache can only be called from the PoolsConfig contract.
 	function testClearIsWhitelistedCacheOnlyCallableFromPoolsConfig() public {
-        (bytes32 poolID,) = PoolUtils._poolID(tokens[0], tokens[1]);
+        bytes32 poolID = PoolUtils._poolIDOnly(tokens[0], tokens[1]);
 
         // Try to call clearIsWhitelisted as bob, which should fail
         vm.startPrank(bob);
@@ -1843,7 +1843,7 @@ function testMinLiquidityAndReclaimedAmounts() public {
 		tokenB.approve( address(pools), type(uint256).max );
         pools.addLiquidity(tokenA, tokenB, 10000 ether, 10000 ether, 0, block.timestamp + 1 minutes);
 
-		(bytes32 poolID,) = PoolUtils._poolID( tokenA, tokenB );
+		bytes32 poolID = PoolUtils._poolIDOnly( tokenA, tokenB );
 
 		uint256 lastSwapBlock = pools.lastSwapBlock( poolID );
 		assertEq( lastSwapBlock, 0 );

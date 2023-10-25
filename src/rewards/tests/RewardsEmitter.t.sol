@@ -38,8 +38,8 @@ contract TestRewardsEmitter is Deployment
 		token2 = new TestERC20("TEST", 18);
 		token3 = new TestERC20("TEST", 18);
 
-        (bytes32 pool1,) = PoolUtils._poolID(token1, token2);
-        (bytes32 pool2,) = PoolUtils._poolID(token2, token3);
+        bytes32 pool1 = PoolUtils._poolIDOnly(token1, token2);
+        bytes32 pool2 = PoolUtils._poolIDOnly(token2, token3);
 
         poolIDs = new bytes32[](2);
         poolIDs[0] = pool1;
@@ -592,7 +592,7 @@ contract TestRewardsEmitter is Deployment
 		IERC20 tokenB = new TestERC20( "TEST", 18 );
 
         bytes32 unlistedPoolID;
-        (unlistedPoolID,) = PoolUtils._poolID(tokenA, tokenB);
+        unlistedPoolID = PoolUtils._poolIDOnly(tokenA, tokenB);
         uint256 addedReward = 100 ether;
 
         // Record initial balance of the contract

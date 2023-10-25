@@ -288,7 +288,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 			reserve1 -= amountOut;
         	}
 
-		// Make sure that the reserves were both initially and finally above DUST
+		// Make sure that the reserves after swap are above DUST
         require(reserve0 > PoolUtils.DUST, "Insufficient reserve0 after swap");
         require(reserve1 > PoolUtils.DUST, "Insufficient reserve1 after swap");
 
@@ -340,6 +340,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		(uint256 reservesB0, uint256 reservesB1) = getPoolReserves( token2, token3);
 		(uint256 reservesC0, uint256 reservesC1) = getPoolReserves( token3, weth);
 
+		// Search for the most profitable arbtrageAmountIn
 		return (token2, token3, _binarySearch(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1, 0, 0 ) );
     	}
 
@@ -357,6 +358,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		(uint256 reservesC0, uint256 reservesC1) = getPoolReserves( wbtc, token3);
 		(uint256 reservesD0, uint256 reservesD1) = getPoolReserves( token3, weth);
 
+		// Search for the most profitable arbtrageAmountIn
 		return (token2, token3, _binarySearch(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1, reservesD0, reservesD1 ) );
     	}
 
@@ -409,7 +411,8 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	function _adjustReservesAndAttemptArbitrage( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut ) internal returns (uint256 swapAmountOut)
 		{
 		// See if tokenIn and tokenOut are whitelisted and therefore can have direct liquidity in the pool
-		(bytes32 poolID,) = PoolUtils._poolID(swapTokenIn, swapTokenOut);
+		bytes32 poolID = PoolUtils._poolIDOnly(swapTokenIn, swapTokenOut);
+
 		bool isWhitelistedPair = _isWhitelistedCache[poolID];
 
 		if ( isWhitelistedPair )
@@ -503,27 +506,25 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	// Zapped tokens will be transferred from the sender.
 	// Due to precision reduction during zapping calculation, the minimum possible reserves and quantity possible to zap is .000101,
 	// Requires exchange access for the sending wallet (from depositSwapWithdraw)
-	function dualZapInLiquidity(IERC20 tokenA, IERC20 tokenB, uint256 zapAmountA, uint256 zapAmountB, uint256 minLiquidityReceived, uint256 deadline, bool bypassSwap ) public returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
+	function dualZapInLiquidity(IERC20 tokenA, IERC20 tokenB, uint256 zapAmountA, uint256 zapAmountB, uint256 minLiquidityReceived, uint256 deadline ) public returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
 		{
-		if ( ! bypassSwap )
+		(uint256 reserveA, uint256 reserveB) = getPoolReserves(tokenA, tokenB);
+		(uint256 swapAmountA, uint256 swapAmountB ) = PoolMath._determineZapSwapAmount( reserveA, reserveB, tokenA, tokenB, zapAmountA, zapAmountB );
+
+		// tokenA is in excess so swap some of it to tokenB before adding liquidity?
+		if ( swapAmountA > 0)
 			{
-			(uint256 swapAmountA, uint256 swapAmountB ) = PoolMath._determineZapSwapAmount( this, tokenA, tokenB, zapAmountA, zapAmountB );
+			// Swap from tokenA to tokenB and adjust the zapAmounts
+			zapAmountA -= swapAmountA;
+			zapAmountB +=  depositSwapWithdraw( tokenA, tokenB, swapAmountA, 0, block.timestamp );
+			}
 
-			// tokenA is in excess so swap some of it to tokenB before adding liquidity?
-			if ( swapAmountA > 0)
-				{
-				// Swap from tokenA to tokenB and adjust the zapAmounts
-				zapAmountA -= swapAmountA;
-				zapAmountB +=  depositSwapWithdraw( tokenA, tokenB, swapAmountA, 0, block.timestamp );
-				}
-
-			// tokenB is in excess so swap some of it to tokenA before adding liquidity?
-			if ( swapAmountB > 0)
-				{
-				// Swap from tokenB to tokenA and adjust the zapAmounts
-				zapAmountB -= swapAmountB;
-				zapAmountA += depositSwapWithdraw( tokenB, tokenA, swapAmountB, 0, block.timestamp );
-				}
+		// tokenB is in excess so swap some of it to tokenA before adding liquidity?
+		if ( swapAmountB > 0)
+			{
+			// Swap from tokenB to tokenA and adjust the zapAmounts
+			zapAmountB -= swapAmountB;
+			zapAmountA += depositSwapWithdraw( tokenB, tokenA, swapAmountB, 0, block.timestamp );
 			}
 
 		// Assuming bypassSwap was false, the ratio of both tokens should now be the same as the ratio of the current reserves (within precision).
@@ -602,7 +603,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	// A user's liquidity in a pool
 	function getUserLiquidity(address user, IERC20 tokenA, IERC20 tokenB) public view returns (uint256)
 		{
-		(bytes32 poolID,) = PoolUtils._poolID(tokenA, tokenB);
+		bytes32 poolID = PoolUtils._poolIDOnly(tokenA, tokenB);
 
 		return _userLiquidity[user][poolID];
 		}

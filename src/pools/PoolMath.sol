@@ -199,10 +199,8 @@ library PoolMath
 
 
 	// Determine how much of either token needs to be swapped to give them a ratio equivalent to the reserves
-	function _determineZapSwapAmount( IPools pools, IERC20 tokenA, IERC20 tokenB, uint256 zapAmountA, uint256 zapAmountB ) internal view returns (uint256 swapAmountA, uint256 swapAmountB )
+	function _determineZapSwapAmount( uint256 reserveA, uint256 reserveB, IERC20 tokenA, IERC20 tokenB, uint256 zapAmountA, uint256 zapAmountB ) internal view returns (uint256 swapAmountA, uint256 swapAmountB )
 		{
-		(uint256 reserveA, uint256 reserveB) = pools.getPoolReserves(tokenA, tokenB);
-
 		uint8 decimalsA = ERC20(address(tokenA)).decimals();
 		uint8 decimalsB = ERC20(address(tokenB)).decimals();
 

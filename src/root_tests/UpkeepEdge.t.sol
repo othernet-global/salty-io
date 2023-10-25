@@ -411,7 +411,7 @@ contract TestUpkeepEdge is Deployment
 		assertEq(reserve0, 0 ether);
 		assertEq(reserve1, 0 ether);
 
-		(bytes32 poolID,) = PoolUtils._poolID(salt, usds);
+		bytes32 poolID = PoolUtils._poolIDOnly(salt, usds);
 
 		// liquidity should hold the actually LP in the Pools contract
     	assertEq( pools.getUserLiquidity(address(liquidity), salt, usds), 0 );
@@ -506,10 +506,10 @@ contract TestUpkeepEdge is Deployment
     function testStep12() public
     	{
 		bytes32[] memory poolIDs = new bytes32[](4);
-		(poolIDs[0],) = PoolUtils._poolID(salt,weth);
-		(poolIDs[1],) = PoolUtils._poolID(salt,wbtc);
-		(poolIDs[2],) = PoolUtils._poolID(wbtc,weth);
-		(poolIDs[3],) = PoolUtils._poolID(salt,usds);
+		poolIDs[0] = PoolUtils._poolIDOnly(salt,weth);
+		poolIDs[1] = PoolUtils._poolIDOnly(salt,wbtc);
+		poolIDs[2] = PoolUtils._poolIDOnly(wbtc,weth);
+		poolIDs[3] = PoolUtils._poolIDOnly(salt,usds);
 
 
 		// Step 12. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter and call clearProfitsForPools.
@@ -518,7 +518,7 @@ contract TestUpkeepEdge is Deployment
 
 		// Check that no rewards were sent to the SALT/USDS liquidityRewardsEmitter
 		bytes32[] memory poolIDsB = new bytes32[](1);
-		(poolIDsB[0],) = PoolUtils._poolID(salt, usds);
+		poolIDsB[0] = PoolUtils._poolIDOnly(salt, usds);
 		assertEq( liquidityRewardsEmitter.pendingRewardsForPools(poolIDsB)[0], 0 );
 
 		// Check that no rewards were sent to the stakingRewardsEmitter
@@ -543,10 +543,10 @@ contract TestUpkeepEdge is Deployment
     	salt.transfer(DEPLOYER, 1000000 ether);
 
 		bytes32[] memory poolIDs = new bytes32[](4);
-		(poolIDs[0],) = PoolUtils._poolID(salt,weth);
-		(poolIDs[1],) = PoolUtils._poolID(salt,wbtc);
-		(poolIDs[2],) = PoolUtils._poolID(wbtc,weth);
-		(poolIDs[3],) = PoolUtils._poolID(salt,usds);
+		poolIDs[0] = PoolUtils._poolIDOnly(salt,weth);
+		poolIDs[1] = PoolUtils._poolIDOnly(salt,wbtc);
+		poolIDs[2] = PoolUtils._poolIDOnly(wbtc,weth);
+		poolIDs[3] = PoolUtils._poolIDOnly(salt,usds);
 
 		// Add some dummy initial liquidity
 		vm.prank(address(collateral));
@@ -603,7 +603,7 @@ contract TestUpkeepEdge is Deployment
 
 		// DAO should have formed SALT/USDS liquidity and owns all the shares
 		// Mimic reward emission
-		(bytes32 poolID,) = PoolUtils._poolID(salt, usds);
+		bytes32 poolID = PoolUtils._poolIDOnly(salt, usds);
 		AddedReward[] memory addedRewards = new AddedReward[](1);
 		addedRewards[0] = AddedReward( poolID, 100 ether );
 

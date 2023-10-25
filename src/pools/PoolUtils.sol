@@ -27,4 +27,17 @@ library PoolUtils
 
         return (keccak256(abi.encodePacked(address(tokenA), address(tokenB))), false);
     	}
+
+
+    // Return the unique poolID for the given two tokens.
+    // Tokens are sorted before being hashed to make reversed pairs equivalent.
+    function _poolIDOnly( IERC20 tokenA, IERC20 tokenB ) internal pure returns (bytes32 poolID)
+    	{
+        // See if the token orders are flipped
+        if ( uint160(address(tokenB)) < uint160(address(tokenA)) )
+            return keccak256(abi.encodePacked(address(tokenB), address(tokenA)));
+
+        return keccak256(abi.encodePacked(address(tokenA), address(tokenB)));
+    	}
+
 	}
