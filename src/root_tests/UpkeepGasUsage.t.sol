@@ -192,7 +192,7 @@ contract TestMaxUpkeep is Deployment
 		vm.startPrank(DEPLOYER);
     	bytes32[] memory poolIDs = poolsConfig.whitelistedPools();
 
-    	// Performs swaps on all of the added pools so that arbitrage profits exist everywhere
+    	// Performs swaps on all of the pools so that arbitrage profits exist everywhere
     	for( uint256 i = 9; i < poolIDs.length; i++ )
     		{
     		(IERC20 tokenA, IERC20 tokenB) = poolsConfig.underlyingTokenPair(poolIDs[i]);
