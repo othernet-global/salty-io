@@ -79,13 +79,6 @@ contract PoolsConfig is IPoolsConfig, Ownable
 		}
 
 
-	// Return the poolID at the given index
-	function whitelistedPoolAtIndex( uint256 index ) public view returns (bytes32)
-		{
-		return _whitelist.at( index );
-		}
-
-
 	function isWhitelisted( bytes32 poolID ) public view returns (bool)
 		{
 		if ( poolID == PoolUtils.STAKED_SALT )

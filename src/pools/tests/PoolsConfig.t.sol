@@ -146,20 +146,6 @@ contract PoolsConfigTest is Deployment
     }
 
 
-    // A unit test that tests the whitelistedPoolAtIndex function and verifies if it returns the correct pool at the given index.
-    function testWhitelistedPoolAtIndex() public {
-	vm.startPrank( address(dao) );
-
-    bytes32 poolAtIndex0 = poolsConfig.whitelistedPoolAtIndex(originalNumWhitelisted + 0);
-    (bytes32 expectedIndex0,) = PoolUtils._poolID(token1, token2);
-    assertEq(poolAtIndex0, expectedIndex0, "Pool at index 0 is incorrect");
-
-    bytes32 poolAtIndex1 = poolsConfig.whitelistedPoolAtIndex(originalNumWhitelisted + 1);
-    (bytes32 expectedIndex1,) = PoolUtils._poolID(token2, token3);
-    assertEq(poolAtIndex1, expectedIndex1, "Pool at index 1 is incorrect");
-    }
-
-
     // A unit test that tests the isWhitelisted function with valid and invalid pools and confirms if it returns the correct boolean value for each case.
 	function testIsValidPool() public {
 		vm.startPrank( address(dao) );

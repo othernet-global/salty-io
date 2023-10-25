@@ -30,7 +30,6 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		uint32 lastSwapBlock;
 		}
 
-	IPoolsConfig immutable public poolsConfig;
 	IUSDS immutable public usds;
 	IDAO public dao;
 
@@ -54,7 +53,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 
 	constructor( IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig )
-	PoolStats(_exchangeConfig)
+	PoolStats(_exchangeConfig, _poolsConfig)
 	ArbitrageSearch(_exchangeConfig)
 		{
 		require( address(_poolsConfig) != address(0), "_poolsConfig cannot be address(0)" );
@@ -399,7 +398,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 			uint256 arbitrageProfit = _arbitrage(isWhitelistedPair, token2, token3, arbitrageAmountIn);
 
 			// Update the stats related to the pools that contributed to the arbitrage so they can be rewarded proportionally later
-			 _updateProfitsFromArbitrage( isWhitelistedPair, token2, token3, wbtc, weth, arbitrageProfit );
+			 _updateProfitsFromArbitrage( isWhitelistedPair, token2, token3, arbitrageProfit );
 			}
 		}
 
@@ -416,6 +415,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		if ( isWhitelistedPair )
 			{
 			// For counterswapping, make sure a swap hasn't already been placed within this block (which could indicate attempted manipulation)
+			// Check this before _adjustReservesForSwap is called as it will change lastSwapBlock for the poolID
 			bool counterswapDisabled = ( _poolReserves[poolID].lastSwapBlock == uint32(block.number) );
 
 			// Direct swap between the two tokens as they have a pool
