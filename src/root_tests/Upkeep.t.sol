@@ -561,6 +561,7 @@ contract TestUpkeep2 is Deployment
 		assertEq( liquidityRewardsEmitter.pendingRewardsForPools(poolIDs)[2], baseRewardsB + uint256(45 ether) / 3 );
 
 		// Check that the rewards were reset
+		vm.prank(address(upkeep));
 		uint256[] memory profitsForPools = IPoolStats(address(pools)).profitsForPools(poolIDs);
 		for( uint256 i = 0; i < profitsForPools.length; i++ )
 			assertEq( profitsForPools[i], 0 );
