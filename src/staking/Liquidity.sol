@@ -38,7 +38,7 @@ contract Liquidity is ILiquidity, StakingRewards
 	// With zapping, if one of the tokens has excess in regards to the reserves token ratio, then some of it is first swapped for the other before the liquidity is added. (See PoolMath.sol for details)
 	// bypassZapping allows this zapping to be avoided - which results in a simple addLiquidity call.
 	// Requires exchange access for the sending wallet
-	function addLiquidityAndIncreaseShare( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 deadline, bool bypassZapping ) public nonReentrant returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
+	function _addLiquidityAndIncreaseShare( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 deadline, bool bypassZapping ) internal returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
 		{
 		require( exchangeConfig.walletHasAccess(msg.sender), "Sender does not have exchange access" );
 
@@ -83,10 +83,12 @@ contract Liquidity is ILiquidity, StakingRewards
 
 	// Withdraw specified liquidity, decrease the user's liquidity share and claim any pending rewards.
 	// The DAO itself is not allowed to withdraw liquidity.
-    function _withdrawLiquidityAndClaim( bytes32 poolID, IERC20 tokenA, IERC20 tokenB, uint256 liquidityToWithdraw, uint256 minReclaimedA, uint256 minReclaimedB, uint256 deadline ) internal returns (uint256 reclaimedA, uint256 reclaimedB)
+    function _withdrawLiquidityAndClaim( IERC20 tokenA, IERC20 tokenB, uint256 liquidityToWithdraw, uint256 minReclaimedA, uint256 minReclaimedB, uint256 deadline ) internal returns (uint256 reclaimedA, uint256 reclaimedB)
 		{
 		// Make sure that the DAO isn't trying to remove liquidity
 		require( msg.sender != address(exchangeConfig.dao()), "DAO is not allowed to withdraw liquidity" );
+
+		bytes32 poolID = PoolUtils._poolIDOnly( tokenA, tokenB );
 
 		// Reduce the user's liqudiity share for the specified pool so that they receive less rewards.
 		// Cooldown is specified to prevent reward hunting (ie - quickly depositing and withdrawing large amounts of liquidity to snipe rewards)
@@ -104,7 +106,21 @@ contract Liquidity is ILiquidity, StakingRewards
 		}
 
 
-	// Public wrapper for withdrawing liquidity which prevents the direct withdrawal from the collateral pool
+	// Public wrapper for adding liquidity which prevents the direct deposit to the collateral pool.
+	// Collateral.depositCollateralAndIncreaseShare will call _addLiquidityAndIncreaseShare directly.
+	function addLiquidityAndIncreaseShare( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 deadline, bool bypassZapping ) public nonReentrant returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
+		{
+		bytes32 poolID = PoolUtils._poolIDOnly( tokenA, tokenB );
+
+		// Collateral.withdrawCollateralAndClaim has to be used to withdraw collateral so that borrow USDS restrictions can be taken into account
+		require( poolID != collateralPoolID, "Stablecoin collateral cannot be deposited via Liquidity.addLiquidityAndIncreaseShare" );
+
+    	return _addLiquidityAndIncreaseShare(tokenA, tokenB, maxAmountA, maxAmountB, minLiquidityReceived, deadline, bypassZapping);
+		}
+
+
+	// Public wrapper for withdrawing liquidity which prevents the direct withdrawal from the collateral pool.
+	// Collateral.withdrawCollateralAndClaim will call _withdrawLiquidityAndClaim directly.
     function withdrawLiquidityAndClaim( IERC20 tokenA, IERC20 tokenB, uint256 liquidityToWithdraw, uint256 minReclaimedA, uint256 minReclaimedB, uint256 deadline ) public nonReentrant returns (uint256 reclaimedA, uint256 reclaimedB)
     	{
 		bytes32 poolID = PoolUtils._poolIDOnly( tokenA, tokenB );
@@ -112,6 +128,6 @@ contract Liquidity is ILiquidity, StakingRewards
 		// Collateral.withdrawCollateralAndClaim has to be used to withdraw collateral so that borrow USDS restrictions can be taken into account
 		require( poolID != collateralPoolID, "Stablecoin collateral cannot be withdrawn via Liquidity.withdrawLiquidityAndClaim" );
 
-    	return _withdrawLiquidityAndClaim(poolID, tokenA, tokenB, liquidityToWithdraw, minReclaimedA, minReclaimedB, deadline);
+    	return _withdrawLiquidityAndClaim(tokenA, tokenB, liquidityToWithdraw, minReclaimedA, minReclaimedB, deadline);
     	}
 	}

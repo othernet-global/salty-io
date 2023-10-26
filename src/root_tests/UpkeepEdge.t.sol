@@ -556,10 +556,12 @@ contract TestUpkeepEdge is Deployment
 		salt.approve(address(liquidity), type(uint256).max);
 		wbtc.approve(address(liquidity), type(uint256).max);
 		weth.approve(address(liquidity), type(uint256).max);
+		wbtc.approve(address(collateral), type(uint256).max);
+		weth.approve(address(collateral), type(uint256).max);
 
 		liquidity.addLiquidityAndIncreaseShare( salt, weth, 1000 ether, 100 ether, 0, block.timestamp, true );
 		liquidity.addLiquidityAndIncreaseShare( wbtc, salt, 10 * 10**8, 1000 ether, 0, block.timestamp, true );
-		liquidity.addLiquidityAndIncreaseShare( wbtc, weth, 10 * 10**8, 100 ether, 0, block.timestamp, true );
+		collateral.depositCollateralAndIncreaseShare( 10 * 10**8, 100 ether, 0, block.timestamp, true );
 
 //		salt.approve(address(pools), type(uint256).max);
 //		wbtc.approve(address(pools), type(uint256).max);

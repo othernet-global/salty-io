@@ -535,16 +535,17 @@ contract LiquidityTest is Deployment
 
 
     // A unit test that checks that withdrawLiquidityAndClaim can't be called directly with the collateralPoolID
-	function testBorrowerPositionBeforeAndAfterRemovingLiquidity() public {
+	function testCollateralRestrictions() public {
 
 		vm.startPrank( DEPLOYER );
         wbtc.approve(address(liquidity), type(uint256).max);
         weth.approve(address(liquidity), type(uint256).max);
 
-		(,, uint256 addedLiquidity) = liquidity.addLiquidityAndIncreaseShare( wbtc, weth, 10 * 10**8, 10 ether, 0 ether, block.timestamp, false );
+		vm.expectRevert( "Stablecoin collateral cannot be deposited via Liquidity.addLiquidityAndIncreaseShare" );
+		liquidity.addLiquidityAndIncreaseShare( wbtc, weth, 10 * 10**8, 10 ether, 0 ether, block.timestamp, false );
 
 		// Shouldn't be able to withdraw WBTC/WETH directly via withdrawLiquidityAndClaim
 		vm.expectRevert( "Stablecoin collateral cannot be withdrawn via Liquidity.withdrawLiquidityAndClaim" );
-		liquidity.withdrawLiquidityAndClaim(wbtc, weth, addedLiquidity, 0, 0, block.timestamp);
+		liquidity.withdrawLiquidityAndClaim(wbtc, weth, 1 ether, 0, 0, block.timestamp);
     }
 	}

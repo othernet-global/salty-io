@@ -69,7 +69,7 @@ contract Collateral is Liquidity, ICollateral
 	function depositCollateralAndIncreaseShare( uint256 maxAmountWBTC, uint256 maxAmountWETH, uint256 minLiquidityReceived, uint256 deadline, bool bypassZapping ) public returns (uint256 addedAmountWBTC, uint256 addedAmountWETH, uint256 addedLiquidity)
 		{
 		// Have the user deposit the specified WBTC/WETH liquidity and increase their collateral share
-		(addedAmountWBTC, addedAmountWETH, addedLiquidity) = addLiquidityAndIncreaseShare( wbtc, weth, maxAmountWBTC, maxAmountWETH, minLiquidityReceived, deadline, bypassZapping );
+		(addedAmountWBTC, addedAmountWETH, addedLiquidity) = _addLiquidityAndIncreaseShare( wbtc, weth, maxAmountWBTC, maxAmountWETH, minLiquidityReceived, deadline, bypassZapping );
 		}
 
 
@@ -82,7 +82,7 @@ contract Collateral is Liquidity, ICollateral
 		require( collateralToWithdraw <= maxWithdrawableCollateral(msg.sender), "Excessive collateralToWithdraw" );
 
 		// Withdraw the WBTC/WETH liquidity from the liquidity pool (sending the reclaimed tokens back to the user)
-		(reclaimedWBTC, reclaimedWETH) = _withdrawLiquidityAndClaim( collateralPoolID, wbtc, weth, collateralToWithdraw, minReclaimedWBTC, minReclaimedWETH, deadline );
+		(reclaimedWBTC, reclaimedWETH) = _withdrawLiquidityAndClaim( wbtc, weth, collateralToWithdraw, minReclaimedWBTC, minReclaimedWETH, deadline );
 		}
 
 
