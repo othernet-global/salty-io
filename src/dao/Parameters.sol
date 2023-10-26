@@ -40,7 +40,7 @@ contract Parameters
 		percentPolRewardsBurned,
 		baseBallotQuorumPercentTimes1000,
 		ballotDuration,
-		baseProposalCost,
+		requiredProposalPercentStakeTimes1000,
 		maxPendingTokensForWhitelisting,
 		arbitrageProfitsPercentPOL,
 		upkeepRewardPercent,
@@ -99,8 +99,8 @@ contract Parameters
 			daoConfig.changeBaseBallotQuorumPercent(increase);
 		else if ( parameterType == ParameterTypes.ballotDuration )
 			daoConfig.changeBallotDuration(increase);
-		else if ( parameterType == ParameterTypes.baseProposalCost )
-			daoConfig.changeBaseProposalCost(increase);
+		else if ( parameterType == ParameterTypes.requiredProposalPercentStakeTimes1000 )
+			daoConfig.changeRequiredProposalPercentStake(increase);
 		else if ( parameterType == ParameterTypes.maxPendingTokensForWhitelisting )
 			daoConfig.changeMaxPendingTokensForWhitelisting(increase);
 		else if ( parameterType == ParameterTypes.arbitrageProfitsPercentPOL )

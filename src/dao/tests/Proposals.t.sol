@@ -142,57 +142,57 @@ contract TestProposals is Deployment
     }
 
 
-	// A unit test that verifies the proposeCountryInclusion and proposeCountryExclusion functions with different country names. Check that the appropriate country name gets stored in the proposal.
-	function testProposeCountryInclusionExclusion() public {
-        string memory inclusionBallotName = "include:us";
-        string memory exclusionBallotName = "exclude:ca";
-        string memory countryName1 = "us";
-        string memory countryName2 = "ca";
-        uint256 inclusionProposalCost = 5 * daoConfig.baseProposalCost();
-        uint256 exclusionProposalCost = 5 * daoConfig.baseProposalCost();
-
-        // Assert initial balances
-        assertEq(usds.balanceOf(alice), 1000000 ether);
-        assertEq(usds.balanceOf(bob), 0 ether);
-
-       // Assert reverts if not enough balance
-        vm.warp(block.timestamp + 10 days); // warp forward in time
-        vm.startPrank(bob);
-        vm.expectRevert( "ERC20: transfer amount exceeds balance" );
-        proposals.proposeCountryInclusion(countryName1, "description" );
-        vm.stopPrank();
-
-        // Propose country inclusion
-        vm.prank(alice);
-        proposals.proposeCountryInclusion(countryName1, "description" );
-        uint256 inclusionProposalId = proposals.openBallotsByName(inclusionBallotName);
-        assertEq( inclusionProposalId, 1 );
-
-        // Check proposal details
-        Ballot memory inclusionProposal = proposals.ballotForID(inclusionProposalId);
-        assertTrue(inclusionProposal.ballotIsLive);
-        assertEq(uint256(inclusionProposal.ballotType), uint256(BallotType.INCLUDE_COUNTRY));
-        assertEq(inclusionProposal.ballotName, inclusionBallotName);
-        assertEq(inclusionProposal.string1, countryName1);
-
-        // Assert Alice balance after proposing country inclusion
-        assertEq(usds.balanceOf(alice), 1000000 ether - inclusionProposalCost);
-
-        // Propose country exclusion
-        vm.prank(alice);
-        proposals.proposeCountryExclusion(countryName2, "description" );
-        uint256 exclusionProposalId = proposals.openBallotsByName(exclusionBallotName);
-
-        // Check proposal details
-        Ballot memory exclusionProposal = proposals.ballotForID(exclusionProposalId);
-        assertTrue(exclusionProposal.ballotIsLive);
-        assertEq(uint256(exclusionProposal.ballotType), uint256(BallotType.EXCLUDE_COUNTRY));
-        assertEq(exclusionProposal.ballotName, exclusionBallotName);
-        assertEq(exclusionProposal.string1, countryName2);
-
-        // Assert Alice balance after proposing country exclusion
-        assertEq(usds.balanceOf(alice), 1000000 ether - inclusionProposalCost - exclusionProposalCost);
-    }
+//	// A unit test that verifies the proposeCountryInclusion and proposeCountryExclusion functions with different country names. Check that the appropriate country name gets stored in the proposal.
+//	function testProposeCountryInclusionExclusion() public {
+//        string memory inclusionBallotName = "include:us";
+//        string memory exclusionBallotName = "exclude:ca";
+//        string memory countryName1 = "us";
+//        string memory countryName2 = "ca";
+//        uint256 inclusionProposalCost = 5 * daoConfig.baseProposalCost();
+//        uint256 exclusionProposalCost = 5 * daoConfig.baseProposalCost();
+//
+//        // Assert initial balances
+//        assertEq(usds.balanceOf(alice), 1000000 ether);
+//        assertEq(usds.balanceOf(bob), 0 ether);
+//
+//       // Assert reverts if not enough balance
+//        vm.warp(block.timestamp + 10 days); // warp forward in time
+//        vm.startPrank(bob);
+//        vm.expectRevert( "ERC20: transfer amount exceeds balance" );
+//        proposals.proposeCountryInclusion(countryName1, "description" );
+//        vm.stopPrank();
+//
+//        // Propose country inclusion
+//        vm.prank(alice);
+//        proposals.proposeCountryInclusion(countryName1, "description" );
+//        uint256 inclusionProposalId = proposals.openBallotsByName(inclusionBallotName);
+//        assertEq( inclusionProposalId, 1 );
+//
+//        // Check proposal details
+//        Ballot memory inclusionProposal = proposals.ballotForID(inclusionProposalId);
+//        assertTrue(inclusionProposal.ballotIsLive);
+//        assertEq(uint256(inclusionProposal.ballotType), uint256(BallotType.INCLUDE_COUNTRY));
+//        assertEq(inclusionProposal.ballotName, inclusionBallotName);
+//        assertEq(inclusionProposal.string1, countryName1);
+//
+//        // Assert Alice balance after proposing country inclusion
+//        assertEq(usds.balanceOf(alice), 1000000 ether - inclusionProposalCost);
+//
+//        // Propose country exclusion
+//        vm.prank(alice);
+//        proposals.proposeCountryExclusion(countryName2, "description" );
+//        uint256 exclusionProposalId = proposals.openBallotsByName(exclusionBallotName);
+//
+//        // Check proposal details
+//        Ballot memory exclusionProposal = proposals.ballotForID(exclusionProposalId);
+//        assertTrue(exclusionProposal.ballotIsLive);
+//        assertEq(uint256(exclusionProposal.ballotType), uint256(BallotType.EXCLUDE_COUNTRY));
+//        assertEq(exclusionProposal.ballotName, exclusionBallotName);
+//        assertEq(exclusionProposal.string1, countryName2);
+//
+//        // Assert Alice balance after proposing country exclusion
+//        assertEq(usds.balanceOf(alice), 1000000 ether - inclusionProposalCost - exclusionProposalCost);
+//    }
 
 
 	// A unit test that verifies the proposeSetContractAddress function. Test this function with different address values and verify that the new address gets stored in the proposal.

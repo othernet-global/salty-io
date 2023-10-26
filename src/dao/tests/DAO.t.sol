@@ -100,8 +100,8 @@ contract TestDAO is Deployment
 			return daoConfig.baseBallotQuorumPercentTimes1000();
 		else if ( parameter == Parameters.ParameterTypes.ballotDuration )
 			return daoConfig.ballotDuration();
-		else if ( parameter == Parameters.ParameterTypes.baseProposalCost )
-			return daoConfig.baseProposalCost();
+		else if ( parameter == Parameters.ParameterTypes.requiredProposalPercentStakeTimes1000 )
+			return daoConfig.requiredProposalPercentStakeTimes1000();
 		else if ( parameter == Parameters.ParameterTypes.maxPendingTokensForWhitelisting )
 			return daoConfig.maxPendingTokensForWhitelisting();
 		else if ( parameter == Parameters.ParameterTypes.arbitrageProfitsPercentPOL )

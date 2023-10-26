@@ -35,16 +35,9 @@ contract DAOConfig is IDAOConfig, Ownable
 	// Range: 3 to 14 days with an adjustment of 1 day
 	uint256 public ballotDuration = 10 days;
 
-	// The base USDS cost to propose a ballot to the DAO.
-	// This cost is paid at the time the proposal is made - whether or not it is eventually approved by the voters.
-	// Range: 250 ether to 5000 ether with an adjustment of 250 ether.
-	// Parameter adjustment cost: = 1 * baseProposalCost
-	// Token whitelisting cost: = 2 * baseProposalCost
-	// Sending SALT from the DAO cost: = 3 * baseProposalCost
-	// Country whitelisting cost: = 5 * baseProposalCost
-	// Contract updating cost: = 10 * baseProposalCost
-	// Website updating cost: = 10 * baseProposalCost
-	uint256 public baseProposalCost = 500 ether;
+	// The percent of staked SALT that a user has to have to make a proposal
+	// Range: 0.10% to 2% with an adjustment of 0.10%
+	uint256 public requiredProposalPercentStakeTimes1000 = 5; // Initially 0.50%
 
 	// The maximum number of tokens that can be pending for whitelisting at any time.
 	// Range: 3 to 12 with an adjustment of 1
@@ -118,19 +111,19 @@ contract DAOConfig is IDAOConfig, Ownable
     	}
 
 
-	function changeBaseProposalCost(bool increase) public onlyOwner
-    	{
-        if (increase)
-        	{
-            if (baseProposalCost < 5000 ether)
-                baseProposalCost += 250 ether;
-        	}
-        else
-        	{
-            if (baseProposalCost > 250 ether)
-                baseProposalCost -= 250 ether;
-    	    }
-	    }
+	function changeRequiredProposalPercentStake(bool increase) public onlyOwner
+		{
+		if (increase)
+			{
+			if (requiredProposalPercentStakeTimes1000 < 20) // Maximum 2%
+				requiredProposalPercentStakeTimes1000 += 1; // Increase by 0.10%
+			}
+		else
+			{
+			if (requiredProposalPercentStakeTimes1000 > 1) // Minimum 0.10%
+			   requiredProposalPercentStakeTimes1000 -= 1; // Decrease by 0.10%
+			}
+		}
 
 
 	function changeMaxPendingTokensForWhitelisting(bool increase) public onlyOwner
