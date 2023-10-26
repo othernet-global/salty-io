@@ -77,7 +77,7 @@ contract Liquidity is ILiquidity, StakingRewards
 
 
 	// Withdraw specified liquidity, decrease the user's liquidity share and claim any pending rewards.
-	// The DAO itself is not allowed to withdraw liquidity
+	// The DAO itself is not allowed to withdraw liquidity.
      function withdrawLiquidityAndClaim( IERC20 tokenA, IERC20 tokenB, uint256 liquidityToWithdraw, uint256 minReclaimedA, uint256 minReclaimedB, uint256 deadline ) public nonReentrant returns (uint256 reclaimedA, uint256 reclaimedB)
 		{
 		// Make sure that the DAO isn't trying to remove liquidity
