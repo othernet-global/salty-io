@@ -378,7 +378,7 @@ contract TestPools2 is Deployment
         vm.warp(block.timestamp + 1 hours);
 
   		vm.startPrank(DEPLOYER);
-        vm.expectRevert("Insufficient reserve0 before swap");
+        vm.expectRevert("Insufficient reserves before swap");
         pools.depositSwapWithdraw(tokenIn, tokenOut, amountIn, minAmountOut, block.timestamp + 1 minutes);
 		vm.stopPrank();
 
@@ -457,7 +457,7 @@ contract TestPools2 is Deployment
         vm.expectRevert("Insufficient deposited token balance of initial token");
         pools.swap(undepositedToken, tokens[0], 1000 ether, 1 ether, block.timestamp + 300);
 
-        vm.expectRevert("Insufficient reserve0 before swap");
+        vm.expectRevert("Insufficient reserves before swap");
         pools.depositSwapWithdraw(undepositedToken, tokens[0], 1000 ether, 1 ether, block.timestamp + 300);
     }
 
@@ -1871,10 +1871,10 @@ function testMinLiquidityAndReclaimedAmounts() public {
 		token1.approve( address(pools), type(uint256).max );
         pools.addLiquidity(token0, token1, PoolUtils.DUST + 1, PoolUtils.DUST + 1, 0, block.timestamp);
 
-		vm.expectRevert( "Insufficient reserve0 after swap" );
+		vm.expectRevert( "Insufficient reserves after swap" );
 		pools.depositSwapWithdraw(token0, token1, 25, 0, block.timestamp);
 
-		vm.expectRevert( "Insufficient reserve1 after swap" );
+		vm.expectRevert( "Insufficient reserves after swap" );
 		pools.depositSwapWithdraw(token1, token0, 25, 0, block.timestamp);
     }
 
