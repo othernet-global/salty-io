@@ -15,13 +15,13 @@ contract PoolStats is IPoolStats
 	IPoolsConfig immutable public poolsConfig;
 
 	// poolID(arbToken2, arbToken3) => arbitrage on whitelisted swaps since the last performUpkeep
-	mapping(bytes32=>uint256) private _whitelistedArbitrage;
+	mapping(bytes32=>uint256) public _whitelistedArbitrage;
 
 	// poolID(arbToken2, arbToken3) => arbitrage on unwhitelisted swaps since the last performUpkeep
-	mapping(bytes32=>uint256) private _unwhitelistedArbitrage;
+	mapping(bytes32=>uint256) public _unwhitelistedArbitrage;
 
 	// Used to cache the index of each poolID (to increase accounting speed)
-	mapping(bytes32=>uint256) private _poolIndicies;
+	mapping(bytes32=>uint256) public _poolIndicies;
 
 
     constructor( IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig )
@@ -63,13 +63,8 @@ contract PoolStats is IPoolStats
 		}
 
 
-	function _accumulateProfit( IERC20 tokenA, IERC20 tokenB, uint256 arbitrageProfit, uint256[] memory _profits ) internal view
-		{
-		}
-
-
 	// Split up the arbitrage that has been seen since the last performUpkeep call and credit the pools that have contributed towards it.
-	function _calculateArbitrageProfits( bytes32[] memory poolIDs, uint256[] memory _calculatedProfits ) public view
+	function _calculateArbitrageProfits( bytes32[] memory poolIDs, uint256[] memory _calculatedProfits ) internal view
 		{
 		IERC20 wbtc = exchangeConfig.wbtc();
 		IERC20 weth = exchangeConfig.weth();
@@ -104,6 +99,9 @@ contract PoolStats is IPoolStats
 		}
 
 
+	// Looks at the arbitrage that has been generated since the last performUpkeep and determines how much each of the pools
+	// contributed to those generated profits.
+	// Note that poolIDs must not include any duplicate ids to work correctly.
 	function profitsForPools( bytes32[] memory poolIDs ) public returns (uint256[] memory _calculatedProfits)
 		{
 		require(msg.sender == address(exchangeConfig.upkeep()), "PoolStats.profitsForPools is only callable from the Upkeep contract" );
