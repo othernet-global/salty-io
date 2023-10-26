@@ -30,14 +30,13 @@ contract Collateral is Liquidity, ICollateral
 
     IStableConfig immutable public stableConfig;
 	IPriceAggregator immutable public priceAggregator;
+    IUSDS immutable public usds;
 	IERC20 immutable public wbtc;
 	IERC20 immutable public weth;
-    IUSDS immutable public usds;
 
 	// Cached for efficiency
 	uint256 immutable public wbtcDecimals;
     uint256 immutable public wethDecimals;
-    bytes32 immutable public collateralPoolID;
 
    	// Keeps track of wallets that have borrowed USDS (so that they can be checked easily for sufficient collateral ratios)
    	EnumerableSet.AddressSet private _walletsWithBorrowedUSDS;
@@ -55,14 +54,12 @@ contract Collateral is Liquidity, ICollateral
 		priceAggregator = _priceAggregator;
         stableConfig = _stableConfig;
 
-		wbtc = _exchangeConfig.wbtc();
-		weth = _exchangeConfig.weth();
 		usds = _exchangeConfig.usds();
+		wbtc = exchangeConfig.wbtc();
+		weth = exchangeConfig.weth();
 
 		wbtcDecimals = ERC20(address(wbtc)).decimals();
 		wethDecimals = ERC20(address(weth)).decimals();
-
-        collateralPoolID = PoolUtils._poolIDOnly( wbtc, weth );
     	}
 
 
@@ -85,7 +82,7 @@ contract Collateral is Liquidity, ICollateral
 		require( collateralToWithdraw <= maxWithdrawableCollateral(msg.sender), "Excessive collateralToWithdraw" );
 
 		// Withdraw the WBTC/WETH liquidity from the liquidity pool (sending the reclaimed tokens back to the user)
-		(reclaimedWBTC, reclaimedWETH) = withdrawLiquidityAndClaim( wbtc, weth, collateralToWithdraw, minReclaimedWBTC, minReclaimedWETH, deadline );
+		(reclaimedWBTC, reclaimedWETH) = _withdrawLiquidityAndClaim( collateralPoolID, wbtc, weth, collateralToWithdraw, minReclaimedWBTC, minReclaimedWETH, deadline );
 		}
 
 

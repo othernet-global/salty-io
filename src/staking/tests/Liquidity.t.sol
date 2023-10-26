@@ -532,4 +532,19 @@ contract LiquidityTest is Deployment
         assertEq( token1.balanceOf( alice ), initialBalanceToken1Alice - addedAmount1, "Incorrect token1 balance after liquidity addition" );
         assertEq( token2.balanceOf( alice ), initialBalanceToken2Alice - addedAmount1, "Incorrect token2 balance after liquidity addition" );
     }
+
+
+    // A unit test that checks that withdrawLiquidityAndClaim can't be called directly with the collateralPoolID
+	function testBorrowerPositionBeforeAndAfterRemovingLiquidity() public {
+
+		vm.startPrank( DEPLOYER );
+        wbtc.approve(address(liquidity), type(uint256).max);
+        weth.approve(address(liquidity), type(uint256).max);
+
+		(,, uint256 addedLiquidity) = liquidity.addLiquidityAndIncreaseShare( wbtc, weth, 10 * 10**8, 10 ether, 0 ether, block.timestamp, false );
+
+		// Shouldn't be able to withdraw WBTC/WETH directly via withdrawLiquidityAndClaim
+		vm.expectRevert( "Stablecoin collateral cannot be withdrawn via Liquidity.withdrawLiquidityAndClaim" );
+		liquidity.withdrawLiquidityAndClaim(wbtc, weth, addedLiquidity, 0, 0, block.timestamp);
+    }
 	}

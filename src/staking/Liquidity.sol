@@ -18,6 +18,9 @@ contract Liquidity is ILiquidity, StakingRewards
 
 	IPools immutable public pools;
 
+	// The poolID of WBTC/WETH collateral - which should not be withdrawable from this contract directly
+    bytes32 immutable public collateralPoolID;
+
 
 	constructor( IPools _pools, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig )
 		StakingRewards( _exchangeConfig, _poolsConfig, _stakingConfig )
@@ -25,6 +28,8 @@ contract Liquidity is ILiquidity, StakingRewards
 		require( address(_pools) != address(0), "_pools cannot be address(0)" );
 
 		pools = _pools;
+
+		collateralPoolID = PoolUtils._poolIDOnly( exchangeConfig.wbtc(), exchangeConfig.weth() );
 		}
 
 
@@ -78,12 +83,10 @@ contract Liquidity is ILiquidity, StakingRewards
 
 	// Withdraw specified liquidity, decrease the user's liquidity share and claim any pending rewards.
 	// The DAO itself is not allowed to withdraw liquidity.
-     function withdrawLiquidityAndClaim( IERC20 tokenA, IERC20 tokenB, uint256 liquidityToWithdraw, uint256 minReclaimedA, uint256 minReclaimedB, uint256 deadline ) public nonReentrant returns (uint256 reclaimedA, uint256 reclaimedB)
+    function _withdrawLiquidityAndClaim( bytes32 poolID, IERC20 tokenA, IERC20 tokenB, uint256 liquidityToWithdraw, uint256 minReclaimedA, uint256 minReclaimedB, uint256 deadline ) internal returns (uint256 reclaimedA, uint256 reclaimedB)
 		{
 		// Make sure that the DAO isn't trying to remove liquidity
 		require( msg.sender != address(exchangeConfig.dao()), "DAO is not allowed to withdraw liquidity" );
-
-		bytes32 poolID = PoolUtils._poolIDOnly( tokenA, tokenB );
 
 		// Reduce the user's liqudiity share for the specified pool so that they receive less rewards.
 		// Cooldown is specified to prevent reward hunting (ie - quickly depositing and withdrawing large amounts of liquidity to snipe rewards)
@@ -99,4 +102,16 @@ contract Liquidity is ILiquidity, StakingRewards
 		tokenA.safeTransfer( msg.sender, reclaimedA );
 		tokenB.safeTransfer( msg.sender, reclaimedB );
 		}
+
+
+	// Public wrapper for withdrawing liquidity which prevents the direct withdrawal from the collateral pool
+    function withdrawLiquidityAndClaim( IERC20 tokenA, IERC20 tokenB, uint256 liquidityToWithdraw, uint256 minReclaimedA, uint256 minReclaimedB, uint256 deadline ) public nonReentrant returns (uint256 reclaimedA, uint256 reclaimedB)
+    	{
+		bytes32 poolID = PoolUtils._poolIDOnly( tokenA, tokenB );
+
+		// Collateral.withdrawCollateralAndClaim has to be used to withdraw collateral so that borrow USDS restrictions can be taken into account
+		require( poolID != collateralPoolID, "Stablecoin collateral cannot be withdrawn via Liquidity.withdrawLiquidityAndClaim" );
+
+    	return _withdrawLiquidityAndClaim(poolID, tokenA, tokenB, liquidityToWithdraw, minReclaimedA, minReclaimedB, deadline);
+    	}
 	}
