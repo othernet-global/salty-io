@@ -73,6 +73,8 @@ contract Proposals is IProposals, ReentrancyGuard
 			{
 			// Make sure that the sender has the minimum amount of xSALT to make the proposal
 			uint256 totalStaked = staking.totalSharesForPool(PoolUtils.STAKED_SALT);
+			require( totalStaked > 0, "Staking required to make a proposal" );
+
 			uint256 requiredXSalt = ( totalStaked * daoConfig.requiredProposalPercentStakeTimes1000() ) / ( 100 * 1000 );
 
 			uint256 userXSalt = staking.userShareForPool( msg.sender, PoolUtils.STAKED_SALT );

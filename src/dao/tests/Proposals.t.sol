@@ -62,6 +62,7 @@ contract TestProposals is Deployment
 	// A unit test that checks the proposeParameterBallot function with different input combinations. Verify that a new proposal gets created and that all necessary state changes occur.
 	function testProposeParameterBallot() public {
 		vm.startPrank( DEPLOYER );
+		staking.stakeSALT(1000 ether);
 
         // Get initial state before proposing the ballot
         uint256 initialNextBallotId = proposals.nextBallotID();
@@ -101,6 +102,7 @@ contract TestProposals is Deployment
 	function testProposeSameBallotNameMultipleTimesAndForOpenBallot() public {
         // Using address alice for initial proposal
         vm.startPrank(DEPLOYER);
+    	staking.stakeSALT( 1000000 ether ); // Default minimum quorum is 1 million
 
         // Proposing a ParameterBallot for the first time
         proposals.proposeParameterBallot(1, "description" );
@@ -111,12 +113,11 @@ contract TestProposals is Deployment
         vm.stopPrank();
 
 		// Make sure another user can't recreate the same ballot either
-		vm.prank(alice);
+		vm.startPrank(alice);
+    	staking.stakeSALT( 1000000 ether ); // Default minimum quorum is 1 million
         vm.expectRevert("Cannot create a proposal similar to a ballot that is still open" );
         proposals.proposeParameterBallot(1, "description" );
-
-		vm.prank(alice);
-    	staking.stakeSALT( 1000000 ether ); // Default minimum quorum is 1 million
+		vm.stopPrank();
 
 		uint256 ballotID = 1;
 		assertFalse( proposals.canFinalizeBallot(ballotID) );
@@ -142,62 +143,49 @@ contract TestProposals is Deployment
     }
 
 
-//	// A unit test that verifies the proposeCountryInclusion and proposeCountryExclusion functions with different country names. Check that the appropriate country name gets stored in the proposal.
-//	function testProposeCountryInclusionExclusion() public {
-//        string memory inclusionBallotName = "include:us";
-//        string memory exclusionBallotName = "exclude:ca";
-//        string memory countryName1 = "us";
-//        string memory countryName2 = "ca";
-//        uint256 inclusionProposalCost = 5 * daoConfig.baseProposalCost();
-//        uint256 exclusionProposalCost = 5 * daoConfig.baseProposalCost();
-//
-//        // Assert initial balances
-//        assertEq(usds.balanceOf(alice), 1000000 ether);
-//        assertEq(usds.balanceOf(bob), 0 ether);
-//
-//       // Assert reverts if not enough balance
-//        vm.warp(block.timestamp + 10 days); // warp forward in time
-//        vm.startPrank(bob);
-//        vm.expectRevert( "ERC20: transfer amount exceeds balance" );
-//        proposals.proposeCountryInclusion(countryName1, "description" );
-//        vm.stopPrank();
-//
-//        // Propose country inclusion
-//        vm.prank(alice);
-//        proposals.proposeCountryInclusion(countryName1, "description" );
-//        uint256 inclusionProposalId = proposals.openBallotsByName(inclusionBallotName);
-//        assertEq( inclusionProposalId, 1 );
-//
-//        // Check proposal details
-//        Ballot memory inclusionProposal = proposals.ballotForID(inclusionProposalId);
-//        assertTrue(inclusionProposal.ballotIsLive);
-//        assertEq(uint256(inclusionProposal.ballotType), uint256(BallotType.INCLUDE_COUNTRY));
-//        assertEq(inclusionProposal.ballotName, inclusionBallotName);
-//        assertEq(inclusionProposal.string1, countryName1);
-//
-//        // Assert Alice balance after proposing country inclusion
-//        assertEq(usds.balanceOf(alice), 1000000 ether - inclusionProposalCost);
-//
-//        // Propose country exclusion
-//        vm.prank(alice);
-//        proposals.proposeCountryExclusion(countryName2, "description" );
-//        uint256 exclusionProposalId = proposals.openBallotsByName(exclusionBallotName);
-//
-//        // Check proposal details
-//        Ballot memory exclusionProposal = proposals.ballotForID(exclusionProposalId);
-//        assertTrue(exclusionProposal.ballotIsLive);
-//        assertEq(uint256(exclusionProposal.ballotType), uint256(BallotType.EXCLUDE_COUNTRY));
-//        assertEq(exclusionProposal.ballotName, exclusionBallotName);
-//        assertEq(exclusionProposal.string1, countryName2);
-//
-//        // Assert Alice balance after proposing country exclusion
-//        assertEq(usds.balanceOf(alice), 1000000 ether - inclusionProposalCost - exclusionProposalCost);
-//    }
+	// A unit test that verifies the proposeCountryInclusion and proposeCountryExclusion functions with different country names. Check that the appropriate country name gets stored in the proposal.
+	function testProposeCountryInclusionExclusion() public {
+        string memory inclusionBallotName = "include:us";
+        string memory exclusionBallotName = "exclude:ca";
+        string memory countryName1 = "us";
+        string memory countryName2 = "ca";
+
+        // Assert initial balances
+        assertEq(usds.balanceOf(alice), 1000000 ether);
+        assertEq(usds.balanceOf(bob), 0 ether);
+
+        // Propose country inclusion
+        vm.startPrank(alice);
+        staking.stakeSALT(1000 ether);
+        proposals.proposeCountryInclusion(countryName1, "description" );
+        uint256 inclusionProposalId = proposals.openBallotsByName(inclusionBallotName);
+        assertEq( inclusionProposalId, 1 );
+
+        // Check proposal details
+        Ballot memory inclusionProposal = proposals.ballotForID(inclusionProposalId);
+        assertTrue(inclusionProposal.ballotIsLive);
+        assertEq(uint256(inclusionProposal.ballotType), uint256(BallotType.INCLUDE_COUNTRY));
+        assertEq(inclusionProposal.ballotName, inclusionBallotName);
+        assertEq(inclusionProposal.string1, countryName1);
+
+
+        // Propose country exclusion
+        proposals.proposeCountryExclusion(countryName2, "description" );
+        uint256 exclusionProposalId = proposals.openBallotsByName(exclusionBallotName);
+
+        // Check proposal details
+        Ballot memory exclusionProposal = proposals.ballotForID(exclusionProposalId);
+        assertTrue(exclusionProposal.ballotIsLive);
+        assertEq(uint256(exclusionProposal.ballotType), uint256(BallotType.EXCLUDE_COUNTRY));
+        assertEq(exclusionProposal.ballotName, exclusionBallotName);
+        assertEq(exclusionProposal.string1, countryName2);
+    }
 
 
 	// A unit test that verifies the proposeSetContractAddress function. Test this function with different address values and verify that the new address gets stored in the proposal.
 	function testProposeSetContractAddress() public {
         vm.startPrank(alice);
+		staking.stakeSALT(1000 ether);
 
         // Check initial state
         uint256 initialProposalCount = proposals.nextBallotID() - 1;
@@ -232,6 +220,7 @@ contract TestProposals is Deployment
 	function testProposeWebsiteUpdate() public {
         // Set up
         vm.startPrank(alice); // Switch to Alice for the test
+		staking.stakeSALT(1000 ether);
 
         // Save off the current proposals.nextBallotID() before the proposeWebsiteUpdate call
         uint256 preNextBallotID = proposals.nextBallotID();
@@ -268,6 +257,7 @@ contract TestProposals is Deployment
 
         // Simulate a call from Alice
         vm.startPrank(alice);
+        staking.stakeSALT(1000 ether);
 
 		string memory ballotName = "callContract:0x000000000000000000000000000000000000bbbb";
 
@@ -295,6 +285,7 @@ contract TestProposals is Deployment
         string memory ballotName = "parameter:2";
 
         vm.startPrank(DEPLOYER);
+        staking.stakeSALT(1000 ether);
 		proposals.proposeParameterBallot(2, "description" );
 
         uint256 ballotID = proposals.openBallotsByName(ballotName);
@@ -315,8 +306,11 @@ contract TestProposals is Deployment
 	function testCastVote() public {
         string memory ballotName = "parameter:2";
 
-        vm.prank(DEPLOYER);
+        vm.startPrank(DEPLOYER);
+		staking.stakeSALT( 1000 ether );
 		proposals.proposeParameterBallot(2, "description" );
+		vm.stopPrank();
+
 		uint256 ballotID = proposals.openBallotsByName(ballotName);
 
         Vote userVote = Vote.YES;
@@ -372,7 +366,9 @@ contract TestProposals is Deployment
 		uint256 initialStake = 10000000 ether;
 
         vm.startPrank(alice);
+        staking.stakeSALT(1110111 ether);
         proposals.proposeParameterBallot(2, "description" );
+        staking.unstake( 1110111 ether, 2);
         uint256 ballotID = proposals.openBallotsByName(ballotName);
 
 		// Early ballot, no quorum
@@ -484,9 +480,15 @@ contract TestProposals is Deployment
         {
         string memory ballotName = "parameter:2";
 
-		vm.startPrank(alice);
-        proposals.proposeParameterBallot(2, "description" );
+		vm.prank(DEPLOYER);
+		salt.transfer(bob, 1000 ether);
 
+		vm.startPrank(bob);
+staking.stakeSALT(1000 ether);
+		        proposals.proposeParameterBallot(2, "description" );
+		vm.stopPrank();
+
+		vm.startPrank(alice);
 		uint256 ballotID = proposals.openBallotsByName(ballotName);
 		staking.stakeSALT( 1000 ether );
         proposals.castVote(ballotID, Vote.INCREASE);
@@ -597,7 +599,7 @@ contract TestProposals is Deployment
 		vm.stopPrank();
 
 		vm.startPrank( alice );
-
+		staking.stakeSALT(1000 ether);
 
         // Test proposing to send an amount exceeding the limit
         uint256 excessiveAmount = daoInitialSaltBalance / 19; // > 5% of the initial balance
@@ -625,6 +627,7 @@ contract TestProposals is Deployment
 	// A unit test for the proposeTokenWhitelisting function that includes the situation where the maximum number of token whitelisting proposals are already pending.
 	function testProposeTokenWhitelistingMaxPending() public {
         vm.startPrank(DEPLOYER);
+		staking.stakeSALT(1000 ether);
 
         string memory tokenIconURL = "http://test.com/token.png";
         string memory tokenDescription = "Test Token for Whitelisting";
@@ -684,6 +687,7 @@ contract TestProposals is Deployment
 	function testProposeTokenUnwhitelisting() public {
 
 		vm.startPrank( DEPLOYER );
+		staking.stakeSALT(1000 ether);
 
         // Trying to unwhitelist an unwhitelisted token should fail.
         IERC20 newToken = new TestERC20("TEST", 18);
@@ -761,6 +765,7 @@ contract TestProposals is Deployment
 	function testParameterBallotVoting() public {
         // Test proposeParameterBallot function
         vm.startPrank(DEPLOYER);
+        staking.stakeSALT( 2000000 ether );
         proposals.proposeParameterBallot(14, "description" );
         vm.stopPrank();
 
@@ -772,7 +777,6 @@ contract TestProposals is Deployment
 
         // Voting by DEPLOYER
         vm.startPrank(DEPLOYER);
-        staking.stakeSALT( 2000000 ether );
 
 
 		vm.expectRevert( "Invalid VoteType for Parameter Ballot" );
@@ -813,7 +817,8 @@ contract TestProposals is Deployment
 	function testApprovalBallotVoting() public {
         // Test proposeParameterBallot function
         vm.startPrank(DEPLOYER);
-        proposals.proposeCountryInclusion( "USA", "description" );
+        staking.stakeSALT( 2500000 ether );
+       proposals.proposeCountryInclusion( "USA", "description" );
         vm.stopPrank();
 
         uint256 ballotID = 1;
@@ -824,7 +829,6 @@ contract TestProposals is Deployment
 
         // Voting by DEPLOYER
         vm.startPrank(DEPLOYER);
-        staking.stakeSALT( 2500000 ether );
 
 		vm.expectRevert( "Invalid VoteType for Approval Ballot" );
         proposals.castVote(ballotID, Vote.INCREASE);
@@ -871,13 +875,13 @@ contract TestProposals is Deployment
     // A unit test to verify that a user cannot cast a vote on a ballot that is not open for voting.
     function testUserCannotVoteOnClosedBallot() public {
         vm.startPrank( alice );
+        staking.stakeSALT( 1000000 ether );
 
         // Alice proposes a parameter ballot
         proposals.proposeParameterBallot(20, "description" );
         uint256 ballotID = 1;
 
         // Alice casts a vote on the newly created ballot
-        staking.stakeSALT( 1000000 ether );
         proposals.castVote(ballotID, Vote.INCREASE);
 
         // Close the ballot
@@ -899,6 +903,7 @@ contract TestProposals is Deployment
 	function testIncorrectParameterVote() public {
         // Test proposeParameterBallot function
         vm.startPrank(DEPLOYER);
+        staking.stakeSALT( 2000000 ether );
         proposals.proposeParameterBallot(16, "description" );
         vm.stopPrank();
 
@@ -906,7 +911,6 @@ contract TestProposals is Deployment
 
         // Voting by DEPLOYER
         vm.startPrank(DEPLOYER);
-        staking.stakeSALT( 2000000 ether );
 
 		vm.expectRevert( "Invalid VoteType for Parameter Ballot" );
         proposals.castVote(ballotID, Vote.YES);
@@ -921,6 +925,7 @@ contract TestProposals is Deployment
 	function testIncorrectApprovalVote() public {
         // Test proposeParameterBallot function
         vm.startPrank(DEPLOYER);
+        staking.stakeSALT( 2000000 ether );
         proposals.proposeCountryInclusion("USA", "description" );
         vm.stopPrank();
 
@@ -928,7 +933,6 @@ contract TestProposals is Deployment
 
         // Voting by DEPLOYER
         vm.startPrank(DEPLOYER);
-        staking.stakeSALT( 2000000 ether );
 
 		vm.expectRevert( "Invalid VoteType for Approval Ballot" );
         proposals.castVote(ballotID, Vote.INCREASE);
@@ -949,8 +953,10 @@ contract TestProposals is Deployment
 		vm.prank(address(dao));
 		poolsConfig.whitelistPool(pools,  wbtc, weth );
 
+		vm.startPrank(DEPLOYER);
+        staking.stakeSALT( 2000000 ether );
+
         vm.expectRevert( "The token has already been whitelisted" );
-		vm.prank(DEPLOYER);
         proposals.proposeTokenWhitelisting( wbtc, "https://tokenIconURL", "This is a test token");
 		}
 
@@ -959,6 +965,7 @@ contract TestProposals is Deployment
 	function testDuplicateApprovalBallot() public {
 		// Test proposeParameterBallot function
 		vm.startPrank(DEPLOYER);
+        staking.stakeSALT( 2000000 ether );
 		proposals.proposeCountryInclusion("USA", "description" );
 
 		vm.expectRevert( "Cannot create a proposal similar to a ballot that is still open" );
@@ -971,6 +978,7 @@ contract TestProposals is Deployment
 	function testDuplicateParameterBallot() public {
 		// Test proposeParameterBallot function
 		vm.startPrank(DEPLOYER);
+        staking.stakeSALT(1000 ether);
 		proposals.proposeParameterBallot(17, "description" );
 
 		vm.expectRevert( "Cannot create a proposal similar to a ballot that is still open" );
@@ -1007,6 +1015,7 @@ contract TestProposals is Deployment
 	// A unit test to verify that the proposeSetContractAddress function does not allow a proposal to set a contract address to address(0).
 	function testProposeSetContractAddressRejectsZeroAddress() public {
         vm.startPrank(alice);
+		staking.stakeSALT(1000 ether);
 
         // Try to set an invalid address and expect a revert
         address newAddress = address(0);
@@ -1035,6 +1044,7 @@ contract TestProposals is Deployment
 	// A unit test to verify that the proposeWebsiteUpdate function does not allow a proposal to update the website URL to an empty string.
     function testProposeWebsiteUpdateWithEmptyURL() public {
         vm.startPrank(DEPLOYER);
+		staking.stakeSALT(1000 ether);
 
         // Attempt to propose an empty website URL
         string memory newWebsiteURL = "";
@@ -1088,6 +1098,7 @@ contract TestProposals is Deployment
    // A unit test that checks if proposeWebsiteUpdate function does not allow proposal with the same web URL to be updated.
    function testProposeDuplicateWebsiteUpdate() public {
        vm.startPrank( DEPLOYER );
+		staking.stakeSALT(1000 ether);
 
        // Propose a website update with a unique url
        string memory uniqueURL = "http://test.mysite.com";
@@ -1109,6 +1120,8 @@ contract TestProposals is Deployment
    // A unit test that checks if the proposeTokenWhitelisting function creates proposals correctly, verifies that the proposal address is unique and different from address(0) and that the proposal's state changes appropriately.
    function testProposeTokenWhitelisting() public {
        vm.startPrank(DEPLOYER);
+		staking.stakeSALT(1000 ether);
+
 
        // Get initial state before proposing the ballot
        uint256 initialNextBallotId = proposals.nextBallotID();
@@ -1179,6 +1192,8 @@ contract TestProposals is Deployment
 
    	   // Propose a new parameter ballot
        vm.startPrank( DEPLOYER );
+       staking.stakeSALT(1000 ether);
+
        proposals.proposeParameterBallot(1, "description");
        salt.transfer(alice, 100 ether);
        salt.transfer(bob, 100 ether);
@@ -1248,7 +1263,7 @@ contract TestProposals is Deployment
    		staking.stakeSALT(stakeAmount);
 
    		// Propose a ballot
-   		vm.prank(DEPLOYER);
+   		vm.prank(alice);
    		proposals.proposeCountryInclusion("usa", "proposed ballot");
 
    		// Casting a vote YES
@@ -1276,6 +1291,7 @@ contract TestProposals is Deployment
 
         // Proposing country inclusion with empty country name should fail
         vm.startPrank(alice);
+        staking.stakeSALT(1000 ether);
         vm.expectRevert("Country cannot be empty");
         proposals.proposeCountryInclusion(emptyCountryName, "description");
         vm.stopPrank();
@@ -1306,6 +1322,7 @@ contract TestProposals is Deployment
     function testBallotForID() public {
         // Propose a ballot
         vm.startPrank(DEPLOYER);
+        staking.stakeSALT( 1000 ether);
         proposals.proposeParameterBallot(2, "testBallotForID");
         uint256 expectedBallotID = 1; // The original test setup function nextBallotID = 1
         assertEq(proposals.nextBallotID(), expectedBallotID + 1);
@@ -1338,6 +1355,7 @@ contract TestProposals is Deployment
     // A unit test to verify that proposeCallContract function refuses any proposals to call a contract at address(0).
     function testProposeCallContractZeroAddressRejection() public {
         vm.startPrank(DEPLOYER);
+        staking.stakeSALT( 1000 ether);
 
         // Try to propose a contract call to address(0)
         vm.expectRevert("Contract address cannot be address(0)");
@@ -1350,6 +1368,7 @@ contract TestProposals is Deployment
 	function testOpenBallotsForTokenWhitelisting() public {
 
         vm.startPrank(alice);
+        staking.stakeSALT( 1000 ether);
         IERC20 testToken = new TestERC20("TEST", 18);
         proposals.proposeTokenWhitelisting(testToken, "https://tokenIconURL", "This is a test token");
 
@@ -1376,6 +1395,7 @@ contract TestProposals is Deployment
 	function testOpenBallots() public {
 
         vm.startPrank(alice);
+        staking.stakeSALT( 1000 ether);
         IERC20 testToken = new TestERC20("TEST", 18);
         proposals.proposeTokenWhitelisting(testToken, "https://tokenIconURL", "This is a test token");
 
@@ -1427,6 +1447,26 @@ contract TestProposals is Deployment
 		assertEq( ballotIDs[0], 1 );
 		assertEq( ballotIDs[1], 3 );
     }
+
+
+	// A unit test that tries to propose a ballot without sufficient stake to do so
+	function testProposeWithInsufficientStake() public {
+        vm.startPrank(alice);
+    	staking.stakeSALT( 1000000 ether ); // Default minimum quorum is 1 million
+
+        // Using address alice for initial proposal
+        vm.startPrank(DEPLOYER);
+    	staking.stakeSALT( 1 ); // Default minimum quorum is 1 million
+
+        // Proposing a ParameterBallot for the first time
+        vm.expectRevert("Sender does not have enough xSALT to make the proposal");
+        proposals.proposeParameterBallot(1, "description" );
+
+    	staking.stakeSALT( 1000000 ether ); // Default minimum quorum is 1 million
+        proposals.proposeParameterBallot(1, "description" );
+        vm.stopPrank();
+    }
+
    }
 
 

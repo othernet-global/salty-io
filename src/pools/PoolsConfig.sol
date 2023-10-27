@@ -111,9 +111,6 @@ contract PoolsConfig is IPoolsConfig, Ownable
 		bytes32 poolID1 = PoolUtils._poolIDOnly( token, wbtc );
 		bytes32 poolID2 = PoolUtils._poolIDOnly( token, weth );
 
-		if ( isWhitelisted(poolID1) || isWhitelisted(poolID2) )
-			return true;
-
-		return false;
+		return isWhitelisted(poolID1) || isWhitelisted(poolID2);
 		}
 	}
