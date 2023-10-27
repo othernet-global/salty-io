@@ -43,9 +43,9 @@ contract AccessManager is IAccessManager
     	}
 
 
-	// Verify that the whitelist was signed by the authoratative signer.
-	// Note that this is only the default mechanism and can be changed by the DAO at any time (either aletering the regional restrictions themselves or replacing the access mechanism entirely).
-    function verifyWhitelist(address wallet, bytes memory signature ) public view returns (bool)
+	// Verify that the access request was signed by the authoratative signer.
+	// Note that this is only the default mechanism and can be changed by the DAO at any time (either altering the regional restrictions themselves or replacing the access mechanism entirely).
+    function _verifyAccess(address wallet, bytes memory signature ) internal view returns (bool)
     	{
 		bytes32 messageHash = keccak256(abi.encodePacked(geoVersion, wallet));
 
@@ -57,7 +57,7 @@ contract AccessManager is IAccessManager
 	// Requires the accompanying correct message signature from the offchain verifier.
     function grantAccess(bytes memory signature) public
     	{
-    	require( verifyWhitelist(msg.sender, signature), "Incorrect AccessManager.grantAccess signatory" );
+    	require( _verifyAccess(msg.sender, signature), "Incorrect AccessManager.grantAccess signatory" );
 
         _walletsWithAccess[geoVersion][msg.sender] = true;
     	}
