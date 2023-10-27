@@ -107,10 +107,9 @@ contract Liquidity is ILiquidity, StakingRewards
 
 
 	// Public wrapper for adding liquidity which prevents the direct deposit to the collateral pool.
-	// Collateral.depositCollateralAndIncreaseShare will call _addLiquidityAndIncreaseShare directly.
+	// Collateral.depositCollateralAndIncreaseShare bypasses this and calls _addLiquidityAndIncreaseShare directly.
 	function addLiquidityAndIncreaseShare( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 deadline, bool bypassZapping ) public nonReentrant returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
 		{
-		// Collateral.withdrawCollateralAndClaim has to be used to withdraw collateral so that borrow USDS restrictions can be taken into account
 		require( PoolUtils._poolIDOnly( tokenA, tokenB ) != collateralPoolID, "Stablecoin collateral cannot be deposited via Liquidity.addLiquidityAndIncreaseShare" );
 
     	return _addLiquidityAndIncreaseShare(tokenA, tokenB, maxAmountA, maxAmountB, minLiquidityReceived, deadline, bypassZapping);
@@ -118,10 +117,9 @@ contract Liquidity is ILiquidity, StakingRewards
 
 
 	// Public wrapper for withdrawing liquidity which prevents the direct withdrawal from the collateral pool.
-	// Collateral.withdrawCollateralAndClaim will call _withdrawLiquidityAndClaim directly.
+	// Collateral.withdrawCollateralAndClaim bypasses this and calls _withdrawLiquidityAndClaim directly.
     function withdrawLiquidityAndClaim( IERC20 tokenA, IERC20 tokenB, uint256 liquidityToWithdraw, uint256 minReclaimedA, uint256 minReclaimedB, uint256 deadline ) public nonReentrant returns (uint256 reclaimedA, uint256 reclaimedB)
     	{
-		// Collateral.withdrawCollateralAndClaim has to be used to withdraw collateral so that borrow USDS restrictions can be taken into account
 		require( PoolUtils._poolIDOnly( tokenA, tokenB ) != collateralPoolID, "Stablecoin collateral cannot be withdrawn via Liquidity.withdrawLiquidityAndClaim" );
 
     	return _withdrawLiquidityAndClaim(tokenA, tokenB, liquidityToWithdraw, minReclaimedA, minReclaimedB, deadline);
