@@ -1547,6 +1547,7 @@ staking.stakeSALT(1000 ether);
     		uint256[] memory ballotIDs = proposals.openBallotsForTokenWhitelisting();
     		assertEq( ballotIDs.length, 1 );
 
+
     		vm.prank(address(dao));
     		proposals.markBallotAsFinalized(1);
 
@@ -1560,8 +1561,6 @@ staking.stakeSALT(1000 ether);
     		ballotIDs = proposals.openBallots();
     		assertEq( ballotIDs.length, 1 );
         }
-
-
    }
 
 
