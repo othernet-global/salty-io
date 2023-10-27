@@ -64,4 +64,5 @@ interface IProposals
 	function numberOfOpenBallotsForTokenWhitelisting() external view returns (uint256);
 	function openBallotsForTokenWhitelisting() external view returns (uint256[] memory);
 	function tokenWhitelistingBallotWithTheMostVotes() external view returns (uint256);
+	function userHasActiveProposal( address user ) external returns (bool);
 	}

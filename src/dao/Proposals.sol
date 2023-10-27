@@ -49,6 +49,14 @@ contract Proposals is IProposals, ReentrancyGuard
 	// Allows users to change their vote - so that the previous vote can be undone before casting the new vote.
 	mapping(uint256=>mapping(address=>UserVote)) private _lastUserVoteForBallot;
 
+	// Which users currently have active proposals
+	// Useful for checking that users are only able to create one active proposal at a time (to discourage spam proposals).
+	mapping(address=>bool) private _usersWithActiveProposals;
+
+	// Which users proposed which ballots.
+	// Useful when a ballot is finalized - so that the user that proposed it can have their _usersWithActiveProposals status cleared
+	mapping(uint256=>address) private _usersThatProposedBallots;
+
 
     constructor( IStaking _staking, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IDAOConfig _daoConfig )
 		{
@@ -68,7 +76,7 @@ contract Proposals is IProposals, ReentrancyGuard
 
 	function _possiblyCreateProposal( string memory ballotName, BallotType ballotType, address address1, uint256 number1, string memory string1, string memory string2 ) internal returns (uint256 ballotID)
 		{
-		// The DAO can create confirmation proposals which won't have the below required stake
+		// The DAO can create confirmation proposals which won't have the below requirements
 		if ( msg.sender != address(exchangeConfig.dao() ) )
 			{
 			// Make sure that the sender has the minimum amount of xSALT to make the proposal
@@ -79,6 +87,9 @@ contract Proposals is IProposals, ReentrancyGuard
 
 			uint256 userXSalt = staking.userShareForPool( msg.sender, PoolUtils.STAKED_SALT );
 			require( userXSalt >= requiredXSalt, "Sender does not have enough xSALT to make the proposal" );
+
+			// Make sure that the user doesn't already have an active proposal
+			require( ! _usersWithActiveProposals[msg.sender], "Users can only have one active proposal at a time" );
 			}
 
 		// Make sure that a proposal of the same name is not already open for the ballot
@@ -92,6 +103,10 @@ contract Proposals is IProposals, ReentrancyGuard
 		ballots[ballotID] = Ballot( ballotID, true, ballotType, ballotName, address1, number1, string1, string2, ballotMinimumEndTime );
 		openBallotsByName[ballotName] = ballotID;
 		_allOpenBallots.add( ballotID );
+
+		// Remember that the user made a proposal
+		_usersWithActiveProposals[msg.sender] = true;
+		_usersThatProposedBallots[ballotID] = msg.sender;
 		}
 
 
@@ -112,12 +127,16 @@ contract Proposals is IProposals, ReentrancyGuard
 
 		// Remove finalized whitelist token ballots from the list of open whitelisting proposals
 		if ( ballot.ballotType == BallotType.WHITELIST_TOKEN )
-			_openBallotsForTokenWhitelisting.remove( ballot.ballotID );
+			_openBallotsForTokenWhitelisting.remove( ballotID );
 
 		// Remove from the list of all open ballots
-		_allOpenBallots.remove( ballot.ballotID );
+		_allOpenBallots.remove( ballotID );
 
 		ballot.ballotIsLive = false;
+
+		// Indicate that the user who posted the ballot no longer has an active ballot
+		address userThatPostedBallot = _usersThatProposedBallots[ballotID];
+		_usersWithActiveProposals[userThatPostedBallot] = false;
 
 		delete openBallotsByName[ballot.ballotName];
 		}
@@ -407,5 +426,11 @@ contract Proposals is IProposals, ReentrancyGuard
 			}
 
 		return bestID;
+		}
+
+
+	function userHasActiveProposal( address user ) public view returns (bool)
+		{
+		return _usersWithActiveProposals[user];
 		}
 	}
