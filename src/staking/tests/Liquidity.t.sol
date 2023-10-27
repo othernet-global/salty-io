@@ -534,7 +534,7 @@ contract LiquidityTest is Deployment
     }
 
 
-    // A unit test that checks that withdrawLiquidityAndClaim can't be called directly with the collateralPoolID
+    // A unit test that checks that withdrawLiquidityAndClaim and addLiquidityAndIncreaseShare can't be called directly with the collateralPoolID
 	function testCollateralRestrictions() public {
 
 		vm.startPrank( DEPLOYER );
