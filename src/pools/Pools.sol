@@ -303,26 +303,29 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
     // Does not require any deposited tokens to make the call, but requires that the resulting amountOut is greater than the specified arbitrageAmountIn.
     // Essentially the caller virtually "borrows" arbitrageAmountIn of the starting token and virtually "repays" it from their received amountOut at the end of the swap chain.
     // The extra amountOut (compared to arbitrageAmountIn) is the arbitrage profit.
-	function _arbitrage( bool isWhitelistedPair, IERC20 arbToken2, IERC20 arbToken3, uint256 arbitrageAmountIn ) internal returns (uint256 arbitrageProfit)
+	function _arbitrage( bool isWhitelistedPair, IERC20 arbToken2, IERC20 arbToken3, uint256 arbitrageAmountIn ) internal
 		{
-		uint256 amount = _adjustReservesForSwap( weth, arbToken2, arbitrageAmountIn );
+		uint256 amountOut = _adjustReservesForSwap( weth, arbToken2, arbitrageAmountIn );
 
 		if ( isWhitelistedPair )
-			amount = _adjustReservesForSwap( arbToken2, arbToken3, amount );
+			amountOut = _adjustReservesForSwap( arbToken2, arbToken3, amountOut );
 		else
 			{
-			amount = _adjustReservesForSwap( arbToken2, wbtc, amount );
-			amount = _adjustReservesForSwap( wbtc, arbToken3, amount );
+			amountOut = _adjustReservesForSwap( arbToken2, wbtc, amountOut );
+			amountOut = _adjustReservesForSwap( wbtc, arbToken3, amountOut );
 			}
 
-		amount = _adjustReservesForSwap( arbToken3, weth, amount );
+		amountOut = _adjustReservesForSwap( arbToken3, weth, amountOut );
 
-		require( amount > arbitrageAmountIn, "With arbitrage, resulting amountOut must be greater than arbitrageAmountIn" );
+		require( amountOut > arbitrageAmountIn, "With arbitrage, resulting amountOut must be greater than arbitrageAmountIn" );
 
-		arbitrageProfit = amount - arbitrageAmountIn;
+		uint256 arbitrageProfit = amountOut - arbitrageAmountIn;
 
 		// Deposit the arbitrage profit for the DAO - later to be divided between the DAO, SALT stakers and liquidity providers in DAO.performUpkeep
  		_userDeposits[address(dao)][weth] += arbitrageProfit;
+
+		// Update the stats related to the pools that contributed to the arbitrage so they can be rewarded proportionally later
+		 _updateProfitsFromArbitrage( isWhitelistedPair, arbToken2, arbToken3, arbitrageProfit );
 		}
 
 
@@ -383,23 +386,18 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 			return;
 
 		// Determine the best arbitragePath (if any) with the arbitrage cycle starting and ending with WETH.
-		IERC20 token2;
-		IERC20 token3;
+		IERC20 arbToken2;
+		IERC20 arbToken3;
 		uint256 arbitrageAmountIn;
 
 		if ( isWhitelistedPair )
-			(token2, token3, arbitrageAmountIn) = _findArbitrageWhitelisted(swapTokenIn, swapTokenOut, swapAmountInValueInETH);
+			(arbToken2, arbToken3, arbitrageAmountIn) = _findArbitrageWhitelisted(swapTokenIn, swapTokenOut, swapAmountInValueInETH);
 		else
-			(token2, token3, arbitrageAmountIn) =_findArbitrageNonWhitelisted(swapTokenIn, swapTokenOut, swapAmountInValueInETH);
+			(arbToken2, arbToken3, arbitrageAmountIn) =_findArbitrageNonWhitelisted(swapTokenIn, swapTokenOut, swapAmountInValueInETH);
 
 		// If arbitrage is viable, then perform it
 		if (arbitrageAmountIn > 0)
-			{
-			uint256 arbitrageProfit = _arbitrage(isWhitelistedPair, token2, token3, arbitrageAmountIn);
-
-			// Update the stats related to the pools that contributed to the arbitrage so they can be rewarded proportionally later
-			 _updateProfitsFromArbitrage( isWhitelistedPair, token2, token3, arbitrageProfit );
-			}
+			_arbitrage(isWhitelistedPair, arbToken2, arbToken3, arbitrageAmountIn);
 		}
 
 
