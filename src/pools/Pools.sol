@@ -317,15 +317,13 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 		amountOut = _adjustReservesForSwap( arbToken3, weth, amountOut );
 
-		require( amountOut > arbitrageAmountIn, "With arbitrage, resulting amountOut must be greater than arbitrageAmountIn" );
-
 		uint256 arbitrageProfit = amountOut - arbitrageAmountIn;
 
 		// Deposit the arbitrage profit for the DAO - later to be divided between the DAO, SALT stakers and liquidity providers in DAO.performUpkeep
  		_userDeposits[address(dao)][weth] += arbitrageProfit;
 
 		// Update the stats related to the pools that contributed to the arbitrage so they can be rewarded proportionally later
-		 _updateProfitsFromArbitrage( isWhitelistedPair, arbToken2, arbToken3, arbitrageProfit );
+		_updateProfitsFromArbitrage( isWhitelistedPair, arbToken2, arbToken3, arbitrageProfit );
 		}
 
 
@@ -342,7 +340,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		(uint256 reservesC0, uint256 reservesC1) = getPoolReserves( token3, weth);
 
 		// Search for the most profitable arbtrageAmountIn
-		return (token2, token3, _binarySearch(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1, 0, 0 ) );
+		return (token2, token3, _binarySearchWhitelisted(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1 ) );
     	}
 
 
@@ -360,7 +358,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		(uint256 reservesD0, uint256 reservesD1) = getPoolReserves( token3, weth);
 
 		// Search for the most profitable arbtrageAmountIn
-		return (token2, token3, _binarySearch(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1, reservesD0, reservesD1 ) );
+		return (token2, token3, _binarySearchNonWhitelisted(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1, reservesD0, reservesD1 ) );
     	}
 
 
