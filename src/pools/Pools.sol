@@ -269,7 +269,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
         uint256 reserve0 = reserves.reserve0;
         uint256 reserve1 = reserves.reserve1;
 
-        require((reserve0 > PoolUtils.DUST) && (reserve1 > PoolUtils.DUST), "Insufficient reserves before swap");
+        require((reserve0 >= PoolUtils.DUST) && (reserve1 >= PoolUtils.DUST), "Insufficient reserves before swap");
 
         uint256 k = reserve0 * reserve1;
 
@@ -288,7 +288,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
         	}
 
 		// Make sure that the reserves after swap are above DUST
-        require( (reserve0 > PoolUtils.DUST) && (reserve1 > PoolUtils.DUST), "Insufficient reserves after swap");
+        require( (reserve0 >= PoolUtils.DUST) && (reserve1 >= PoolUtils.DUST), "Insufficient reserves after swap");
 
 		// Update the reserves
 		reserves.reserve0 = uint112(reserve0);
