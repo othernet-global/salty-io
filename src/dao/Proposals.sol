@@ -79,7 +79,7 @@ contract Proposals is IProposals, ReentrancyGuard
 		// The DAO can create confirmation proposals which won't have the below requirements
 		if ( msg.sender != address(exchangeConfig.dao() ) )
 			{
-			// Make sure that the sender has the minimum amount of xSALT to make the proposal
+			// Make sure that the sender has the minimum amount of xSALT required to make the proposal
 			uint256 totalStaked = staking.totalSharesForPool(PoolUtils.STAKED_SALT);
 			require( totalStaked > 0, "Staking required to make a proposal" );
 
@@ -134,7 +134,7 @@ contract Proposals is IProposals, ReentrancyGuard
 
 		ballot.ballotIsLive = false;
 
-		// Indicate that the user who posted the ballot no longer has an active ballot
+		// Indicate that the user who posted the proposal no longer has an active proposal
 		address userThatPostedBallot = _usersThatProposedBallots[ballotID];
 		_usersWithActiveProposals[userThatPostedBallot] = false;
 
