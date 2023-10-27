@@ -1456,13 +1456,12 @@ staking.stakeSALT(1000 ether);
 
         // Using address alice for initial proposal
         vm.startPrank(DEPLOYER);
-    	staking.stakeSALT( 1 ); // Default minimum quorum is 1 million
+    	staking.stakeSALT( 1 );
 
-        // Proposing a ParameterBallot for the first time
         vm.expectRevert("Sender does not have enough xSALT to make the proposal");
         proposals.proposeParameterBallot(1, "description" );
 
-    	staking.stakeSALT( 1000000 ether ); // Default minimum quorum is 1 million
+    	staking.stakeSALT( 1000000 ether );
         proposals.proposeParameterBallot(1, "description" );
         vm.stopPrank();
     }
