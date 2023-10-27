@@ -143,6 +143,7 @@ contract TestDeployment is Deployment
         assertEq( getContract(address(proposals), "exchangeConfig()"), address(exchangeConfig), "Incorrect proposals.exchangeConfig" );
         assertEq( getContract(address(proposals), "poolsConfig()"), address(poolsConfig), "Incorrect proposals.poolsConfig" );
         assertEq( getContract(address(proposals), "daoConfig()"), address(daoConfig), "Incorrect proposals.daoConfig" );
+        assertEq( getContract(address(proposals), "salt()"), address(salt), "Incorrect proposals.salt" );
 
 		assertEq( getContract(address(saltRewards), "exchangeConfig()"), address(exchangeConfig), "Incorrect saltRewards.exchangeConfig" );
         assertEq( getContract(address(saltRewards), "rewardsConfig()"), address(rewardsConfig), "Incorrect saltRewards.rewardsConfig" );
