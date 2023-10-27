@@ -3,7 +3,7 @@ pragma solidity =0.8.21;
 
 library SigningTools
 	{
-	// The public address of the signer for the Airdorp whitelist and defautl AccessManager
+	// The public address of the signer for the Airdrop whitelist and default AccessManager
 	address constant public EXPECTED_SIGNER = 0x1234519DCA2ef23207E1CA7fd70b96f281893bAa;
 
 
