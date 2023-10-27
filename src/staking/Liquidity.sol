@@ -110,10 +110,8 @@ contract Liquidity is ILiquidity, StakingRewards
 	// Collateral.depositCollateralAndIncreaseShare will call _addLiquidityAndIncreaseShare directly.
 	function addLiquidityAndIncreaseShare( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 deadline, bool bypassZapping ) public nonReentrant returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
 		{
-		bytes32 poolID = PoolUtils._poolIDOnly( tokenA, tokenB );
-
 		// Collateral.withdrawCollateralAndClaim has to be used to withdraw collateral so that borrow USDS restrictions can be taken into account
-		require( poolID != collateralPoolID, "Stablecoin collateral cannot be deposited via Liquidity.addLiquidityAndIncreaseShare" );
+		require( PoolUtils._poolIDOnly( tokenA, tokenB ) != collateralPoolID, "Stablecoin collateral cannot be deposited via Liquidity.addLiquidityAndIncreaseShare" );
 
     	return _addLiquidityAndIncreaseShare(tokenA, tokenB, maxAmountA, maxAmountB, minLiquidityReceived, deadline, bypassZapping);
 		}
@@ -123,10 +121,8 @@ contract Liquidity is ILiquidity, StakingRewards
 	// Collateral.withdrawCollateralAndClaim will call _withdrawLiquidityAndClaim directly.
     function withdrawLiquidityAndClaim( IERC20 tokenA, IERC20 tokenB, uint256 liquidityToWithdraw, uint256 minReclaimedA, uint256 minReclaimedB, uint256 deadline ) public nonReentrant returns (uint256 reclaimedA, uint256 reclaimedB)
     	{
-		bytes32 poolID = PoolUtils._poolIDOnly( tokenA, tokenB );
-
 		// Collateral.withdrawCollateralAndClaim has to be used to withdraw collateral so that borrow USDS restrictions can be taken into account
-		require( poolID != collateralPoolID, "Stablecoin collateral cannot be withdrawn via Liquidity.withdrawLiquidityAndClaim" );
+		require( PoolUtils._poolIDOnly( tokenA, tokenB ) != collateralPoolID, "Stablecoin collateral cannot be withdrawn via Liquidity.withdrawLiquidityAndClaim" );
 
     	return _withdrawLiquidityAndClaim(tokenA, tokenB, liquidityToWithdraw, minReclaimedA, minReclaimedB, deadline);
     	}
