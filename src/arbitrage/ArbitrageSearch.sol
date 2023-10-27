@@ -111,7 +111,7 @@ contract ArbitrageSearch
 		int256 profitMidpoint;
 		int256 profitRightOfMidpoint;
 
-		// Cost is about 2489 gas per loop iteration
+		// Cost is about 2223 gas per loop iteration
 		for( uint256 i = 0; i < 5; i++ )
 			{
 			(profitMidpoint, profitRightOfMidpoint) = _determineProfitsWhitelisted( (leftPoint + rightPoint) >> 1, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1, kA, kB );
