@@ -24,10 +24,13 @@ contract TestCoreSaltyFeed is Deployment
        	wbtc.approve( address(pools), type(uint256).max );
        	weth.approve( address(pools), type(uint256).max );
        	usds.approve( address(pools), type(uint256).max );
+       	wbtc.approve( address(collateralAndLiquidity), type(uint256).max );
+       	weth.approve( address(collateralAndLiquidity), type(uint256).max );
+       	usds.approve( address(collateralAndLiquidity), type(uint256).max );
 
 		vm.stopPrank();
 
-		vm.prank( address(collateral) );
+		vm.prank( address(collateralAndLiquidity) );
 		usds.mintTo(DEPLOYER, 1000000000 ether);
 
 		finalizeBootstrap();
@@ -41,7 +44,7 @@ contract TestCoreSaltyFeed is Deployment
 	function setPriceInPoolsWBTC( uint256 price ) public
 		{
 		vm.startPrank(DEPLOYER);
-		pools.addLiquidity( wbtc, usds, 1000 * 10**8, price * 1000, 0, block.timestamp );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( wbtc, usds, 1000 * 10**8, price * 1000, 0, block.timestamp, true );
 		vm.stopPrank();
 		}
 
@@ -50,7 +53,7 @@ contract TestCoreSaltyFeed is Deployment
 	function setPriceInPoolsWETH( uint256 price ) public
 		{
 		vm.startPrank(DEPLOYER);
-		pools.addLiquidity( weth, usds, 1000 ether, price * 1000, 0, block.timestamp );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( weth, usds, 1000 ether, price * 1000, 0, block.timestamp, true );
 		vm.stopPrank();
 		}
 
@@ -168,7 +171,7 @@ contract TestCoreSaltyFeed is Deployment
         uint256 btcPrice = 30000 ether;  // BTC price in terms of USDS
 
 		vm.startPrank(DEPLOYER);
-		pools.addLiquidity( wbtc, usds, PoolUtils.DUST + 1, btcPrice * (PoolUtils.DUST + 1), 0, block.timestamp );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( wbtc, usds, PoolUtils.DUST + 1, btcPrice * (PoolUtils.DUST + 1), 0, block.timestamp, true );
 		vm.stopPrank();
 
         // Prices should match those set in the pools
@@ -182,7 +185,7 @@ contract TestCoreSaltyFeed is Deployment
         uint256 ethPrice = 3000 ether;  // ETH price in terms of USDS
 
 		vm.startPrank(DEPLOYER);
-		pools.addLiquidity( weth, usds, PoolUtils.DUST + 1, ethPrice * (PoolUtils.DUST + 1), 0, block.timestamp );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( weth, usds, PoolUtils.DUST + 1, ethPrice * (PoolUtils.DUST + 1), 0, block.timestamp, true );
 		vm.stopPrank();
 
         // Prices should match those set in the pools

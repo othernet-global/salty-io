@@ -8,7 +8,7 @@ import "../../ExchangeConfig.sol";
 import "../../pools/Pools.sol";
 import "../../staking/Liquidity.sol";
 import "../../staking/Staking.sol";
-import "../../stable/Collateral.sol";
+import "../../stable/CollateralAndLiquidity.sol";
 import "../../rewards/RewardsEmitter.sol";
 import "../../price_feed/tests/IForcedPriceFeed.sol";
 import "../../pools/PoolsConfig.sol";
@@ -52,11 +52,10 @@ contract TestInitialDistribution is Deployment
 
 			pools = new Pools(exchangeConfig, poolsConfig);
 			staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
-			liquidity = new Liquidity( pools, exchangeConfig, poolsConfig, stakingConfig );
-			collateral = new Collateral(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
+			collateralAndLiquidity = new CollateralAndLiquidity(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
 
 			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig );
-			liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, rewardsConfig );
+			liquidityRewardsEmitter = new RewardsEmitter( collateralAndLiquidity, exchangeConfig, poolsConfig, rewardsConfig );
 
 			emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
@@ -87,15 +86,16 @@ contract TestInitialDistribution is Deployment
 
 			saltRewards = new SaltRewards(exchangeConfig, rewardsConfig);
 
-			upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, liquidity, emissions);
+			upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, collateralAndLiquidity, emissions);
 			exchangeConfig.setUpkeep(upkeep);
 
-			initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, liquidity);
+			initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, collateralAndLiquidity);
 			exchangeConfig.setInitialDistribution(initialDistribution);
 
-			pools.setDAO(dao);
+			pools.setContracts(dao, collateralAndLiquidity
+);
 
-			usds.setContracts(collateral, pools, exchangeConfig );
+			usds.setContracts(collateralAndLiquidity, pools, exchangeConfig );
 
 			// Transfer ownership of the newly created config files to the DAO
 			Ownable(address(exchangeConfig)).transferOwnership( address(dao) );
@@ -123,7 +123,7 @@ contract TestInitialDistribution is Deployment
 	// A unit test to ensure the constructor has correctly set the input parameters.
 	function testInitial_distribution_constructor() public
     {
-    	InitialDistribution initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, liquidity);
+    	InitialDistribution initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, collateralAndLiquidity);
 
     	assertEq(address(initialDistribution.salt()), address(salt), "error in initialDistribution.salt()");
     	assertEq(address(initialDistribution.poolsConfig()), address(poolsConfig), "error in initialDistribution.poolsConfig()");
@@ -134,13 +134,13 @@ contract TestInitialDistribution is Deployment
     	assertEq(address(initialDistribution.teamVestingWallet()), address(teamVestingWallet), "error in initialDistribution.teamVestingWallet()");
     	assertEq(address(initialDistribution.airdrop()), address(airdrop), "error in initialDistribution.airdrop()");
     	assertEq(address(initialDistribution.saltRewards()), address(saltRewards), "error in initialDistribution.saltRewards()");
-    	assertEq(address(initialDistribution.liquidity()), address(liquidity), "error in initialDistribution.liquidity()");
+    	assertEq(address(initialDistribution.collateralAndLiquidity()), address(collateralAndLiquidity), "error in initialDistribution.collateralAndLiquidity()");
     }
 
 
 	// A unit test to verify that the `distributionApproved` function can only be called from the BootstrapBallot contract.
 	function testCannotCallDistributionApprovedFromInvalidAddress() public {
-        InitialDistribution id = new InitialDistribution( salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, liquidity );
+        InitialDistribution id = new InitialDistribution( salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, collateralAndLiquidity );
 
         vm.expectRevert("InitialDistribution.distributionApproved can only be called from the BootstrapBallot contract");
         id.distributionApproved();
@@ -200,31 +200,31 @@ function testConstructorInitializationWithZeroAddress() public {
     InitialDistribution initialDist;
 
     vm.expectRevert( "_salt cannot be address(0)" );
-    initialDist = new InitialDistribution(ISalt(zeroAddress), poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, liquidity);
+    initialDist = new InitialDistribution(ISalt(zeroAddress), poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, collateralAndLiquidity);
 
     vm.expectRevert( "_poolsConfig cannot be address(0)" );
-    initialDist = new InitialDistribution(salt, IPoolsConfig(zeroAddress), emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, liquidity);
+    initialDist = new InitialDistribution(salt, IPoolsConfig(zeroAddress), emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, collateralAndLiquidity);
 
     vm.expectRevert( "_emissions cannot be address(0)" );
-    initialDist = new InitialDistribution(salt, poolsConfig, IEmissions(zeroAddress), bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, liquidity);
+    initialDist = new InitialDistribution(salt, poolsConfig, IEmissions(zeroAddress), bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, collateralAndLiquidity);
 
     vm.expectRevert( "_dao cannot be address(0)" );
-    initialDist = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, IDAO(zeroAddress), daoVestingWallet, teamVestingWallet, airdrop, saltRewards, liquidity);
+    initialDist = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, IDAO(zeroAddress), daoVestingWallet, teamVestingWallet, airdrop, saltRewards, collateralAndLiquidity);
 
     vm.expectRevert( "_daoVestingWallet cannot be address(0)" );
-    initialDist = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot,dao, VestingWallet(payable(zeroAddress)), teamVestingWallet, airdrop, saltRewards, liquidity);
+    initialDist = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot,dao, VestingWallet(payable(zeroAddress)), teamVestingWallet, airdrop, saltRewards, collateralAndLiquidity);
 
     vm.expectRevert( "_teamVestingWallet cannot be address(0)" );
-    initialDist = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, VestingWallet(payable(zeroAddress)), airdrop, saltRewards, liquidity);
+    initialDist = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, VestingWallet(payable(zeroAddress)), airdrop, saltRewards, collateralAndLiquidity);
 
     vm.expectRevert( "_airdrop cannot be address(0)" );
-    initialDist = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, IAirdrop(zeroAddress), saltRewards, liquidity);
+    initialDist = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, IAirdrop(zeroAddress), saltRewards, collateralAndLiquidity);
 
     vm.expectRevert( "_saltRewards cannot be address(0)" );
-    initialDist = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, ISaltRewards(zeroAddress), liquidity);
+    initialDist = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, ISaltRewards(zeroAddress), collateralAndLiquidity);
 
-    vm.expectRevert( "_liquidity cannot be address(0)" );
-    initialDist = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, ILiquidity(zeroAddress));
+    vm.expectRevert( "_collateralAndLiquidity cannot be address(0)" );
+    initialDist = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, ICollateralAndLiquidity(zeroAddress));
 }
 
 	// A unit test to ensure the `distributionApproved` function can only be called once and subsequent calls fail.

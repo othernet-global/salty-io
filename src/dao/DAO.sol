@@ -245,7 +245,7 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 
 	// Form Protocol Owned Liquidity with any SALT and USDS in the contract
 	// Any SALT or USDS that is not used will be stay in the DAO contract.
-	function formPOL( ILiquidity liquidity, ISalt salt, IUSDS usds ) public
+	function formPOL( ICollateralAndLiquidity collateralAndLiquidity, ISalt salt, IUSDS usds ) public
 		{
 		require( msg.sender == address(exchangeConfig.upkeep()), "DAO.formPOL is only callable from the Upkeep contract" );
 
@@ -255,10 +255,10 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		require( balanceA > 0, "formPOL: balanceA cannot be zero" );
 		require( balanceB > 0, "formPOL: balanceB cannot be zero" );
 
-		salt.approve(address(liquidity), balanceA);
-		usds.approve(address(liquidity), balanceB);
+		salt.approve(address(collateralAndLiquidity), balanceA);
+		usds.approve(address(collateralAndLiquidity), balanceB);
 
-		liquidity.addLiquidityAndIncreaseShare( salt, usds, balanceA, balanceB, 0, block.timestamp, true );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( salt, usds, balanceA, balanceB, 0, block.timestamp, true );
 		}
 
 
@@ -272,7 +272,7 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		}
 
 
-	function processRewardsFromPOL(ILiquidity liquidity, ISalt salt, IUSDS usds) public
+	function processRewardsFromPOL(ICollateralAndLiquidity collateralAndLiquidity, ISalt salt, IUSDS usds) public
 		{
 		require( msg.sender == address(exchangeConfig.upkeep()), "DAO.processRewardsFromPOL is only callable from the Upkeep contract" );
 
@@ -280,7 +280,7 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		bytes32[] memory protocolOwnedLiquidityPoolIDs = new bytes32[](1);
 		protocolOwnedLiquidityPoolIDs[0] = PoolUtils._poolIDOnly(salt, usds);
 
-		uint256 claimedAmount = liquidity.claimAllRewards(protocolOwnedLiquidityPoolIDs);
+		uint256 claimedAmount = collateralAndLiquidity.claimAllRewards(protocolOwnedLiquidityPoolIDs);
 
 		// Send 10% of the rewards to the team
 		uint256 amountToSendToTeam = ( claimedAmount * 10 ) / 100;

@@ -42,8 +42,8 @@ contract UpkeepFlawed is Upkeep
 	uint256 public flawedStep;
 
 
-    constructor( IPools _pools, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IDAOConfig _daoConfig, IPriceAggregator _priceAggregator, ISaltRewards _saltRewards, ILiquidity _liquidity, IEmissions _emissions, uint256 _flawedStep )
-    Upkeep(_pools, _exchangeConfig, _poolsConfig, _daoConfig, _priceAggregator, _saltRewards, _liquidity, _emissions)
+    constructor( IPools _pools, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IDAOConfig _daoConfig, IPriceAggregator _priceAggregator, ISaltRewards _saltRewards, ICollateralAndLiquidity _collateralAndLiquidity, IEmissions _emissions, uint256 _flawedStep )
+    Upkeep(_pools, _exchangeConfig, _poolsConfig, _daoConfig, _priceAggregator, _saltRewards, _collateralAndLiquidity, _emissions)
 		{
 		flawedStep = _flawedStep;
 		}

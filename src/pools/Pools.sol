@@ -8,13 +8,18 @@ import "openzeppelin-contracts/contracts/utils/math/Math.sol";
 import "../interfaces/IExchangeConfig.sol";
 import "./interfaces/IPoolsConfig.sol";
 import "./PoolUtils.sol";
-import "./PoolMath.sol";
 import "./Counterswap.sol";
 import "./PoolStats.sol";
-import "../rewards/SaltRewards.sol";
 import "../arbitrage/ArbitrageSearch.sol";
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
+import "./PoolMath.sol";
 
+
+// The Pools contract stores the reserves that are used for swaps within the DEX.
+// It handles deposits, arbitrage, and counterswaps for the various whitelisted pools.
+
+// Only the CollateralAndLiquidity.sol contract can add and remove liquidity from the pools (and is as such the only owner of liquidity as far as Pools.sol is concerned).
+// CollateralAndLiquidity.sol itself keeps track of which users have deposited liquidity using StakingRewards.userShare (as it derives from Liquidity which derives from StakingRewards).
 
 contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	{
@@ -25,13 +30,14 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		uint112 reserve0;						// The token reserves such that address(token0) < address(token1)
 		uint112 reserve1;
 
-		// The last block that a pool was involved in a swap.
-		// Used to prevent same block manipulation of counterswaps.
+		// The last block that the reserves were involved in a swap.
+		// Used to prevent same block manipulation of counterswaps and user liquidation.
 		uint32 lastSwapBlock;
 		}
 
 	IUSDS immutable public usds;
 	IDAO public dao;
+	ICollateralAndLiquidity public collateralAndLiquidity;
 
 	// Set to true when starting the exchange is approved by the bootstrapBallot
 	bool private _startExchangeApproved;
@@ -39,14 +45,8 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	// Keeps track of the pool reserves by poolID
 	mapping(bytes32=>PoolReserves) private _poolReserves;
 
-	// The total liquidity for each poolID
-	mapping(bytes32=>uint256) public totalLiquidity;
-
 	// User token balances for deposited tokens
 	mapping(address=>mapping(IERC20=>uint256)) private _userDeposits;
-
-	// Keeps track of the amount of liquidity owned by users for each poolID
-	mapping(address=>mapping(bytes32=>uint256)) private _userLiquidity;
 
 	// Cache of the whitelisted pools so we don't need an external call to access poolsConfig.isWhitelisted on swaps (to determine arbitrage type)
 	mapping(bytes32=>bool) public _isWhitelistedCache;
@@ -63,11 +63,13 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		}
 
 
-	function setDAO( IDAO _dao ) public onlyOwner
+	function setContracts( IDAO _dao, ICollateralAndLiquidity _collateralAndLiquidity ) public onlyOwner
 		{
 		require( address(_dao) != address(0), "_dao cannot be address(0)" );
+		require( address(_collateralAndLiquidity) != address(0), "_collateralAndLiquidity cannot be address(0)" );
 
 		dao = _dao;
+		collateralAndLiquidity = _collateralAndLiquidity;
 
 		// setDAO can only be called once
 		renounceOwnership();
@@ -90,18 +92,18 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 
 	// Called by PoolsConfig to cache the whitelisted pool status locally to avoid external calls to poolsConfig.isWhitelisted on swaps
-	function setIsWhitelisted(bytes32 poolID) public
+	function setIsWhitelistedCache(bytes32 poolID) public
 		{
-		require(msg.sender == address(poolsConfig), "Pools.setIsWhitelisted is only callable from the PoolsConfig contract" );
+		require(msg.sender == address(poolsConfig), "Pools.setIsWhitelistedCache is only callable from the PoolsConfig contract" );
 
 		_isWhitelistedCache[poolID] = true;
 		}
 
 
 	// Called by PoolsConfig to cache the whitelisted pool status locally to avoid external calls to poolsConfig.isWhitelisted on swaps
-	function clearIsWhitelisted(bytes32 poolID) public
+	function clearIsWhitelistedCache(bytes32 poolID) public
 		{
-		require(msg.sender == address(poolsConfig), "Pools.clearIsWhitelisted is only callable from the PoolsConfig contract" );
+		require(msg.sender == address(poolsConfig), "Pools.clearIsWhitelistedCache is only callable from the PoolsConfig contract" );
 
 		_isWhitelistedCache[poolID] = false;
 		}
@@ -109,8 +111,8 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 	// Given two tokens and their maximum amounts for added liquidity, determine which amounts to actually add so that the added token ratio is the same as the existing reserve token ratio.
 	// The amounts returned are in reserve token order rather than in call token order.
-	// NOTE - this does not stake added liquidity. Liquidity.addLiquidityAndIncreaseShare() needs to be used instead to add liquidity, stake it and receive added rewards.
-	function _addLiquidity( bytes32 poolID, bool flipped, IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB ) internal returns(uint256 addedAmount0, uint256 addedAmount1, uint256 addedLiquidity)
+	// NOTE - this does not stake added collateralAndLiquidity. Liquidity.depositLiquidityAndIncreaseShare() needs to be used instead to add liquidity, stake it and receive added rewards.
+	function _addLiquidity( bytes32 poolID, bool flipped, IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 totalLiquidity ) internal returns(uint256 addedAmount0, uint256 addedAmount1, uint256 addedLiquidity)
 		{
 		// Ensure that tokenA/B and maxAmountA/B are ordered in reserve token order: such that address(tokenA) < address(tokenB)
 		if ( flipped )
@@ -154,57 +156,54 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		reserves.reserve0 += uint112(addedAmount0);
 		reserves.reserve1 += uint112(addedAmount1);
 
-		// Determine the amount of liquidity that will be given to the user to reflect their share of the total liquidity.
+		// Determine the amount of liquidity that will be given to the user to reflect their share of the total collateralAndLiquidity.
 		// Rounded down in favor of the protocol
-		addedLiquidity = (addedAmount0 * totalLiquidity[poolID]) / reserve0;
+		addedLiquidity = (addedAmount0 * totalLiquidity) / reserve0;
 		}
 
 
 	// Add liquidity for the specified trading pair (must be whitelisted)
-	function addLiquidity( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 deadline ) public nonReentrant ensureNotExpired(deadline) returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
+	function addLiquidity( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 totalLiquidity ) public returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
 		{
+		require( msg.sender == address(collateralAndLiquidity), "Pools.addLiquidity is only callable from the CollateralAndLiquidity contract" );
 		require( _startExchangeApproved, "The exchange is not yet live" );
 		require( address(tokenA) != address(tokenB), "Cannot add liquidity for duplicate tokens" );
 
 		require( maxAmountA > PoolUtils.DUST, "The amount of tokenA to add is too small" );
 		require( maxAmountB > PoolUtils.DUST, "The amount of tokenB to add is too small" );
 
+		{
 		(bytes32 poolID, bool flipped) = PoolUtils._poolID(tokenA, tokenB);
 
 		// Note that addedAmountA and addedAmountB here are in reserve token order and may be flipped from the call token order specified in the arguments.
-		(addedAmountA, addedAmountB, addedLiquidity) = _addLiquidity( poolID, flipped, tokenA, tokenB, maxAmountA, maxAmountB );
+		(addedAmountA, addedAmountB, addedLiquidity) = _addLiquidity( poolID, flipped, tokenA, tokenB, maxAmountA, maxAmountB, totalLiquidity );
 
 		// Make sure the minimum liquidity has been added
 		require( addedLiquidity >= minLiquidityReceived, "Too little liquidity received" );
 
-		// Update the liquidity totals for the user and protocol
-		_userLiquidity[msg.sender][poolID] += addedLiquidity;
-		totalLiquidity[poolID] += addedLiquidity;
-
 		// Flip back to call token order so the amounts make sense to the caller?
 		if ( flipped )
 			(addedAmountA, addedAmountB) = (addedAmountB, addedAmountA);
+		}
 
-		// Transfer the tokens from the sender - only tokens without fees should be whitelsited on the DEX
+		// Transfer the tokens from the sender - only tokens without fees should be whitelisted on the DEX
 		tokenA.safeTransferFrom(msg.sender, address(this), addedAmountA );
 		tokenB.safeTransferFrom(msg.sender, address(this), addedAmountB );
 		}
 
 
 	// Remove liquidity for the user and reclaim the underlying tokens
-	function removeLiquidity( IERC20 tokenA, IERC20 tokenB, uint256 liquidityToRemove, uint256 minReclaimedA, uint256 minReclaimedB, uint256 deadline ) public nonReentrant ensureNotExpired(deadline) returns (uint256 reclaimedA, uint256 reclaimedB)
+	function removeLiquidity( IERC20 tokenA, IERC20 tokenB, uint256 liquidityToRemove, uint256 minReclaimedA, uint256 minReclaimedB, uint256 totalLiquidity ) public nonReentrant returns (uint256 reclaimedA, uint256 reclaimedB)
 		{
+		require( msg.sender == address(collateralAndLiquidity), "Pools.removeLiquidity is only callable from the CollateralAndLiquidity contract" );
 		require( liquidityToRemove > 0, "The amount of liquidityToRemove cannot be zero" );
 
 		(bytes32 poolID, bool flipped) = PoolUtils._poolID(tokenA, tokenB);
 
-		uint256 _totalLiquidity = totalLiquidity[poolID];
-		require( _userLiquidity[msg.sender][poolID] >= liquidityToRemove, "Cannot remove more liquidity than the current balance" );
-
-		// Determine what the withdrawn liquidity is worth and round down in favor of the protocol
+		// Determine how much liquidity is being withdrawn and round down in favor of the protocol
 		PoolReserves storage reserves = _poolReserves[poolID];
-		reclaimedA = ( reserves.reserve0 * liquidityToRemove ) / _totalLiquidity;
-		reclaimedB = ( reserves.reserve1 * liquidityToRemove ) / _totalLiquidity;
+		reclaimedA = ( reserves.reserve0 * liquidityToRemove ) / totalLiquidity;
+		reclaimedB = ( reserves.reserve1 * liquidityToRemove ) / totalLiquidity;
 
 		// Make sure that removing liquidity doesn't drive the reserves below DUST
 		if ( ( reserves.reserve0 - reclaimedA ) < PoolUtils.DUST )
@@ -215,9 +214,6 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 		reserves.reserve0 -= uint112(reclaimedA);
 		reserves.reserve1 -= uint112(reclaimedB);
-
-		_userLiquidity[msg.sender][poolID] -= liquidityToRemove;
-        totalLiquidity[poolID] = _totalLiquidity - liquidityToRemove;
 
 		// Switch reclaimed amounts back to the order that was specified in the call arguments so they make sense to the caller
 		if (flipped)
@@ -494,39 +490,6 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		}
 
 
-	// Deposit an arbitrary amount of one or both tokens into the pool and receive liquidity corresponding the the value of both of them.
-	// As the ratio of tokens added to the pool has to be the same as the existing ratio of reserves, some of the excess token will be swapped to the other.
-	// If bypassSwap is true then this functions identically to addLiquidity and no swap is performed first to balance the tokens before the liquidity add.
-	// Zapped tokens will be transferred from the sender.
-	// Due to precision reduction during zapping calculation, the minimum possible reserves and quantity possible to zap is .000101,
-	// Requires exchange access for the sending wallet (from depositSwapWithdraw)
-	function dualZapInLiquidity(IERC20 tokenA, IERC20 tokenB, uint256 zapAmountA, uint256 zapAmountB, uint256 minLiquidityReceived, uint256 deadline ) public returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
-		{
-		(uint256 reserveA, uint256 reserveB) = getPoolReserves(tokenA, tokenB);
-		(uint256 swapAmountA, uint256 swapAmountB ) = PoolMath._determineZapSwapAmount( reserveA, reserveB, tokenA, tokenB, zapAmountA, zapAmountB );
-
-		// tokenA is in excess so swap some of it to tokenB before adding liquidity?
-		if ( swapAmountA > 0)
-			{
-			// Swap from tokenA to tokenB and adjust the zapAmounts
-			zapAmountA -= swapAmountA;
-			zapAmountB +=  depositSwapWithdraw( tokenA, tokenB, swapAmountA, 0, block.timestamp );
-			}
-
-		// tokenB is in excess so swap some of it to tokenA before adding liquidity?
-		if ( swapAmountB > 0)
-			{
-			// Swap from tokenB to tokenA and adjust the zapAmounts
-			zapAmountB -= swapAmountB;
-			zapAmountA += depositSwapWithdraw( tokenB, tokenA, swapAmountB, 0, block.timestamp );
-			}
-
-		// Assuming bypassSwap was false, the ratio of both tokens should now be the same as the ratio of the current reserves (within precision).
-		// Otherwise it will just be this normal addLiquidity call.
-		return addLiquidity(tokenA, tokenB, zapAmountA, zapAmountB, minLiquidityReceived, deadline );
-		}
-
-
 	// === COUNTERSWAPS ===
 
 	// Check to see if counterswap has been deposited to swap in the opposite direction of a swap a user just made
@@ -564,6 +527,43 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		}
 
 
+
+
+	// Deposit an arbitrary amount of one or both tokens into the pool and receive liquidity corresponding the the value of both of them.
+	// As the ratio of tokens added to the pool has to be the same as the existing ratio of reserves, some of the excess token will be swapped to the other.
+	// If bypassSwap is true then this functions identically to addLiquidity and no swap is performed first to balance the tokens before the liquidity add.
+	// Zapped tokens will be transferred from the sender.
+	// Due to precision reduction during zapping calculation, the minimum possible reserves and quantity possible to zap is .000101,
+	// Requires exchange access for the sending wallet (from depositSwapWithdraw)
+	function dualZapInLiquidity(IERC20 tokenA, IERC20 tokenB, uint256 zapAmountA, uint256 zapAmountB, uint256 minLiquidityReceived, uint256 totalLiquidity ) public returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
+		{
+		require( msg.sender == address(collateralAndLiquidity), "Pools.dualZapInLiquidity is only callable from the CollateralAndLiquidity contract" );
+
+		(uint256 reserveA, uint256 reserveB) = getPoolReserves(tokenA, tokenB);
+		(uint256 swapAmountA, uint256 swapAmountB ) = PoolMath._determineZapSwapAmount( reserveA, reserveB, tokenA, tokenB, zapAmountA, zapAmountB );
+
+		// tokenA is in excess so swap some of it to tokenB before adding liquidity?
+		if ( swapAmountA > 0)
+			{
+			// Swap from tokenA to tokenB and adjust the zapAmounts
+			zapAmountA -= swapAmountA;
+			zapAmountB +=  depositSwapWithdraw( tokenA, tokenB, swapAmountA, 0, block.timestamp );
+			}
+
+		// tokenB is in excess so swap some of it to tokenA before adding liquidity?
+		if ( swapAmountB > 0)
+			{
+			// Swap from tokenB to tokenA and adjust the zapAmounts
+			zapAmountB -= swapAmountB;
+			zapAmountA += depositSwapWithdraw( tokenB, tokenA, swapAmountB, 0, block.timestamp );
+			}
+
+		// Assuming bypassSwap was false, the ratio of both tokens should now be the same as the ratio of the current reserves (within precision).
+		// Otherwise it will just be this normal addLiquidity call.
+		return addLiquidity(tokenA, tokenB, zapAmountA, zapAmountB, minLiquidityReceived, totalLiquidity );
+		}
+
+
 	// === VIEWS ===
 
 	function lastSwapBlock( bytes32 poolID ) public view returns (uint256 _lastSwapBlock)
@@ -591,14 +591,5 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	function depositedBalance(address user, IERC20 token) public view returns (uint256)
 		{
 		return _userDeposits[user][token];
-		}
-
-
-	// A user's liquidity in a pool
-	function getUserLiquidity(address user, IERC20 tokenA, IERC20 tokenB) public view returns (uint256)
-		{
-		bytes32 poolID = PoolUtils._poolIDOnly(tokenA, tokenB);
-
-		return _userLiquidity[user][poolID];
 		}
 	}

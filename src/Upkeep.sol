@@ -46,7 +46,7 @@ contract Upkeep is IUpkeep
 	IDAOConfig immutable public daoConfig;
 	IPriceAggregator immutable public priceAggregator;
 	ISaltRewards immutable public saltRewards;
-	ILiquidity immutable public liquidity;
+	ICollateralAndLiquidity immutable public collateralAndLiquidity;
 	IEmissions immutable public emissions;
 
 	IERC20  immutable public weth;
@@ -56,7 +56,7 @@ contract Upkeep is IUpkeep
 	uint256 public lastUpkeepTime;
 
 
-    constructor( IPools _pools, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IDAOConfig _daoConfig, IPriceAggregator _priceAggregator, ISaltRewards _saltRewards, ILiquidity _liquidity, IEmissions _emissions )
+    constructor( IPools _pools, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IDAOConfig _daoConfig, IPriceAggregator _priceAggregator, ISaltRewards _saltRewards, ICollateralAndLiquidity _collateralAndLiquidity, IEmissions _emissions )
 		{
 		require( address(_pools) != address(0), "_pools cannot be address(0)" );
 		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
@@ -64,7 +64,7 @@ contract Upkeep is IUpkeep
 		require( address(_daoConfig) != address(0), "_daoConfig cannot be address(0)" );
 		require( address(_priceAggregator) != address(0), "_priceAggregator cannot be address(0)" );
 		require( address(_saltRewards) != address(0), "_saltRewards cannot be address(0)" );
-		require( address(_liquidity) != address(0), "_liquidity cannot be address(0)" );
+		require( address(_collateralAndLiquidity) != address(0), "_collateralAndLiquidity cannot be address(0)" );
 		require( address(_emissions) != address(0), "_emissions cannot be address(0)" );
 
 		pools = _pools;
@@ -73,7 +73,7 @@ contract Upkeep is IUpkeep
 		daoConfig = _daoConfig;
 		priceAggregator = _priceAggregator;
 		saltRewards = _saltRewards;
-		liquidity = _liquidity;
+		collateralAndLiquidity = _collateralAndLiquidity;
 		emissions = _emissions;
 
 		// Cached for efficiency
@@ -179,7 +179,7 @@ contract Upkeep is IUpkeep
 
 
 	// 9. Send SALT and USDS (from steps 8 and 3) to the DAO and have it form SALT/USDS Protocol Owned Liquidity
-	// Any SALT or USDS that is not used will be stay in the DAO contract for later POL formation.
+	// Any SALT or USDS that is not used will stay in the DAO contract for later POL formation.
 	function step9() public onlySameContract
 		{
 		uint256 saltBalance = salt.balanceOf( address(this) );
@@ -190,7 +190,7 @@ contract Upkeep is IUpkeep
 		salt.safeTransfer(address(dao), saltBalance);
 		usds.safeTransfer(address(dao), usdsBalance);
 
-		dao.formPOL(liquidity, salt, usds);
+		dao.formPOL(collateralAndLiquidity, salt, usds);
 		}
 
 
@@ -246,7 +246,7 @@ contract Upkeep is IUpkeep
 	// 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
 	function step14() public onlySameContract
 		{
-		exchangeConfig.dao().processRewardsFromPOL(liquidity, salt, usds);
+		exchangeConfig.dao().processRewardsFromPOL(collateralAndLiquidity, salt, usds);
 		}
 
 

@@ -297,7 +297,7 @@ contract Proposals is IProposals, ReentrancyGuard
 
 
 	// The required quorum is normally a default 10% of the amount of SALT staked.
-	// There is though a minimum of 1% of SALT.totalSupply (in the case that the amount of staked SALT is low - at launch for instance).
+	// There is though a minimum of 0.50% of SALT.totalSupply (in the case that the amount of staked SALT is low - at launch for instance).
 	function requiredQuorumForBallotType( BallotType ballotType ) public view returns (uint256 requiredQuorum)
 		{
 		// The quorum will be specified as a percentage of the total amount of SALT staked
@@ -312,9 +312,11 @@ contract Proposals is IProposals, ReentrancyGuard
 			// All other ballot types require 3x multiple of the baseQuorum
 			requiredQuorum = ( 3 * totalStaked * daoConfig.baseBallotQuorumPercentTimes1000()) / ( 100 * 1000 );
 
-		// Make sure that the requiredQuorum is at least 1% of SALT.totalSupply
+		// Make sure that the requiredQuorum is at least 0.50% of the total SALT supply.
+		// Circulating supply after the first 30 days of emissions will be about 2 million - so this would require about 25% of the circulating
+		// SALT to be staked and voting to pass a proposal (including whitelisting) within the first 30 days.
 		uint256 totalSupply = ERC20(address(exchangeConfig.salt())).totalSupply();
-		uint256 minimumQuorum = totalSupply * 1 / 100;
+		uint256 minimumQuorum = totalSupply * 5 / 1000;
 
 		if ( requiredQuorum < minimumQuorum )
 			requiredQuorum = minimumQuorum;

@@ -30,10 +30,10 @@ contract InitialDistribution is IInitialDistribution
 	VestingWallet public teamVestingWallet;
 	IAirdrop public airdrop;
 	ISaltRewards public saltRewards;
-	ILiquidity public liquidity;
+	ICollateralAndLiquidity public collateralAndLiquidity;
 
 
-	constructor( ISalt _salt, IPoolsConfig _poolsConfig, IEmissions _emissions, IBootstrapBallot _bootstrapBallot, IDAO _dao, VestingWallet _daoVestingWallet, VestingWallet _teamVestingWallet, IAirdrop _airdrop, ISaltRewards _saltRewards, ILiquidity _liquidity  )
+	constructor( ISalt _salt, IPoolsConfig _poolsConfig, IEmissions _emissions, IBootstrapBallot _bootstrapBallot, IDAO _dao, VestingWallet _daoVestingWallet, VestingWallet _teamVestingWallet, IAirdrop _airdrop, ISaltRewards _saltRewards, ICollateralAndLiquidity _collateralAndLiquidity  )
 		{
 		require( address(_salt) != address(0), "_salt cannot be address(0)" );
 
@@ -45,7 +45,7 @@ contract InitialDistribution is IInitialDistribution
 		require( address(_teamVestingWallet) != address(0), "_teamVestingWallet cannot be address(0)" );
 		require( address(_airdrop) != address(0), "_airdrop cannot be address(0)" );
 		require( address(_saltRewards) != address(0), "_saltRewards cannot be address(0)" );
-		require( address(_liquidity) != address(0), "_liquidity cannot be address(0)" );
+		require( address(_collateralAndLiquidity) != address(0), "_collateralAndLiquidity cannot be address(0)" );
 
 		salt = _salt;
 
@@ -57,7 +57,7 @@ contract InitialDistribution is IInitialDistribution
 		teamVestingWallet = _teamVestingWallet;
 		airdrop = _airdrop;
 		saltRewards = _saltRewards;
-		liquidity = _liquidity;
+		collateralAndLiquidity = _collateralAndLiquidity;
         }
 
 

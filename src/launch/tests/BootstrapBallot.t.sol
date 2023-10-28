@@ -8,7 +8,7 @@ import "../../ExchangeConfig.sol";
 import "../../pools/Pools.sol";
 import "../../staking/Liquidity.sol";
 import "../../staking/Staking.sol";
-import "../../stable/Collateral.sol";
+import "../../stable/CollateralAndLiquidity.sol";
 import "../../rewards/RewardsEmitter.sol";
 import "../../price_feed/tests/IForcedPriceFeed.sol";
 import "../../pools/PoolsConfig.sol";
@@ -54,11 +54,10 @@ contract TestBootstrapBallot is Deployment
 
 			pools = new Pools(exchangeConfig, poolsConfig);
 			staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
-			liquidity = new Liquidity( pools, exchangeConfig, poolsConfig, stakingConfig );
-			collateral = new Collateral(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
+			collateralAndLiquidity = new CollateralAndLiquidity(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
 
 			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig );
-			liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, rewardsConfig );
+			liquidityRewardsEmitter = new RewardsEmitter( collateralAndLiquidity, exchangeConfig, poolsConfig, rewardsConfig );
 
 			emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
@@ -89,16 +88,17 @@ contract TestBootstrapBallot is Deployment
 
 			saltRewards = new SaltRewards(exchangeConfig, rewardsConfig);
 
-			upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, liquidity, emissions);
+			upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, collateralAndLiquidity, emissions);
 			exchangeConfig.setUpkeep(upkeep);
 
 			bootstrapBallot = new BootstrapBallot(exchangeConfig, airdrop, 60 * 60 * 24 * 3 );
-			initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, liquidity);
+			initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, collateralAndLiquidity);
 			exchangeConfig.setInitialDistribution(initialDistribution);
 
-			pools.setDAO(dao);
+			pools.setContracts(dao, collateralAndLiquidity
+);
 
-			usds.setContracts(collateral, pools, exchangeConfig );
+			usds.setContracts(collateralAndLiquidity, pools, exchangeConfig );
 
 			// Transfer ownership of the newly created config files to the DAO
 			Ownable(address(exchangeConfig)).transferOwnership( address(dao) );

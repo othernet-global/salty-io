@@ -34,7 +34,7 @@ contract TestProposals is Deployment
 		vm.stopPrank();
 
 		// Mint some USDS to the DEPLOYER and alice
-		vm.startPrank( address(collateral) );
+		vm.startPrank( address(collateralAndLiquidity) );
 		usds.mintTo( DEPLOYER, 2000000 ether );
 		usds.mintTo( alice, 1000000 ether );
 		vm.stopPrank();
@@ -432,13 +432,13 @@ contract TestProposals is Deployment
 
 		vm.startPrank(DEPLOYER);
 
-		// 5 million staked. Default 10% will be 500k which does not meet the 1% of total supply minimum quorum.
-		// So 1 million (1% of the totalSupply) will be used as the quorum
-		staking.stakeSALT( 5000000 ether );
-        assertEq(proposals.requiredQuorumForBallotType(BallotType.PARAMETER), 1000000 ether, "Not using the minimum 1% of totalSupply for quorum" );
+		// 2 million staked. Default 10% will be 200k which does not meet the 0.50% of total supply minimum quorum.
+		// So 500k (0.50% of the totalSupply) will be used as the quorum
+		staking.stakeSALT( 2000000 ether );
+        assertEq(proposals.requiredQuorumForBallotType(BallotType.PARAMETER), 500000 ether, "Not using the minimum 1% of totalSupply for quorum" );
 
 		// 10 million total staked. Default 10% will be 1 million which meets the 1% of total supply minimum quorum.
-		staking.stakeSALT( 5000000 ether );
+		staking.stakeSALT( 8000000 ether );
 
         uint256 stakedSALT = staking.totalSharesForPool(PoolUtils.STAKED_SALT);
         uint256 baseBallotQuorumPercentTimes1000 = daoConfig.baseBallotQuorumPercentTimes1000();

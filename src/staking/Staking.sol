@@ -52,6 +52,7 @@ contract Staking is IStaking, StakingRewards
 	function unstake( uint256 amountUnstaked, uint256 numWeeks ) public nonReentrant returns (uint256 unstakeID)
 		{
 		require( msg.sender != address(exchangeConfig.dao()), "DAO cannot unstake" );
+		require( userShareForPool(msg.sender, PoolUtils.STAKED_SALT) >= amountUnstaked, "Cannot unstake more than the amount staked" );
 
 		uint256 claimableSALT = calculateUnstake( amountUnstaked, numWeeks );
 		uint256 completionTime = block.timestamp + numWeeks * ( 1 weeks );

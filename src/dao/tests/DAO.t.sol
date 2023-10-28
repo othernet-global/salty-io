@@ -31,7 +31,7 @@ contract TestDAO is Deployment
 		salt.transfer(DEPLOYER, 15000000 ether);
 
 		// Mint some USDS to the DEPLOYER and alice
-		vm.startPrank( address(collateral) );
+		vm.startPrank( address(collateralAndLiquidity) );
 		usds.mintTo( DEPLOYER, 2000000 ether );
 		usds.mintTo( alice, 1000000 ether );
 		vm.stopPrank();
@@ -751,7 +751,7 @@ contract TestDAO is Deployment
 	// A unit test to validate that formPOL works correctly and changes balances as expected
 	function testFormPOL() public {
 
-		assertEq( pools.getUserLiquidity(address(dao), salt, usds), 0 );
+		assertEq( collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds)), 0 );
 
 		uint256 saltAmount = 10 ether;
         uint256 usdsAmount = 5 ether;
@@ -768,16 +768,16 @@ contract TestDAO is Deployment
         vm.stopPrank();
 
         vm.expectRevert( "DAO.formPOL is only callable from the Upkeep contract" );
-        dao.formPOL(liquidity, salt, usds);
+        dao.formPOL(collateralAndLiquidity, salt, usds);
 
         vm.prank(address(upkeep));
-        dao.formPOL(liquidity, salt, usds);
+        dao.formPOL(collateralAndLiquidity, salt, usds);
 
         assertEq(salt.balanceOf(address(dao)), 0, "DAO SALT balance incorrect after formPOL");
         assertEq(usds.balanceOf(address(dao)), 0, "DAO USDS balance incorrect after formPOL");
 
 		bytes32 poolID = PoolUtils._poolIDOnly(salt,usds);
-		assertTrue( liquidity.userShareForPool(address(dao), poolID) > 0 );
+		assertTrue( collateralAndLiquidity.userShareForPool(address(dao), poolID) > 0 );
     }
 
 
@@ -790,13 +790,13 @@ contract TestDAO is Deployment
     	dao.withdrawArbitrageProfits( weth );
 
     	vm.expectRevert("DAO.formPOL is only callable from the Upkeep contract");
-    	dao.formPOL(liquidity, salt, usds);
+    	dao.formPOL(collateralAndLiquidity, salt, usds);
 
     	vm.expectRevert("DAO.sendSaltToSaltRewards is only callable from the Upkeep contract");
     	dao.sendSaltToSaltRewards( salt, saltRewards, 1000 ether );
 
     	vm.expectRevert("DAO.processRewardsFromPOL is only callable from the Upkeep contract");
-    	dao.processRewardsFromPOL( liquidity, salt, usds );
+    	dao.processRewardsFromPOL( collateralAndLiquidity, salt, usds );
 
     	vm.stopPrank();
     	}
@@ -821,7 +821,7 @@ contract TestDAO is Deployment
 		vm.prank(address(daoVestingWallet));
 		salt.transfer(address(dao), 1000 ether);
 
-		vm.prank(address(collateral));
+		vm.prank(address(collateralAndLiquidity));
 		usds.mintTo(address(dao), 1000 ether);
 
 		assertEq( salt.balanceOf(address(dao)), 1000 ether );
@@ -829,7 +829,7 @@ contract TestDAO is Deployment
 
 		// Have the DAO form SALT/USDS liquidity with the SALT and USDS that it has
 		vm.prank(address(upkeep));
-		dao.formPOL(liquidity, salt, usds);
+		dao.formPOL(collateralAndLiquidity, salt, usds);
 
 		// Pass time to allow the liquidityRewardsEmitter to emit rewards
     	vm.warp( block.timestamp + 1 days );
@@ -846,7 +846,7 @@ contract TestDAO is Deployment
 //		console.log( "distributedRewards: ", distributedRewards );
 //		console.log( "totalSupply: ", salt.totalSupply() );
 //		console.log( "burned: ", salt.totalBurned() );
-//		console.log( "liquidity: ", address(liquidity) );
+//		console.log( "collateralAndLiquidity: ", address(collateralAndLiquidity) );
 //		console.log( "team: ", salt.balanceOf(teamWallet) );
 
 		assertEq( distributedRewards, 5555555555555555555555 );

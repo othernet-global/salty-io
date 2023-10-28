@@ -10,7 +10,7 @@ import "../pools/PoolsConfig.sol";
 import "../price_feed/PriceAggregator.sol";
 import "../ExchangeConfig.sol";
 import "../staking/Liquidity.sol";
-import "../stable/Collateral.sol";
+import "../stable/CollateralAndLiquidity.sol";
 import "../pools/Pools.sol";
 import "../staking/Staking.sol";
 import "../rewards/RewardsEmitter.sol";
@@ -43,11 +43,10 @@ contract TestMaxUpkeep is Deployment
 
 		pools = new Pools(exchangeConfig, poolsConfig);
 		staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
-		liquidity = new Liquidity( pools, exchangeConfig, poolsConfig, stakingConfig );
-		collateral = new Collateral(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
+		collateralAndLiquidity = new CollateralAndLiquidity(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
 
 		stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig );
-		liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, rewardsConfig );
+		liquidityRewardsEmitter = new RewardsEmitter( collateralAndLiquidity, exchangeConfig, poolsConfig, rewardsConfig );
 
 		emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
@@ -78,16 +77,17 @@ contract TestMaxUpkeep is Deployment
 
 		saltRewards = new SaltRewards(exchangeConfig, rewardsConfig);
 
-		upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, liquidity, emissions);
+		upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, collateralAndLiquidity, emissions);
 		exchangeConfig.setUpkeep(upkeep);
 
 		bootstrapBallot = new BootstrapBallot(exchangeConfig, airdrop, 60 * 60 * 24 * 3 );
-		initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, liquidity);
+		initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, collateralAndLiquidity);
 		exchangeConfig.setInitialDistribution(initialDistribution);
 
-		pools.setDAO(dao);
+		pools.setContracts(dao, collateralAndLiquidity
+);
 
-		usds.setContracts(collateral, pools, exchangeConfig );
+		usds.setContracts(collateralAndLiquidity, pools, exchangeConfig );
 
 		// Transfer ownership of the newly created config files to the DAO
 		Ownable(address(exchangeConfig)).transferOwnership( address(dao) );
@@ -134,19 +134,19 @@ contract TestMaxUpkeep is Deployment
 	function _setupPools() public
 		{
 		vm.startPrank(DEPLOYER);
-		wbtc.approve(address(liquidity), type(uint256).max);
-		weth.approve(address(liquidity), type(uint256).max);
-		salt.approve(address(liquidity), type(uint256).max);
+		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
+		weth.approve(address(collateralAndLiquidity), type(uint256).max);
+		salt.approve(address(collateralAndLiquidity), type(uint256).max);
 
 		wbtc.approve(address(pools), type(uint256).max);
 		weth.approve(address(pools), type(uint256).max);
 		salt.approve(address(pools), type(uint256).max);
-		wbtc.approve(address(collateral), type(uint256).max);
-		weth.approve(address(collateral), type(uint256).max);
+		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
+		weth.approve(address(collateralAndLiquidity), type(uint256).max);
 
-        collateral.depositCollateralAndIncreaseShare(100 * 10**8, 100 ether, 0, block.timestamp, false);
-        liquidity.addLiquidityAndIncreaseShare(salt, wbtc, 100 ether, 100 * 10**8, 0, block.timestamp, false);
-        liquidity.addLiquidityAndIncreaseShare(salt, weth, 100 ether, 100 ether, 0, block.timestamp, false);
+        collateralAndLiquidity.depositCollateralAndIncreaseShare(100 * 10**8, 100 ether, 0, block.timestamp, false);
+        collateralAndLiquidity.depositLiquidityAndIncreaseShare(salt, wbtc, 100 ether, 100 * 10**8, 0, block.timestamp, false);
+        collateralAndLiquidity.depositLiquidityAndIncreaseShare(salt, weth, 100 ether, 100 ether, 0, block.timestamp, false);
 		vm.stopPrank();
 
 		uint256 totalPools = 100;
@@ -168,17 +168,17 @@ contract TestMaxUpkeep is Deployment
 			vm.stopPrank();
 
 			vm.startPrank(DEPLOYER);
-    		tokenA.approve(address(liquidity), type(uint256).max);
-			tokenB.approve(address(liquidity), type(uint256).max);
+    		tokenA.approve(address(collateralAndLiquidity), type(uint256).max);
+			tokenB.approve(address(collateralAndLiquidity), type(uint256).max);
     		tokenA.approve(address(pools), type(uint256).max);
 			tokenB.approve(address(pools), type(uint256).max);
 
 			// Multiple pools will be needed for arbitrage
-            liquidity.addLiquidityAndIncreaseShare(tokenA, tokenB, 100 ether, 100 ether, 0, block.timestamp, false);
-            liquidity.addLiquidityAndIncreaseShare(tokenA, weth, 100 ether, 100 ether, 0, block.timestamp, false);
-            liquidity.addLiquidityAndIncreaseShare(tokenA, wbtc, 100 ether, 100 * 10**8, 0, block.timestamp, false);
-            liquidity.addLiquidityAndIncreaseShare(tokenB, weth, 100 ether, 100 ether, 0, block.timestamp, false);
-            liquidity.addLiquidityAndIncreaseShare(tokenB, wbtc, 100 ether, 100 * 10**8, 0, block.timestamp, false);
+            collateralAndLiquidity.depositLiquidityAndIncreaseShare(tokenA, tokenB, 100 ether, 100 ether, 0, block.timestamp, false);
+            collateralAndLiquidity.depositLiquidityAndIncreaseShare(tokenA, weth, 100 ether, 100 ether, 0, block.timestamp, false);
+            collateralAndLiquidity.depositLiquidityAndIncreaseShare(tokenA, wbtc, 100 ether, 100 * 10**8, 0, block.timestamp, false);
+            collateralAndLiquidity.depositLiquidityAndIncreaseShare(tokenB, weth, 100 ether, 100 ether, 0, block.timestamp, false);
+            collateralAndLiquidity.depositLiquidityAndIncreaseShare(tokenB, wbtc, 100 ether, 100 * 10**8, 0, block.timestamp, false);
 
 	    	vm.stopPrank();
 	    	}
@@ -232,7 +232,7 @@ contract TestMaxUpkeep is Deployment
 		pools.depositTokenForCounterswap(Counterswap.WBTC_TO_USDS, wbtc, 1 * 10**8);
 		vm.stopPrank();
 
-    	vm.prank(address(collateral));
+    	vm.prank(address(collateralAndLiquidity));
     	usds.shouldBurnMoreUSDS( 100 ether );
 
     	_placeTrades();

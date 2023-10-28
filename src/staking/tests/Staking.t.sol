@@ -122,7 +122,7 @@ contract StakingTest is Deployment
 	staking.stakeSALT(5 ether);
 
 	// Try to unstake 10 SALT, which is more than Alice has staked
-	vm.expectRevert("Cannot decrease more than existing user share");
+	vm.expectRevert("Cannot unstake more than the amount staked");
 	staking.unstake(10 ether, 4);
 	}
 
@@ -771,7 +771,7 @@ contract StakingTest is Deployment
 	function testUnstakeWithoutStaking() public {
 		// Alice tries to unstake 5 ether of xSALT, without having staked any SALT
 		vm.prank(alice);
-		vm.expectRevert("Cannot decrease more than existing user share");
+		vm.expectRevert("Cannot unstake more than the amount staked");
 		staking.unstake(5 ether, 4);
 	}
 
@@ -911,7 +911,7 @@ contract StakingTest is Deployment
         assertEq(staking.userShareForPool(alice, PoolUtils.STAKED_SALT), 10 ether - unstakeAmount);
 
         // Try to unstake more than the remaining xSALT balance, expect to revert
-        vm.expectRevert("Cannot decrease more than existing user share");
+        vm.expectRevert("Cannot unstake more than the amount staked");
         staking.unstake(10 ether - unstakeAmount + 1, 4);
     }
 

@@ -4,7 +4,7 @@ pragma solidity =0.8.21;
 import "../dao/interfaces/IDAO.sol";
 import "../interfaces/IAccessManager.sol";
 import "../stable/interfaces/IUSDS.sol";
-import "../stable/interfaces/ICollateral.sol";
+import "../stable/interfaces/ICollateralAndLiquidity.sol";
 import "../interfaces/ISalt.sol";
 import "../rewards/interfaces/IRewardsEmitter.sol";
 import "../rewards/interfaces/ISaltRewards.sol";

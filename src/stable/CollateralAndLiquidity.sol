@@ -6,12 +6,14 @@ import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
 import "../pools/PoolUtils.sol";
 import "../staking/Liquidity.sol";
-import "./interfaces/ICollateral.sol";
+import "./interfaces/ICollateralAndLiquidity.sol";
 import "./interfaces/IStableConfig.sol";
 import "../price_feed/interfaces/IPriceAggregator.sol";
 
 
-// Allows users to add and deposit WBTC/WETH liquidity as collateral for borrowing USDS stablecoin.
+// The contract through which all liquidity on the exchange is added and removed.
+
+// Also allows users to deposit WBTC/WETH liquidity as collateral for borrowing USDS stablecoin.
 // Deposited WBTC/WETH liquidity is owned by this contract (as it makes external calls to Pools.sol to add and remove liquidity) and the user making the deposit is given increased collateral share.
 // This contract needs to maintain control over the liquidity collateral in case a user's collateral ratio falls below required minimums and their collateral needs to be liquidated.
 // When users withdraw liquidity: their collateral share is reduced, this contract pulls liquidity from Pools.sol and the reclaimed tokens are sent back to the user.
@@ -22,7 +24,7 @@ import "../price_feed/interfaces/IPriceAggregator.sol";
 // Users who call the liquidation function on undercollateralized positions receive a default 5% of the liquidated collateral (up to a default max of $500).
 // Liquidated users lose their deposited WBTC/WETH collateral and keep the USDS that they borrowed.
 
-contract Collateral is Liquidity, ICollateral
+contract CollateralAndLiquidity is Liquidity, ICollateralAndLiquidity
     {
 	using SafeERC20 for IERC20;
 	using SafeERC20 for IUSDS;
@@ -64,25 +66,27 @@ contract Collateral is Liquidity, ICollateral
 
 
 	// Deposit WBTC/WETH liqudity as collateral and increase the caller's collateral share for future rewards.
-	// The called function addLiquidityAndIncreaseShare is nonReentrant.
-	// Requires exchange access for the sending wallet (through addLiquidityAndIncreaseShare)
-	function depositCollateralAndIncreaseShare( uint256 maxAmountWBTC, uint256 maxAmountWETH, uint256 minLiquidityReceived, uint256 deadline, bool bypassZapping ) public returns (uint256 addedAmountWBTC, uint256 addedAmountWETH, uint256 addedLiquidity)
+	// The called function depositLiquidityAndIncreaseShare is nonReentrant.
+	// Requires exchange access for the sending wallet (through depositLiquidityAndIncreaseShare)
+	function depositCollateralAndIncreaseShare( uint256 maxAmountWBTC, uint256 maxAmountWETH, uint256 minLiquidityReceived, uint256 deadline, bool bypassZapping ) public ensureNotExpired(deadline)  returns (uint256 addedAmountWBTC, uint256 addedAmountWETH, uint256 addedLiquidity)
 		{
 		// Have the user deposit the specified WBTC/WETH liquidity and increase their collateral share
-		(addedAmountWBTC, addedAmountWETH, addedLiquidity) = _addLiquidityAndIncreaseShare( wbtc, weth, maxAmountWBTC, maxAmountWETH, minLiquidityReceived, deadline, bypassZapping );
+		(addedAmountWBTC, addedAmountWETH, addedLiquidity) = _depositLiquidityAndIncreaseShare( wbtc, weth, maxAmountWBTC, maxAmountWETH, minLiquidityReceived, bypassZapping );
 		}
+
+
 
 
 	// Withdraw WBTC/WETH collateral and claim any pending rewards.
 	// The called function withdrawLiquidityAndClaim is nonReentrant
-    function withdrawCollateralAndClaim( uint256 collateralToWithdraw, uint256 minReclaimedWBTC, uint256 minReclaimedWETH, uint256 deadline ) public returns (uint256 reclaimedWBTC, uint256 reclaimedWETH)
+    function withdrawCollateralAndClaim( uint256 collateralToWithdraw, uint256 minReclaimedWBTC, uint256 minReclaimedWETH, uint256 deadline ) public ensureNotExpired(deadline) returns (uint256 reclaimedWBTC, uint256 reclaimedWETH)
 		{
 		// Make sure that the user has collateral and if they have borrowed USDS that collateralToWithdraw doesn't bring their collateralRatio below allowable levels.
 		require( userShareForPool( msg.sender, collateralPoolID ) > 0, "User does not have any collateral" );
 		require( collateralToWithdraw <= maxWithdrawableCollateral(msg.sender), "Excessive collateralToWithdraw" );
 
 		// Withdraw the WBTC/WETH liquidity from the liquidity pool (sending the reclaimed tokens back to the user)
-		(reclaimedWBTC, reclaimedWETH) = _withdrawLiquidityAndClaim( wbtc, weth, collateralToWithdraw, minReclaimedWBTC, minReclaimedWETH, deadline );
+		(reclaimedWBTC, reclaimedWETH) = _withdrawLiquidityAndClaim( wbtc, weth, collateralToWithdraw, minReclaimedWBTC, minReclaimedWETH );
 		}
 
 
@@ -127,17 +131,6 @@ contract Collateral is Liquidity, ICollateral
 		}
 
 
-	// Withdraw the liquidated collateral from the liquidity pool.
-	// The liquidity is owned by this contract so when it is withdrawn it will be reclaimed by this contract.
-	function _withdrawLiquidatedCollateral( uint256 collateralAmount ) internal returns (uint256 reclaimedWBTC, uint256 reclaimedWETH)
-		{
-		// Withdraw the liquidity that was used as collateral by the user.
-		// No minimums are used as the amounts returned will be dictated by the current WTBC/WETH reserves
-		// The liquidity withdrawn is held by this contract (as the removeLiquidity call is external)
-		(reclaimedWBTC, reclaimedWETH) = pools.removeLiquidity(wbtc, weth, collateralAmount, 0, 0, block.timestamp );
-		}
-
-
 	// Liquidate a position which has fallen under the minimum collateral ratio.
 	// A default 5% of the value of the collateral is sent to the caller, with the rest being sent to the Liquidator for later conversion to USDS which is then burned.
 	function liquidateUser( address wallet ) public nonReentrant
@@ -151,12 +144,12 @@ contract Collateral is Liquidity, ICollateral
 
 		// Withdraw the liquidated collateral from the liquidity pool.
 		// The liquidity is owned by this contract so when it is withdrawn it will be reclaimed by this contract.
-		(, uint256 reclaimedWETH) = _withdrawLiquidatedCollateral( userCollateralAmount );
+		(, uint256 reclaimedWETH) = pools.removeLiquidity(wbtc, weth, userCollateralAmount, 0, 0, totalSharesForPool(collateralPoolID) );
 
 		// Decrease the user's share of collateral as it has been liquidated and they no longer have it.
 		_decreaseUserShare( wallet, collateralPoolID, userCollateralAmount, true );
 
-		// The caller receives a default 5% of the value of the liquidated collateral so we can just send them default 10% of the reclaimedWETH (as WBTC/WETH is a 50/50 pool).
+		// The caller receives a default 5% of the value of the liquidated collateral so we can just send them default 10% of the reclaimedWETH (as 5% of the WBTC they should also receive equals an additional 5% of the WETH).
 		uint256 rewardedWETH = (2 * reclaimedWETH * stableConfig.rewardPercentForCallingLiquidation()) / 100;
 
 		// Make sure the value of the rewardAmount is not excessive
@@ -168,7 +161,7 @@ contract Collateral is Liquidity, ICollateral
 		// Reward the caller
 		weth.safeTransfer( msg.sender, rewardedWETH );
 
-		// Send the remaining WBTC and WETH to the USDS contract so that the tokens can later be converted to USDS and burned (on USDS.performUpkeep)
+		// Send the remaining WBTC and WETH to the USDS contract so that the tokens can later be converted to USDS via counterswap and burned (on USDS.performUpkeep)
 		wbtc.safeTransfer( address(usds), wbtc.balanceOf(address(this)) );
 		weth.safeTransfer( address(usds), weth.balanceOf(address(this)) );
 
@@ -326,7 +319,7 @@ contract Collateral is Liquidity, ICollateral
 		(uint256 reservesWBTC, uint256 reservesWETH) = pools.getPoolReserves(wbtc, weth);
 		uint256 totalCollateralValue = underlyingTokenValueInUSD( reservesWBTC, reservesWETH );
 
-		return collateralAmount * totalCollateralValue / totalCollateralShares;
+		return totalCollateralValue * collateralAmount / totalCollateralShares;
 		}
 
 

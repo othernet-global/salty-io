@@ -2,7 +2,7 @@
 pragma solidity =0.8.21;
 
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
-import "../stable/interfaces/ICollateral.sol";
+import "../stable/interfaces/ICollateralAndLiquidity.sol";
 import "./interfaces/IUSDS.sol";
 import "../pools/interfaces/IPools.sol";
 import "../pools/Counterswap.sol";
@@ -10,7 +10,7 @@ import "../interfaces/IExchangeConfig.sol";
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
 
 
-// USDS can be borrowed by users who have deposited WBTC/WETH liquidity as collateral via Collateral.sol
+// USDS can be borrowed by users who have deposited WBTC/WETH liquidity as collateral via CollateralAndLiquidity.sol.sol
 // The default initial collateralization ratio of collateral / borrowed USDS is 200%.
 // The minimum default collateral ratio is 110% - below which positions can be liquidated by any user.
 
@@ -20,7 +20,7 @@ contract USDS is ERC20, IUSDS, Ownable
     IERC20 immutable public wbtc;
     IERC20 immutable public weth;
 
-    ICollateral public collateral;
+    ICollateralAndLiquidity public collateralAndLiquidity;
     IPools public pools;
     IExchangeConfig public exchangeConfig;
 
@@ -42,13 +42,13 @@ contract USDS is ERC20, IUSDS, Ownable
 
 
 	// These contracts will be set at deployment time and after that become immutable
-	function setContracts( ICollateral _collateral, IPools _pools, IExchangeConfig _exchangeConfig ) public onlyOwner
+	function setContracts( ICollateralAndLiquidity _collateral, IPools _pools, IExchangeConfig _exchangeConfig ) public onlyOwner
 		{
 		require( address(_collateral) != address(0), "_collateral cannot be address(0)" );
 		require( address(_pools) != address(0), "_pools cannot be address(0)" );
 		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
 
-		collateral = _collateral;
+		collateralAndLiquidity = _collateral;
 		pools = _pools;
 		exchangeConfig = _exchangeConfig;
 
@@ -57,11 +57,11 @@ contract USDS is ERC20, IUSDS, Ownable
 		}
 
 
-	// Mint from the Collateral contract to allow users to borrow USDS after depositing BTC/ETH liquidity as collateral.
-	// Only callable by the Collateral contract.
+	// Mint from the CollateralAndLiquidity.sol contract to allow users to borrow USDS after depositing BTC/ETH liquidity as collateral.
+	// Only callable by the CollateralAndLiquidity.sol contract.
 	function mintTo( address wallet, uint256 amount ) public
 		{
-		require( msg.sender == address(collateral), "USDS.mintTo is only callable from the Collateral contract" );
+		require( msg.sender == address(collateralAndLiquidity), "USDS.mintTo is only callable from the Collateral contract" );
 		require( address(wallet) != address(0), "Cannot mint to address(0)" );
 		require( amount > 0, "Cannot mint zero USDS" );
 
@@ -69,10 +69,10 @@ contract USDS is ERC20, IUSDS, Ownable
 		}
 
 
-	// Called when a user's collateral position has been liquidated to indicate that the borrowed USDS from that position needs to be burned.
+	// Called when a user's collateral position has been liquidated to indicate that the borrowed USDS from that position needs to eventually be burned.
 	function shouldBurnMoreUSDS( uint256 usdsToBurn ) public
 		{
-		require( msg.sender == address(collateral), "USDS.shouldBurnMoreUSDS is only callable from the Collateral contract" );
+		require( msg.sender == address(collateralAndLiquidity), "USDS.shouldBurnMoreUSDS is only callable from the Collateral contract" );
 
 		usdsThatShouldBeBurned += usdsToBurn;
 		}

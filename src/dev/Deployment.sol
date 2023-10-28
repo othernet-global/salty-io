@@ -31,7 +31,7 @@ import "../ExchangeConfig.sol";
 import "../price_feed/PriceAggregator.sol";
 import "../pools/Pools.sol";
 import "../staking/Liquidity.sol";
-import "../stable/Collateral.sol";
+import "../stable/CollateralAndLiquidity.sol";
 import "../rewards/RewardsEmitter.sol";
 import "../root_tests/TestERC20.sol";
 import "../launch/Airdrop.sol";
@@ -56,7 +56,7 @@ contract Deployment is Test
 	IForcedPriceFeed public forcedPriceFeed = IForcedPriceFeed(address(0x3B0Eb37f26b502bAe83df4eCc54afBDfb90B5d3a));
 
 	// The DAO contract can provide us with all other contract addresses in the protocol
-	IDAO public dao = IDAO(address(0xB6866DC4E9C5A3F8eBA7dc7BCaA296ed6C9Dea26));
+	IDAO public dao = IDAO(address(0x6808aD86d851c7f2499d9E51ad329ff103224da8));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));
@@ -80,10 +80,9 @@ contract Deployment is Test
 	IRewardsEmitter public liquidityRewardsEmitter = IRewardsEmitter(getContract(address(exchangeConfig), "liquidityRewardsEmitter()" ));
 
 	IStaking public staking = IStaking(getContract(address(stakingRewardsEmitter), "stakingRewards()" ));
-	ILiquidity public liquidity = ILiquidity(getContract(address(liquidityRewardsEmitter), "stakingRewards()" ));
-	ICollateral public collateral = ICollateral(getContract(address(usds), "collateral()" ));
+	ICollateralAndLiquidity public collateralAndLiquidity = ICollateralAndLiquidity(getContract(address(usds), "collateralAndLiquidity()" ));
 
-	IPools public pools = IPools(getContract(address(collateral), "pools()" ));
+	IPools public pools = IPools(getContract(address(collateralAndLiquidity), "pools()" ));
 
 	IProposals public proposals = IProposals(getContract(address(dao), "proposals()" ));
 
@@ -147,11 +146,10 @@ contract Deployment is Test
 
 		pools = new Pools(exchangeConfig, poolsConfig);
 		staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
-		liquidity = new Liquidity( pools, exchangeConfig, poolsConfig, stakingConfig );
-		collateral = new Collateral(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
+		collateralAndLiquidity = new CollateralAndLiquidity(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
 
 		stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig );
-		liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, rewardsConfig );
+		liquidityRewardsEmitter = new RewardsEmitter( collateralAndLiquidity, exchangeConfig, poolsConfig, rewardsConfig );
 
 		saltRewards = new SaltRewards(exchangeConfig, rewardsConfig);
 		emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
@@ -181,7 +179,7 @@ contract Deployment is Test
 		exchangeConfig.setDAO( dao );
 		exchangeConfig.setAirdrop(airdrop);
 
-		upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, liquidity, emissions);
+		upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, collateralAndLiquidity, emissions);
 		exchangeConfig.setUpkeep(upkeep);
 
 		daoVestingWallet = new VestingWallet( address(dao), uint64(block.timestamp + 60 * 60 * 24 * 7), 60 * 60 * 24 * 365 * 10 );
@@ -189,13 +187,11 @@ contract Deployment is Test
 		exchangeConfig.setVestingWallets(address(teamVestingWallet), address(daoVestingWallet));
 
 		bootstrapBallot = new BootstrapBallot(exchangeConfig, airdrop, 60 * 60 * 24 * 3 );
-		initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, liquidity);
+		initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, collateralAndLiquidity);
 		exchangeConfig.setInitialDistribution(initialDistribution);
 
-		pools.setDAO(dao);
-
-
-		usds.setContracts(collateral, pools, exchangeConfig );
+		pools.setContracts(dao, collateralAndLiquidity);
+		usds.setContracts(collateralAndLiquidity, pools, exchangeConfig );
 
 		// Transfer ownership of the newly created config files to the DAO
 		Ownable(address(exchangeConfig)).transferOwnership( address(dao) );
@@ -261,6 +257,18 @@ contract Deployment is Test
 		}
 
 
+	function grantAccessTeam() public
+		{
+		bytes memory sig = abi.encodePacked(hex"afeb237b3ae4c6ac8169fc21d78ba4a69249311b79d4b63c644f5830cb19053a553b8c8855709216516704d9bd35679e77807989c73803a2a994b60de13385801c");
+
+		vm.prank( address(0x123456789 ));
+		accessManager.grantAccess(sig);
+		}
+
+
+
+
+
 	function whitelistAlice() public
 		{
 		vm.prank( address(bootstrapBallot) );
@@ -279,6 +287,13 @@ contract Deployment is Test
 		{
 		vm.prank( address(bootstrapBallot) );
 		airdrop.authorizeWallet(address(0x3333));
+		}
+
+
+	function whitelistTeam() public
+		{
+		vm.prank( address(bootstrapBallot) );
+		airdrop.authorizeWallet(address(0x123456789));
 		}
 
 

@@ -46,16 +46,16 @@ contract TestCoreFeeds is Deployment
 		console.log( "uniswap btc: ", uniswapFeed.getPriceBTC() / 10**18 );
 		console.log( "uniswap eth: ", uniswapFeed.getPriceETH() / 10**18 );
 
-		vm.prank(address(collateral));
+		vm.prank(address(collateralAndLiquidity));
 		usds.mintTo(DEPLOYER, 100000000 ether );
 
 		vm.startPrank(DEPLOYER);
-		usds.approve( address(pools), type(uint256).max );
-		weth.approve( address(pools), type(uint256).max );
-		wbtc.approve( address(pools), type(uint256).max );
+		usds.approve( address(collateralAndLiquidity), type(uint256).max );
+		weth.approve( address(collateralAndLiquidity), type(uint256).max );
+		wbtc.approve( address(collateralAndLiquidity), type(uint256).max );
 
-		pools.addLiquidity(weth, usds, 1000 ether, 1850000 ether, 0, block.timestamp );
-		pools.addLiquidity(wbtc, usds, 100 * 10**8, 2919100 ether, 0, block.timestamp );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare(weth, usds, 1000 ether, 1850000 ether, 0, block.timestamp, true );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare(wbtc, usds, 100 * 10**8, 2919100 ether, 0, block.timestamp, true );
 
 		vm.stopPrank();
 

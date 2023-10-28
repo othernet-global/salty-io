@@ -17,7 +17,7 @@ import "../pools/PoolUtils.sol";
 // This also creates an easy mechanism to see what the current yield is for any pool as the emitter acts like an exponential average of the incoming SALT rewards.
 // There will be one RewardsEmitter for each contract derived from StakingRewards.sol - namely Staking.sol and Liquidity.sol
 // Staking.sol - allows users to stake SALT to acquire xSALT.
-// Liquidity.sol - allows liquidity providers to deposit and stake liquidity.
+// Liquidity.sol - allows liquidity providers to deposit and stake collateralAndLiquidity.
 // Updateable using DAO.proposeSetContractAddress( "stakingRewardsEmitter" ) and DAO.proposeSetContractAddress( "liquidityRewardsEmitter" )
 contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
     {
@@ -130,7 +130,7 @@ contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
 
 		salt.approve( address(stakingRewards), sum );
 
-		// Add the rewards so that they can later be claimed by the users proportional to their share of the StakingRewards derived contract( Staking, Liquidity or Collateral)
+		// Add the rewards so that they can later be claimed by the users proportional to their share of the StakingRewards derived contract( Staking, Liquidity or CollateralAndLiquidity.sol.sol)
 		stakingRewards.addSALTRewards( addedRewards );
 		}
 

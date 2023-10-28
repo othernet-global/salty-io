@@ -14,9 +14,9 @@ interface IDAO
 	function countryIsExcluded( string calldata country ) external view returns (bool);
 
 	function withdrawArbitrageProfits( IERC20 weth ) external;
-	function formPOL( ILiquidity liquidity, ISalt salt, IUSDS usds ) external;
+	function formPOL( ICollateralAndLiquidity collateralAndLiquidity, ISalt salt, IUSDS usds ) external;
 	function sendSaltToSaltRewards( ISalt salt, ISaltRewards saltRewards, uint256 amountToSend) external;
-	function processRewardsFromPOL(ILiquidity liquidity, ISalt salt, IUSDS usds) external;
+	function processRewardsFromPOL(ICollateralAndLiquidity collateralAndLiquidity, ISalt salt, IUSDS usds) external;
 
 	function initialGeoExclusion(uint256[] memory geoExclusionYes, uint256[] memory geoExclusionNo) external;
 

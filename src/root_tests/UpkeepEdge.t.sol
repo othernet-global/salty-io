@@ -10,7 +10,7 @@ import "../pools/PoolsConfig.sol";
 import "../price_feed/PriceAggregator.sol";
 import "../ExchangeConfig.sol";
 import "../staking/Liquidity.sol";
-import "../stable/Collateral.sol";
+import "../stable/CollateralAndLiquidity.sol";
 import "../pools/Pools.sol";
 import "../staking/Staking.sol";
 import "../rewards/RewardsEmitter.sol";
@@ -48,11 +48,10 @@ contract TestUpkeepEdge is Deployment
 
 		pools = new Pools(exchangeConfig, poolsConfig);
 		staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
-		liquidity = new Liquidity( pools, exchangeConfig, poolsConfig, stakingConfig );
-		collateral = new Collateral(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
+		collateralAndLiquidity = new CollateralAndLiquidity(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
 
 		stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig );
-		liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, rewardsConfig );
+		liquidityRewardsEmitter = new RewardsEmitter( collateralAndLiquidity, exchangeConfig, poolsConfig, rewardsConfig );
 
 		saltRewards = new SaltRewards(exchangeConfig, rewardsConfig);
 		emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
@@ -82,7 +81,7 @@ contract TestUpkeepEdge is Deployment
 		exchangeConfig.setDAO( dao );
 		exchangeConfig.setAirdrop(airdrop);
 
-		upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, liquidity, emissions);
+		upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, collateralAndLiquidity, emissions);
 		exchangeConfig.setUpkeep(upkeep);
 
 		daoVestingWallet = new VestingWallet( address(dao), uint64(block.timestamp + 60 * 60 * 24 * 7), 60 * 60 * 24 * 365 * 10 );
@@ -90,13 +89,14 @@ contract TestUpkeepEdge is Deployment
 		exchangeConfig.setVestingWallets(address(teamVestingWallet), address(daoVestingWallet));
 
 		bootstrapBallot = new TestBootstrapBallot(exchangeConfig, airdrop, 60 * 60 * 24 * 3 );
-		initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, liquidity);
+		initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, collateralAndLiquidity);
 		exchangeConfig.setInitialDistribution(initialDistribution);
 
-		pools.setDAO(dao);
+		pools.setContracts(dao, collateralAndLiquidity
+);
 
 
-		usds.setContracts(collateral, pools, exchangeConfig );
+		usds.setContracts(collateralAndLiquidity, pools, exchangeConfig );
 
 		// Transfer ownership of the newly created config files to the DAO
 		Ownable(address(exchangeConfig)).transferOwnership( address(dao) );
@@ -126,7 +126,7 @@ contract TestUpkeepEdge is Deployment
 		grantAccessCharlie();
 		grantAccessDeployer();
 		grantAccessDefault();
-
+		grantAccessTeam();
 		}
 
 
@@ -162,7 +162,7 @@ contract TestUpkeepEdge is Deployment
     	vm.stopPrank();
 
     	// USDS to usds contract to mimic withdrawn counterswap trades
-    	vm.startPrank( address(collateral));
+    	vm.startPrank( address(collateralAndLiquidity));
     	usds.mintTo( address(usds), 30 ether );
     	usds.shouldBurnMoreUSDS( 20 ether );
     	vm.stopPrank();
@@ -171,7 +171,7 @@ contract TestUpkeepEdge is Deployment
 
 
     	// USDS deposited to counterswap to mimic completed counterswap trades
-    	vm.prank( address(collateral));
+    	vm.prank( address(collateralAndLiquidity));
     	usds.mintTo( address(usds), 30 ether );
 
     	vm.startPrank(address(usds));
@@ -192,9 +192,9 @@ contract TestUpkeepEdge is Deployment
 
 		// Create some initial WBTC/WETH liquidity so that it can receive bootstrapping rewards
 		vm.startPrank(DEPLOYER);
-		wbtc.approve(address(pools), type(uint256).max);
-		weth.approve(address(pools), type(uint256).max);
-		pools.addLiquidity(wbtc, weth, 100 * 10**8, 1000 * 10**8, 0, block.timestamp);
+		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
+		weth.approve(address(collateralAndLiquidity), type(uint256).max);
+		collateralAndLiquidity.depositCollateralAndIncreaseShare(100 * 10**8, 1000 * 10**8, 0, block.timestamp, true);
 		vm.stopPrank();
 
 		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
@@ -254,7 +254,7 @@ contract TestUpkeepEdge is Deployment
 		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
 
 		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(liquidity)), 49999999999999999999995, "step11-13 C" );
+		assertEq( salt.balanceOf(address(collateralAndLiquidity)), 49999999999999999999995, "step11-13 C" );
 
 		// Checking step 14 can be ignored for now as the DAO hasn't formed POL yet (as it didn't yet have SALT)
 
@@ -266,13 +266,13 @@ contract TestUpkeepEdge is Deployment
 
 
 		// Have the team form some initial SALT/USDS liquidity
-		vm.prank(address(collateral));
+		vm.prank(address(collateralAndLiquidity));
 		usds.mintTo(teamWallet, 1 ether);
 
 		vm.startPrank(teamWallet);
-		salt.approve(address(pools), 1 ether);
-		usds.approve(address(pools), 1 ether);
-		pools.addLiquidity(salt, usds, 1 ether, 1 ether, 0, block.timestamp);
+		salt.approve(address(collateralAndLiquidity), 1 ether);
+		usds.approve(address(collateralAndLiquidity), 1 ether);
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare(salt, usds, 1 ether, 1 ether, 0, block.timestamp, true);
 		vm.stopPrank();
 
 		// Send some SALT from the teamWallet to mimic WETH to SALT counterswap
@@ -311,7 +311,7 @@ contract TestUpkeepEdge is Deployment
 		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
 		uint256 saltBurned = saltSupply - salt.totalSupply();
 
-   		assertEq( saltBurned, 7462500000000000000000, "step 14 A" );
+   		assertEq( saltBurned, 3592741935483870967741, "step 14 A" );
 		}
 
 
@@ -414,10 +414,10 @@ contract TestUpkeepEdge is Deployment
 		bytes32 poolID = PoolUtils._poolIDOnly(salt, usds);
 
 		// liquidity should hold the actually LP in the Pools contract
-    	assertEq( pools.getUserLiquidity(address(liquidity), salt, usds), 0 );
+    	assertEq( collateralAndLiquidity.userShareForPool(address(collateralAndLiquidity), poolID), 0 );
 
 		// The DAO should have full share of the liquidity
-		assertEq( liquidity.userShareForPool(address(dao), poolID), 0 );
+		assertEq( collateralAndLiquidity.userShareForPool(address(dao), poolID), 0 );
 	  	}
 
 
@@ -549,19 +549,19 @@ contract TestUpkeepEdge is Deployment
 		poolIDs[3] = PoolUtils._poolIDOnly(salt,usds);
 
 		// Add some dummy initial liquidity
-		vm.prank(address(collateral));
+		vm.prank(address(collateralAndLiquidity));
 		usds.mintTo(DEPLOYER, 1000 ether);
 
 		vm.startPrank(DEPLOYER);
-		salt.approve(address(liquidity), type(uint256).max);
-		wbtc.approve(address(liquidity), type(uint256).max);
-		weth.approve(address(liquidity), type(uint256).max);
-		wbtc.approve(address(collateral), type(uint256).max);
-		weth.approve(address(collateral), type(uint256).max);
+		salt.approve(address(collateralAndLiquidity), type(uint256).max);
+		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
+		weth.approve(address(collateralAndLiquidity), type(uint256).max);
+		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
+		weth.approve(address(collateralAndLiquidity), type(uint256).max);
 
-		liquidity.addLiquidityAndIncreaseShare( salt, weth, 1000 ether, 100 ether, 0, block.timestamp, true );
-		liquidity.addLiquidityAndIncreaseShare( wbtc, salt, 10 * 10**8, 1000 ether, 0, block.timestamp, true );
-		collateral.depositCollateralAndIncreaseShare( 10 * 10**8, 100 ether, 0, block.timestamp, true );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( salt, weth, 1000 ether, 100 ether, 0, block.timestamp, true );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( wbtc, salt, 10 * 10**8, 1000 ether, 0, block.timestamp, true );
+		collateralAndLiquidity.depositCollateralAndIncreaseShare( 10 * 10**8, 100 ether, 0, block.timestamp, true );
 
 //		salt.approve(address(pools), type(uint256).max);
 //		wbtc.approve(address(pools), type(uint256).max);
@@ -582,7 +582,7 @@ contract TestUpkeepEdge is Deployment
 //    	ITestUpkeep(address(upkeep)).step13(1 days);
 //
 //		// Check if the rewards were transferred (default 1% per day...so 1% as the above timeSinceLastUpkeep is one day) to the liquidity contract
-//		uint256[] memory rewards = liquidity.totalRewardsForPools(poolIDs);
+//		uint256[] memory rewards = collateralAndLiquidity.totalRewardsForPools(poolIDs);
 //
 //		assertEq( rewards[0], 0 );
 //		assertEq( rewards[1], 0 );
@@ -610,8 +610,8 @@ contract TestUpkeepEdge is Deployment
 		addedRewards[0] = AddedReward( poolID, 100 ether );
 
     	vm.startPrank(address(initialDistribution));
-    	salt.approve(address(liquidity), type(uint256).max);
-    	liquidity.addSALTRewards(addedRewards);
+    	salt.approve(address(collateralAndLiquidity), type(uint256).max);
+    	collateralAndLiquidity.addSALTRewards(addedRewards);
     	vm.stopPrank();
 
 		assertEq( salt.balanceOf(exchangeConfig.teamWallet()), 0);

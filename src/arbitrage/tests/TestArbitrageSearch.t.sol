@@ -8,7 +8,7 @@ import "../../pools/Counterswap.sol";
 import "../../rewards/SaltRewards.sol";
 import "../../dev/Deployment.sol";
 import "../../root_tests/TestERC20.sol";
-import "../../stable/Collateral.sol";
+import "../../stable/CollateralAndLiquidity.sol";
 import "../../ExchangeConfig.sol";
 import "../../pools/Pools.sol";
 import "../../staking/Staking.sol";
@@ -48,11 +48,10 @@ contract TestArbitrageSearch2 is Deployment
 
 			pools = new Pools(exchangeConfig, poolsConfig);
 			staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
-			liquidity = new Liquidity( pools, exchangeConfig, poolsConfig, stakingConfig );
-			collateral = new Collateral(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
+			collateralAndLiquidity = new CollateralAndLiquidity(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
 
 			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig );
-			liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, rewardsConfig );
+			liquidityRewardsEmitter = new RewardsEmitter( collateralAndLiquidity, exchangeConfig, poolsConfig, rewardsConfig );
 
 			emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
@@ -81,9 +80,10 @@ contract TestArbitrageSearch2 is Deployment
 
 			testArbitrageSearch = new TestArbitrageSearch( exchangeConfig);
 
-			pools.setDAO(dao);
+			pools.setContracts(dao, collateralAndLiquidity
+);
 
-			usds.setContracts( collateral, pools, exchangeConfig );
+			usds.setContracts( collateralAndLiquidity, pools, exchangeConfig );
 
 			// Transfer ownership of the newly created config files to the DAO
 			Ownable(address(exchangeConfig)).transferOwnership( address(dao) );

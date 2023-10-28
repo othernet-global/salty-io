@@ -13,7 +13,7 @@ import "../../pools/PoolUtils.sol";
 import "../../arbitrage/ArbitrageSearch.sol";
 import "../../pools/Counterswap.sol";
 import "../../rewards/SaltRewards.sol";
-import "../../stable/Collateral.sol";
+import "../../stable/CollateralAndLiquidity.sol";
 import "../../ExchangeConfig.sol";
 import "../../staking/Staking.sol";
 import "../../rewards/RewardsEmitter.sol";
@@ -49,11 +49,10 @@ contract TestCounterswap2 is Deployment
 
 		_pools = new TestPools(exchangeConfig, poolsConfig);
 		staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
-		liquidity = new Liquidity( _pools, exchangeConfig, poolsConfig, stakingConfig );
-		collateral = new Collateral(_pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
+		collateralAndLiquidity = new CollateralAndLiquidity(_pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
 
 		stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig );
-		liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, rewardsConfig );
+		liquidityRewardsEmitter = new RewardsEmitter( collateralAndLiquidity, exchangeConfig, poolsConfig, rewardsConfig );
 
 		emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
@@ -84,16 +83,16 @@ contract TestCounterswap2 is Deployment
 
 		saltRewards = new SaltRewards(exchangeConfig, rewardsConfig);
 
-		upkeep = new Upkeep(_pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, liquidity, emissions);
+		upkeep = new Upkeep(_pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, collateralAndLiquidity, emissions);
 		exchangeConfig.setUpkeep(upkeep);
 
 		bootstrapBallot = new BootstrapBallot(exchangeConfig, airdrop, 60 * 60 * 24 * 3 );
-		initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, liquidity);
+		initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, collateralAndLiquidity);
 		exchangeConfig.setInitialDistribution(initialDistribution);
 
-		_pools.setDAO(dao);
+		_pools.setContracts(dao, collateralAndLiquidity);
 
-		usds.setContracts(collateral, _pools, exchangeConfig );
+		usds.setContracts(collateralAndLiquidity, _pools, exchangeConfig );
 
 		// Transfer ownership of the newly created config files to the DAO
 		Ownable(address(exchangeConfig)).transferOwnership( address(dao) );
@@ -128,7 +127,7 @@ contract TestCounterswap2 is Deployment
 	function setUp() public
 		{
 		// DEPLOYER should have all the test tokens alreayd, but needs some minted USDS
-		vm.prank(address(collateral));
+		vm.prank(address(collateralAndLiquidity));
 		usds.mintTo( address(DEPLOYER), 1000000 ether );
 
 		vm.startPrank(DEPLOYER);
@@ -136,14 +135,18 @@ contract TestCounterswap2 is Deployment
 		weth.approve( address(_pools), type(uint256).max );
 		salt.approve( address(_pools), type(uint256).max );
 		usds.approve( address(_pools), type(uint256).max );
+		wbtc.approve( address(collateralAndLiquidity), type(uint256).max );
+		weth.approve( address(collateralAndLiquidity), type(uint256).max );
+		salt.approve( address(collateralAndLiquidity), type(uint256).max );
+		usds.approve( address(collateralAndLiquidity), type(uint256).max );
 
 		// Add initial liquidity
-		_pools.addLiquidity( wbtc, salt, 100 * 10**8, 1000 ether, 0, block.timestamp );
-		_pools.addLiquidity( weth, salt, 100 ether, 1000 ether, 0, block.timestamp );
-		_pools.addLiquidity( salt, usds, 100 ether, 1000 ether, 0, block.timestamp );
-		_pools.addLiquidity( wbtc, usds, 100 * 10**8, 1000 ether, 0, block.timestamp );
-		_pools.addLiquidity( weth, usds, 100 ether, 1000 ether, 0, block.timestamp );
-		_pools.addLiquidity( weth, wbtc, 1000 ether, 100 * 10**8, 0, block.timestamp );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( wbtc, salt, 100 * 10**8, 1000 ether, 0, block.timestamp, true );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( weth, salt, 100 ether, 1000 ether, 0, block.timestamp, true );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( salt, usds, 100 ether, 1000 ether, 0, block.timestamp, true );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( wbtc, usds, 100 * 10**8, 1000 ether, 0, block.timestamp, true );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( weth, usds, 100 ether, 1000 ether, 0, block.timestamp, true );
+		collateralAndLiquidity.depositCollateralAndIncreaseShare( 100 * 10**8, 1000 ether, 0, block.timestamp, true );
 
 		// DAO needs some WBTC and WETH for the counterswap deposits
 		wbtc.transfer(address(dao), 100000 * 10**8 );

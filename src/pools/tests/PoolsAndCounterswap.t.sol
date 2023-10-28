@@ -43,16 +43,20 @@ contract TestPoolsAndCounterswap is Deployment
 		vm.startPrank(address(dao));
 		salt.approve( address(pools), type(uint256).max );
 		weth.approve( address(pools), type(uint256).max );
+		salt.approve( address(collateralAndLiquidity), type(uint256).max );
+		weth.approve( address(collateralAndLiquidity), type(uint256).max );
 
 		salt.transfer(alice, 1000 ether);
 		weth.transfer(alice, 1000 ether);
 
-		pools.addLiquidity( salt, weth, 1000 ether, 2000 ether, 0, block.timestamp);
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( salt, weth, 1000 ether, 2000 ether, 0, block.timestamp, true);
 		vm.stopPrank();
 
 		vm.startPrank(alice);
 		salt.approve( address(pools), type(uint256).max );
 		weth.approve( address(pools), type(uint256).max );
+		salt.approve( address(collateralAndLiquidity), type(uint256).max );
+		weth.approve( address(collateralAndLiquidity), type(uint256).max );
 		vm.stopPrank();
 		}
 

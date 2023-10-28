@@ -40,33 +40,29 @@ contract TestComprehensive1 is Deployment
 		salt.approve(address(pools), type(uint256).max);
 		wbtc.approve(address(pools), type(uint256).max);
 		weth.approve(address(pools), type(uint256).max);
-		salt.approve(address(liquidity), type(uint256).max);
-		wbtc.approve(address(liquidity), type(uint256).max);
-		weth.approve(address(liquidity), type(uint256).max);
-		wbtc.approve(address(collateral), type(uint256).max);
-		weth.approve(address(collateral), type(uint256).max);
+		salt.approve(address(collateralAndLiquidity), type(uint256).max);
+		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
+		weth.approve(address(collateralAndLiquidity), type(uint256).max);
 		vm.stopPrank();
 
 		vm.startPrank(bob);
 		salt.approve(address(pools), type(uint256).max);
 		wbtc.approve(address(pools), type(uint256).max);
 		weth.approve(address(pools), type(uint256).max);
-		salt.approve(address(liquidity), type(uint256).max);
-		wbtc.approve(address(liquidity), type(uint256).max);
-		weth.approve(address(liquidity), type(uint256).max);
-		wbtc.approve(address(collateral), type(uint256).max);
-		weth.approve(address(collateral), type(uint256).max);
+		salt.approve(address(collateralAndLiquidity), type(uint256).max);
+		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
+		weth.approve(address(collateralAndLiquidity), type(uint256).max);
 		vm.stopPrank();
 
 		vm.startPrank(charlie);
 		salt.approve(address(pools), type(uint256).max);
 		wbtc.approve(address(pools), type(uint256).max);
 		weth.approve(address(pools), type(uint256).max);
-		salt.approve(address(liquidity), type(uint256).max);
-		wbtc.approve(address(liquidity), type(uint256).max);
-		weth.approve(address(liquidity), type(uint256).max);
-		wbtc.approve(address(collateral), type(uint256).max);
-		weth.approve(address(collateral), type(uint256).max);
+		salt.approve(address(collateralAndLiquidity), type(uint256).max);
+		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
+		weth.approve(address(collateralAndLiquidity), type(uint256).max);
+		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
+		weth.approve(address(collateralAndLiquidity), type(uint256).max);
 		vm.stopPrank();
 		}
 
@@ -128,14 +124,22 @@ contract TestComprehensive1 is Deployment
 
 		// Alice adds some SALT/WETH, AND SALT/WBTC
 		vm.startPrank(alice);
-		liquidity.addLiquidityAndIncreaseShare(salt, weth, 1000 ether, 10 ether, 0, block.timestamp, false);
-		liquidity.addLiquidityAndIncreaseShare(salt, wbtc, 1000 ether, 10 * 10**8, 0, block.timestamp, false);
+		salt.approve(address(collateralAndLiquidity), type(uint256).max);
+		weth.approve(address(collateralAndLiquidity), type(uint256).max);
+		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
+
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare(salt, weth, 1000 ether, 10 ether, 0, block.timestamp, false);
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare(salt, wbtc, 1000 ether, 10 * 10**8, 0, block.timestamp, false);
 		vm.stopPrank();
 
 		// Bob adds some WBTC/WETH liquidity and borrows some USDS
 		vm.startPrank(bob);
-    	collateral.depositCollateralAndIncreaseShare(1000 * 10**8, 1000 ether, 0, block.timestamp, false);
-    	collateral.borrowUSDS( collateral.maxBorrowableUSDS(bob));
+		salt.approve(address(collateralAndLiquidity), type(uint256).max);
+		weth.approve(address(collateralAndLiquidity), type(uint256).max);
+		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
+
+    	collateralAndLiquidity.depositCollateralAndIncreaseShare(1000 * 10**8, 1000 ether, 0, block.timestamp, false);
+    	collateralAndLiquidity.borrowUSDS( collateralAndLiquidity.maxBorrowableUSDS(bob));
     	vm.stopPrank();
 
     	console.log( "bob USDS: ", usds.balanceOf(bob) );

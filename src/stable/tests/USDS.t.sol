@@ -33,27 +33,27 @@ contract USDSTest is Deployment
 		address _pools = address(0x6666);
 		address _exchangeConfig = address(0x7777);
 
-		// New USDS in case Collateral was set in the deployed version already
+		// New USDS in case CollateralAndLiquidity.sol was set in the deployed version already
 		usds = new USDS(wbtc, weth);
 
 		// Initial set up
-		assertEq(address(usds.collateral()), address(0));
+		assertEq(address(usds.collateralAndLiquidity()), address(0));
 		assertEq(address(usds.pools()), address(0));
 		assertEq(address(usds.exchangeConfig()), address(0));
 
-		usds.setContracts( ICollateral(_collateral), IPools(_pools), IExchangeConfig(_exchangeConfig) );
+		usds.setContracts( ICollateralAndLiquidity(_collateral), IPools(_pools), IExchangeConfig(_exchangeConfig) );
 
-		assertEq(address(usds.collateral()), address(_collateral));
+		assertEq(address(usds.collateralAndLiquidity()), address(_collateral));
 		assertEq(address(usds.pools()), address(_pools));
 		assertEq(address(usds.exchangeConfig()), address(_exchangeConfig));
 
 		address invalid = address(0xdead);
 
 		vm.expectRevert("Ownable: caller is not the owner");
-		usds.setContracts( ICollateral(invalid), IPools(invalid), IExchangeConfig(invalid) );
+		usds.setContracts( ICollateralAndLiquidity(invalid), IPools(invalid), IExchangeConfig(invalid) );
 
 		// Validate that the addresses did not change
-		assertEq(address(usds.collateral()), address(_collateral));
+		assertEq(address(usds.collateralAndLiquidity()), address(_collateral));
 		assertEq(address(usds.pools()), address(_pools));
 		assertEq(address(usds.exchangeConfig()), address(_exchangeConfig));
 	}
@@ -66,7 +66,7 @@ contract USDSTest is Deployment
         uint256 mintAmount = 1 ether;
 
         // Try minting from the collateral address
-        vm.prank(address(collateral));
+        vm.prank(address(collateralAndLiquidity));
         usds.mintTo(wallet, mintAmount);
         assertEq(usds.balanceOf(wallet), mintAmount);
 
@@ -87,7 +87,7 @@ contract USDSTest is Deployment
         assertEq(usds.usdsThatShouldBeBurned(), 0 ether);
 
         // Try burning more than available
-        vm.prank(address(collateral));
+        vm.prank(address(collateralAndLiquidity));
         usds.shouldBurnMoreUSDS(usdsToBurn);
 
         // Validate that the amount that should be burnt is set correctly
@@ -100,7 +100,7 @@ contract USDSTest is Deployment
 		   address otherAddress = address(0x6666);
 		   uint256 amountToBurn = 1 ether;
 
-		   vm.prank(address(collateral));
+		   vm.prank(address(collateralAndLiquidity));
 		   usds.shouldBurnMoreUSDS(amountToBurn);
 		   assertEq(usds.usdsThatShouldBeBurned(), amountToBurn);
 
@@ -119,7 +119,7 @@ contract USDSTest is Deployment
 
         // Set up a new instance of USDS and set collateral
         // Mint from the collateral address
-        vm.prank(address(collateral));
+        vm.prank(address(collateralAndLiquidity));
         usds.mintTo(wallet, mintAmount);
         assertEq(usds.balanceOf(wallet), mintAmount);
 
@@ -140,7 +140,7 @@ contract USDSTest is Deployment
 
         // Set up a new instance of USDS and set collateral
         // Signal burn from the collateral address
-        vm.prank(address(collateral));
+        vm.prank(address(collateralAndLiquidity));
         usds.shouldBurnMoreUSDS(burnAmount);
         assertEq(usds.usdsThatShouldBeBurned(), burnAmount);
 
@@ -151,7 +151,7 @@ contract USDSTest is Deployment
     }
 
 
-	// A unit test where a call is made to mintTo function without calling the setCollateral function first. This test will validate that before the mint operation can be made, the Collateral contract has to be set.
+	// A unit test where a call is made to mintTo function without calling the setCollateral function first. This test will validate that before the mint operation can be made, the CollateralAndLiquidity.sol.sol contract has to be set.
     function testMintWithoutSettingCollateral() public {
         address wallet = address(0x7777);
         uint256 mintAmount = 1 ether;
@@ -165,14 +165,14 @@ contract USDSTest is Deployment
     }
 
 
-	// A unit test where a call is made to shouldBurnMoreUSDS function without calling the setCollateral function first. This test will validate that before the burn operation can be made, the Collateral contract has to be set.
+	// A unit test where a call is made to shouldBurnMoreUSDS function without calling the setCollateral function first. This test will validate that before the burn operation can be made, the CollateralAndLiquidity.sol contract has to be set.
     function testShouldBurnMoreUSDSWithoutCollateralSet() public {
         uint256 usdsToBurn = 1 ether;
 
-        // New USDS instance in case Collateral was set in the deployed version already
+        // New USDS instance in case CollateralAndLiquidity.sol was set in the deployed version already
     	USDS newUSDS = new USDS(wbtc, weth);
 
-        // Expect revert as the Collateral contract is not set yet
+        // Expect revert as the CollateralAndLiquidity.sol contract is not set yet
         vm.expectRevert("USDS.shouldBurnMoreUSDS is only callable from the Collateral contract");
         newUSDS.shouldBurnMoreUSDS(usdsToBurn);
     }
@@ -200,7 +200,7 @@ contract USDSTest is Deployment
 
         // Attempt to mint to a zero address
         vm.expectRevert("Cannot mint to address(0)");
-        vm.prank(address(collateral));
+        vm.prank(address(collateralAndLiquidity));
         usds.mintTo(zeroAddress, mintAmount);
     }
 
@@ -214,7 +214,7 @@ contract USDSTest is Deployment
         uint256 totalSupplyBeforeMint = usds.totalSupply();
 
         // Try minting zero USDS from the collateral address
-        vm.prank(address(collateral));
+        vm.prank(address(collateralAndLiquidity));
         vm.expectRevert( "Cannot mint zero USDS" );
         usds.mintTo(wallet, zeroAmount);
 
@@ -229,7 +229,7 @@ contract USDSTest is Deployment
 	// A unit test to check for integer overflow/underflow in burn, and mint functions.
 	// A unit test to check for integer overflow/underflow in burn, mint, and swap functions.
     function testCheckForIntegerOverflowUnderflow() public {
-        vm.startPrank(address(collateral));
+        vm.startPrank(address(collateralAndLiquidity));
 
         uint256 maxUint = type(uint256).max;
         address wallet = address(0x7777);
@@ -242,7 +242,7 @@ contract USDSTest is Deployment
         vm.stopPrank();
 
         // Test underflow in shouldBurnMoreUSDS function
-        vm.prank(address(collateral));
+        vm.prank(address(collateralAndLiquidity));
         usds.shouldBurnMoreUSDS(maxUint);
 
         vm.expectRevert();
@@ -256,12 +256,12 @@ contract USDSTest is Deployment
         uint256 largeAmount = 10**30 * 1 ether;  // arbitrarily large value
 
         // Test with very small amount
-        vm.prank(address(collateral));
+        vm.prank(address(collateralAndLiquidity));
         usds.shouldBurnMoreUSDS(smallAmount);
         assertEq(usds.usdsThatShouldBeBurned(), smallAmount);
 
         // Test with very large amount
-        vm.prank(address(collateral));
+        vm.prank(address(collateralAndLiquidity));
         usds.shouldBurnMoreUSDS(largeAmount);
         assertEq(usds.usdsThatShouldBeBurned(), smallAmount + largeAmount);
     }
@@ -273,7 +273,7 @@ contract USDSTest is Deployment
         uint256 burnAmount = 0 ether;
 
         // Prank as the collateral contract to pass the sender check
-        vm.prank(address(collateral));
+        vm.prank(address(collateralAndLiquidity));
         usds.shouldBurnMoreUSDS(burnAmount);
 
         // Perform upkeep which should burn the indicated amount
@@ -299,7 +299,7 @@ contract USDSTest is Deployment
         amounts[2] = 1 ether;
 
         // Mint USDS to each user account from the collateral contract
-        vm.startPrank(address(collateral));
+        vm.startPrank(address(collateralAndLiquidity));
         for(uint i = 0; i < users.length; i++)
         	{
             usds.mintTo(users[i], amounts[i]);
@@ -332,7 +332,7 @@ contract USDSTest is Deployment
         vm.stopPrank();
 
 		// Deposit USDS directly to act like USDS that was a result of counterswaps
-		vm.startPrank( address(collateral) );
+		vm.startPrank( address(collateralAndLiquidity) );
 		usds.mintTo( Counterswap.WBTC_TO_USDS, depositedUSDS / 2 );
 		usds.mintTo( Counterswap.WETH_TO_USDS, depositedUSDS / 2 );
 		vm.stopPrank();
@@ -352,7 +352,7 @@ contract USDSTest is Deployment
         assertEq(pools.depositedBalance(Counterswap.WETH_TO_USDS, usds), depositedUSDS / 2);
 
 		// Mimic liquidation calling shouldBurnMoreUSDS
-        vm.prank( address(collateral) );
+        vm.prank( address(collateralAndLiquidity) );
         usds.shouldBurnMoreUSDS(usdsToBurn);
 
         // Simulate the DAO address calling performUpkeep
@@ -388,7 +388,7 @@ contract USDSTest is Deployment
         vm.stopPrank();
 
 		// Deposit USDS directly to act like USDS that was a result of counterswaps
-		vm.startPrank( address(collateral) );
+		vm.startPrank( address(collateralAndLiquidity) );
 		usds.mintTo( Counterswap.WBTC_TO_USDS, depositedUSDS / 2 );
 		usds.mintTo( Counterswap.WETH_TO_USDS, depositedUSDS / 2 );
 		vm.stopPrank();
@@ -408,7 +408,7 @@ contract USDSTest is Deployment
         assertEq(pools.depositedBalance(Counterswap.WETH_TO_USDS, usds), depositedUSDS / 2);
 
 		// Mimic liquidation calling shouldBurnMoreUSDS
-        vm.prank( address(collateral) );
+        vm.prank( address(collateralAndLiquidity) );
         usds.shouldBurnMoreUSDS(usdsToBurn);
 
         // Simulate the DAO address calling performUpkeep
@@ -437,7 +437,7 @@ contract USDSTest is Deployment
     		address _pools = address(0x6666);
     		address _exchangeConfig = address(0x7777);
 
-            // New USDS in case Collateral was set in the deployed version already
+            // New USDS in case CollateralAndLiquidity.sol was set in the deployed version already
             usds = new USDS(wbtc, weth);
 
             // Prank the call to come from invalid address
@@ -445,10 +445,10 @@ contract USDSTest is Deployment
 
             // Expect revert as the invalid address is not the contract owner
             vm.expectRevert("Ownable: caller is not the owner");
-            usds.setContracts( ICollateral(_collateral), IPools(_pools), IExchangeConfig(_exchangeConfig));
+            usds.setContracts( ICollateralAndLiquidity(_collateral), IPools(_pools), IExchangeConfig(_exchangeConfig));
 
             // Validate that the contracts did not change
-            assertEq(address(usds.collateral()), address(0));
+            assertEq(address(usds.collateralAndLiquidity()), address(0));
             assertEq(address(usds.pools()), address(0));
             assertEq(address(usds.exchangeConfig()), address(0));
         }
@@ -460,13 +460,13 @@ contract USDSTest is Deployment
 		// Arbitrary test amount to burn
     	uint256 amountToBurn = 1 ether;
 
-		vm.prank(address(collateral));
+		vm.prank(address(collateralAndLiquidity));
 		usds.shouldBurnMoreUSDS(amountToBurn);
 
 		assertEq( usds.usdsThatShouldBeBurned(), amountToBurn );
 
 
-		vm.prank(address(collateral));
+		vm.prank(address(collateralAndLiquidity));
 		usds.mintTo(DEPLOYER, 10000000 ether);
 
     	// Deposit WBTC and WETH to the contract
@@ -479,8 +479,12 @@ contract USDSTest is Deployment
     	weth.approve(address(pools), type(uint256).max);
     	usds.approve(address(pools), type(uint256).max);
 
-    	pools.addLiquidity(wbtc, usds, 100 *10**8, 1000000 ether, 0, block.timestamp );
-    	pools.addLiquidity(weth, usds, 100 ether, 100000 ether, 0, block.timestamp );
+    	wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
+    	weth.approve(address(collateralAndLiquidity), type(uint256).max);
+    	usds.approve(address(collateralAndLiquidity), type(uint256).max);
+
+    	collateralAndLiquidity.depositLiquidityAndIncreaseShare(wbtc, usds, 100 *10**8, 1000000 ether, 0, block.timestamp, true );
+    	collateralAndLiquidity.depositLiquidityAndIncreaseShare(weth, usds, 100 ether, 100000 ether, 0, block.timestamp, true );
     	vm.stopPrank();
 
     	// Perform upkeep to deposit WBTC and WETH to the corresponding counterswap and withdraw USDS
@@ -522,13 +526,13 @@ contract USDSTest is Deployment
 		// Arbitrary test amount to burn
     	uint256 amountToBurn = 1000 ether;
 
-		vm.prank(address(collateral));
+		vm.prank(address(collateralAndLiquidity));
 		usds.shouldBurnMoreUSDS(amountToBurn);
 
 		assertEq( usds.usdsThatShouldBeBurned(), amountToBurn );
 
 
-		vm.prank(address(collateral));
+		vm.prank(address(collateralAndLiquidity));
 		usds.mintTo(DEPLOYER, 10000000 ether);
 
     	// Deposit WBTC and WETH to the contract
@@ -541,8 +545,12 @@ contract USDSTest is Deployment
     	weth.approve(address(pools), type(uint256).max);
     	usds.approve(address(pools), type(uint256).max);
 
-    	pools.addLiquidity(wbtc, usds, 100 *10**8, 1000000 ether, 0, block.timestamp );
-    	pools.addLiquidity(weth, usds, 100 ether, 100000 ether, 0, block.timestamp );
+    	wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
+    	weth.approve(address(collateralAndLiquidity), type(uint256).max);
+    	usds.approve(address(collateralAndLiquidity), type(uint256).max);
+
+    	collateralAndLiquidity.depositLiquidityAndIncreaseShare(wbtc, usds, 100 *10**8, 1000000 ether, 0, block.timestamp, true );
+    	collateralAndLiquidity.depositLiquidityAndIncreaseShare(weth, usds, 100 ether, 100000 ether, 0, block.timestamp, true );
     	vm.stopPrank();
 
     	// Perform upkeep to deposit WBTC and WETH to the corresponding counterswap and withdraw USDS
@@ -579,7 +587,7 @@ contract USDSTest is Deployment
 		assertEq(usds.usdsThatShouldBeBurned(), 0 ether);
 
 		// Call shouldBurnMoreUSDS with zero value
-		vm.prank(address(collateral));
+		vm.prank(address(collateralAndLiquidity));
 		usds.shouldBurnMoreUSDS(usdsToBurn);
 
 		// Validate that it does not affect usdsThatShouldBeBurned
@@ -597,9 +605,9 @@ contract USDSTest is Deployment
         USDS newUSDS = new USDS(wbtc, weth);
 
         // Set up contracts
-        newUSDS.setContracts(ICollateral(_collateral), IPools(_pools), IExchangeConfig(_exchangeConfig));
+        newUSDS.setContracts(ICollateralAndLiquidity(_collateral), IPools(_pools), IExchangeConfig(_exchangeConfig));
 
-        assertEq(address(newUSDS.collateral()), _collateral);
+        assertEq(address(newUSDS.collateralAndLiquidity()), _collateral);
         assertEq(address(newUSDS.pools()), _pools);
         assertEq(address(newUSDS.exchangeConfig()), _exchangeConfig);
 
@@ -608,9 +616,9 @@ contract USDSTest is Deployment
         _exchangeConfig = address(0xAAAA);
 
         vm.expectRevert("Ownable: caller is not the owner");
-        newUSDS.setContracts(ICollateral(_collateral), IPools(_pools), IExchangeConfig(_exchangeConfig));
+        newUSDS.setContracts(ICollateralAndLiquidity(_collateral), IPools(_pools), IExchangeConfig(_exchangeConfig));
 
-        assertEq(address(newUSDS.collateral()), address(0x5555)); // these addresses should not have changed
+        assertEq(address(newUSDS.collateralAndLiquidity()), address(0x5555)); // these addresses should not have changed
         assertEq(address(newUSDS.pools()), address(0x6666)); // these addresses should not have changed
         assertEq(address(newUSDS.exchangeConfig()), address(0x7777)); // these addresses should not have changed
     }
@@ -631,7 +639,7 @@ contract USDSTest is Deployment
         uint256 initialUsdsToBurn = 10 ether;
 
         // Send tokens to the contract
-        vm.startPrank(address(collateral));
+        vm.startPrank(address(collateralAndLiquidity));
         usds.mintTo(address(usds), initialBalance);
         usds.shouldBurnMoreUSDS(initialUsdsToBurn);
         vm.stopPrank();
@@ -661,7 +669,7 @@ contract USDSTest is Deployment
         uint256 initialUsdsToBurn = 30 ether;
 
         // Send tokens to the contract
-        vm.startPrank(address(collateral));
+        vm.startPrank(address(collateralAndLiquidity));
         usds.mintTo(address(usds), initialBalance);
         usds.shouldBurnMoreUSDS(initialUsdsToBurn);
         vm.stopPrank();
@@ -689,7 +697,7 @@ contract USDSTest is Deployment
         uint256 initialUsdsToBurn = 10 ether;
 
         // Send tokens to the contract
-        vm.startPrank(address(collateral));
+        vm.startPrank(address(collateralAndLiquidity));
         usds.mintTo(address(usds), initialBalance);
         usds.shouldBurnMoreUSDS(initialUsdsToBurn);
         vm.stopPrank();
@@ -742,13 +750,13 @@ contract USDSTest is Deployment
 		// Arbitrary test amount to burn
     	uint256 amountToBurn = 0;
 
-		vm.prank(address(collateral));
+		vm.prank(address(collateralAndLiquidity));
 		usds.shouldBurnMoreUSDS(amountToBurn);
 
 		assertEq( usds.usdsThatShouldBeBurned(), amountToBurn );
 
 
-		vm.prank(address(collateral));
+		vm.prank(address(collateralAndLiquidity));
 		usds.mintTo(DEPLOYER, 10000000 ether);
 
     	// Deposit WBTC and WETH to the contract
@@ -761,8 +769,12 @@ contract USDSTest is Deployment
     	weth.approve(address(pools), type(uint256).max);
     	usds.approve(address(pools), type(uint256).max);
 
-    	pools.addLiquidity(wbtc, usds, 100 *10**8, 1000000 ether, 0, block.timestamp );
-    	pools.addLiquidity(weth, usds, 100 ether, 100000 ether, 0, block.timestamp );
+    	wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
+    	weth.approve(address(collateralAndLiquidity), type(uint256).max);
+    	usds.approve(address(collateralAndLiquidity), type(uint256).max);
+
+    	collateralAndLiquidity.depositLiquidityAndIncreaseShare(wbtc, usds, 100 *10**8, 1000000 ether, 0, block.timestamp, true );
+    	collateralAndLiquidity.depositLiquidityAndIncreaseShare(weth, usds, 100 ether, 100000 ether, 0, block.timestamp, true );
     	vm.stopPrank();
 
     	// Perform upkeep to deposit WBTC and WETH to the corresponding counterswap and withdraw USDS
