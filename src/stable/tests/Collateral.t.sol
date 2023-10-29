@@ -1819,4 +1819,27 @@ contract TestCollateral is Deployment
         uint256 collateralDecrease = aliceCollateralShare - aliceCollateralShareAfterWithdraw;
         assertEq(halfCollateral, collateralDecrease, "The decrease in Alice's collateral share should be equal to the amount withdrawn");
     }
+
+
+    // A unit test to check that WBTC/WETH LP providers can receive staking rewards
+    function testCollateralDepositersCanReceiveStakingRewards() public
+    	{
+	  	_depositHalfCollateralAndBorrowMax(alice);
+
+		uint256 startingBalance = salt.balanceOf(alice);
+
+		vm.prank(address(upkeep));
+		liquidityRewardsEmitter.performUpkeep( 24 hours);
+
+		bytes32[] memory poolIDs = new bytes32[](1);
+		poolIDs[0] = PoolUtils._poolIDOnly(wbtc, weth);
+
+		vm.prank(alice);
+		collateralAndLiquidity.claimAllRewards(poolIDs);
+
+		// Default 1% emitted by the liquidityRewardsEmitter each day
+		uint256 expectedClaim = 5555555555555555555555;
+
+		assertEq( salt.balanceOf(alice) - startingBalance, expectedClaim );
+    	}
 }
