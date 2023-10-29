@@ -232,7 +232,7 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		{
 		require( msg.sender == address(exchangeConfig.upkeep()), "DAO.withdrawArbitrageProfits is only callable from the Upkeep contract" );
 
-		uint256 depositedWETH =  pools.depositedBalance(address(this), weth );
+		uint256 depositedWETH =  pools.depositedUserBalance(address(this), weth );
 		if ( depositedWETH == 0 )
 			return;
 

@@ -112,8 +112,8 @@ contract SharedRewardsTest is Deployment
     stakingRewards.addSALTRewards(addedRewards);
 
     // Check Alice's pending rewards in both pools
-    uint256 pendingRewardPool0 = stakingRewards.userPendingReward(alice, poolIDs[0]);
-    uint256 pendingRewardPool1 = stakingRewards.userPendingReward(alice, poolIDs[1]);
+    uint256 pendingRewardPool0 = stakingRewards.userRewardForPool(alice, poolIDs[0]);
+    uint256 pendingRewardPool1 = stakingRewards.userRewardForPool(alice, poolIDs[1]);
     assertEq(pendingRewardPool0, 10 ether);
     assertEq(pendingRewardPool1, 20 ether);
 
@@ -248,7 +248,7 @@ contract SharedRewardsTest is Deployment
     stakingRewards.addSALTRewards(addedRewards);
 
     // Check pending rewards for Alice in pools[0], should be 10 ether
-    uint256 pendingRewards = stakingRewards.userPendingReward(alice, poolIDs[0]);
+    uint256 pendingRewards = stakingRewards.userRewardForPool(alice, poolIDs[0]);
     assertEq(pendingRewards, 10 ether);
 
     // Add another 10 ether rewards to pools[0]
@@ -256,7 +256,7 @@ contract SharedRewardsTest is Deployment
     stakingRewards.addSALTRewards(addedRewards);
 
     // Check pending rewards for Alice in pools[0], should be 20 ether
-    pendingRewards = stakingRewards.userPendingReward(alice, poolIDs[0]);
+    pendingRewards = stakingRewards.userRewardForPool(alice, poolIDs[0]);
     assertEq(pendingRewards, 20 ether);
 
     // Bob stakes 5 LP tokens in pools[0]
@@ -270,11 +270,11 @@ contract SharedRewardsTest is Deployment
     stakingRewards.addSALTRewards(addedRewards);
 
     // Check pending rewards for Alice in pools[0]
-    pendingRewards = stakingRewards.userPendingReward(alice, poolIDs[0]);
+    pendingRewards = stakingRewards.userRewardForPool(alice, poolIDs[0]);
     assertEq(pendingRewards, 30 ether);
 
     // Check pending rewards for Bob in pools[0]
-    pendingRewards = stakingRewards.userPendingReward(bob, poolIDs[0]);
+    pendingRewards = stakingRewards.userRewardForPool(bob, poolIDs[0]);
     assertEq(pendingRewards, 5 ether);
     }
 
@@ -413,9 +413,9 @@ contract SharedRewardsTest is Deployment
 		stakingRewards.addSALTRewards(addedRewards);
 
 		// Check initial rewards for Alice, Bob, and Charlie
-		uint256 aliceReward = stakingRewards.userPendingReward(alice, poolIDs[0]);
-		uint256 bobReward = stakingRewards.userPendingReward(bob, poolIDs[0]);
-		uint256 charlieReward = stakingRewards.userPendingReward(charlie, poolIDs[0]);
+		uint256 aliceReward = stakingRewards.userRewardForPool(alice, poolIDs[0]);
+		uint256 bobReward = stakingRewards.userRewardForPool(bob, poolIDs[0]);
+		uint256 charlieReward = stakingRewards.userRewardForPool(charlie, poolIDs[0]);
 
 		assertEq(aliceReward, 50 ether);
 		assertEq(bobReward, 30 ether);
@@ -429,9 +429,9 @@ contract SharedRewardsTest is Deployment
 		stakingRewards.addSALTRewards(addedRewards);
 
 		// Check updated rewards for Alice, Bob, and Charlie
-		aliceReward = stakingRewards.userPendingReward(alice, poolIDs[0]);
-		bobReward = stakingRewards.userPendingReward(bob, poolIDs[0]);
-		charlieReward = stakingRewards.userPendingReward(charlie, poolIDs[0]);
+		aliceReward = stakingRewards.userRewardForPool(alice, poolIDs[0]);
+		bobReward = stakingRewards.userRewardForPool(bob, poolIDs[0]);
+		charlieReward = stakingRewards.userRewardForPool(charlie, poolIDs[0]);
 
 		assertEq(aliceReward, 150 ether);
 		assertEq(bobReward, 90 ether);
@@ -448,9 +448,9 @@ contract SharedRewardsTest is Deployment
 		stakingRewards.claimAllRewards(poolsToClaim);
 
 		// Check that Alice, Bob, and Charlie have no pending rewards after claiming
-		aliceReward = stakingRewards.userPendingReward(alice, poolIDs[0]);
-		bobReward = stakingRewards.userPendingReward(bob, poolIDs[0]);
-		charlieReward = stakingRewards.userPendingReward(charlie, poolIDs[0]);
+		aliceReward = stakingRewards.userRewardForPool(alice, poolIDs[0]);
+		bobReward = stakingRewards.userRewardForPool(bob, poolIDs[0]);
+		charlieReward = stakingRewards.userRewardForPool(charlie, poolIDs[0]);
 
 		assertEq(aliceReward, 0);
 		assertEq(bobReward, 0);
@@ -508,8 +508,8 @@ contract SharedRewardsTest is Deployment
 		vm.warp(block.timestamp + 10 days);
 
 		// Ensure that pending rewards are zero for Alice
-		assertEq(stakingRewards.userPendingReward(alice, poolIDs[0]), 0, "Initial pending rewards should be zero[0]" );
-		assertEq(stakingRewards.userPendingReward(alice, poolIDs[1]), 0, "Initial pending rewards should be zero[1]" );
+		assertEq(stakingRewards.userRewardForPool(alice, poolIDs[0]), 0, "Initial pending rewards should be zero[0]" );
+		assertEq(stakingRewards.userRewardForPool(alice, poolIDs[1]), 0, "Initial pending rewards should be zero[1]" );
 
 		// Attempt to claim rewards for Alice, expect zero pending rewards
 		uint256 initialSaltBalanceAlice = salt.balanceOf(address(alice));
@@ -628,9 +628,9 @@ contract SharedRewardsTest is Deployment
 //    assertEq(charlieShareInfo.virtualRewards, 60 ether, "Incorrect virtual rewards for Charlie");
 
     // Check pending rewards
-	assertEq( stakingRewards.userPendingReward(alice, poolIDs[0]), 15 ether, "Incorrect pending reward for alice" );
-	assertEq( stakingRewards.userPendingReward(bob, poolIDs[0]), 10 ether, "Incorrect pending reward for bob" );
-	assertEq( stakingRewards.userPendingReward(charlie, poolIDs[0]), 0 ether, "Incorrect pending reward for charlie" );
+	assertEq( stakingRewards.userRewardForPool(alice, poolIDs[0]), 15 ether, "Incorrect pending reward for alice" );
+	assertEq( stakingRewards.userRewardForPool(bob, poolIDs[0]), 10 ether, "Incorrect pending reward for bob" );
+	assertEq( stakingRewards.userRewardForPool(charlie, poolIDs[0]), 0 ether, "Incorrect pending reward for charlie" );
 
 	// Check withdrawn rewards
 	uint256 saltBalanceAlice = salt.balanceOf(address(alice));
@@ -668,27 +668,27 @@ contract SharedRewardsTest is Deployment
 	// A unit test that checks if userPendingReward function returns zero for the users and pools with zero share and zero totalReward.
 	function testUserPendingRewardWithZeroShareAndZeroRewards() public {
         // Check pending rewards for Alice in pools[0], should be 0 as the user share and total rewards is 0
-        uint256 pendingRewards = stakingRewards.userPendingReward(alice, poolIDs[0]);
+        uint256 pendingRewards = stakingRewards.userRewardForPool(alice, poolIDs[0]);
         assertEq(pendingRewards, 0, "Pending Rewards should be zero");
 
         // Check pending rewards for Bob in pools[0], should be 0 as the user share and total rewards is 0
-        pendingRewards = stakingRewards.userPendingReward(bob, poolIDs[0]);
+        pendingRewards = stakingRewards.userRewardForPool(bob, poolIDs[0]);
         assertEq(pendingRewards, 0, "Pending Rewards should be zero");
 
         // Check pending rewards for Charlie in pools[0], should be 0 as the user share and total rewards is 0
-        pendingRewards = stakingRewards.userPendingReward(charlie, poolIDs[0]);
+        pendingRewards = stakingRewards.userRewardForPool(charlie, poolIDs[0]);
         assertEq(pendingRewards, 0, "Pending Rewards should be zero");
 
         // Check pending rewards for Alice in pools[1], should be 0 as the user share and total rewards is 0
-        pendingRewards = stakingRewards.userPendingReward(alice, poolIDs[1]);
+        pendingRewards = stakingRewards.userRewardForPool(alice, poolIDs[1]);
         assertEq(pendingRewards, 0, "Pending Rewards should be zero");
 
         // Check pending rewards for Bob in pools[1], should be 0 as the user share and total rewards is 0
-        pendingRewards = stakingRewards.userPendingReward(bob, poolIDs[1]);
+        pendingRewards = stakingRewards.userRewardForPool(bob, poolIDs[1]);
         assertEq(pendingRewards, 0, "Pending Rewards should be zero");
 
         // Check pending rewards for Charlie in pools[1], should be 0 as the user share and total rewards is 0
-        pendingRewards = stakingRewards.userPendingReward(charlie, poolIDs[1]);
+        pendingRewards = stakingRewards.userRewardForPool(charlie, poolIDs[1]);
         assertEq(pendingRewards, 0, "Pending Rewards should be zero");
     }
 

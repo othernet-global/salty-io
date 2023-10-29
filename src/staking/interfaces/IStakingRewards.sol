@@ -22,13 +22,13 @@ interface IStakingRewards
 	function addSALTRewards( AddedReward[] calldata addedRewards ) external;
 
 	// Views
+	function totalShareForPool( bytes32 poolID ) external view returns (uint256);
 	function totalSharesForPools( bytes32[] calldata poolIDs ) external view returns (uint256[] calldata shares);
-	function totalSharesForPool( bytes32 poolID ) external view returns (uint256);
 	function totalRewardsForPools( bytes32[] calldata poolIDs ) external view returns (uint256[] calldata rewards);
 
-	function userPendingReward( address wallet, bytes32 poolID ) external view returns (uint256);
+	function userRewardForPool( address wallet, bytes32 poolID ) external view returns (uint256);
 	function userRewardsForPools( address wallet, bytes32[] calldata poolIDs ) external view returns (uint256[] calldata rewards);
-	function userShareForPools( address wallet, bytes32[] calldata poolIDs ) external view returns (uint256[] calldata shares);
 	function userShareForPool( address wallet, bytes32 poolID ) external view returns (uint256);
+	function userShareForPools( address wallet, bytes32[] calldata poolIDs ) external view returns (uint256[] calldata shares);
 	function userCooldowns( address wallet, bytes32[] calldata poolIDs ) external view returns (uint256[] calldata cooldowns);
 	}

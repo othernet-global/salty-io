@@ -440,7 +440,7 @@ contract TestProposals is Deployment
 		// 10 million total staked. Default 10% will be 1 million which meets the 1% of total supply minimum quorum.
 		staking.stakeSALT( 8000000 ether );
 
-        uint256 stakedSALT = staking.totalSharesForPool(PoolUtils.STAKED_SALT);
+        uint256 stakedSALT = staking.totalShareForPool(PoolUtils.STAKED_SALT);
         uint256 baseBallotQuorumPercentTimes1000 = daoConfig.baseBallotQuorumPercentTimes1000();
 
         // Check quorum for Parameter ballot type
@@ -1352,7 +1352,7 @@ staking.stakeSALT(1000 ether);
     // A unit test that checks if the requiredQuorumForBallotType function gives an error when the amount of SALT staked is zero.
     function testRequiredQuorumForBallotTypeWithZeroStakedSalt() public {
 
-        uint256 totalStaked = staking.totalSharesForPool(PoolUtils.STAKED_SALT);
+        uint256 totalStaked = staking.totalShareForPool(PoolUtils.STAKED_SALT);
 
         // Assert that total staked SALT is zero
         assertEq(totalStaked, 0);

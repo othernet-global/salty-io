@@ -373,7 +373,7 @@ contract TestCollateral is Deployment
     	_depositCollateralAndBorrowMax(alice);
 
 		(uint256 reserveWBTC, uint256 reserveWETH) = pools.getPoolReserves(wbtc, weth);
-		uint256 totalLP = collateralAndLiquidity.totalSharesForPool(collateralPoolID);
+		uint256 totalLP = collateralAndLiquidity.totalShareForPool(collateralPoolID);
 
 		uint256 aliceCollateral = collateralAndLiquidity.userShareForPool( alice, collateralPoolID );
 
@@ -533,7 +533,7 @@ contract TestCollateral is Deployment
 		_depositCollateralAndBorrowMax(alice);
 
 		(uint256 reserveWBTC, uint256 reserveWETH) = pools.getPoolReserves( wbtc, weth );
-		uint256 totalCollateral = collateralAndLiquidity.totalSharesForPool(collateralPoolID);
+		uint256 totalCollateral = collateralAndLiquidity.totalShareForPool(collateralPoolID);
 
 		uint256 aliceCollateral = collateralAndLiquidity.userShareForPool( alice, collateralPoolID );
 		uint256 aliceBTC = ( reserveWBTC * aliceCollateral ) / totalCollateral;
@@ -856,9 +856,9 @@ contract TestCollateral is Deployment
 		assertEq( collateralAndLiquidity.userShareForPool(bob, collateralPoolID), shareB, "Share B incorrect" );
 		assertEq( collateralAndLiquidity.userShareForPool(charlie, collateralPoolID), shareC, "Share C incorrect" );
 
-		assertEq( collateralAndLiquidity.userPendingReward( alice, collateralPoolID ), rA, "Incorrect pending rewards A" );
-        assertEq( collateralAndLiquidity.userPendingReward( bob, collateralPoolID ), rB, "Incorrect pending rewards B" );
-        assertEq( collateralAndLiquidity.userPendingReward( charlie, collateralPoolID ), rC, "Incorrect pending rewards C" );
+		assertEq( collateralAndLiquidity.userRewardForPool( alice, collateralPoolID ), rA, "Incorrect pending rewards A" );
+        assertEq( collateralAndLiquidity.userRewardForPool( bob, collateralPoolID ), rB, "Incorrect pending rewards B" );
+        assertEq( collateralAndLiquidity.userRewardForPool( charlie, collateralPoolID ), rC, "Incorrect pending rewards C" );
 
 		assertEq( salt.balanceOf(alice), sA, "SALT A incorrect" );
 		assertEq( salt.balanceOf(bob), sB, "SALT B incorrect" );
@@ -1319,7 +1319,7 @@ contract TestCollateral is Deployment
     	assertTrue( _userHasCollateral(alice) );
 
     	// Ensure the total shares for pool is greater than zero
-    	assertTrue(collateralAndLiquidity.totalSharesForPool(collateralPoolID) > 0, "Total shares for pool should be greater than zero");
+    	assertTrue(collateralAndLiquidity.totalShareForPool(collateralPoolID) > 0, "Total shares for pool should be greater than zero");
 
     	// Withdraw all collateral of Alice
     	vm.startPrank(address(alice));
@@ -1331,7 +1331,7 @@ contract TestCollateral is Deployment
     	assertFalse( _userHasCollateral(alice) );
 
     	// After withdrawing all collaterals the total shares for pool should be zero
-    	assertEq(collateralAndLiquidity.totalSharesForPool(collateralPoolID), 0, "Total shares for pool should be zero after withdrawing all collaterals");
+    	assertEq(collateralAndLiquidity.totalShareForPool(collateralPoolID), 0, "Total shares for pool should be zero after withdrawing all collaterals");
     }
 
 
@@ -1661,7 +1661,7 @@ contract TestCollateral is Deployment
         collateralAndLiquidity.withdrawCollateralAndClaim(collateralToWithdraw, 0, 0, block.timestamp);
 
         // Total shares should be reduced by the withdrawn collateral amount
-        uint256 sharesAfterWithdrawal = collateralAndLiquidity.totalSharesForPool(collateralPoolID);
+        uint256 sharesAfterWithdrawal = collateralAndLiquidity.totalShareForPool(collateralPoolID);
         assertEq(aliceCollateralAmount - collateralToWithdraw, sharesAfterWithdrawal, "totalSharesForPool did not update");
 
         assertEq(collateralAndLiquidity.userShareForPool(alice, collateralPoolID), sharesAfterWithdrawal);

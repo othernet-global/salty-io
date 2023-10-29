@@ -97,14 +97,14 @@ contract Liquidity is ILiquidity, StakingRewards
 		if ( useZapping )
 			(maxAmountA, maxAmountB) = _dualZapInLiquidity(tokenA, tokenB, maxAmountA, maxAmountB );
 
-		// Deposit the specified liquidity into the Pools contract
-		// The added liquidity will be owned by this contract. (external call to Pools contract)
+		// Approve the liquidity to add
 		tokenA.approve( address(pools), maxAmountA );
 		tokenB.approve( address(pools), maxAmountB );
 
-		// Avoid stack too deep
+		// Deposit the specified liquidity into the Pools contract
+		// The added liquidity will be owned by this contract. (external call to Pools contract)
 		bytes32 poolID = PoolUtils._poolIDOnly( tokenA, tokenB );
-		(addedAmountA, addedAmountB, addedLiquidity) = pools.addLiquidity( tokenA, tokenB, maxAmountA, maxAmountB, minLiquidityReceived, totalSharesForPool(poolID));
+		(addedAmountA, addedAmountB, addedLiquidity) = pools.addLiquidity( tokenA, tokenB, maxAmountA, maxAmountB, minLiquidityReceived, totalShareForPool(poolID));
 
 		// Increase the user's liquidity share by the amount of addedLiquidity.
 		// Cooldown is specified to prevent reward hunting (ie - quickly depositing and withdrawing large amounts of liquidity to snipe rewards as they arrive)
@@ -147,7 +147,7 @@ contract Liquidity is ILiquidity, StakingRewards
 
 		// Remove the amount of liquidity specified by the user.
 		// The liquidity in the pool is currently owned by this contract. (external call)
-		(reclaimedA, reclaimedB) = pools.removeLiquidity( tokenA, tokenB, liquidityToWithdraw, minReclaimedA, minReclaimedB, totalSharesForPool(poolID) );
+		(reclaimedA, reclaimedB) = pools.removeLiquidity( tokenA, tokenB, liquidityToWithdraw, minReclaimedA, minReclaimedB, totalShareForPool(poolID) );
 
 		// Transfer the reclaimed tokens to the user
 		tokenA.safeTransfer( msg.sender, reclaimedA );

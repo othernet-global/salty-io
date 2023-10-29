@@ -95,7 +95,7 @@ contract USDS is ERC20, IUSDS, Ownable
 	function _withdrawUSDSFromCounterswap( address counterswapAddress, uint256 remainingUSDSToBurn ) internal returns (uint256)
 		{
 		// Determine how much USDS has previously been converted through the specified counterswap and should be withdrawn from the Pools contract.
-		uint256 usdsToWithdraw = pools.depositedBalance( counterswapAddress, this );
+		uint256 usdsToWithdraw = pools.depositedUserBalance( counterswapAddress, this );
 
 		// Don't withdraw more USDS than remainingUSDSToBurn
 		if ( usdsToWithdraw > remainingUSDSToBurn )

@@ -94,7 +94,7 @@ contract Upkeep is IUpkeep
 
 	function _withdrawTokenFromCounterswap( IERC20 token, address counterswapAddress ) internal
 		{
-		uint256 tokenDepositedInCounterswap = pools.depositedBalance( counterswapAddress, token );
+		uint256 tokenDepositedInCounterswap = pools.depositedUserBalance( counterswapAddress, token );
 		if ( tokenDepositedInCounterswap == 0 )
 			return;
 
@@ -344,7 +344,7 @@ contract Upkeep is IUpkeep
 	// Useful for potential callers to know if calling the function will be profitable in comparison to the gas costs
 	function currentRewardsForCallingPerformUpkeep() public view returns (uint256)
 		{
-		uint256 daoWETH = pools.depositedBalance( address(exchangeConfig.dao()), weth );
+		uint256 daoWETH = pools.depositedUserBalance( address(exchangeConfig.dao()), weth );
 
 		if ( daoWETH == 0 )
 			return 0;

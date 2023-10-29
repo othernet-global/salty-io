@@ -10,7 +10,7 @@ import "../interfaces/ISalt.sol";
 import "../interfaces/IExchangeConfig.sol";
 import "../pools/interfaces/IPoolsConfig.sol";
 
-// This contract allows users to receive rewards (as SALT tokens) for staking shares (which can represent different things as explained below).
+// This contract allows users to receive rewards (as SALT tokens) for staking SALT or liquidity shares.
 // A user's reward is proportional to their share of the stake and is based on their share at the time that rewards are added.
 //
 // What staked shares represent is specific to the contracts that derive from StakingRewards.
@@ -146,7 +146,7 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 			{
 			bytes32 poolID = poolIDs[i];
 
-			uint256 pendingRewards = userPendingReward( msg.sender, poolID );
+			uint256 pendingRewards = userRewardForPool( msg.sender, poolID );
 
 			// Increase the virtualRewards balance for the user to account for them receiving the rewards
 			userInfo[poolID].virtualRewards += pendingRewards;
@@ -198,23 +198,20 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 
 	// === VIEWS ===
 
+	// The total share for a specific pool
+	function totalShareForPool( bytes32 poolID ) public view returns (uint256)
+		{
+		return totalShares[poolID];
+		}
+
+
 	// Returns the total shares for specified pools.
 	function totalSharesForPools( bytes32[] memory poolIDs ) public view returns (uint256[] memory shares)
 		{
 		shares = new uint256[]( poolIDs.length );
 
 		for( uint256 i = 0; i < shares.length; i++ )
-			shares[i] = totalShares[ poolIDs[i] ];
-		}
-
-
-	// Convenience functino of above
-	function totalSharesForPool( bytes32 poolID ) public view returns (uint256)
-		{
-		bytes32[] memory _pools = new bytes32[](1);
-		_pools[0] = poolID;
-
-		return totalSharesForPools(_pools)[0];
+			shares[i] = totalShareForPool( poolIDs[i] );
 		}
 
 
@@ -229,7 +226,7 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 
 
 	// Returns the user's pending rewards for a specified pool.
-	function userPendingReward( address wallet, bytes32 poolID ) public view returns (uint256)
+	function userRewardForPool( address wallet, bytes32 poolID ) public view returns (uint256)
 		{
 		// If there are no shares for the pool, the user can't have any shares either and there can't be any rewards
 		if ( totalShares[poolID] == 0 )
@@ -253,7 +250,14 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 		rewards = new uint256[]( poolIDs.length );
 
 		for( uint256 i = 0; i < rewards.length; i++ )
-			rewards[i] = userPendingReward( wallet, poolIDs[i] );
+			rewards[i] = userRewardForPool( wallet, poolIDs[i] );
+		}
+
+
+	// Get the user's shares for a specified pool.
+	function userShareForPool( address wallet, bytes32 poolID ) public view returns (uint256)
+		{
+		return _userShareInfo[wallet][poolID].userShare;
 		}
 
 
@@ -262,17 +266,8 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 		{
 		shares = new uint256[]( poolIDs.length );
 
-		mapping(bytes32=>UserShareInfo) storage userInfo = _userShareInfo[wallet];
-
 		for( uint256 i = 0; i < shares.length; i++ )
-			shares[i] = userInfo[ poolIDs[i] ].userShare;
-		}
-
-
-	// Get the user's shares for a specified pool.
-	function userShareForPool( address wallet, bytes32 poolID ) public view returns (uint256)
-		{
-		return _userShareInfo[wallet][poolID].userShare;
+			shares[i] = userShareForPool(wallet, poolIDs[i]);
 		}
 
 

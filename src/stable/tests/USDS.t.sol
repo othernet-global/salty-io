@@ -348,8 +348,8 @@ contract USDSTest is Deployment
 		vm.stopPrank();
 
 		// Verify the USDS deposits
-        assertEq(pools.depositedBalance(Counterswap.WBTC_TO_USDS, usds), depositedUSDS / 2);
-        assertEq(pools.depositedBalance(Counterswap.WETH_TO_USDS, usds), depositedUSDS / 2);
+        assertEq(pools.depositedUserBalance(Counterswap.WBTC_TO_USDS, usds), depositedUSDS / 2);
+        assertEq(pools.depositedUserBalance(Counterswap.WETH_TO_USDS, usds), depositedUSDS / 2);
 
 		// Mimic liquidation calling shouldBurnMoreUSDS
         vm.prank( address(collateralAndLiquidity) );
@@ -360,13 +360,13 @@ contract USDSTest is Deployment
         usds.performUpkeep();
 
         // performUpkeep should have transfer all WBTC and WETH in the contract to the correct counterswap addresses
-        assertEq(pools.depositedBalance(Counterswap.WBTC_TO_USDS, wbtc), wbtcAmount);
-        assertEq(pools.depositedBalance(Counterswap.WETH_TO_USDS, weth), wethAmount);
+        assertEq(pools.depositedUserBalance(Counterswap.WBTC_TO_USDS, wbtc), wbtcAmount);
+        assertEq(pools.depositedUserBalance(Counterswap.WETH_TO_USDS, weth), wethAmount);
 
         // Check that the USDS balances for the counterswap addresses has been reduced
         // USDS would have been removed from the WBTC_TO_USDS first and then from the WETH_TO_USDS address
-        assertEq(pools.depositedBalance(Counterswap.WBTC_TO_USDS, usds), 0);
-        assertEq(pools.depositedBalance(Counterswap.WETH_TO_USDS, usds), 1 ether);
+        assertEq(pools.depositedUserBalance(Counterswap.WBTC_TO_USDS, usds), 0);
+        assertEq(pools.depositedUserBalance(Counterswap.WETH_TO_USDS, usds), 1 ether);
 
         // Check that USDS was burned
         assertEq(usds.totalSupply(), depositedUSDS - usdsToBurn);
@@ -404,8 +404,8 @@ contract USDSTest is Deployment
 		vm.stopPrank();
 
 		// Verify the USDS deposits
-        assertEq(pools.depositedBalance(Counterswap.WBTC_TO_USDS, usds), depositedUSDS / 2);
-        assertEq(pools.depositedBalance(Counterswap.WETH_TO_USDS, usds), depositedUSDS / 2);
+        assertEq(pools.depositedUserBalance(Counterswap.WBTC_TO_USDS, usds), depositedUSDS / 2);
+        assertEq(pools.depositedUserBalance(Counterswap.WETH_TO_USDS, usds), depositedUSDS / 2);
 
 		// Mimic liquidation calling shouldBurnMoreUSDS
         vm.prank( address(collateralAndLiquidity) );
@@ -416,13 +416,13 @@ contract USDSTest is Deployment
         usds.performUpkeep();
 
         // performUpkeep should have transfer all WBTC and WETH in the contract to the correct counterswap addresses
-        assertEq(pools.depositedBalance(Counterswap.WBTC_TO_USDS, wbtc), wbtcAmount);
-        assertEq(pools.depositedBalance(Counterswap.WETH_TO_USDS, weth), wethAmount);
+        assertEq(pools.depositedUserBalance(Counterswap.WBTC_TO_USDS, wbtc), wbtcAmount);
+        assertEq(pools.depositedUserBalance(Counterswap.WETH_TO_USDS, weth), wethAmount);
 
         // Check that the USDS balances for the counterswap addresses has been reduced
         // USDS would have been completely removed from both WBTC_TO_USDS and WETH_TO_USDS as the usdsToBurn is excessive
-        assertEq(pools.depositedBalance(Counterswap.WBTC_TO_USDS, usds), 0);
-        assertEq(pools.depositedBalance(Counterswap.WETH_TO_USDS, usds), 0);
+        assertEq(pools.depositedUserBalance(Counterswap.WBTC_TO_USDS, usds), 0);
+        assertEq(pools.depositedUserBalance(Counterswap.WETH_TO_USDS, usds), 0);
 
         // Check that USDS was burned
         assertEq(usds.totalSupply(), 0);

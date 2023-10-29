@@ -26,6 +26,6 @@ interface IPools is IPoolStats
 	// Views
 	function lastSwapBlock( bytes32 poolID ) external returns (uint256 _lastSwapBlock);
 	function getPoolReserves(IERC20 tokenA, IERC20 tokenB) external view returns (uint256 reserveA, uint256 reserveB);
-	function depositedBalance(address user, IERC20 token) external view returns (uint256);
+	function depositedUserBalance(address user, IERC20 token) external view returns (uint256);
 	}
 

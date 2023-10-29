@@ -150,7 +150,7 @@ contract TestComprehensive1 is Deployment
     	uint256 amountOut2 = pools.depositSwapWithdraw(weth, salt, 1 ether, 0, block.timestamp, true);
 		vm.stopPrank();
 
-		console.log( "ARBITRAGE PROFITS: ", pools.depositedBalance( address(dao), weth ) );
+		console.log( "ARBITRAGE PROFITS: ", pools.depositedUserBalance( address(dao), weth ) );
 
     	console.log( "charlie swapped SALT:", amountOut1 );
     	console.log( "charlie swapped SALT:", amountOut2 );

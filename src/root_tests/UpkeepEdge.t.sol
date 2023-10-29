@@ -220,8 +220,8 @@ contract TestUpkeepEdge is Deployment
 		priceAggregator.getPriceETH();
 
 		// Check Step 2. Send WBTC and WETH from the USDS contract to the counterswap addresses (for conversion to USDS) and withdraw USDS from counterswap for burning.
-		assertEq( pools.depositedBalance( Counterswap.WBTC_TO_USDS, wbtc ), 5 ether, "step2 A" );
-		assertEq( pools.depositedBalance( Counterswap.WETH_TO_USDS, weth ), 59500000000000000000, "step2 B" );
+		assertEq( pools.depositedUserBalance( Counterswap.WBTC_TO_USDS, wbtc ), 5 ether, "step2 A" );
+		assertEq( pools.depositedUserBalance( Counterswap.WETH_TO_USDS, weth ), 59500000000000000000, "step2 B" );
 
 		// Check that USDS has been burned
 		assertEq( usds.totalSupply(), 40 ether, "step2 C" );
@@ -230,17 +230,17 @@ contract TestUpkeepEdge is Deployment
 		assertEq( usds.balanceOf(address(upkeep)), 30 ether, "step3 A" );
 
 		// Check Step 4. Have the DAO withdraw the WETH arbitrage profits from the Pools contract and send the withdrawn WETH to this contract.
-    	assertEq( pools.depositedBalance(address(dao), weth), 0 ether, "step4 A" );
+    	assertEq( pools.depositedUserBalance(address(dao), weth), 0 ether, "step4 A" );
 
 		// Check Step 5. Send a default 5% of the withdrawn WETH to the caller of performUpkeep().
     	assertEq( weth.balanceOf(upkeepCaller), 5 ether, "step5 A" );
 
 		// Check Step 6. Send a default 10% (20% / 2 ) of the remaining WETH to counterswap for conversion to USDS (for later formation of SALT/USDS liquidity).
 		// Includes deposited WETH from step2 as well
-    	assertEq( pools.depositedBalance(Counterswap.WETH_TO_USDS, weth), 59500000000000000000, "step6 A" );
+    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_USDS, weth), 59500000000000000000, "step6 A" );
 
 		// Check Step 7. Send all remaining WETH to counterswap for conversion to SALT (for later SALT/USDS POL formation and SaltRewards).
-    	assertEq( pools.depositedBalance(Counterswap.WETH_TO_SALT, weth), 85500000000000000000, "step7 A" );
+    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_SALT, weth), 85500000000000000000, "step7 A" );
 
 
 		// Checking steps 8-9 skipped for now as no one has SALT as it hasn't been distributed yet
@@ -323,8 +323,8 @@ contract TestUpkeepEdge is Deployment
     	ITestUpkeep(address(upkeep)).step2();
 
 		// Check that the WBTC and WETH have been sent for counterswap
-		assertEq( pools.depositedBalance( Counterswap.WBTC_TO_USDS, wbtc ), 0 );
-		assertEq( pools.depositedBalance( Counterswap.WETH_TO_USDS, weth ), 0 );
+		assertEq( pools.depositedUserBalance( Counterswap.WBTC_TO_USDS, wbtc ), 0 );
+		assertEq( pools.depositedUserBalance( Counterswap.WETH_TO_USDS, weth ), 0 );
     	}
 
 
@@ -348,7 +348,7 @@ contract TestUpkeepEdge is Deployment
 		vm.prank(address(upkeep));
 		ITestUpkeep(address(upkeep)).step4();
 
-		assertEq( pools.depositedBalance(address(dao), weth), 0 ether );
+		assertEq( pools.depositedUserBalance(address(dao), weth), 0 ether );
 		assertEq( weth.balanceOf(address(upkeep)), 0 ether );
 		}
 
@@ -370,7 +370,7 @@ contract TestUpkeepEdge is Deployment
     	vm.prank(address(upkeep));
     	ITestUpkeep(address(upkeep)).step6();
 
-    	assertEq( pools.depositedBalance(Counterswap.WETH_TO_USDS, weth), 0 ether );
+    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_USDS, weth), 0 ether );
     	}
 
 
@@ -382,7 +382,7 @@ contract TestUpkeepEdge is Deployment
 		ITestUpkeep(address(upkeep)).step7();
 
 		// Check that the WETH has been sent to counterswap
-		assertEq( pools.depositedBalance(Counterswap.WETH_TO_SALT, weth), 0 ether );
+		assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_SALT, weth), 0 ether );
 		}
 
 

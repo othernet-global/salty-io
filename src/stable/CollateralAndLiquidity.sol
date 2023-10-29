@@ -74,8 +74,6 @@ contract CollateralAndLiquidity is Liquidity, ICollateralAndLiquidity
 		}
 
 
-
-
 	// Withdraw WBTC/WETH collateral and claim any pending rewards.
 	// The called function withdrawLiquidityAndClaim is nonReentrant
     function withdrawCollateralAndClaim( uint256 collateralToWithdraw, uint256 minReclaimedWBTC, uint256 minReclaimedWETH, uint256 deadline ) public ensureNotExpired(deadline) returns (uint256 reclaimedWBTC, uint256 reclaimedWETH)
@@ -143,7 +141,7 @@ contract CollateralAndLiquidity is Liquidity, ICollateralAndLiquidity
 
 		// Withdraw the liquidated collateral from the liquidity pool.
 		// The liquidity is owned by this contract so when it is withdrawn it will be reclaimed by this contract.
-		(, uint256 reclaimedWETH) = pools.removeLiquidity(wbtc, weth, userCollateralAmount, 0, 0, totalSharesForPool(collateralPoolID) );
+		(, uint256 reclaimedWETH) = pools.removeLiquidity(wbtc, weth, userCollateralAmount, 0, 0, totalShareForPool(collateralPoolID) );
 
 		// Decrease the user's share of collateral as it has been liquidated and they no longer have it.
 		_decreaseUserShare( wallet, collateralPoolID, userCollateralAmount, true );
@@ -253,7 +251,7 @@ contract CollateralAndLiquidity is Liquidity, ICollateralAndLiquidity
 		uint256 count = 0;
 
 		// Cache
-		uint256 totalCollateralShares = totalSharesForPool( collateralPoolID );
+		uint256 totalCollateralShares = totalShareForPool( collateralPoolID );
 		uint256 totalCollateralValue = totalCollateralValueInUSD();
 
 		for ( uint256 i = startIndex; i <= endIndex; i++ )
@@ -313,7 +311,7 @@ contract CollateralAndLiquidity is Liquidity, ICollateralAndLiquidity
 		if ( collateralAmount == 0 )
 			return 0;
 
-		uint256 totalCollateralShares = totalSharesForPool( collateralPoolID );
+		uint256 totalCollateralShares = totalShareForPool( collateralPoolID );
 
 		(uint256 reservesWBTC, uint256 reservesWETH) = pools.getPoolReserves(wbtc, weth);
 		uint256 totalCollateralValue = underlyingTokenValueInUSD( reservesWBTC, reservesWETH );

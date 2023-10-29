@@ -81,10 +81,10 @@ contract TestArbitrage is Deployment
 		uint256 amountOut = pools.depositSwapWithdraw( tokenE, weth, 10 ether, 0, block.timestamp, true );
 
 //		console.log( "amountOut: ", amountOut );
-//		console.log( "ending pools balance: ", pools.depositedBalance( address(pools), weth ) );
+//		console.log( "ending pools balance: ", pools.depositedUserBalance( address(pools), weth ) );
 
 		assertEq( amountOut, 9900223544648871298 );
-		assertEq( pools.depositedBalance( address(dao), weth ), 154279064741019952 );
+		assertEq( pools.depositedUserBalance( address(dao), weth ), 154279064741019952 );
 		}
 	}
 

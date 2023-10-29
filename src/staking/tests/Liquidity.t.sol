@@ -245,9 +245,9 @@ contract LiquidityTest is Deployment
 		assertEq( collateralAndLiquidity.userShareForPool(bob, pool2), shareB, "Share B incorrect" );
 		assertEq( collateralAndLiquidity.userShareForPool(charlie, pool2), shareC, "Share C incorrect" );
 
-		assertEq( collateralAndLiquidity.userPendingReward( alice, pool2 ), rA, "Incorrect pending rewards A" );
-        assertEq( collateralAndLiquidity.userPendingReward( bob, pool2 ), rB, "Incorrect pending rewards B" );
-        assertEq( collateralAndLiquidity.userPendingReward( charlie, pool2 ), rC, "Incorrect pending rewards C" );
+		assertEq( collateralAndLiquidity.userRewardForPool( alice, pool2 ), rA, "Incorrect pending rewards A" );
+        assertEq( collateralAndLiquidity.userRewardForPool( bob, pool2 ), rB, "Incorrect pending rewards B" );
+        assertEq( collateralAndLiquidity.userRewardForPool( charlie, pool2 ), rC, "Incorrect pending rewards C" );
 		}
 
 

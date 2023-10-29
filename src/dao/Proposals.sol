@@ -80,7 +80,7 @@ contract Proposals is IProposals, ReentrancyGuard
 		if ( msg.sender != address(exchangeConfig.dao() ) )
 			{
 			// Make sure that the sender has the minimum amount of xSALT required to make the proposal
-			uint256 totalStaked = staking.totalSharesForPool(PoolUtils.STAKED_SALT);
+			uint256 totalStaked = staking.totalShareForPool(PoolUtils.STAKED_SALT);
 			require( totalStaked > 0, "Staking required to make a proposal" );
 
 			uint256 requiredXSalt = ( totalStaked * daoConfig.requiredProposalPercentStakeTimes1000() ) / ( 100 * 1000 );
@@ -301,7 +301,7 @@ contract Proposals is IProposals, ReentrancyGuard
 	function requiredQuorumForBallotType( BallotType ballotType ) public view returns (uint256 requiredQuorum)
 		{
 		// The quorum will be specified as a percentage of the total amount of SALT staked
-		uint256 totalStaked = staking.totalSharesForPool( PoolUtils.STAKED_SALT );
+		uint256 totalStaked = staking.totalShareForPool( PoolUtils.STAKED_SALT );
 		require( totalStaked != 0, "SALT staked cannot be zero to determine quorum" );
 
 		if ( ballotType == BallotType.PARAMETER )

@@ -732,7 +732,7 @@ contract TestDAO is Deployment
         weth.approve(address(pools), 1000 ether);
         pools.deposit(weth, 1000 ether);
 
-        uint256 depositedWETH = pools.depositedBalance(address(dao), weth);
+        uint256 depositedWETH = pools.depositedUserBalance(address(dao), weth);
         assertEq( depositedWETH, 1000 ether, "DAO should have 1000 ether deposited" );
         vm.stopPrank();
 

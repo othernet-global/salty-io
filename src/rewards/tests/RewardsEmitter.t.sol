@@ -294,9 +294,9 @@ contract TestRewardsEmitter is Deployment
 		assertEq( totalRewardsForPools(poolIDs[1]), 2.5 ether, "Incorrect total rewards in pool[1]" );
 
         // Check if the correct amount of rewards was transferred to each user
-        assertEq(collateralAndLiquidity.userPendingReward(alice, poolIDs[0]), 0.833333333333333333 ether); // 2.5% of 100 ether divided by 3 users
-        assertEq(collateralAndLiquidity.userPendingReward(bob, poolIDs[0]), 0.833333333333333333 ether);
-        assertEq(collateralAndLiquidity.userPendingReward(charlie, poolIDs[0]), 0.833333333333333333 ether);
+        assertEq(collateralAndLiquidity.userRewardForPool(alice, poolIDs[0]), 0.833333333333333333 ether); // 2.5% of 100 ether divided by 3 users
+        assertEq(collateralAndLiquidity.userRewardForPool(bob, poolIDs[0]), 0.833333333333333333 ether);
+        assertEq(collateralAndLiquidity.userRewardForPool(charlie, poolIDs[0]), 0.833333333333333333 ether);
     }
 
 
