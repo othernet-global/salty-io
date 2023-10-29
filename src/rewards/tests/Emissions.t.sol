@@ -41,8 +41,8 @@ contract TestEmissions is Deployment
 
 		// Whitelist pools
     	vm.startPrank( address(dao) );
-		poolsConfig.whitelistPool(pools, token1, token2);
-		poolsConfig.whitelistPool(pools, token2, token3);
+		poolsConfig.whitelistPool(  token1, token2);
+		poolsConfig.whitelistPool(  token2, token3);
 		vm.stopPrank();
 
     	// Start with some SALT in the Emissions contract

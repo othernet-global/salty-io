@@ -56,7 +56,7 @@ contract Deployment is Test
 	IForcedPriceFeed public forcedPriceFeed = IForcedPriceFeed(address(0x3B0Eb37f26b502bAe83df4eCc54afBDfb90B5d3a));
 
 	// The DAO contract can provide us with all other contract addresses in the protocol
-	IDAO public dao = IDAO(address(0x6808aD86d851c7f2499d9E51ad329ff103224da8));
+	IDAO public dao = IDAO(address(0xe0Ec3BcD352e58862dA684BeDDc35487D6c35b26));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));
@@ -154,15 +154,15 @@ contract Deployment is Test
 		saltRewards = new SaltRewards(exchangeConfig, rewardsConfig);
 		emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
-		poolsConfig.whitelistPool(pools, salt, wbtc);
-		poolsConfig.whitelistPool(pools, salt, weth);
-		poolsConfig.whitelistPool(pools, salt, usds);
-		poolsConfig.whitelistPool(pools, wbtc, usds);
-		poolsConfig.whitelistPool(pools, weth, usds);
-		poolsConfig.whitelistPool(pools, wbtc, dai);
-		poolsConfig.whitelistPool(pools, weth, dai);
-		poolsConfig.whitelistPool(pools, usds, dai);
-		poolsConfig.whitelistPool(pools, wbtc, weth);
+		poolsConfig.whitelistPool(  salt, wbtc);
+		poolsConfig.whitelistPool(  salt, weth);
+		poolsConfig.whitelistPool(  salt, usds);
+		poolsConfig.whitelistPool(  wbtc, usds);
+		poolsConfig.whitelistPool(  weth, usds);
+		poolsConfig.whitelistPool(  wbtc, dai);
+		poolsConfig.whitelistPool(  weth, dai);
+		poolsConfig.whitelistPool(  usds, dai);
+		poolsConfig.whitelistPool(  wbtc, weth);
 
 		proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 

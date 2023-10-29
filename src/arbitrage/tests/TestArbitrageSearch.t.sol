@@ -55,15 +55,15 @@ contract TestArbitrageSearch2 is Deployment
 
 			emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
-			poolsConfig.whitelistPool(pools, salt, wbtc);
-			poolsConfig.whitelistPool(pools, salt, weth);
-			poolsConfig.whitelistPool(pools, salt, usds);
-			poolsConfig.whitelistPool(pools, wbtc, usds);
-			poolsConfig.whitelistPool(pools, weth, usds);
-			poolsConfig.whitelistPool(pools, wbtc, dai);
-			poolsConfig.whitelistPool(pools, weth, dai);
-			poolsConfig.whitelistPool(pools, usds, dai);
-			poolsConfig.whitelistPool(pools, wbtc, weth);
+			poolsConfig.whitelistPool(  salt, wbtc);
+			poolsConfig.whitelistPool(  salt, weth);
+			poolsConfig.whitelistPool(  salt, usds);
+			poolsConfig.whitelistPool(  wbtc, usds);
+			poolsConfig.whitelistPool(  weth, usds);
+			poolsConfig.whitelistPool(  wbtc, dai);
+			poolsConfig.whitelistPool(  weth, dai);
+			poolsConfig.whitelistPool(  usds, dai);
+			poolsConfig.whitelistPool(  wbtc, weth);
 
 
 			proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );

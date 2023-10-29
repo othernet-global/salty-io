@@ -50,15 +50,15 @@ contract TestMaxUpkeep is Deployment
 
 		emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
-		poolsConfig.whitelistPool(pools, salt, wbtc);
-		poolsConfig.whitelistPool(pools, salt, weth);
-		poolsConfig.whitelistPool(pools, salt, usds);
-		poolsConfig.whitelistPool(pools, wbtc, usds);
-		poolsConfig.whitelistPool(pools, weth, usds);
-		poolsConfig.whitelistPool(pools, wbtc, dai);
-		poolsConfig.whitelistPool(pools, weth, dai);
-		poolsConfig.whitelistPool(pools, usds, dai);
-		poolsConfig.whitelistPool(pools, wbtc, weth);
+		poolsConfig.whitelistPool(  salt, wbtc);
+		poolsConfig.whitelistPool(  salt, weth);
+		poolsConfig.whitelistPool(  salt, usds);
+		poolsConfig.whitelistPool(  wbtc, usds);
+		poolsConfig.whitelistPool(  weth, usds);
+		poolsConfig.whitelistPool(  wbtc, dai);
+		poolsConfig.whitelistPool(  weth, dai);
+		poolsConfig.whitelistPool(  usds, dai);
+		poolsConfig.whitelistPool(  wbtc, weth);
 
 		proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 
@@ -160,11 +160,11 @@ contract TestMaxUpkeep is Deployment
     		vm.stopPrank();
 
     		vm.startPrank(address(dao));
-    		poolsConfig.whitelistPool(pools, tokenA, tokenB);
-    		poolsConfig.whitelistPool(pools, tokenA, weth);
-    		poolsConfig.whitelistPool(pools, tokenA, wbtc);
-    		poolsConfig.whitelistPool(pools, tokenB, weth);
-    		poolsConfig.whitelistPool(pools, tokenB, wbtc);
+    		poolsConfig.whitelistPool(  tokenA, tokenB);
+    		poolsConfig.whitelistPool(  tokenA, weth);
+    		poolsConfig.whitelistPool(  tokenA, wbtc);
+    		poolsConfig.whitelistPool(  tokenB, weth);
+    		poolsConfig.whitelistPool(  tokenB, wbtc);
 			vm.stopPrank();
 
 			vm.startPrank(DEPLOYER);

@@ -29,8 +29,8 @@ contract PoolsConfigTest is Deployment
 		originalNumWhitelisted = poolsConfig.numberOfWhitelistedPools();
 
         // Whitelist the pools
-        poolsConfig.whitelistPool(pools, token1, token2);
-        poolsConfig.whitelistPool(pools, token2, token3);
+        poolsConfig.whitelistPool(  token1, token2);
+        poolsConfig.whitelistPool(  token2, token3);
 		vm.stopPrank();
 		}
 
@@ -54,14 +54,14 @@ contract PoolsConfigTest is Deployment
 		IERC20 tokenA = new TestERC20("TEST", 18);
 		IERC20 tokenB = new TestERC20("TEST", 18);
 
-        poolsConfig.whitelistPool(pools, tokenA, tokenB);
+        poolsConfig.whitelistPool(  tokenA, tokenB);
 		}
 
 	bytes32 poolID = PoolUtils._poolIDOnly(token1, token3);
     assertFalse(poolsConfig.isWhitelisted(poolID), "New pool should not be valid yet");
 
 	vm.expectRevert( "Maximum number of whitelisted pools already reached" );
-    poolsConfig.whitelistPool(pools, token1, token3);
+    poolsConfig.whitelistPool(  token1, token3);
     assertEq( poolsConfig.numberOfWhitelistedPools(), poolsConfig.maximumWhitelistedPools());
     }
 
@@ -75,7 +75,7 @@ contract PoolsConfigTest is Deployment
 	bytes32 poolID = PoolUtils._poolIDOnly(token1, token3);
     assertFalse(poolsConfig.isWhitelisted(poolID), "New pool should not be valid yet");
 
-    poolsConfig.whitelistPool(pools, token1, token3);
+    poolsConfig.whitelistPool(  token1, token3);
     assertTrue(poolsConfig.isWhitelisted(poolID), "New pool should be valid after whitelisting");
     }
 
@@ -88,7 +88,7 @@ contract PoolsConfigTest is Deployment
     assertFalse(poolsConfig.isWhitelisted(poolID), "New pool should not be valid yet");
 
 	vm.expectRevert( "tokenA and tokenB cannot be the same token" );
-    poolsConfig.whitelistPool(pools, token1, token1);
+    poolsConfig.whitelistPool(  token1, token1);
 
     assertFalse(poolsConfig.isWhitelisted(poolID), "New pool should still not be valid");
     }
@@ -100,19 +100,19 @@ contract PoolsConfigTest is Deployment
 
     // Whitelist another pool for testing unwhitelist
 	bytes32 poolID = PoolUtils._poolIDOnly(token1, token3);
-    poolsConfig.whitelistPool(pools, token1, token3);
+    poolsConfig.whitelistPool(  token1, token3);
 
     // Ensure the pool is whitelisted
     assertTrue(poolsConfig.isWhitelisted(poolID));
 
     // Unwhitelist the test pool
-    poolsConfig.unwhitelistPool(pools, token1, token3);
+    poolsConfig.unwhitelistPool(  token1, token3);
 
     // Ensure the pool is no longer whitelisted
     assertFalse(poolsConfig.isWhitelisted(poolID));
 
 	// Whitelist again
-    poolsConfig.whitelistPool(pools, token1, token3);
+    poolsConfig.whitelistPool(  token1, token3);
     assertTrue(poolsConfig.isWhitelisted(poolID));
     }
 
@@ -122,7 +122,7 @@ contract PoolsConfigTest is Deployment
 	vm.startPrank( address(dao) );
 
     // Whitelist another pool
-    poolsConfig.whitelistPool(pools, token1, token3);
+    poolsConfig.whitelistPool(  token1, token3);
 
     // Test the numberOfWhitelistedPools function
     uint256 expectedNumberOfWhitelistedPools = originalNumWhitelisted + 3;
@@ -130,7 +130,7 @@ contract PoolsConfigTest is Deployment
     assertEq(expectedNumberOfWhitelistedPools, actualNumberOfWhitelistedPools);
 
 	// Whitelist the same pool in reverse
-    poolsConfig.whitelistPool(pools, token3, token1);
+    poolsConfig.whitelistPool(  token3, token1);
 
     actualNumberOfWhitelistedPools = poolsConfig.numberOfWhitelistedPools();
     assertEq(expectedNumberOfWhitelistedPools, actualNumberOfWhitelistedPools);
@@ -138,7 +138,7 @@ contract PoolsConfigTest is Deployment
     // Whitelist another pool
     IERC20 token4 = new TestERC20("TEST", 18);
 
-    poolsConfig.whitelistPool(pools, token3, token4);
+    poolsConfig.whitelistPool(  token3, token4);
 
     expectedNumberOfWhitelistedPools = originalNumWhitelisted + 4;
     actualNumberOfWhitelistedPools = poolsConfig.numberOfWhitelistedPools();
@@ -151,7 +151,7 @@ contract PoolsConfigTest is Deployment
 		vm.startPrank( address(dao) );
 
         // Whitelist a new pool
-    	poolsConfig.whitelistPool(pools, token1, token3);
+    	poolsConfig.whitelistPool(  token1, token3);
 
         // Test valid pools
         bytes32 pool1 = PoolUtils._poolIDOnly(token1, token2);
@@ -176,7 +176,7 @@ contract PoolsConfigTest is Deployment
     assertEq(initialPoolCount, originalNumWhitelisted + 2, "Initial whitelisted pool count is incorrect");
 
 	// Whitelist a new pool
-	poolsConfig.whitelistPool(pools, token1, token3);
+	poolsConfig.whitelistPool(  token1, token3);
 
     // Check new state
     uint256 newPoolCount = poolsConfig.numberOfWhitelistedPools();
@@ -203,7 +203,7 @@ contract PoolsConfigTest is Deployment
 	vm.startPrank( address(dao) );
 
 	// Whitelist a new pool
-	poolsConfig.whitelistPool(pools, token1, token3);
+	poolsConfig.whitelistPool(  token1, token3);
 
     // Verify already whitelisted pools
 	bytes32 pool1 = PoolUtils._poolIDOnly(token1, token2);
@@ -291,12 +291,12 @@ contract PoolsConfigTest is Deployment
     function testUnwhitelistPoolWithoutPermissions() public {
     	vm.startPrank( address(dao) );
         bytes32 poolID = PoolUtils._poolIDOnly(token1, token3);
-        poolsConfig.whitelistPool(pools, token1, token3);
+        poolsConfig.whitelistPool(  token1, token3);
         assertTrue(poolsConfig.isWhitelisted(poolID), "New pool should be valid after whitelisting by owner");
     	 vm.stopPrank();
 
     	vm.expectRevert("Ownable: caller is not the owner");
-        poolsConfig.unwhitelistPool(pools, token1, token3);
+        poolsConfig.unwhitelistPool(  token1, token3);
         assertTrue(poolsConfig.isWhitelisted(poolID), "Whitelisted pool should still be valid after attempted non-owner unwhitelisting");
     }
 
@@ -310,22 +310,22 @@ contract PoolsConfigTest is Deployment
 
     	// Whitelist the fake token with WBTC, and check if the function returns true
     	vm.prank(address(dao));
-    	poolsConfig.whitelistPool(pools, fakeToken, wbtc);
+    	poolsConfig.whitelistPool(  fakeToken, wbtc);
     	assertTrue(poolsConfig.tokenHasBeenWhitelisted(fakeToken, wbtc, weth), "Function should return true when the token is whitelisted with WBTC");
 
     	// Unwhitelist the fake token from WBTC, and check if the function returns false now
     	vm.prank(address(dao));
-    	poolsConfig.unwhitelistPool(pools, fakeToken, wbtc);
+    	poolsConfig.unwhitelistPool(  fakeToken, wbtc);
     	assertFalse(poolsConfig.tokenHasBeenWhitelisted(fakeToken, wbtc, weth), "Function should return false when the token is unwhitelisted from WBTC");
 
     	// Whitelist the fake token with WETH, and check if the function returns true
     	vm.prank(address(dao));
-    	poolsConfig.whitelistPool(pools, fakeToken, weth);
+    	poolsConfig.whitelistPool(  fakeToken, weth);
     	assertTrue(poolsConfig.tokenHasBeenWhitelisted(fakeToken, wbtc, weth), "Function should return true when the token is whitelisted with WETH");
 
     	// Unwhitelist the fake token from WETH, and check if the function returns false now
     	vm.prank(address(dao));
-    	poolsConfig.unwhitelistPool(pools, fakeToken, weth);
+    	poolsConfig.unwhitelistPool(  fakeToken, weth);
     	assertFalse(poolsConfig.tokenHasBeenWhitelisted(fakeToken, wbtc, weth), "Function should return false when the token is unwhitelisted from WETH");
     }
 

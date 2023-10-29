@@ -47,8 +47,8 @@ contract TestRewardsEmitter is Deployment
 
         // Whitelist
         vm.startPrank(address(dao));
-        poolsConfig.whitelistPool(pools, token1, token2);
-        poolsConfig.whitelistPool(pools, token2, token3);
+        poolsConfig.whitelistPool(  token1, token2);
+        poolsConfig.whitelistPool(  token2, token3);
         vm.stopPrank();
 
         vm.startPrank(DEPLOYER);
@@ -550,7 +550,7 @@ contract TestRewardsEmitter is Deployment
 
         // Whitelist is withdrawn for pool1
         vm.prank(address(dao));
-        poolsConfig.unwhitelistPool(pools, token1, token2);
+        poolsConfig.unwhitelistPool(  token1, token2);
 
         // Alice tries to add rewards to pool1 that has been withdrawn from whitelisting
         // Expect it to revert
@@ -612,7 +612,7 @@ contract TestRewardsEmitter is Deployment
 
         // Whitelist the previously unlisted pool and add rewards again
         vm.prank(address(dao));
-        poolsConfig.whitelistPool(pools, tokenA, tokenB);
+        poolsConfig.whitelistPool(  tokenA, tokenB);
 
         // Add rewards to the now whitelisted pool
         liquidityRewardsEmitter.addSALTRewards(addedRewards);

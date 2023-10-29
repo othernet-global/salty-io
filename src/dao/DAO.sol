@@ -115,8 +115,8 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		if ( ballot.ballotType == BallotType.UNWHITELIST_TOKEN )
 			{
 			// All tokens are paired with both WBTC and WETH so unwhitelist those pools
-			poolsConfig.unwhitelistPool(pools,  IERC20(ballot.address1), exchangeConfig.wbtc() );
-			poolsConfig.unwhitelistPool(pools,  IERC20(ballot.address1), exchangeConfig.weth() );
+			poolsConfig.unwhitelistPool(   IERC20(ballot.address1), exchangeConfig.wbtc() );
+			poolsConfig.unwhitelistPool(   IERC20(ballot.address1), exchangeConfig.weth() );
 			}
 
 		else if ( ballot.ballotType == BallotType.SEND_SALT )
@@ -187,8 +187,8 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 			require( bestWhitelistingBallotID == ballotID, "Only the token whitelisting ballot with the most votes can be finalized" );
 
 			// All tokens are paired with both WBTC and WETH, so whitelist both pairings
-			poolsConfig.whitelistPool(pools,  IERC20(ballot.address1), exchangeConfig.wbtc() );
-			poolsConfig.whitelistPool(pools,  IERC20(ballot.address1), exchangeConfig.weth() );
+			poolsConfig.whitelistPool(   IERC20(ballot.address1), exchangeConfig.wbtc() );
+			poolsConfig.whitelistPool(   IERC20(ballot.address1), exchangeConfig.weth() );
 
 			bytes32 pool1 = PoolUtils._poolIDOnly( IERC20(ballot.address1), exchangeConfig.wbtc() );
 			bytes32 pool2 = PoolUtils._poolIDOnly( IERC20(ballot.address1), exchangeConfig.weth() );

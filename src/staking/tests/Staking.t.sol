@@ -44,8 +44,8 @@ contract StakingTest is Deployment
 
         // Whitelist lp
 		vm.startPrank( address(dao) );
-        poolsConfig.whitelistPool(pools, token1, token2);
-        poolsConfig.whitelistPool(pools, token2, token3);
+        poolsConfig.whitelistPool(  token1, token2);
+        poolsConfig.whitelistPool(  token2, token3);
 		vm.stopPrank();
 
 		vm.prank(DEPLOYER);

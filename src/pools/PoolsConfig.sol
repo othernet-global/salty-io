@@ -33,7 +33,7 @@ contract PoolsConfig is IPoolsConfig, Ownable
 
 
 	// Whitelist a given pair of tokens
-	function whitelistPool( IPools pools, IERC20 tokenA, IERC20 tokenB ) public onlyOwner
+	function whitelistPool( IERC20 tokenA, IERC20 tokenB ) public onlyOwner
 		{
 		require( _whitelist.length() < maximumWhitelistedPools, "Maximum number of whitelisted pools already reached" );
 		require(tokenA != tokenB, "tokenA and tokenB cannot be the same token");
@@ -46,7 +46,7 @@ contract PoolsConfig is IPoolsConfig, Ownable
 		}
 
 
-	function unwhitelistPool( IPools pools, IERC20 tokenA, IERC20 tokenB ) public onlyOwner
+	function unwhitelistPool( IERC20 tokenA, IERC20 tokenB ) public onlyOwner
 		{
 		(bytes32 poolID, ) = PoolUtils._poolID(tokenA,tokenB);
 

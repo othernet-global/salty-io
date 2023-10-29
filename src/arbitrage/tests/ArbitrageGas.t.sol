@@ -32,10 +32,10 @@ contract TestArbitrage is Deployment
         tokenB = new TestERC20("TEST", 18);
 
         vm.startPrank(address(dao));
-        poolsConfig.whitelistPool(pools, tokenE, wbtc);
-        poolsConfig.whitelistPool(pools, tokenE, weth);
-        poolsConfig.whitelistPool(pools, tokenB, wbtc);
-        poolsConfig.whitelistPool(pools, tokenB, weth);
+        poolsConfig.whitelistPool(  tokenE, wbtc);
+        poolsConfig.whitelistPool(  tokenE, weth);
+        poolsConfig.whitelistPool(  tokenB, wbtc);
+        poolsConfig.whitelistPool(  tokenB, weth);
         vm.stopPrank();
 
 		vm.startPrank(DEPLOYER);

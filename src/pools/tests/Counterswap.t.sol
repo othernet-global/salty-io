@@ -56,15 +56,15 @@ contract TestCounterswap2 is Deployment
 
 		emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
-		poolsConfig.whitelistPool(_pools, salt, wbtc);
-		poolsConfig.whitelistPool(_pools, salt, weth);
-		poolsConfig.whitelistPool(_pools, salt, usds);
-		poolsConfig.whitelistPool(_pools, wbtc, usds);
-		poolsConfig.whitelistPool(_pools, weth, usds);
-		poolsConfig.whitelistPool(_pools, wbtc, dai);
-		poolsConfig.whitelistPool(_pools, weth, dai);
-		poolsConfig.whitelistPool(_pools, usds, dai);
-		poolsConfig.whitelistPool(_pools, wbtc, weth);
+		poolsConfig.whitelistPool( salt, wbtc);
+		poolsConfig.whitelistPool( salt, weth);
+		poolsConfig.whitelistPool( salt, usds);
+		poolsConfig.whitelistPool( wbtc, usds);
+		poolsConfig.whitelistPool( weth, usds);
+		poolsConfig.whitelistPool( wbtc, dai);
+		poolsConfig.whitelistPool( weth, dai);
+		poolsConfig.whitelistPool( usds, dai);
+		poolsConfig.whitelistPool( wbtc, weth);
 
 		proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 

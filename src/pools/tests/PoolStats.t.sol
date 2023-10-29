@@ -172,9 +172,9 @@ contract TestPoolStats is Test, PoolStats
 		IERC20 weth = exchangeConfig.weth();
 
 		vm.startPrank(address(deployment.dao()));
-		deployment.poolsConfig().whitelistPool(deployment.pools(), tokenA,weth );
-		deployment.poolsConfig().whitelistPool(deployment.pools(), tokenB,weth );
-		deployment.poolsConfig().whitelistPool(deployment.pools(), tokenA,tokenB );
+		deployment.poolsConfig().whitelistPool( tokenA,weth );
+		deployment.poolsConfig().whitelistPool( tokenB,weth );
+		deployment.poolsConfig().whitelistPool( tokenA,tokenB );
 		vm.stopPrank();
 
 		_updateProfitsFromArbitrage(true, tokenA, tokenB, 10 ether);
@@ -210,12 +210,12 @@ contract TestPoolStats is Test, PoolStats
 		IERC20 weth = exchangeConfig.weth();
 
 		vm.startPrank(address(deployment.dao()));
-		deployment.poolsConfig().whitelistPool(deployment.pools(), tokenA,weth );
-		deployment.poolsConfig().whitelistPool(deployment.pools(), tokenB,weth );
-		deployment.poolsConfig().whitelistPool(deployment.pools(), tokenA,tokenB );
-		deployment.poolsConfig().whitelistPool(deployment.pools(), tokenB,weth );
-		deployment.poolsConfig().whitelistPool(deployment.pools(), tokenC,weth );
-		deployment.poolsConfig().whitelistPool(deployment.pools(), tokenB,tokenC );
+		deployment.poolsConfig().whitelistPool( tokenA,weth );
+		deployment.poolsConfig().whitelistPool( tokenB,weth );
+		deployment.poolsConfig().whitelistPool( tokenA,tokenB );
+		deployment.poolsConfig().whitelistPool( tokenB,weth );
+		deployment.poolsConfig().whitelistPool( tokenC,weth );
+		deployment.poolsConfig().whitelistPool( tokenB,tokenC );
 		vm.stopPrank();
 
 		_updateProfitsFromArbitrage(true, tokenA, tokenB, 10 ether);
