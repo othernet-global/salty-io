@@ -11,12 +11,6 @@ contract TestPools is Pools
     	{
     	}
 
-	function isWhitelistedCache(bytes32 poolID) public view returns (bool)
-		{
-		return _isWhitelistedCache[poolID];
-		}
-
-
 	function shouldCounterswap( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountOut ) public view returns (bool)
 		{
 		bytes32 poolID = PoolUtils._poolIDOnly( swapTokenIn, swapTokenOut );

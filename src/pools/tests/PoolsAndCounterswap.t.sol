@@ -65,7 +65,7 @@ contract TestPoolsAndCounterswap is Deployment
 		{
 		// Establish the average price in PoolStats by placing a normal swap
 		vm.startPrank(alice);
-		pools.depositSwapWithdraw( salt, weth, 10 ether, 0, block.timestamp );
+		pools.depositSwapWithdraw( salt, weth, 10 ether, 0, block.timestamp, true );
 		vm.roll( block.number + 1 );
 		vm.stopPrank();
 
@@ -88,7 +88,7 @@ contract TestPoolsAndCounterswap is Deployment
 
 		// Initial swap and counterswap
 		vm.prank(alice);
-		pools.depositSwapWithdraw( salt, weth, 10 ether, 0, block.timestamp );
+		pools.depositSwapWithdraw( salt, weth, 10 ether, 0, block.timestamp, true );
 
 		uint256 usedWETHFromCounterswap0 = startingDeposited - pools.depositedBalance( counterswapAddress, weth );
 		uint256 wethThatShouldStillBeDepositedInCounterswap0 = 100 ether - usedWETHFromCounterswap0;
@@ -102,7 +102,7 @@ contract TestPoolsAndCounterswap is Deployment
 
 		// Try an unsuccessful counterswap from SALT->WETH (unsuccessful as a swap occured in the same block)
 		vm.prank(alice);
-		uint256 wethOut = pools.depositSwapWithdraw( salt, weth, 10 ether, 0, block.timestamp );
+		uint256 wethOut = pools.depositSwapWithdraw( salt, weth, 10 ether, 0, block.timestamp, true );
 
 
 		// Determine how much of the WETH deposited into the Counterswap contract was used
@@ -131,7 +131,7 @@ contract TestPoolsAndCounterswap is Deployment
 
 		// Initial swap and counterswap
 		vm.prank(alice);
-		pools.depositSwapWithdraw( salt, weth, 10 ether, 0, block.timestamp );
+		pools.depositSwapWithdraw( salt, weth, 10 ether, 0, block.timestamp, true );
 
 		uint256 usedWETHFromCounterswap0 = startingDeposited - pools.depositedBalance( counterswapAddress, weth );
 		uint256 wethThatShouldStillBeDepositedInCounterswap0 = 100 ether - usedWETHFromCounterswap0;
@@ -149,7 +149,7 @@ contract TestPoolsAndCounterswap is Deployment
 
 		// Try a successful counterswap from SALT->WETH (which will happen inside of the depositSwapWithdraw transaction)
 		vm.prank(alice);
-		uint256 wethOut = pools.depositSwapWithdraw( salt, weth, 10 ether, 0, block.timestamp );
+		uint256 wethOut = pools.depositSwapWithdraw( salt, weth, 10 ether, 0, block.timestamp, true );
 
 
 		// Determine how much of the WETH deposited into the Counterswap contract was used
@@ -183,7 +183,7 @@ contract TestPoolsAndCounterswap is Deployment
 		vm.prank(alice);
 
 		// Trade is in the correct direciton and prices should be good, but the user's amountOut is larger than what we have deposited for coutnerswap
-		pools.depositSwapWithdraw( salt, weth, 200 ether, 0, block.timestamp );
+		pools.depositSwapWithdraw( salt, weth, 200 ether, 0, block.timestamp, true );
 
 		uint256 usedWETHFromCounterswap = startingDeposited - pools.depositedBalance( counterswapAddress, weth );
 		assertEq( usedWETHFromCounterswap, 0, "Counterswap should not have been used for an excessively large swap" );

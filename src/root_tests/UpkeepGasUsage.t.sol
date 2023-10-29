@@ -195,7 +195,7 @@ contract TestMaxUpkeep is Deployment
     		{
     		(IERC20 tokenA, IERC20 tokenB) = poolsConfig.underlyingTokenPair(poolIDs[i]);
 
-            pools.depositSwapWithdraw(tokenA, tokenB, 10 ether, 0, block.timestamp);
+            pools.depositSwapWithdraw(tokenA, tokenB, 10 ether, 0, block.timestamp, true);
     		}
     	vm.stopPrank();
     	}

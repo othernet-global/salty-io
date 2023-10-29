@@ -493,12 +493,12 @@ contract USDSTest is Deployment
 
 		vm.startPrank(DEPLOYER);
 		// First swap will establish the ema of the reserves in each pool
-		pools.depositSwapWithdraw(usds, wbtc, 1000 ether, 0, block.timestamp);
-		pools.depositSwapWithdraw(usds, weth, 1000 ether, 0, block.timestamp);
+		pools.depositSwapWithdraw(usds, wbtc, 1000 ether, 0, block.timestamp, true);
+		pools.depositSwapWithdraw(usds, weth, 1000 ether, 0, block.timestamp, true);
 
 		// Second swap will make the reserve favorable for counterswap (in comparison to the ema)
-		pools.depositSwapWithdraw(usds, wbtc, 100 ether, 0, block.timestamp);
-		pools.depositSwapWithdraw(usds, weth, 100 ether, 0, block.timestamp);
+		pools.depositSwapWithdraw(usds, wbtc, 100 ether, 0, block.timestamp, true);
+		pools.depositSwapWithdraw(usds, weth, 100 ether, 0, block.timestamp, true);
 		vm.stopPrank();
 
 		vm.warp( block.timestamp + 1 minutes );
@@ -559,12 +559,12 @@ contract USDSTest is Deployment
 
 		vm.startPrank(DEPLOYER);
 		// First swap will establish the ema of the reserves in each pool
-		pools.depositSwapWithdraw(usds, wbtc, 100 ether, 0, block.timestamp);
-		pools.depositSwapWithdraw(usds, weth, 100 ether, 0, block.timestamp);
+		pools.depositSwapWithdraw(usds, wbtc, 100 ether, 0, block.timestamp, true);
+		pools.depositSwapWithdraw(usds, weth, 100 ether, 0, block.timestamp, true);
 
 		// Second swap will make the reserve favorable for counterswap (in comparison to the ema)
-		pools.depositSwapWithdraw(usds, wbtc, 10 ether, 0, block.timestamp);
-		pools.depositSwapWithdraw(usds, weth, 10 ether, 0, block.timestamp);
+		pools.depositSwapWithdraw(usds, wbtc, 10 ether, 0, block.timestamp, true);
+		pools.depositSwapWithdraw(usds, weth, 10 ether, 0, block.timestamp, true);
 		vm.stopPrank();
 
 		assertEq( usds.usdsThatShouldBeBurned(), amountToBurn );
@@ -783,12 +783,12 @@ contract USDSTest is Deployment
 
 		vm.startPrank(DEPLOYER);
 		// First swap will establish the ema of the reserves in each pool
-		pools.depositSwapWithdraw(usds, wbtc, 1000 ether, 0, block.timestamp);
-		pools.depositSwapWithdraw(usds, weth, 1000 ether, 0, block.timestamp);
+		pools.depositSwapWithdraw(usds, wbtc, 1000 ether, 0, block.timestamp, true);
+		pools.depositSwapWithdraw(usds, weth, 1000 ether, 0, block.timestamp, true);
 
 		// Second swap will make the reserve favorable for counterswap (in comparison to the ema)
-		pools.depositSwapWithdraw(usds, wbtc, 100 ether, 0, block.timestamp);
-		pools.depositSwapWithdraw(usds, weth, 100 ether, 0, block.timestamp);
+		pools.depositSwapWithdraw(usds, wbtc, 100 ether, 0, block.timestamp, true);
+		pools.depositSwapWithdraw(usds, weth, 100 ether, 0, block.timestamp, true);
 		vm.stopPrank();
 
 		assertEq( usds.usdsThatShouldBeBurned(), amountToBurn );

@@ -48,9 +48,6 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	// User token balances for deposited tokens
 	mapping(address=>mapping(IERC20=>uint256)) private _userDeposits;
 
-	// Cache of the whitelisted pools so we don't need an external call to access poolsConfig.isWhitelisted on swaps (to determine arbitrage type)
-	mapping(bytes32=>bool) public _isWhitelistedCache;
-
 
 	constructor( IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig )
 	PoolStats(_exchangeConfig, _poolsConfig)
@@ -88,24 +85,6 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		{
 		require(block.timestamp <= deadline, "TX EXPIRED");
 		_;
-		}
-
-
-	// Called by PoolsConfig to cache the whitelisted pool status locally to avoid external calls to poolsConfig.isWhitelisted on swaps
-	function setIsWhitelistedCache(bytes32 poolID) public
-		{
-		require(msg.sender == address(poolsConfig), "Pools.setIsWhitelistedCache is only callable from the PoolsConfig contract" );
-
-		_isWhitelistedCache[poolID] = true;
-		}
-
-
-	// Called by PoolsConfig to cache the whitelisted pool status locally to avoid external calls to poolsConfig.isWhitelisted on swaps
-	function clearIsWhitelistedCache(bytes32 poolID) public
-		{
-		require(msg.sender == address(poolsConfig), "Pools.clearIsWhitelistedCache is only callable from the PoolsConfig contract" );
-
-		_isWhitelistedCache[poolID] = false;
 		}
 
 
@@ -398,15 +377,12 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	// Adjust the reserves for swapping between the two specified tokens and then immediately attempt arbitrage.
 	// Perform a counterswap if possible - essentially undoing the original swap by restoring the reserves to their preswap state.
 	// Does not require exchange access for the sending wallet.
-	function _adjustReservesAndAttemptArbitrage( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut ) internal returns (uint256 swapAmountOut)
+	function _adjustReservesAndAttemptArbitrage( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, bool isWhitelistedPair ) internal returns (uint256 swapAmountOut)
 		{
-		// See if tokenIn and tokenOut are whitelisted and therefore can have direct liquidity in the pool
-		bytes32 poolID = PoolUtils._poolIDOnly(swapTokenIn, swapTokenOut);
-
-		bool isWhitelistedPair = _isWhitelistedCache[poolID];
-
 		if ( isWhitelistedPair )
 			{
+			bytes32 poolID = PoolUtils._poolIDOnly(swapTokenIn, swapTokenOut);
+
 			// For counterswapping, make sure a swap hasn't already been placed within this block (which could indicate attempted manipulation)
 			// Check this before _adjustReservesForSwap is called as it will change lastSwapBlock for the poolID
 			bool counterswapDisabled = ( _poolReserves[poolID].lastSwapBlock == uint32(block.number) );
@@ -460,7 +436,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
     // Requires that the first token in the chain has already been deposited for the caller.
     // Does not require exchange access on the contract level - as other contracts using the swap feature may not have the ability to grant themselves access.
 	// Regional restrictions on swapping within the browser itself may be added by the DAO.
-	function swap( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline ) public nonReentrant ensureNotExpired(deadline) returns (uint256 swapAmountOut)
+	function swap( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline, bool isWhitelistedPair ) public nonReentrant ensureNotExpired(deadline) returns (uint256 swapAmountOut)
 		{
 		// Confirm and adjust user deposits
 		mapping(IERC20=>uint256) storage userDeposits = _userDeposits[msg.sender];
@@ -468,7 +444,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
     	require( userDeposits[swapTokenIn] >= swapAmountIn, "Insufficient deposited token balance of initial token" );
 		userDeposits[swapTokenIn] -= swapAmountIn;
 
-		swapAmountOut = _adjustReservesAndAttemptArbitrage(swapTokenIn, swapTokenOut, swapAmountIn, minAmountOut );
+		swapAmountOut = _adjustReservesAndAttemptArbitrage(swapTokenIn, swapTokenOut, swapAmountIn, minAmountOut, isWhitelistedPair );
 
 		// Deposit the final tokenOut for the caller
 		userDeposits[swapTokenOut] += swapAmountOut;
@@ -478,12 +454,12 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	// Convenience method that allows the sender to deposit tokenIn, swap to tokenOut and then have tokenOut sent to the sender
     // Does not require exchange access on the contract level - as other contracts using the swap feature may not have the ability to grant themselves access.
 	// Regional restrictions on swapping within the browser itself may be added by the DAO.
-	function depositSwapWithdraw(IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline) public nonReentrant ensureNotExpired(deadline) returns (uint256 swapAmountOut)
+	function depositSwapWithdraw(IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline, bool isWhitelistedPair ) public nonReentrant ensureNotExpired(deadline) returns (uint256 swapAmountOut)
 		{
 		// Transfer the tokens from the sender - only tokens without fees should be whitelsited on the DEX
 		swapTokenIn.safeTransferFrom(msg.sender, address(this), swapAmountIn );
 
-		swapAmountOut = _adjustReservesAndAttemptArbitrage(swapTokenIn, swapTokenOut, swapAmountIn, minAmountOut );
+		swapAmountOut = _adjustReservesAndAttemptArbitrage(swapTokenIn, swapTokenOut, swapAmountIn, minAmountOut, isWhitelistedPair );
 
     	// Send tokenOut to the user
     	swapTokenOut.safeTransfer( msg.sender, swapAmountOut );
@@ -542,12 +518,14 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		(uint256 reserveA, uint256 reserveB) = getPoolReserves(tokenA, tokenB);
 		(uint256 swapAmountA, uint256 swapAmountB ) = PoolMath._determineZapSwapAmount( reserveA, reserveB, tokenA, tokenB, zapAmountA, zapAmountB );
 
+		bytes32 poolID = PoolUtils._poolIDOnly( tokenA, tokenB );
+
 		// tokenA is in excess so swap some of it to tokenB before adding liquidity?
 		if ( swapAmountA > 0)
 			{
 			// Swap from tokenA to tokenB and adjust the zapAmounts
 			zapAmountA -= swapAmountA;
-			zapAmountB +=  depositSwapWithdraw( tokenA, tokenB, swapAmountA, 0, block.timestamp );
+			zapAmountB +=  depositSwapWithdraw( tokenA, tokenB, swapAmountA, 0, block.timestamp, poolsConfig.isWhitelisted(poolID) );
 			}
 
 		// tokenB is in excess so swap some of it to tokenA before adding liquidity?
@@ -555,7 +533,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 			{
 			// Swap from tokenB to tokenA and adjust the zapAmounts
 			zapAmountB -= swapAmountB;
-			zapAmountA += depositSwapWithdraw( tokenB, tokenA, swapAmountB, 0, block.timestamp );
+			zapAmountA += depositSwapWithdraw( tokenB, tokenA, swapAmountB, 0, block.timestamp, poolsConfig.isWhitelisted(poolID) );
 			}
 
 		// Assuming bypassSwap was false, the ratio of both tokens should now be the same as the ratio of the current reserves (within precision).

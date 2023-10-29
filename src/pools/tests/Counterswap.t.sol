@@ -175,7 +175,7 @@ contract TestCounterswap2 is Deployment
 		assertEq( _pools.depositedBalance(counterswapAddress, token1), 0, "Initial token1 balance should be zero" );
 
 		vm.prank(DEPLOYER);
-		uint256 swapAmountOut = _pools.depositSwapWithdraw( token1, token0, swapAmountIn, 0, block.timestamp);
+		uint256 swapAmountOut = _pools.depositSwapWithdraw( token1, token0, swapAmountIn, 0, block.timestamp, true);
 
 		vm.roll( block.number + 1 );
 
@@ -200,7 +200,7 @@ contract TestCounterswap2 is Deployment
 
         // Checking shouldCounterswap when swapAmountOut is less than the deposited amount
 		vm.prank(DEPLOYER);
-		_pools.depositSwapWithdraw( token1, token0, swapAmountIn, 0, block.timestamp);
+		_pools.depositSwapWithdraw( token1, token0, swapAmountIn, 0, block.timestamp, true);
 		vm.roll( block.number + 1 );
 
         bool shouldCounterswapLess = _pools.shouldCounterswap(token1, token0, amountToDeposit - 100);
@@ -209,7 +209,7 @@ contract TestCounterswap2 is Deployment
 
 		// Checking a swap made in the same block
 		vm.prank(DEPLOYER);
-		_pools.depositSwapWithdraw( token1, token0, swapAmountIn, 0, block.timestamp);
+		_pools.depositSwapWithdraw( token1, token0, swapAmountIn, 0, block.timestamp, true);
 
         bool shouldCounterswapLess2 = _pools.shouldCounterswap(token1, token0, amountToDeposit - 100);
         assertFalse(shouldCounterswapLess2, "shouldCounterswap should return false with a swap placed in the same block");

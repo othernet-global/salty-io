@@ -131,7 +131,7 @@ contract TestArbitrage is Deployment
 		vm.startPrank(alice);
 
 		uint256 startingWETH = weth.balanceOf(alice);
-		uint256 amountOut = pools.depositSwapWithdraw( wbtc, weth, 10 *10**8, 0, block.timestamp );
+		uint256 amountOut = pools.depositSwapWithdraw( wbtc, weth, 10 *10**8, 0, block.timestamp, true );
 
 		// Check the swap itself (prices not accurate)
 		// 10 WBTC -> ~ 9.9 WETH
@@ -169,7 +169,7 @@ contract TestArbitrage is Deployment
 		vm.startPrank(alice);
 
 		uint256 startingWBTC = wbtc.balanceOf(alice);
-		uint256 amountOut = pools.depositSwapWithdraw( weth, wbtc, 10 ether, 0, block.timestamp );
+		uint256 amountOut = pools.depositSwapWithdraw( weth, wbtc, 10 ether, 0, block.timestamp, true );
 
 		// Check the swap itself (prices not accurate)
 		assertEq( amountOut, 990099010 );
@@ -206,7 +206,7 @@ contract TestArbitrage is Deployment
 		vm.startPrank(alice);
 
 		uint256 startingBalance = token.balanceOf(alice);
-		uint256 amountOut = pools.depositSwapWithdraw( weth, token, 10 ether, 0, block.timestamp );
+		uint256 amountOut = pools.depositSwapWithdraw( weth, token, 10 ether, 0, block.timestamp, true );
 
 		// Check the swap itself (prices not accurate)
 		assertEq( amountOut, 9090909090909090910 );
@@ -243,7 +243,7 @@ contract TestArbitrage is Deployment
 		vm.startPrank(alice);
 
 		uint256 startingWETH = weth.balanceOf(alice);
-		uint256 amountOut = pools.depositSwapWithdraw( token, weth, 1 ether, 0, block.timestamp );
+		uint256 amountOut = pools.depositSwapWithdraw( token, weth, 1 ether, 0, block.timestamp, true );
 
 		// Check the swap itself (prices not accurate)
 		assertEq( amountOut, 990099009900990100 );
@@ -292,7 +292,7 @@ contract TestArbitrage is Deployment
 		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, 100 ether, 100 ether, 0, block.timestamp, true );
 
 		uint256 startingBalance = token2.balanceOf(alice);
-		uint256 amountOut = pools.depositSwapWithdraw( token1, token2, 1 ether, 0, block.timestamp );
+		uint256 amountOut = pools.depositSwapWithdraw( token1, token2, 1 ether, 0, block.timestamp, true );
 
 		// Check the swap itself (prices not accurate)
 		assertEq( amountOut, 990099009900990100 );
@@ -336,7 +336,7 @@ contract TestArbitrage is Deployment
 		token2.approve( address(pools), type(uint256).max );
 
 		uint256 startingBalance = token2.balanceOf(alice);
-		uint256 amountOut = pools.depositSwapWithdraw( token1, token2, 1 ether, 0, block.timestamp );
+		uint256 amountOut = pools.depositSwapWithdraw( token1, token2, 1 ether, 0, block.timestamp, false );
 
 		// Check the swap itself (prices not accurate)
 		assertEq( amountOut, 980392156862745100 );
@@ -375,7 +375,7 @@ contract TestArbitrage is Deployment
 		vm.startPrank(alice);
 
 		uint256 startingWETH = weth.balanceOf(alice);
-		uint256 amountOut = pools.depositSwapWithdraw( wbtc, weth, 10 *10**8, 0, block.timestamp );
+		uint256 amountOut = pools.depositSwapWithdraw( wbtc, weth, 10 *10**8, 0, block.timestamp, true );
 
 		// Check the swap itself (prices not accurate)
 		assertEq( amountOut, 9900990099009900991 );
@@ -403,7 +403,7 @@ contract TestArbitrage is Deployment
 			{
 			uint256 startingDepositWeth = pools.depositedBalance( address(dao), weth );
 
-			pools.depositSwapWithdraw( weth, wbtc, 1 ether, 0, block.timestamp );
+			pools.depositSwapWithdraw( weth, wbtc, 1 ether, 0, block.timestamp, true );
 
 			uint256 profit = pools.depositedBalance( address(dao), weth ) - startingDepositWeth;
 			assertTrue( profit > 3*10**13, "Profit lower than expected" );
@@ -461,7 +461,7 @@ contract TestArbitrage is Deployment
 		vm.startPrank(alice);
 
 		uint256 startingWETH = weth.balanceOf(alice);
-		uint256 amountOut = pools.depositSwapWithdraw( wbtc, weth, 10000, 0, block.timestamp );
+		uint256 amountOut = pools.depositSwapWithdraw( wbtc, weth, 10000, 0, block.timestamp, true );
 
 		// Check the swap itself
 		assertEq( amountOut, 9090910 );

@@ -272,7 +272,7 @@ contract Upkeep is IUpkeep
 
 	// Perform the various steps of performUpkeep as outlined at the top of the contract.
 	// Each step is wrapped in a try/catch and called using this.stepX() - with each stepX function requiring that the caller has to be this contract.
-	// Uses a maximum of 2.8 million gas with 100 whitelisted pools according to UpkeepGasUsage.t.sol
+	// Uses a maximum of 3.2 million gas with 100 whitelisted pools according to UpkeepGasUsage.t.sol
 	function performUpkeep() public
 		{
 		require( block.timestamp >= lastUpkeepTime, "Cannot update with an earlier block.timestamp than lastUpkeepTime" );

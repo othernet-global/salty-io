@@ -531,9 +531,9 @@ contract TestUpkeep2 is Deployment
 		weth.approve(address(pools), type(uint256).max);
 
 		// Place some sample trades to create arbitrage contributions for the pool stats
-		pools.depositSwapWithdraw(salt, weth, 1 ether, 0, block.timestamp);
-		pools.depositSwapWithdraw(salt, wbtc, 1 ether, 0, block.timestamp);
-		pools.depositSwapWithdraw(weth, wbtc, 1 ether, 0, block.timestamp);
+		pools.depositSwapWithdraw(salt, weth, 1 ether, 0, block.timestamp, true);
+		pools.depositSwapWithdraw(salt, wbtc, 1 ether, 0, block.timestamp, true);
+		pools.depositSwapWithdraw(weth, wbtc, 1 ether, 0, block.timestamp, true);
 		vm.stopPrank();
 
 		bytes32[] memory poolIDsB = new bytes32[](1);
@@ -605,9 +605,9 @@ contract TestUpkeep2 is Deployment
 		weth.approve(address(pools), type(uint256).max);
 
 		// Place some sample trades to create arbitrage contributions for the pool stats
-		pools.depositSwapWithdraw(salt, weth, 1 ether, 0, block.timestamp);
-		pools.depositSwapWithdraw(salt, wbtc, 1 ether, 0, block.timestamp);
-		pools.depositSwapWithdraw(weth, wbtc, 1 ether, 0, block.timestamp);
+		pools.depositSwapWithdraw(salt, weth, 1 ether, 0, block.timestamp, true);
+		pools.depositSwapWithdraw(salt, wbtc, 1 ether, 0, block.timestamp, true);
+		pools.depositSwapWithdraw(weth, wbtc, 1 ether, 0, block.timestamp, true);
 		vm.stopPrank();
 
 		// Step 12. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter and call clearProfitsForPools.

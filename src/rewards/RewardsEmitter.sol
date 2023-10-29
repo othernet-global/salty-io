@@ -28,6 +28,7 @@ contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
 	IPoolsConfig immutable public poolsConfig;
 	IRewardsConfig immutable public rewardsConfig;
 	ISalt immutable public salt;
+   	bool immutable isForCollateralAndLiquidity;
 
 	uint256 constant public MAX_TIME_SINCE_LAST_UPKEEP = 1 days;
 
@@ -35,7 +36,6 @@ contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
     // Only a percentage of these will be distributed per day (interpolated to a default of 1% per day).
    	mapping(bytes32=>uint256) public pendingRewards;
 
-   	bool isForCollateralAndLiquidity;
 
 
     constructor( IStakingRewards _stakingRewards, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IRewardsConfig _rewardsConfig, bool _isForCollateralAndLiquidity )

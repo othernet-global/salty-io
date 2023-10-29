@@ -59,26 +59,26 @@ contract TestArbitrage is Deployment
 		pools.deposit( tokenE, 100 ether );
 
 		// Initial transactions cost more gas so perform the first ones here
-		pools.swap( tokenE, weth, 10 ether, 0, block.timestamp );
-		pools.depositSwapWithdraw( weth, tokenE, 10 ether, 0, block.timestamp );
+		pools.swap( tokenE, weth, 10 ether, 0, block.timestamp, true );
+		pools.depositSwapWithdraw( weth, tokenE, 10 ether, 0, block.timestamp, true );
 		}
 
 
 	function testGasDepositSwapWithdrawAndArbitrage() public
 		{
-		pools.depositSwapWithdraw( tokenE, weth, 10 ether, 0, block.timestamp );
+		pools.depositSwapWithdraw( tokenE, weth, 10 ether, 0, block.timestamp, true );
 		}
 
 
 	function testGasSwapAndArbitrage() public
 		{
-		pools.swap( tokenE, weth, 10 ether, 0, block.timestamp );
+		pools.swap( tokenE, weth, 10 ether, 0, block.timestamp, true );
 		}
 
 
 	function testDepositSwapWithdrawAndArbitrage() public
 		{
-		uint256 amountOut = pools.depositSwapWithdraw( tokenE, weth, 10 ether, 0, block.timestamp );
+		uint256 amountOut = pools.depositSwapWithdraw( tokenE, weth, 10 ether, 0, block.timestamp, true );
 
 //		console.log( "amountOut: ", amountOut );
 //		console.log( "ending pools balance: ", pools.depositedBalance( address(pools), weth ) );
