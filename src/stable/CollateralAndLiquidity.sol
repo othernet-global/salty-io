@@ -67,10 +67,10 @@ contract CollateralAndLiquidity is Liquidity, ICollateralAndLiquidity
 	// Deposit WBTC/WETH liqudity as collateral and increase the caller's collateral share for future rewards.
 	// The called function depositLiquidityAndIncreaseShare is nonReentrant.
 	// Requires exchange access for the sending wallet (through depositLiquidityAndIncreaseShare)
-	function depositCollateralAndIncreaseShare( uint256 maxAmountWBTC, uint256 maxAmountWETH, uint256 minLiquidityReceived, uint256 deadline, bool bypassZapping ) public ensureNotExpired(deadline)  returns (uint256 addedAmountWBTC, uint256 addedAmountWETH, uint256 addedLiquidity)
+	function depositCollateralAndIncreaseShare( uint256 maxAmountWBTC, uint256 maxAmountWETH, uint256 minLiquidityReceived, uint256 deadline, bool useZapping ) public ensureNotExpired(deadline)  returns (uint256 addedAmountWBTC, uint256 addedAmountWETH, uint256 addedLiquidity)
 		{
 		// Have the user deposit the specified WBTC/WETH liquidity and increase their collateral share
-		(addedAmountWBTC, addedAmountWETH, addedLiquidity) = _depositLiquidityAndIncreaseShare( wbtc, weth, maxAmountWBTC, maxAmountWETH, minLiquidityReceived, bypassZapping );
+		(addedAmountWBTC, addedAmountWETH, addedLiquidity) = _depositLiquidityAndIncreaseShare( wbtc, weth, maxAmountWBTC, maxAmountWETH, minLiquidityReceived, useZapping );
 		}
 
 

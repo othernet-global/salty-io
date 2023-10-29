@@ -54,11 +54,11 @@ contract TestArbitrage is Deployment
    		weth.approve( address(pools), type(uint256).max );
    		salt.approve( address(pools), type(uint256).max );
 
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token, wbtc, 100 ether, 100 *10**8, 0, block.timestamp, true );
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token, weth, 100 ether, 100 ether, 0, block.timestamp, true );
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( salt, wbtc, 100 ether, 100 *10**8, 0, block.timestamp, true );
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( salt, weth, 100 ether, 100 ether, 0, block.timestamp, true );
-		collateralAndLiquidity.depositCollateralAndIncreaseShare( 1000 *10**8, 1000 ether, 0, block.timestamp, true );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token, wbtc, 100 ether, 100 *10**8, 0, block.timestamp, false );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token, weth, 100 ether, 100 ether, 0, block.timestamp, false );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( salt, wbtc, 100 ether, 100 *10**8, 0, block.timestamp, false );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( salt, weth, 100 ether, 100 ether, 0, block.timestamp, false );
+		collateralAndLiquidity.depositCollateralAndIncreaseShare( 1000 *10**8, 1000 ether, 0, block.timestamp, false );
 
 		pools.deposit( token, 100 ether );
 		vm.stopPrank();
@@ -77,8 +77,8 @@ contract TestArbitrage is Deployment
 		token.approve( address(pools), type(uint256).max );
 		token.approve( address(collateralAndLiquidity), type(uint256).max );
 
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token, wbtc, 100 ether, 100 *10**8, 0, block.timestamp, true );
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token, weth, 100 ether, 100 ether, 0, block.timestamp, true );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token, wbtc, 100 ether, 100 *10**8, 0, block.timestamp, false );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token, weth, 100 ether, 100 ether, 0, block.timestamp, false );
 
 		pools.deposit( token, 100 ether );
 		}
@@ -109,10 +109,10 @@ contract TestArbitrage is Deployment
    		weth.approve( address(collateralAndLiquidity), type(uint256).max );
    		salt.approve( address(collateralAndLiquidity), type(uint256).max );
 
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token, wbtc, 100 ether, 100 *10**8, 0, block.timestamp, true );
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token, weth, 100 ether, 100 ether, 0, block.timestamp, true );
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( salt, wbtc, 100 ether, 100 *10**8, 0, block.timestamp, true );
-		collateralAndLiquidity.depositCollateralAndIncreaseShare( 1000 *10**8, 1000 ether, 0, block.timestamp, true );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token, wbtc, 100 ether, 100 *10**8, 0, block.timestamp, false );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token, weth, 100 ether, 100 ether, 0, block.timestamp, false );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( salt, wbtc, 100 ether, 100 *10**8, 0, block.timestamp, false );
+		collateralAndLiquidity.depositCollateralAndIncreaseShare( 1000 *10**8, 1000 ether, 0, block.timestamp, false );
 
 		pools.deposit( token, 100 ether );
 		}
@@ -289,7 +289,7 @@ contract TestArbitrage is Deployment
 		token1.approve( address(pools), type(uint256).max );
 		token2.approve( address(pools), type(uint256).max );
 
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, 100 ether, 100 ether, 0, block.timestamp, true );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, 100 ether, 100 ether, 0, block.timestamp, false );
 
 		uint256 startingBalance = token2.balanceOf(alice);
 		uint256 amountOut = pools.depositSwapWithdraw( token1, token2, 1 ether, 0, block.timestamp, true );
@@ -438,11 +438,11 @@ contract TestArbitrage is Deployment
    		weth.approve( address(collateralAndLiquidity), type(uint256).max );
    		salt.approve( address(collateralAndLiquidity), type(uint256).max );
 
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token, wbtc, 100000000, 100000, 0, block.timestamp, true );
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token, weth, 100000000, 100000, 0, block.timestamp, true );
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( salt, wbtc, 100000000, 100000, 0, block.timestamp, true );
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( salt, weth, 100000000, 100000000, 0, block.timestamp, true );
-		collateralAndLiquidity.depositCollateralAndIncreaseShare( 100000, 100000000, 0, block.timestamp, true );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token, wbtc, 100000000, 100000, 0, block.timestamp, false );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token, weth, 100000000, 100000, 0, block.timestamp, false );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( salt, wbtc, 100000000, 100000, 0, block.timestamp, false );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( salt, weth, 100000000, 100000000, 0, block.timestamp, false );
+		collateralAndLiquidity.depositCollateralAndIncreaseShare( 100000, 100000000, 0, block.timestamp, false );
 
 		pools.deposit( token, 10000000 );
 		}

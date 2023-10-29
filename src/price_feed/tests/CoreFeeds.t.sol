@@ -54,8 +54,8 @@ contract TestCoreFeeds is Deployment
 		weth.approve( address(collateralAndLiquidity), type(uint256).max );
 		wbtc.approve( address(collateralAndLiquidity), type(uint256).max );
 
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare(weth, usds, 1000 ether, 1850000 ether, 0, block.timestamp, true );
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare(wbtc, usds, 100 * 10**8, 2919100 ether, 0, block.timestamp, true );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare(weth, usds, 1000 ether, 1850000 ether, 0, block.timestamp, false );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare(wbtc, usds, 100 * 10**8, 2919100 ether, 0, block.timestamp, false );
 
 		vm.stopPrank();
 

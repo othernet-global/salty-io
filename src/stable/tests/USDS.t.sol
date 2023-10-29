@@ -483,8 +483,8 @@ contract USDSTest is Deployment
     	weth.approve(address(collateralAndLiquidity), type(uint256).max);
     	usds.approve(address(collateralAndLiquidity), type(uint256).max);
 
-    	collateralAndLiquidity.depositLiquidityAndIncreaseShare(wbtc, usds, 100 *10**8, 1000000 ether, 0, block.timestamp, true );
-    	collateralAndLiquidity.depositLiquidityAndIncreaseShare(weth, usds, 100 ether, 100000 ether, 0, block.timestamp, true );
+    	collateralAndLiquidity.depositLiquidityAndIncreaseShare(wbtc, usds, 100 *10**8, 1000000 ether, 0, block.timestamp, false );
+    	collateralAndLiquidity.depositLiquidityAndIncreaseShare(weth, usds, 100 ether, 100000 ether, 0, block.timestamp, false );
     	vm.stopPrank();
 
     	// Perform upkeep to deposit WBTC and WETH to the corresponding counterswap and withdraw USDS
@@ -549,8 +549,8 @@ contract USDSTest is Deployment
     	weth.approve(address(collateralAndLiquidity), type(uint256).max);
     	usds.approve(address(collateralAndLiquidity), type(uint256).max);
 
-    	collateralAndLiquidity.depositLiquidityAndIncreaseShare(wbtc, usds, 100 *10**8, 1000000 ether, 0, block.timestamp, true );
-    	collateralAndLiquidity.depositLiquidityAndIncreaseShare(weth, usds, 100 ether, 100000 ether, 0, block.timestamp, true );
+    	collateralAndLiquidity.depositLiquidityAndIncreaseShare(wbtc, usds, 100 *10**8, 1000000 ether, 0, block.timestamp, false );
+    	collateralAndLiquidity.depositLiquidityAndIncreaseShare(weth, usds, 100 ether, 100000 ether, 0, block.timestamp, false );
     	vm.stopPrank();
 
     	// Perform upkeep to deposit WBTC and WETH to the corresponding counterswap and withdraw USDS
@@ -773,8 +773,8 @@ contract USDSTest is Deployment
     	weth.approve(address(collateralAndLiquidity), type(uint256).max);
     	usds.approve(address(collateralAndLiquidity), type(uint256).max);
 
-    	collateralAndLiquidity.depositLiquidityAndIncreaseShare(wbtc, usds, 100 *10**8, 1000000 ether, 0, block.timestamp, true );
-    	collateralAndLiquidity.depositLiquidityAndIncreaseShare(weth, usds, 100 ether, 100000 ether, 0, block.timestamp, true );
+    	collateralAndLiquidity.depositLiquidityAndIncreaseShare(wbtc, usds, 100 *10**8, 1000000 ether, 0, block.timestamp, false );
+    	collateralAndLiquidity.depositLiquidityAndIncreaseShare(weth, usds, 100 ether, 100000 ether, 0, block.timestamp, false );
     	vm.stopPrank();
 
     	// Perform upkeep to deposit WBTC and WETH to the corresponding counterswap and withdraw USDS

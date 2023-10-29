@@ -189,7 +189,7 @@ contract LiquidityTest is Deployment
 		{
 		vm.expectRevert( "Sender does not have exchange access" );
 		vm.prank(address(0xDEAD));
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, 10 ether, 10 ether, 0 ether, block.timestamp, false );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, 10 ether, 10 ether, 0 ether, block.timestamp, true );
 		}
 
 
@@ -200,7 +200,7 @@ contract LiquidityTest is Deployment
 
 		// Have the DAO add liquidity
 		vm.startPrank(address(dao));
-		(,, uint256 addedLiquidity) = collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, 10 ether, 10 ether, 0 ether, block.timestamp, false );
+		(,, uint256 addedLiquidity) = collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, 10 ether, 10 ether, 0 ether, block.timestamp, true );
 		assertEq(collateralAndLiquidity.userShareForPool(address(dao), pool1), addedLiquidity, "DAO's share should have increased" );
 
 		// DAO attempts to withdraw liquidity
@@ -215,7 +215,7 @@ contract LiquidityTest is Deployment
 	function tesWithdrawingMoreThanDeposited() public {
 		// Have alice add liquidity
 		vm.startPrank(alice);
-		(,, uint256 addedLiquidity) = collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, 10 ether, 20 ether, 0 ether, block.timestamp, false );
+		(,, uint256 addedLiquidity) = collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, 10 ether, 20 ether, 0 ether, block.timestamp, true );
 
 		// Alice attempts to withdraw more than she deposited
 		vm.expectRevert("Cannot withdraw more than existing user share" );
@@ -228,7 +228,7 @@ contract LiquidityTest is Deployment
 	function testUnstakeBeforeCooldown() public {
 		// Have alice add liquidity
 		vm.startPrank(alice);
-		(,, uint256 addedLiquidity) = collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, 10 ether, 20 ether, 0 ether, block.timestamp, false );
+		(,, uint256 addedLiquidity) = collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, 10 ether, 20 ether, 0 ether, block.timestamp, true );
 
 		// Alice attempts to withdraw more than she deposited
 		vm.expectRevert("Must wait for the cooldown to expire" );
@@ -272,7 +272,7 @@ contract LiquidityTest is Deployment
 
 		// Alice adds 50 ether of token2 and token3
 		vm.prank(alice);
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token2, token3, 50 ether, 50 ether, 0, block.timestamp, false );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token2, token3, 50 ether, 50 ether, 0, block.timestamp, true );
 		check1( 50 ether, 0 ether, 0 ether, 0 ether, 0 ether, 0 ether );
 		check2( 0 ether, 0 ether, 0 ether );
 		AddedReward[] memory rewards = new AddedReward[](1);
@@ -284,7 +284,7 @@ contract LiquidityTest is Deployment
 
 		// Bob adds 10/10 ether
 		vm.prank(bob);
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token2, token3, 10 ether, 10 ether, 0, block.timestamp, false );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token2, token3, 10 ether, 10 ether, 0, block.timestamp, true );
 		check1( 50 ether, 10 ether, 0 ether, 50 ether, 0 ether, 0 ether );
 		check2( 0 ether, 0 ether, 0 ether );
 		rewards[0] = AddedReward(pool2, 30 ether);
@@ -306,7 +306,7 @@ contract LiquidityTest is Deployment
 
 		// Charlie adds 40/40 ether
 		vm.prank(charlie);
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token2, token3, 40 ether, 40 ether, 0, block.timestamp, false );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token2, token3, 40 ether, 40 ether, 0, block.timestamp, true );
 		check1( 50 ether, 10 ether, 40 ether, 25 ether, 10 ether, 0 ether );
 		check2( 75 ether, 0 ether, 0 ether );
 		rewards[0] = AddedReward(pool2, 100 ether);
@@ -350,7 +350,7 @@ contract LiquidityTest is Deployment
 
 		// Alice adds 100/100 ether
 		vm.prank(alice);
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token2, token3, 100 ether, 100 ether, 0, block.timestamp, false );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token2, token3, 100 ether, 100 ether, 0, block.timestamp, true );
 		check1( 140 ether, 10 ether, 40 ether, 220 ether, 30 ether, 80 ether );
 		check2( 90 ether, 30 ether, 120 ether );
 		rewards[0] = AddedReward(pool2, 190 ether);
@@ -383,7 +383,7 @@ contract LiquidityTest is Deployment
 
 		// Bob adds 148
 		vm.prank(bob);
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token2, token3, 148 ether, 148 ether, 0, block.timestamp, false );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token2, token3, 148 ether, 148 ether, 0, block.timestamp, true );
 		check1( 140 ether, 156 ether, 0 ether, 500 ether, 40 ether, 0 ether );
 		check2( 90 ether, 39 ether, 240 ether );
 		rewards[0] = AddedReward(pool2, 592 ether);
@@ -454,23 +454,23 @@ contract LiquidityTest is Deployment
 	function testAddLiquidityWithoutZapping() public {
 		// Have alice add liquidity
 		vm.startPrank(alice);
-		(,, uint256 addedLiquidity) = collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, 10 ether, 20 ether, 0 ether, block.timestamp, true );
+		(,, uint256 addedLiquidity) = collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, 10 ether, 20 ether, 0 ether, block.timestamp, false );
 
 		uint256 addedAmountA;
 		uint256 addedAmountB;
 
 		vm.expectRevert( "Must wait for the cooldown to expire" );
-		(addedAmountA, addedAmountB, addedLiquidity) = collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, 10 ether, 50 ether, 0 ether, block.timestamp, true );
+		(addedAmountA, addedAmountB, addedLiquidity) = collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, 10 ether, 50 ether, 0 ether, block.timestamp, false );
 
 		vm.warp( block.timestamp + 1 hours );
 
-		(addedAmountA, addedAmountB, addedLiquidity) = collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, 10 ether, 50 ether, 0 ether, block.timestamp, true );
+		(addedAmountA, addedAmountB, addedLiquidity) = collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, 10 ether, 50 ether, 0 ether, block.timestamp, false );
 		assertEq( addedAmountA, 10 ether );
 		assertEq( addedAmountB, 20 ether );
 
 		vm.warp( block.timestamp + 1 hours );
 
-		( addedAmountA, addedAmountB, addedLiquidity) = collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, 50 ether, 20 ether, 0 ether, block.timestamp, true );
+		( addedAmountA, addedAmountB, addedLiquidity) = collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, 50 ether, 20 ether, 0 ether, block.timestamp, false );
 		assertEq( addedAmountA, 10 ether );
 		assertEq( addedAmountB, 20 ether );
     }
@@ -501,7 +501,7 @@ contract LiquidityTest is Deployment
 
     	// Should revert while trying to depositLiquidityAndIncreaseShare
     	vm.expectRevert("Invalid pool");
-    	collateralAndLiquidity.depositLiquidityAndIncreaseShare( token4, token5, amountA, amountB, 0 ether, block.timestamp, false );
+    	collateralAndLiquidity.depositLiquidityAndIncreaseShare( token4, token5, amountA, amountB, 0 ether, block.timestamp, true );
     }
 
 
@@ -522,7 +522,7 @@ contract LiquidityTest is Deployment
         vm.startPrank(alice);
         token1.approve(address(collateralAndLiquidity), type(uint256).max);
         token2.approve(address(collateralAndLiquidity), type(uint256).max);
-        ( uint256 addedAmountA, uint256 addedAmountB,) = collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, addedAmount1, addedAmount2, 0 ether, block.timestamp, true );
+        ( uint256 addedAmountA, uint256 addedAmountB,) = collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, addedAmount1, addedAmount2, 0 ether, block.timestamp, false );
 		vm.stopPrank();
 
         // The exact amount of tokens should be deposited in the pool
@@ -543,7 +543,7 @@ contract LiquidityTest is Deployment
         weth.approve(address(collateralAndLiquidity), type(uint256).max);
 
 		vm.expectRevert( "Stablecoin collateral cannot be deposited via Liquidity.depositLiquidityAndIncreaseShare" );
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( wbtc, weth, 10 * 10**8, 10 ether, 0 ether, block.timestamp, false );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( wbtc, weth, 10 * 10**8, 10 ether, 0 ether, block.timestamp, true );
 
 		// Shouldn't be able to withdraw WBTC/WETH directly via withdrawLiquidityAndClaim
 		vm.expectRevert( "Stablecoin collateral cannot be withdrawn via Liquidity.withdrawLiquidityAndClaim" );

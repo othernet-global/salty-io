@@ -258,7 +258,7 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		salt.approve(address(collateralAndLiquidity), balanceA);
 		usds.approve(address(collateralAndLiquidity), balanceB);
 
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( salt, usds, balanceA, balanceB, 0, block.timestamp, true );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( salt, usds, balanceA, balanceB, 0, block.timestamp, false );
 		}
 
 

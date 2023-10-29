@@ -151,7 +151,6 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		require( maxAmountA > PoolUtils.DUST, "The amount of tokenA to add is too small" );
 		require( maxAmountB > PoolUtils.DUST, "The amount of tokenB to add is too small" );
 
-		{
 		(bytes32 poolID, bool flipped) = PoolUtils._poolID(tokenA, tokenB);
 
 		// Note that addedAmountA and addedAmountB here are in reserve token order and may be flipped from the call token order specified in the arguments.
@@ -163,7 +162,6 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		// Flip back to call token order so the amounts make sense to the caller?
 		if ( flipped )
 			(addedAmountA, addedAmountB) = (addedAmountB, addedAmountA);
-		}
 
 		// Transfer the tokens from the sender - only tokens without fees should be whitelisted on the DEX
 		tokenA.safeTransferFrom(msg.sender, address(this), addedAmountA );
@@ -500,45 +498,6 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
     	// Send the token to the caller
     	tokenToWithdraw.safeTransfer( msg.sender, amountToWithdraw );
-		}
-
-
-
-
-	// Deposit an arbitrary amount of one or both tokens into the pool and receive liquidity corresponding the the value of both of them.
-	// As the ratio of tokens added to the pool has to be the same as the existing ratio of reserves, some of the excess token will be swapped to the other.
-	// If bypassSwap is true then this functions identically to addLiquidity and no swap is performed first to balance the tokens before the liquidity add.
-	// Zapped tokens will be transferred from the sender.
-	// Due to precision reduction during zapping calculation, the minimum possible reserves and quantity possible to zap is .000101,
-	// Requires exchange access for the sending wallet (from depositSwapWithdraw)
-	function dualZapInLiquidity(IERC20 tokenA, IERC20 tokenB, uint256 zapAmountA, uint256 zapAmountB, uint256 minLiquidityReceived, uint256 totalLiquidity ) public returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
-		{
-		require( msg.sender == address(collateralAndLiquidity), "Pools.dualZapInLiquidity is only callable from the CollateralAndLiquidity contract" );
-
-		(uint256 reserveA, uint256 reserveB) = getPoolReserves(tokenA, tokenB);
-		(uint256 swapAmountA, uint256 swapAmountB ) = PoolMath._determineZapSwapAmount( reserveA, reserveB, tokenA, tokenB, zapAmountA, zapAmountB );
-
-		bytes32 poolID = PoolUtils._poolIDOnly( tokenA, tokenB );
-
-		// tokenA is in excess so swap some of it to tokenB before adding liquidity?
-		if ( swapAmountA > 0)
-			{
-			// Swap from tokenA to tokenB and adjust the zapAmounts
-			zapAmountA -= swapAmountA;
-			zapAmountB +=  depositSwapWithdraw( tokenA, tokenB, swapAmountA, 0, block.timestamp, poolsConfig.isWhitelisted(poolID) );
-			}
-
-		// tokenB is in excess so swap some of it to tokenA before adding liquidity?
-		if ( swapAmountB > 0)
-			{
-			// Swap from tokenB to tokenA and adjust the zapAmounts
-			zapAmountB -= swapAmountB;
-			zapAmountA += depositSwapWithdraw( tokenB, tokenA, swapAmountB, 0, block.timestamp, poolsConfig.isWhitelisted(poolID) );
-			}
-
-		// Assuming bypassSwap was false, the ratio of both tokens should now be the same as the ratio of the current reserves (within precision).
-		// Otherwise it will just be this normal addLiquidity call.
-		return addLiquidity(tokenA, tokenB, zapAmountA, zapAmountB, minLiquidityReceived, totalLiquidity );
 		}
 
 

@@ -141,12 +141,12 @@ contract TestCounterswap2 is Deployment
 		usds.approve( address(collateralAndLiquidity), type(uint256).max );
 
 		// Add initial liquidity
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( wbtc, salt, 100 * 10**8, 1000 ether, 0, block.timestamp, true );
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( weth, salt, 100 ether, 1000 ether, 0, block.timestamp, true );
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( salt, usds, 100 ether, 1000 ether, 0, block.timestamp, true );
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( wbtc, usds, 100 * 10**8, 1000 ether, 0, block.timestamp, true );
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( weth, usds, 100 ether, 1000 ether, 0, block.timestamp, true );
-		collateralAndLiquidity.depositCollateralAndIncreaseShare( 100 * 10**8, 1000 ether, 0, block.timestamp, true );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( wbtc, salt, 100 * 10**8, 1000 ether, 0, block.timestamp, false );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( weth, salt, 100 ether, 1000 ether, 0, block.timestamp, false );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( salt, usds, 100 ether, 1000 ether, 0, block.timestamp, false );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( wbtc, usds, 100 * 10**8, 1000 ether, 0, block.timestamp, false );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( weth, usds, 100 ether, 1000 ether, 0, block.timestamp, false );
+		collateralAndLiquidity.depositCollateralAndIncreaseShare( 100 * 10**8, 1000 ether, 0, block.timestamp, false );
 
 		// DAO needs some WBTC and WETH for the counterswap deposits
 		wbtc.transfer(address(dao), 100000 * 10**8 );

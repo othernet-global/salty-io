@@ -44,7 +44,7 @@ contract TestCoreSaltyFeed is Deployment
 	function setPriceInPoolsWBTC( uint256 price ) public
 		{
 		vm.startPrank(DEPLOYER);
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( wbtc, usds, 1000 * 10**8, price * 1000, 0, block.timestamp, true );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( wbtc, usds, 1000 * 10**8, price * 1000, 0, block.timestamp, false );
 		vm.stopPrank();
 		}
 
@@ -53,7 +53,7 @@ contract TestCoreSaltyFeed is Deployment
 	function setPriceInPoolsWETH( uint256 price ) public
 		{
 		vm.startPrank(DEPLOYER);
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( weth, usds, 1000 ether, price * 1000, 0, block.timestamp, true );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( weth, usds, 1000 ether, price * 1000, 0, block.timestamp, false );
 		vm.stopPrank();
 		}
 
@@ -171,7 +171,7 @@ contract TestCoreSaltyFeed is Deployment
         uint256 btcPrice = 30000 ether;  // BTC price in terms of USDS
 
 		vm.startPrank(DEPLOYER);
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( wbtc, usds, PoolUtils.DUST + 1, btcPrice * (PoolUtils.DUST + 1), 0, block.timestamp, true );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( wbtc, usds, PoolUtils.DUST + 1, btcPrice * (PoolUtils.DUST + 1), 0, block.timestamp, false );
 		vm.stopPrank();
 
         // Prices should match those set in the pools
@@ -185,7 +185,7 @@ contract TestCoreSaltyFeed is Deployment
         uint256 ethPrice = 3000 ether;  // ETH price in terms of USDS
 
 		vm.startPrank(DEPLOYER);
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( weth, usds, PoolUtils.DUST + 1, ethPrice * (PoolUtils.DUST + 1), 0, block.timestamp, true );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( weth, usds, PoolUtils.DUST + 1, ethPrice * (PoolUtils.DUST + 1), 0, block.timestamp, false );
 		vm.stopPrank();
 
         // Prices should match those set in the pools

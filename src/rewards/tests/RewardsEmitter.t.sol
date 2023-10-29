@@ -537,7 +537,7 @@ contract TestRewardsEmitter is Deployment
 	function testWithdrawnPoolAddSALTRewards() public {
         // Alice deposits some liquidity to the pool1
         vm.prank(alice);
-        collateralAndLiquidity.depositLiquidityAndIncreaseShare(token1, token2, 500 ether, 500 ether, 0, block.timestamp, false );
+        collateralAndLiquidity.depositLiquidityAndIncreaseShare(token1, token2, 500 ether, 500 ether, 0, block.timestamp, true );
 
         AddedReward[] memory addedRewards = new AddedReward[](1);
         addedRewards[0] = AddedReward({poolID: poolIDs[0], amountToAdd: 100 ether});
