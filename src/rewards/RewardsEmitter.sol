@@ -35,8 +35,10 @@ contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
     // Only a percentage of these will be distributed per day (interpolated to a default of 1% per day).
    	mapping(bytes32=>uint256) public pendingRewards;
 
+   	bool isForCollateralAndLiquidity;
 
-    constructor( IStakingRewards _stakingRewards, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IRewardsConfig _rewardsConfig )
+
+    constructor( IStakingRewards _stakingRewards, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IRewardsConfig _rewardsConfig, bool _isForCollateralAndLiquidity )
 		{
 		require( address(_stakingRewards) != address(0), "_stakingRewards cannot be address(0)" );
 		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
@@ -47,6 +49,7 @@ contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
 		exchangeConfig = _exchangeConfig;
 		poolsConfig = _poolsConfig;
 		rewardsConfig = _rewardsConfig;
+		isForCollateralAndLiquidity = _isForCollateralAndLiquidity;
 
 		salt = _exchangeConfig.salt();
 		}
@@ -76,7 +79,7 @@ contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
 
 	// Transfer a percent (default 1% per day) of the currently held rewards to the specified StakingRewards pools.
 	// The percentage to transfer is interpolated from how long it's been since the last performUpkeep().
-	function performUpkeep( uint256 timeSinceLastUpkeep, bool isStaking ) public
+	function performUpkeep( uint256 timeSinceLastUpkeep ) public
 		{
 		require( msg.sender == address(exchangeConfig.upkeep()), "RewardsEmitter.performUpkeep is only callable from the Upkeep contract" );
 
@@ -85,17 +88,17 @@ contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
 
 		bytes32[] memory poolIDs;
 
-		 if ( isStaking )
+		 if ( isForCollateralAndLiquidity )
+		 	{
+		 	// For the liquidityRewardsEmitter, all pools can receive rewards
+			poolIDs = poolsConfig.whitelistedPools();
+			}
+		 else
 		 	{
 		 	// The stakingRewardsEmitter only distributes rewards to those that have staked SALT
 		 	poolIDs = new bytes32[](1);
 		 	poolIDs[0] = PoolUtils.STAKED_SALT;
 		 	}
-		 else
-		 	{
-		 	// For the liquidityRewardsEmitter, all pools can receive rewards
-			poolIDs = poolsConfig.whitelistedPools();
-			}
 
 		// Cap the timeSinceLastUpkeep at one day (if for some reason it has been longer).
 		// This will cap the emitted rewards at a default of 1% in this transaction.

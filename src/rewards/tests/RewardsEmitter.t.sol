@@ -216,7 +216,7 @@ contract TestRewardsEmitter is Deployment
 
         // Call performUpkeep
         vm.prank(address(upkeep));
-        liquidityRewardsEmitter.performUpkeep(1 days, false);
+        liquidityRewardsEmitter.performUpkeep(1 days);
 
         // Verify that the correct amount of rewards were deducted from each pool's pending rewards
         // With the adjustment in the constructor, 2.5% of the rewards should be deducted per day
@@ -248,7 +248,7 @@ contract TestRewardsEmitter is Deployment
 
         // Call performUpkeep
         vm.prank(address(upkeep));
-        stakingRewardsEmitter.performUpkeep(1 days, true);
+        stakingRewardsEmitter.performUpkeep(1 days);
 
         // Verify that the correct amount of rewards were deducted from each pool's pending rewards
         // With the adjustment in the constructor, 2.5% of the rewards should be deducted per day
@@ -283,7 +283,7 @@ contract TestRewardsEmitter is Deployment
 
         // Perform upkeep after 1 day for poolIDs[0] and poolIDs[1]
         vm.prank(address(upkeep));
-        liquidityRewardsEmitter.performUpkeep(1 days, false);
+        liquidityRewardsEmitter.performUpkeep(1 days);
 
         // After upkeep, rewards should be reduced by 2.5% (increased from default) for each pool
         assertEq(pendingLiquidityRewardsForPool(poolIDs[0]), 97.5 ether );
@@ -365,7 +365,7 @@ contract TestRewardsEmitter is Deployment
         assertEq(pendingRewards[1], 100000 ether);
 
         vm.prank(address(upkeep));
-        liquidityRewardsEmitter.performUpkeep(2 weeks, false);
+        liquidityRewardsEmitter.performUpkeep(2 weeks);
 
         // Verify that 5% of the rewards have been distributed (default daily distribution rate)
         pendingRewards = liquidityRewardsEmitter.pendingRewardsForPools(poolIDs);
@@ -386,7 +386,7 @@ contract TestRewardsEmitter is Deployment
 
         // Perform upkeep again
         vm.prank(address(upkeep));
-        liquidityRewardsEmitter.performUpkeep(2 weeks, false);
+        liquidityRewardsEmitter.performUpkeep(2 weeks);
 
         // Verify that no SALT rewards are distributed for both pools, even after 1 day
         pendingRewards = liquidityRewardsEmitter.pendingRewardsForPools(poolIDs);
@@ -409,7 +409,7 @@ contract TestRewardsEmitter is Deployment
 
         // Perform upkeep
         vm.prank(address(upkeep));
-        liquidityRewardsEmitter.performUpkeep(1 days, false);
+        liquidityRewardsEmitter.performUpkeep(1 days);
 
         // Ensure that the function did not revert and that the pending rewards for pool[1] is still 0
         assertEq(pendingLiquidityRewardsForPool(poolIDs[1]), 0 ether);
@@ -431,7 +431,7 @@ contract TestRewardsEmitter is Deployment
 
         // Perform upkeep after 1 hour
         vm.prank(address(upkeep));
-        liquidityRewardsEmitter.performUpkeep(1 hours, false);
+        liquidityRewardsEmitter.performUpkeep(1 hours);
 
         // Check rewards
         uint256 pendingRewards = liquidityRewardsEmitter.pendingRewardsForPools(poolIDs)[1];
@@ -443,7 +443,7 @@ contract TestRewardsEmitter is Deployment
 
         // Perform upkeep after 12 more hours
 		vm.prank(address(upkeep));
-		liquidityRewardsEmitter.performUpkeep(12 hours, false);
+		liquidityRewardsEmitter.performUpkeep(12 hours);
 
         // Check rewards
         pendingRewards = liquidityRewardsEmitter.pendingRewardsForPools(poolIDs)[1];
@@ -455,7 +455,7 @@ contract TestRewardsEmitter is Deployment
 
         // Perform upkeep after 24 more hours
         vm.prank(address(upkeep));
-        liquidityRewardsEmitter.performUpkeep(24 hours, false);
+        liquidityRewardsEmitter.performUpkeep(24 hours);
 
         // Check rewards
         pendingRewards = liquidityRewardsEmitter.pendingRewardsForPools(poolIDs)[1];
@@ -467,7 +467,7 @@ contract TestRewardsEmitter is Deployment
 
         // Perform upkeep after 48 more hours
 		vm.prank(address(upkeep));
-		liquidityRewardsEmitter.performUpkeep(48 hours, false);
+		liquidityRewardsEmitter.performUpkeep(48 hours);
 
         // Check rewards - will be capped at 24 hours of delay
         pendingRewards = liquidityRewardsEmitter.pendingRewardsForPools(poolIDs)[1];
@@ -495,7 +495,7 @@ contract TestRewardsEmitter is Deployment
 
         // Perform upkeep to distribute rewards
         vm.prank(address(upkeep));
-        liquidityRewardsEmitter.performUpkeep(1 days, false);
+        liquidityRewardsEmitter.performUpkeep(1 days);
 
 		uint256 rewards0 = pendingLiquidityRewardsForPool(poolIDs[0]);
 
@@ -512,7 +512,7 @@ contract TestRewardsEmitter is Deployment
         assertTrue(newDailyPercent > oldDailyPercent, "New daily percent should be greater than old daily percent");
 
         vm.prank(address(upkeep));
-        liquidityRewardsEmitter.performUpkeep(1 days, false);
+        liquidityRewardsEmitter.performUpkeep(1 days);
 
 		uint256 rewards1 = pendingLiquidityRewardsForPool(poolIDs[0]);
 
@@ -526,10 +526,10 @@ contract TestRewardsEmitter is Deployment
 	function testPerformUpkeepOnlyCallableFromDAO() public
 		{
 		vm.expectRevert( "RewardsEmitter.performUpkeep is only callable from the Upkeep contract" );
-        liquidityRewardsEmitter.performUpkeep(2 weeks, false);
+        liquidityRewardsEmitter.performUpkeep(2 weeks);
 
 		vm.prank(address(upkeep));
-        liquidityRewardsEmitter.performUpkeep(2 weeks, false);
+        liquidityRewardsEmitter.performUpkeep(2 weeks);
 		}
 
 
@@ -628,16 +628,16 @@ contract TestRewardsEmitter is Deployment
     // A unit test that tries to instantiate the RewardsEmitter with invalid contract arguments (e.g. address(0)) and expects it to revert.
     function testRewardsEmitterConstructorRevertsWithZeroAddresses() public {
         vm.expectRevert("_stakingRewards cannot be address(0)");
-        new RewardsEmitter(IStakingRewards(address(0)), exchangeConfig, poolsConfig, rewardsConfig);
+        new RewardsEmitter(IStakingRewards(address(0)), exchangeConfig, poolsConfig, rewardsConfig, false);
 
         vm.expectRevert("_exchangeConfig cannot be address(0)");
-        new RewardsEmitter(staking, IExchangeConfig(address(0)), poolsConfig, rewardsConfig);
+        new RewardsEmitter(staking, IExchangeConfig(address(0)), poolsConfig, rewardsConfig, false);
 
         vm.expectRevert("_poolsConfig cannot be address(0)");
-        new RewardsEmitter(staking, exchangeConfig, IPoolsConfig(address(0)), rewardsConfig);
+        new RewardsEmitter(staking, exchangeConfig, IPoolsConfig(address(0)), rewardsConfig, false);
 
         vm.expectRevert("_rewardsConfig cannot be address(0)");
-        new RewardsEmitter(staking, exchangeConfig, poolsConfig, IRewardsConfig(address(0)));
+        new RewardsEmitter(staking, exchangeConfig, poolsConfig, IRewardsConfig(address(0)), false);
     }
 	}
 

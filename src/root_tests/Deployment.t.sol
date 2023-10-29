@@ -76,6 +76,7 @@ contract TestDeployment is Deployment
         assertEq( getContract(address(pools), "poolsConfig()"), address(poolsConfig), "Incorrect pools.poolsConfig" );
         assertEq( getContract(address(pools), "usds()"), address(usds), "Incorrect pools.usds" );
         assertEq( getContract(address(pools), "dao()"), address(dao), "Incorrect pools.dao" );
+        assertEq( getContract(address(pools), "collateralAndLiquidity()"), address(collateralAndLiquidity), "Incorrect pools.collateralAndLiquidity" );
 
         assertEq( getContract(address(staking), "exchangeConfig()"), address(exchangeConfig), "Incorrect staking.exchangeConfig" );
         assertEq( getContract(address(staking), "poolsConfig()"), address(poolsConfig), "Incorrect staking.poolsConfig" );

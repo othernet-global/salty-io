@@ -4,7 +4,6 @@ pragma solidity =0.8.21;
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
-import "../pools/PoolUtils.sol";
 import "../staking/Liquidity.sol";
 import "./interfaces/ICollateralAndLiquidity.sol";
 import "./interfaces/IStableConfig.sol";

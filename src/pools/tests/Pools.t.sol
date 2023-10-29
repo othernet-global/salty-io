@@ -1499,6 +1499,24 @@ function testMinLiquidityAndReclaimedAmounts() public {
         }
 
 
+	// A unit test that verifies that Pools.addLiquidity is only callable from the CollateralAndLiquidity contract
+	function testAddLiquidityOnlyCallableFromCollateralAndLiquidity() public {
+        vm.startPrank(bob);
+
+        vm.expectRevert("Pools.addLiquidity is only callable from the CollateralAndLiquidity contract");
+        pools.addLiquidity( tokens[0], tokens[1], 100 ether, 100 ether, 0, 0 );
+        }
+
+
+	// A unit test that verifies that Pools.removeLiquidity is only callable from the CollateralAndLiquidity contract
+	function testRemoveLiquidityOnlyCallableFromCollateralAndLiquidity() public {
+        vm.startPrank(bob);
+
+        vm.expectRevert("Pools.removeLiquidity is only callable from the CollateralAndLiquidity contract");
+        pools.removeLiquidity( tokens[0], tokens[1], 100 ether, 0, 0, 0 );
+        }
+
+
     function testLastSwapTimestampUpdates() public
     	{
   		vm.startPrank(address(collateralAndLiquidity));

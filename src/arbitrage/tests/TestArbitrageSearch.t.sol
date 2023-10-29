@@ -50,8 +50,8 @@ contract TestArbitrageSearch2 is Deployment
 			staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
 			collateralAndLiquidity = new CollateralAndLiquidity(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
 
-			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig );
-			liquidityRewardsEmitter = new RewardsEmitter( collateralAndLiquidity, exchangeConfig, poolsConfig, rewardsConfig );
+			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig, false );
+			liquidityRewardsEmitter = new RewardsEmitter( collateralAndLiquidity, exchangeConfig, poolsConfig, rewardsConfig, true );
 
 			emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
