@@ -150,6 +150,7 @@ contract CollateralAndLiquidity is Liquidity, ICollateralAndLiquidity
 		_decreaseUserShare( wallet, collateralPoolID, userCollateralAmount, true );
 
 		// The caller receives a default 5% of the value of the liquidated collateral so we can just send them default 10% of the reclaimedWETH (as 5% of the WBTC they should also receive equals an additional 5% of the WETH).
+		// This shortcut is done to prevent having to send both WETH and WBTC to the user (which woudl use more gas and might discourage smaller liquidations).
 		uint256 rewardedWETH = (2 * reclaimedWETH * stableConfig.rewardPercentForCallingLiquidation()) / 100;
 
 		// Make sure the value of the rewardAmount is not excessive
