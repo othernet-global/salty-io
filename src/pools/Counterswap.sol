@@ -26,6 +26,8 @@ library Counterswap
 				return WETH_TO_SALT;
 			if ( address(desiredToken) == address(usds) )
 				return WETH_TO_USDS;
+
+			return address(0);
 			}
 
 		if ( (address(tokenToCounterswap) == address(wbtc)) && (address(desiredToken) == address(usds)) )
