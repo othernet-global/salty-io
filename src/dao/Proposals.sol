@@ -58,8 +58,7 @@ contract Proposals is IProposals, ReentrancyGuard
 	mapping(uint256=>address) private _usersThatProposedBallots;
 
 	// The time at which the first proposal can be made (45 days after deployment).
-	// This is to allow some time for users to start staking - as some percent of stake is required to propose ballots and if the total amount staked
-	// is too small then users could propose with arbitrarily small amounts of xSALT (or even zero in the very beginning).
+	// This is to allow some time for users to start staking - as some percent of stake is required to propose ballots and if the total amount staked.
 	uint256 firstPossibleProposalTimestamp = block.timestamp + 45 days;
 
 
