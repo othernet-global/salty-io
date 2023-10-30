@@ -9,7 +9,7 @@ import "../staking/interfaces/IStaking.sol";
 import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 
 
-// The Airdrop contract keeps track of users who qualify for the Salty.IO Airdrop (participants of prominent DeFi protocols who perform a basic social media task and vote).
+// The Airdrop contract keeps track of users who qualify for the Salty.IO Airdrop (participants of prominent DeFi protocols who retweeted the launch announcement and voted).
 // The airdrop participants are able to claim staked SALT after the airdrop authorization period has ending (after the BootingstappingBallot has concluded).
 contract Airdrop is IAirdrop, ReentrancyGuard
     {
@@ -60,7 +60,7 @@ contract Airdrop is IAirdrop, ReentrancyGuard
     	// All users receive an equal share of the airdrop
 		saltAmountForEachUser = salt.balanceOf(address(this)) / numberAuthorized();
 
-		// Have the Airdrop contract stake all of the SALT that it holds so that that xSALT (staked SALT) can later be transferred to airdrop recipients
+		// Have the Airdrop approve max so that that xSALT (staked SALT) can later be transferred to airdrop recipients
 		salt.approve( address(staking), type(uint256).max );
 
     	claimingAllowed = true;

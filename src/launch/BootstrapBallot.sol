@@ -17,7 +17,7 @@ contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
 
 	uint256 public completionTimestamp;
 	bool public ballotFinalized;
-	bool private _startExchangeApproved;
+	bool public _startExchangeApproved;
 
 	// Ensures that voters can only vote once
 	mapping(address=>bool) public hasVoted;

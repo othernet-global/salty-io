@@ -73,7 +73,7 @@ contract InitialDistribution is IInitialDistribution
 	    // 25 million		DAO Reserve Vesting Wallet
 		salt.safeTransfer( address(daoVestingWallet), 25 * MILLION_ETHER );
 
-	    // 10 million		Initial Team Vesting Wallet
+	    // 10 million		Team Vesting Wallet
 		salt.safeTransfer( address(teamVestingWallet), 10 * MILLION_ETHER );
 
 	    // 5 million		Airdrop Participants

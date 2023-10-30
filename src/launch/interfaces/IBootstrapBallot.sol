@@ -12,7 +12,6 @@ interface IBootstrapBallot
 	function hasVoted(address user) external returns (bool);
 
 	function ballotFinalized() external returns (bool);
-	function startExchangeApproved() external returns (bool);
 
 	function startExchangeYes() external returns (uint256);
 	function startExchangeNo() external returns (uint256);

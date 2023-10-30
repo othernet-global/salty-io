@@ -9,7 +9,7 @@ import "./PoolUtils.sol";
 	=== DERIVATION ===
 	// User will zap z0 of token0 and z1 of token1 into the pool
     // Initial reserves: r0 and r1
-    // Assuming z0 in excess
+    // Assuming z0 in excess, determine how much z0 should be swapped to z1 first for z0/z1 = r0/z1 so that liquidity can be added
 
     // Initial k
     k = r0 * r1
@@ -156,7 +156,7 @@ library PoolMath
 	// Assumes that token0 is in excess (in regards to the current reserve ratio).
     function _zapSwapAmount( uint256 reserve0, uint256 reserve1, uint256 zapAmount0, uint256 zapAmount1, uint8 decimals0, uint8 decimals1 ) internal pure returns (uint256 swapAmount)
     	{
-    	// Convert all inputs to int256s with  limited precision so the calculations don't overflow
+    	// Convert all inputs to int256s with limited precision so the calculations don't overflow
     	int256 r0 = _reducePrecision( reserve0, decimals0 );
 		int256 r1 = _reducePrecision( reserve1, decimals1 );
 		int256 z0 = _reducePrecision( zapAmount0, decimals0 );
@@ -198,30 +198,27 @@ library PoolMath
     	}
 
 
-	// Determine how much of either token needs to be swapped to give them a ratio equivalent to the reserves
+	// Determine how much of either token needs to be swapped to give them a ratio equivalent to the reserves.
+	// If (0,0) is returned it signifies that no swap should be done before the addLiquidity.
 	function _determineZapSwapAmount( uint256 reserveA, uint256 reserveB, IERC20 tokenA, IERC20 tokenB, uint256 zapAmountA, uint256 zapAmountB ) internal view returns (uint256 swapAmountA, uint256 swapAmountB )
 		{
 		uint8 decimalsA = ERC20(address(tokenA)).decimals();
 		uint8 decimalsB = ERC20(address(tokenB)).decimals();
 
-		// Placed in intermediate variable due to Foundry coverage glitch: https://github.com/foundry-rs/foundry/issues/4305
-		uint256 swapAmountA2;
-		uint256 swapAmountB2;
-
 		// zapAmountA / zapAmountB exceeds the ratio of reserveA / reserveB? - meaning too much zapAmountA
 		if ( zapAmountA * reserveB > reserveA * zapAmountB )
-			(swapAmountA2, swapAmountB2) = (_zapSwapAmount( reserveA, reserveB, zapAmountA, zapAmountB, decimalsA, decimalsB ), 0);
+			(swapAmountA, swapAmountB) = (_zapSwapAmount( reserveA, reserveB, zapAmountA, zapAmountB, decimalsA, decimalsB ), 0);
 
 		// zapAmountA / zapAmountB is less than the ratio of reserveA / reserveB? - meaning too much zapAmountB
 		if ( zapAmountA * reserveB < reserveA * zapAmountB )
-			(swapAmountA2, swapAmountB2) = (0, _zapSwapAmount( reserveB, reserveA, zapAmountB, zapAmountA, decimalsB, decimalsA ));
+			(swapAmountA, swapAmountB) = (0, _zapSwapAmount( reserveB, reserveA, zapAmountB, zapAmountA, decimalsB, decimalsA ));
 
-		if ( swapAmountA2 > zapAmountA )
+		if ( swapAmountA > zapAmountA )
 			return (0, 0);
 
-		if ( swapAmountB2 > zapAmountB )
+		if ( swapAmountB > zapAmountB )
 			return (0, 0);
 
-		return (swapAmountA2, swapAmountB2);
+		return (swapAmountA, swapAmountB);
 		}
 	}
