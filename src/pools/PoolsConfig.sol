@@ -40,10 +40,9 @@ contract PoolsConfig is IPoolsConfig, Ownable
 
 		bytes32 poolID = PoolUtils._poolIDOnly(tokenA, tokenB);
 
-		// Remember the underdlying tokens for the poolID
-		underlyingPoolTokens[poolID] = TokenPair(tokenA, tokenB);
-
-		_whitelist.add(poolID);
+		// If this whitelist is new then remember the underlying tokens for the poolID
+		if ( _whitelist.add(poolID) )
+			underlyingPoolTokens[poolID] = TokenPair(tokenA, tokenB);
 		}
 
 
