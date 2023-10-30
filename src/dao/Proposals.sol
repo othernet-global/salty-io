@@ -194,9 +194,10 @@ contract Proposals is IProposals, ReentrancyGuard
 		// Limit to 5% of current balance
 		uint256 balance = exchangeConfig.salt().balanceOf( address(exchangeConfig.dao()) );
 		uint256 maxSendable = balance * 5 / 100;
-		require( amount < maxSendable, "Cannot send more than 5% of the existing balance" );
+		require( amount < maxSendable, "Cannot send more than 5% of the DAO SALT balance" );
 
-		// This ballotName is not unique for the send and enforces the restriction of one sendSALT ballot at a time
+		// This ballotName is not unique for the receiving wallet and enforces the restriction of one sendSALT ballot at a time.
+		// If more receivers are necessary at once, a splitter can be used.
 		string memory ballotName = "sendSALT";
 		_possiblyCreateProposal( ballotName, BallotType.SEND_SALT, wallet, amount, "", description );
 		}
@@ -320,8 +321,8 @@ contract Proposals is IProposals, ReentrancyGuard
 			requiredQuorum = ( 3 * totalStaked * daoConfig.baseBallotQuorumPercentTimes1000()) / ( 100 * 1000 );
 
 		// Make sure that the requiredQuorum is at least 0.50% of the total SALT supply.
-		// Circulating supply after the first 30 days of emissions will be about 2 million - so this would require about 25% of the circulating
-		// SALT to be staked and voting to pass a proposal (including whitelisting) within the first 30 days.
+		// Circulating supply after the first 45 days of emissions will be about 3 million - so this would require about 16% of the circulating
+		// SALT to be staked and voting to pass a proposal (including whitelisting) 45 days after deployment..
 		uint256 totalSupply = ERC20(address(exchangeConfig.salt())).totalSupply();
 		uint256 minimumQuorum = totalSupply * 5 / 1000;
 
@@ -334,7 +335,11 @@ contract Proposals is IProposals, ReentrancyGuard
 		{
 		mapping(Vote=>uint256) storage votes = _votesCastForBallot[ballotID];
 
-		return votes[Vote.INCREASE] + votes[Vote.DECREASE] + votes[Vote.NO_CHANGE] + votes[Vote.YES] + votes[Vote.NO];
+		Ballot memory ballot = ballots[ballotID];
+		if ( ballot.ballotType == BallotType.PARAMETER )
+			return votes[Vote.INCREASE] + votes[Vote.DECREASE] + votes[Vote.NO_CHANGE];
+		else
+			return votes[Vote.YES] + votes[Vote.NO];
 		}
 
 
@@ -375,7 +380,7 @@ contract Proposals is IProposals, ReentrancyGuard
         	return false;
 
         // Check that the minimum duration has passed
-        if (ballot.ballotMinimumEndTime > block.timestamp)
+        if (block.timestamp < ballot.ballotMinimumEndTime )
             return false;
 
         // Check that the required quorum has been reached

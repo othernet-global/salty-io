@@ -244,7 +244,7 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 
 
 	// Form Protocol Owned Liquidity with any SALT and USDS in the contract
-	// Any SALT or USDS that is not used will be stay in the DAO contract.
+	// Any SALT or USDS that is not used will stay in the DAO contract for later use.
 	function formPOL( ICollateralAndLiquidity collateralAndLiquidity, ISalt salt, IUSDS usds ) public
 		{
 		require( msg.sender == address(exchangeConfig.upkeep()), "DAO.formPOL is only callable from the Upkeep contract" );
@@ -258,11 +258,12 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		salt.approve(address(collateralAndLiquidity), balanceA);
 		usds.approve(address(collateralAndLiquidity), balanceB);
 
+		// Don't use zapping to form the liquidity
 		collateralAndLiquidity.depositLiquidityAndIncreaseShare( salt, usds, balanceA, balanceB, 0, block.timestamp, false );
 		}
 
 
-	// Send SALT which was withdrawn from counterswap and not used for POL to SaltRewards
+	// Send SALT which was withdrawn from counterswap (and not used for POL) to SaltRewards
 	function sendSaltToSaltRewards( ISalt salt, ISaltRewards saltRewards, uint256 amountToSend) public
 		{
 		require( msg.sender == address(exchangeConfig.upkeep()), "DAO.sendSaltToSaltRewards is only callable from the Upkeep contract" );
@@ -288,7 +289,7 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 
 		uint256 remainingAmount = claimedAmount - amountToSendToTeam;
 
-		// Burn a default 75% of the remaining SALT that was just claimed (the rest of the SALT stays in the DAO contract)
+		// Burn a default 50% of the remaining SALT that was just claimed (the rest of the SALT stays in the DAO contract)
 		uint256 saltToBurn = ( remainingAmount * daoConfig.percentPolRewardsBurned() ) / 100;
 
 		salt.safeTransfer( address(salt), saltToBurn );

@@ -633,7 +633,7 @@ staking.stakeSALT(1000 ether);
         // Test proposing to send an amount exceeding the limit
         uint256 excessiveAmount = daoInitialSaltBalance / 19; // > 5% of the initial balance
 
-        vm.expectRevert("Cannot send more than 5% of the existing balance");
+        vm.expectRevert("Cannot send more than 5% of the DAO SALT balance");
         proposals.proposeSendSALT(bob, excessiveAmount, "description" );
 		vm.stopPrank();
 
