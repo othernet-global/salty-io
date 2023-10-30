@@ -38,6 +38,9 @@ contract TestProposals is Deployment
 		usds.mintTo( DEPLOYER, 2000000 ether );
 		usds.mintTo( alice, 1000000 ether );
 		vm.stopPrank();
+
+		// Allow time for proposals
+		vm.warp( block.timestamp + 45 days );
 		}
 
 
@@ -58,6 +61,25 @@ contract TestProposals is Deployment
     	salt.approve( address(staking), type(uint256).max );
     	vm.stopPrank();
     	}
+
+
+	// A unit test that checks the proposeParameterBallot function fails if called before the firstPossibleProposalTimestamp
+	function testProposeParameterBallotBeforeTimestamp() public {
+		vm.warp( block.timestamp - 45 days );
+
+		vm.startPrank( DEPLOYER );
+		staking.stakeSALT(1000 ether);
+
+        // Define a ballotName
+        string memory ballotName = "parameter:1";
+
+        // Ensure ballot with ballotName doesn't exist before proposing
+        assertEq(proposals.openBallotsByName(ballotName), 0);
+
+        // Call proposeParameterBallot
+        vm.expectRevert( "Cannot propose ballots within the first 45 days of deployment" );
+        proposals.proposeParameterBallot(1, "description" );
+    }
 
 
 	// A unit test that checks the proposeParameterBallot function with different input combinations. Verify that a new proposal gets created and that all necessary state changes occur.

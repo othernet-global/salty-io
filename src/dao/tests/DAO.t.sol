@@ -38,6 +38,9 @@ contract TestDAO is Deployment
 
 		vm.prank( DEPLOYER );
 		salt.transfer( alice, 10000000 ether );
+
+		// Allow time for proposals
+		vm.warp( block.timestamp + 45 days );
 		}
 
 
@@ -816,6 +819,8 @@ contract TestDAO is Deployment
 
     // A unit test to validate that SALT tokens are burned as expected by the processRewardsFromPOL function
     function testProcessRewardsFromPOL() public {
+
+		vm.warp( block.timestamp - 45 days );
 
 		// DAO needs to form some SALT/USDS liquidity to receive some rewards
 		vm.prank(address(daoVestingWallet));

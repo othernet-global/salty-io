@@ -57,6 +57,11 @@ contract Proposals is IProposals, ReentrancyGuard
 	// Useful when a ballot is finalized - so that the user that proposed it can have their _usersWithActiveProposals status cleared
 	mapping(uint256=>address) private _usersThatProposedBallots;
 
+	// The time at which the first proposal can be made (45 days after deployment).
+	// This is to allow some time for users to start staking - as some percent of stake is required to propose ballots and if the total amount staked
+	// is too small then users could propose with arbitrarily small amounts of xSALT (or even zero in the very beginning).
+	uint256 firstPossibleProposalTimestamp = block.timestamp + 45 days;
+
 
     constructor( IStaking _staking, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IDAOConfig _daoConfig )
 		{
@@ -76,6 +81,8 @@ contract Proposals is IProposals, ReentrancyGuard
 
 	function _possiblyCreateProposal( string memory ballotName, BallotType ballotType, address address1, uint256 number1, string memory string1, string memory string2 ) internal returns (uint256 ballotID)
 		{
+		require( block.timestamp >= firstPossibleProposalTimestamp, "Cannot propose ballots within the first 45 days of deployment" );
+
 		// The DAO can create confirmation proposals which won't have the below requirements
 		if ( msg.sender != address(exchangeConfig.dao() ) )
 			{
