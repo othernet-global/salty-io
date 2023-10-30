@@ -12,7 +12,7 @@ contract PoolsConfig is IPoolsConfig, Ownable
     {
 	struct TokenPair
 		{
-		// Note that these will be ordered as specified in whitelistPool() - rather than ordered such that address(tokenA) < address(tokenB) as with the reserves in Pools.sol
+		// Note that these will be ordered in underlyingPoolTokens as specified in whitelistPool() - rather than ordered such that address(tokenA) < address(tokenB) as with the reserves in Pools.sol
 		IERC20 tokenA;
 		IERC20 tokenB;
 		}
@@ -38,8 +38,9 @@ contract PoolsConfig is IPoolsConfig, Ownable
 		require( _whitelist.length() < maximumWhitelistedPools, "Maximum number of whitelisted pools already reached" );
 		require(tokenA != tokenB, "tokenA and tokenB cannot be the same token");
 
-		(bytes32 poolID, ) = PoolUtils._poolID(tokenA, tokenB);
+		bytes32 poolID = PoolUtils._poolIDOnly(tokenA, tokenB);
 
+		// Remember the underdlying tokens for the poolID
 		underlyingPoolTokens[poolID] = TokenPair(tokenA, tokenB);
 
 		_whitelist.add(poolID);
@@ -48,9 +49,11 @@ contract PoolsConfig is IPoolsConfig, Ownable
 
 	function unwhitelistPool( IERC20 tokenA, IERC20 tokenB ) public onlyOwner
 		{
-		(bytes32 poolID, ) = PoolUtils._poolID(tokenA,tokenB);
+		bytes32 poolID = PoolUtils._poolIDOnly(tokenA,tokenB);
 
 		_whitelist.remove(poolID);
+
+		// underlyingPoolTokens still maps the poolID to the underlying tokens - but that is not authoratative for whitelisting
 		}
 
 
@@ -79,6 +82,7 @@ contract PoolsConfig is IPoolsConfig, Ownable
 
 	function isWhitelisted( bytes32 poolID ) public view returns (bool)
 		{
+		// The staked SALT pool is always considered whitelisted
 		if ( poolID == PoolUtils.STAKED_SALT )
 			return true;
 
@@ -109,6 +113,7 @@ contract PoolsConfig is IPoolsConfig, Ownable
 		bytes32 poolID1 = PoolUtils._poolIDOnly( token, wbtc );
 		bytes32 poolID2 = PoolUtils._poolIDOnly( token, weth );
 
+		// || is used conservatively here: && should really work as all whitelisted tokens are paired with both WBTC and WETH.
 		return isWhitelisted(poolID1) || isWhitelisted(poolID2);
 		}
 	}
