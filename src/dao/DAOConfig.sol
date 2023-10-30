@@ -14,9 +14,9 @@ contract DAOConfig is IDAOConfig, Ownable
 	// Range: 50k ether to 500k ether with an adjustment of 50k ether
 	uint256 public bootstrappingRewards = 100000 ether;
 
-	// For rewards distributed to the DAO, the percentage of SALT that is burned with the remaining staying in the DAO for later use
-	// Range: 60% to 90% with an adjustment of 5%
-    uint256 public percentPolRewardsBurned = 75;
+	// For rewards distributed to the DAO, the percentage of SALT that is burned with the remaining staying in the DAO for later use.
+	// Range: 25% to 75% with an adjustment of 5%
+    uint256 public percentPolRewardsBurned = 50;
 
 	// The minimum amount of xSALT required for ballot quorum (to take action on the ballot).
 	// baseBallotQuorum is decided as a percent of the total amount of SALT staked.
@@ -71,12 +71,12 @@ contract DAOConfig is IDAOConfig, Ownable
 		{
 		if (increase)
 			{
-			if (percentPolRewardsBurned < 90)
+			if (percentPolRewardsBurned < 75)
 				percentPolRewardsBurned += 5;
 			}
 		else
 			{
-			if (percentPolRewardsBurned > 60)
+			if (percentPolRewardsBurned > 25)
 				percentPolRewardsBurned -= 5;
 			}
 		}

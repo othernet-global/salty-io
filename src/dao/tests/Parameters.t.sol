@@ -216,7 +216,7 @@ contract TestParametersOffchain is Test
 		{
 		vm.startPrank(address(parameters));
 		_checkParameter( Parameters.ParameterTypes.bootstrappingRewards, 50000 ether, 100000 ether, 500000 ether, 50000 ether );
-		_checkParameter( Parameters.ParameterTypes.percentPolRewardsBurned, 60, 75, 90, 5 );
+		_checkParameter( Parameters.ParameterTypes.percentPolRewardsBurned, 25, 50, 75, 5 );
 		_checkParameter( Parameters.ParameterTypes.baseBallotQuorumPercentTimes1000, 5000, 10000, 20000, 1000 );
 		_checkParameter( Parameters.ParameterTypes.ballotDuration, 3 days, 10 days, 14 days, 1 days );
 		_checkParameter( Parameters.ParameterTypes.requiredProposalPercentStakeTimes1000, 1, 5, 20, 1 );

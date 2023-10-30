@@ -93,7 +93,7 @@ contract Liquidity is ILiquidity, StakingRewards
 		tokenA.safeTransferFrom(msg.sender, address(this), maxAmountA );
 		tokenB.safeTransferFrom(msg.sender, address(this), maxAmountB );
 
-		// Balance the token token amounts by swapping one to the other before adding the liquidity?
+		// Balance the token amounts by swapping one to the other before adding the liquidity?
 		if ( useZapping )
 			(maxAmountA, maxAmountB) = _dualZapInLiquidity(tokenA, tokenB, maxAmountA, maxAmountB );
 
