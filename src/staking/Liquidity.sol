@@ -159,7 +159,7 @@ contract Liquidity is ILiquidity, StakingRewards
 
 
 	// Public wrapper for withdrawing liquidity which prevents the direct withdrawal from the collateral pool.
-	// CollateralAndLiquidity.sol.withdrawCollateralAndClaim bypasses this and calls _withdrawLiquidityAndClaim directly.
+	// CollateralAndLiquidity.withdrawCollateralAndClaim bypasses this and calls _withdrawLiquidityAndClaim directly.
     function withdrawLiquidityAndClaim( IERC20 tokenA, IERC20 tokenB, uint256 liquidityToWithdraw, uint256 minReclaimedA, uint256 minReclaimedB, uint256 deadline ) public ensureNotExpired(deadline)  nonReentrant returns (uint256 reclaimedA, uint256 reclaimedB)
     	{
 		require( PoolUtils._poolIDOnly( tokenA, tokenB ) != collateralPoolID, "Stablecoin collateral cannot be withdrawn via Liquidity.withdrawLiquidityAndClaim" );
