@@ -134,6 +134,9 @@ contract CollateralAndLiquidity is Liquidity, ICollateralAndLiquidity
 		{
 		require( wallet != msg.sender, "Cannot liquidate self" );
 
+		// Don't allow liquidation the same block as a recent swap (which could single an attempt to manipulate the 5% reward)
+		require( pools.lastSwapBlock(collateralPoolID) != block.number, "Can't liquidate the same block as a recent swap" );
+
 		// First, make sure that the user's colalteral ratio is below the required level
 		require( canUserBeLiquidated(wallet), "User cannot be liquidated" );
 

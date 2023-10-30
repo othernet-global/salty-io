@@ -184,9 +184,26 @@ contract TestCollateral is Deployment
 
 		uint256 bobStartingWETH = weth.balanceOf(bob);
 
+		// Place a swap using the collateral pool
+		vm.startPrank(DEPLOYER);
+		wbtc.approve(address(pools), type(uint256).max);
+		weth.approve(address(pools), type(uint256).max);
+		uint256 amountOut = pools.depositSwapWithdraw(wbtc, weth, 101, 0, block.timestamp, true );
+		pools.depositSwapWithdraw(weth, wbtc, amountOut, 0, block.timestamp, true );
+		vm.stopPrank();
+
+		// Liquidate Alice's position
+		vm.expectRevert( "Can't liquidate the same block as a recent swap" );
+		vm.prank(bob);
+		collateralAndLiquidity.liquidateUser(alice);
+
+		// Roll to the next block so liquidation can happen
+		vm.roll( block.number + 1 );
+
 		// Liquidate Alice's position
 		vm.prank(bob);
 		collateralAndLiquidity.liquidateUser(alice);
+
 
 		uint256 bobRewardWETH = weth.balanceOf(bob) - bobStartingWETH;
 
@@ -200,7 +217,7 @@ contract TestCollateral is Deployment
 		assertEq(bobExpectedReward, bobRewardWETH , "Bob should have received WETH for liquidating Alice");
 
 		// Verify that USDS received the WBTC and WETH form Alice's liquidated collateral
-		assertEq(wbtc.balanceOf(address(usds)), depositedWBTC - PoolUtils.DUST, "The USDS contract should have received Alice's WBTC");
+		assertEq(wbtc.balanceOf(address(usds)), depositedWBTC - PoolUtils.DUST - 1, "The USDS contract should have received Alice's WBTC");
 		assertEq(weth.balanceOf(address(usds)), depositedWETH - bobRewardWETH - PoolUtils.DUST, "The USDS contract should have received Alice's WETH - Bob's WETH reward");
 		}
 
