@@ -19,7 +19,7 @@ import "./PoolMath.sol";
 // It handles deposits, arbitrage, and counterswaps for the various whitelisted pools.
 
 // Only the CollateralAndLiquidity.sol contract can add and remove liquidity from the pools (and is as such the only owner of liquidity as far as Pools.sol is concerned).
-// CollateralAndLiquidity.sol itself keeps track of which users have deposited liquidity using StakingRewards.userShare (as it derives from Liquidity which derives from StakingRewards).
+// Which users actually hold those reserves is handled by CollateralAndLiquidity.sol (via StakingRewards.userShare).
 
 contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	{
