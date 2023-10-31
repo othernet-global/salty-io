@@ -144,22 +144,28 @@ contract CollateralAndLiquidity is Liquidity, ICollateralAndLiquidity
 
 		// Withdraw the liquidated collateral from the liquidity pool.
 		// The liquidity is owned by this contract so when it is withdrawn it will be reclaimed by this contract.
-		(, uint256 reclaimedWETH) = pools.removeLiquidity(wbtc, weth, userCollateralAmount, 0, 0, totalShareForPool(collateralPoolID) );
+		(uint256 reclaimedWBTC, uint256 reclaimedWETH) = pools.removeLiquidity(wbtc, weth, userCollateralAmount, 0, 0, totalShareForPool(collateralPoolID) );
 
 		// Decrease the user's share of collateral as it has been liquidated and they no longer have it.
 		_decreaseUserShare( wallet, collateralPoolID, userCollateralAmount, true );
 
-		// The caller receives a default 5% of the value of the liquidated collateral so we can just send them default 10% of the reclaimedWETH (as 5% of the WBTC they should also receive equals an additional 5% of the WETH).
-		// This shortcut is done to prevent having to send both WETH and WBTC to the user (which woudl use more gas and might discourage smaller liquidations).
-		uint256 rewardedWETH = (2 * reclaimedWETH * stableConfig.rewardPercentForCallingLiquidation()) / 100;
+		// The caller receives a default 5% of the value of the liquidated collateral.
+		uint256 rewardPercent = stableConfig.rewardPercentForCallingLiquidation();
+
+		uint256 rewardedWBTC = (reclaimedWBTC * rewardPercent) / 100;
+		uint256 rewardedWETH = (reclaimedWETH * rewardPercent) / 100;
 
 		// Make sure the value of the rewardAmount is not excessive
-		uint256 rewardValue = underlyingTokenValueInUSD( 0, rewardedWETH ); // in 18 decimals
+		uint256 rewardValue = underlyingTokenValueInUSD( rewardedWBTC, rewardedWETH ); // in 18 decimals
 		uint256 maxRewardValue = stableConfig.maxRewardValueForCallingLiquidation(); // 18 decimals
 		if ( rewardValue > maxRewardValue )
+			{
+			rewardedWBTC = (rewardedWBTC * maxRewardValue) / rewardValue;
 			rewardedWETH = (rewardedWETH * maxRewardValue) / rewardValue;
+			}
 
 		// Reward the caller
+		wbtc.safeTransfer( msg.sender, rewardedWBTC );
 		weth.safeTransfer( msg.sender, rewardedWETH );
 
 		// Send the remaining WBTC and WETH to the USDS contract so that the tokens can later be converted to USDS via counterswap and burned (on USDS.performUpkeep)
@@ -169,7 +175,7 @@ contract CollateralAndLiquidity is Liquidity, ICollateralAndLiquidity
 		// Have the USDS contract remember the amount of USDS that will need to be burned.
 		usds.shouldBurnMoreUSDS( usdsBorrowedByUsers[wallet] );
 
-		// Clear the borrowedUSDS for the user who was liquidated so that they can simply keep the USDS they borrowed
+		// Clear the borrowedUSDS for the user who was liquidated so that they can simply keep the USDS they previously borrowed.
 		usdsBorrowedByUsers[wallet] = 0;
 		_walletsWithBorrowedUSDS.remove(wallet);
 		}

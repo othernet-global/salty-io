@@ -66,13 +66,17 @@ contract TestArbitrage is Deployment
 
 	function testGasDepositSwapWithdrawAndArbitrage() public
 		{
+		uint256 gas0 = gasleft();
 		pools.depositSwapWithdraw( tokenE, weth, 10 ether, 0, block.timestamp, true );
+		console.log( "DEPOSIT/SWAP/ARB COST: ", gas0 - gasleft() );
 		}
 
 
 	function testGasSwapAndArbitrage() public
 		{
+		uint256 gas0 = gasleft();
 		pools.swap( tokenE, weth, 10 ether, 0, block.timestamp, true );
+		console.log( "SWAP/ARB COST: ", gas0 - gasleft() );
 		}
 
 

@@ -159,9 +159,8 @@ contract TestCollateral is Deployment
 		uint256 maxWithdrawable = collateralAndLiquidity.maxWithdrawableCollateral(alice);
 		assertEq( maxWithdrawable, 0, "Alice shouldn't be able to withdraw any collateral" );
 
-
-		uint256 aliceCollateralShare = collateralAndLiquidity.userShareForPool( alice, collateralPoolID );
-		uint256 aliceCollateralValue = collateralAndLiquidity.collateralValueInUSD( aliceCollateralShare );
+		{
+		uint256 aliceCollateralValue = collateralAndLiquidity.collateralValueInUSD( collateralAndLiquidity.userShareForPool( alice, collateralPoolID )  );
 
 
 		uint256 aliceBorrowedUSDS = usds.balanceOf(alice);
@@ -170,6 +169,7 @@ contract TestCollateral is Deployment
 		// Borrowed USDS should be about 50% of the aliceCollateralValue
 		assertTrue( aliceBorrowedUSDS > ( aliceCollateralValue * 499 / 1000 ), "Alice did not borrow sufficient USDS" );
 		assertTrue( aliceBorrowedUSDS < ( aliceCollateralValue * 501 / 1000 ), "Alice did not borrow sufficient USDS" );
+		}
 
 		// Try and fail to liquidate alice
 		vm.expectRevert( "User cannot be liquidated" );
@@ -183,6 +183,7 @@ contract TestCollateral is Deployment
 		vm.warp( block.timestamp + 1 days );
 
 		uint256 bobStartingWETH = weth.balanceOf(bob);
+		uint256 bobStartingWBTC = wbtc.balanceOf(bob);
 
 		// Place a swap using the collateral pool
 		vm.startPrank(DEPLOYER);
@@ -202,22 +203,24 @@ contract TestCollateral is Deployment
 
 		// Liquidate Alice's position
 		vm.prank(bob);
-		collateralAndLiquidity.liquidateUser(alice);
 
+		uint256 gas0 = gasleft();
+		collateralAndLiquidity.liquidateUser(alice);
+		console.log( "LIQUIDATE COST: ", gas0 - gasleft() );
 
 		uint256 bobRewardWETH = weth.balanceOf(bob) - bobStartingWETH;
+		uint256 bobRewardWBTC = wbtc.balanceOf(bob) - bobStartingWBTC;
 
 		// Verify that Alice's position has been liquidated
 		assertEq( collateralAndLiquidity.userShareForPool(alice, collateralPoolID), 0 );
         assertEq( collateralAndLiquidity.usdsBorrowedByUsers(alice), 0 );
 
-		// Verify that Bob has received WETH for the liquidation
-		uint256 bobExpectedReward = depositedWETH * 10 / 100 - PoolUtils.DUST / 10;
-
-		assertEq(bobExpectedReward, bobRewardWETH , "Bob should have received WETH for liquidating Alice");
+		// Verify that Bob has received WBTC and WETH for the liquidation
+		assertEq(( depositedWETH * 10 / 100 - PoolUtils.DUST / 10 ) / 2, bobRewardWETH , "Bob should have received WETH for liquidating Alice");
+		assertEq(( depositedWBTC * 10 / 100 - PoolUtils.DUST / 10 ) / 2, bobRewardWBTC , "Bob should have received WBTC for liquidating Alice");
 
 		// Verify that USDS received the WBTC and WETH form Alice's liquidated collateral
-		assertEq(wbtc.balanceOf(address(usds)), depositedWBTC - PoolUtils.DUST - 1, "The USDS contract should have received Alice's WBTC");
+		assertEq(wbtc.balanceOf(address(usds)), depositedWBTC - bobRewardWBTC - PoolUtils.DUST - 1, "The USDS contract should have received Alice's WBTC");
 		assertEq(weth.balanceOf(address(usds)), depositedWETH - bobRewardWETH - PoolUtils.DUST, "The USDS contract should have received Alice's WETH - Bob's WETH reward");
 		}
 
@@ -1044,6 +1047,7 @@ contract TestCollateral is Deployment
         vm.warp( block.timestamp + 1 days );
 
 		uint256 startingWETH = weth.balanceOf(address(this));
+		uint256 startingWBTC = wbtc.balanceOf(address(this));
 
         // Liquidate Alice's position
         collateralAndLiquidity.liquidateUser(alice);
@@ -1052,16 +1056,17 @@ contract TestCollateral is Deployment
         assertEq( collateralAndLiquidity.userShareForPool(alice, collateralPoolID), 0 );
         assertEq( collateralAndLiquidity.usdsBorrowedByUsers(alice), 0 );
 
-        // Verify that caller has received WETH for the liquidation
+        // Verify that caller has received WBTC and WETH for the liquidation
         uint256 expectedRewardValue = aliceCollateralValue * stableConfig.rewardPercentForCallingLiquidation() / 100;
         uint256 maxRewardValue = stableConfig.maxRewardValueForCallingLiquidation();
         if ( expectedRewardValue > maxRewardValue )
             expectedRewardValue = maxRewardValue;
 
+		uint256 wbtcReward = wbtc.balanceOf(address(this)) - startingWBTC;
 		uint256 wethReward = weth.balanceOf(address(this)) - startingWETH;
 
-        assertTrue( collateralAndLiquidity.underlyingTokenValueInUSD(0, wethReward ) < expectedRewardValue + expectedRewardValue * 5 / 1000 , "Should have received WETH for liquidating Alice");
-        assertTrue( collateralAndLiquidity.underlyingTokenValueInUSD(0, wethReward ) > expectedRewardValue - expectedRewardValue * 5 / 1000 , "Should have received WETH for liquidating Alice");
+        assertTrue( collateralAndLiquidity.underlyingTokenValueInUSD(wbtcReward, wethReward ) < expectedRewardValue + expectedRewardValue * 5 / 1000 , "Incorrect rewards received for liquidating Alice");
+        assertTrue( collateralAndLiquidity.underlyingTokenValueInUSD(wbtcReward, wethReward ) > expectedRewardValue - expectedRewardValue * 5 / 1000 , "Incorrect rewards received for liquidating Alice");
     }
 
 
@@ -1092,6 +1097,7 @@ contract TestCollateral is Deployment
         // Delay before the liquidation
         vm.warp( block.timestamp + 1 days );
 
+		uint256 startingWBTC = wbtc.balanceOf(address(this));
 		uint256 startingWETH = weth.balanceOf(address(this));
 
         // Liquidate Alice's position
@@ -1104,10 +1110,11 @@ contract TestCollateral is Deployment
         // Verify that caller has received WETH for the liquidation
         uint256 expectedRewardValue = aliceCollateralValue * stableConfig.rewardPercentForCallingLiquidation() / 100;
 
+		uint256 wbtcReward = wbtc.balanceOf(address(this)) - startingWBTC;
 		uint256 wethReward = weth.balanceOf(address(this)) - startingWETH;
 
-        assertTrue( collateralAndLiquidity.underlyingTokenValueInUSD(0, wethReward ) < expectedRewardValue + expectedRewardValue * 5 / 1000 , "Should have received WETH for liquidating Alice");
-        assertTrue( collateralAndLiquidity.underlyingTokenValueInUSD(0, wethReward ) > expectedRewardValue - expectedRewardValue * 5 / 1000 , "Should have received WETH for liquidating Alice");
+        assertTrue( collateralAndLiquidity.underlyingTokenValueInUSD(wbtcReward, wethReward ) < expectedRewardValue + expectedRewardValue * 5 / 1000 , "Should have received WETH for liquidating Alice");
+        assertTrue( collateralAndLiquidity.underlyingTokenValueInUSD(wbtcReward, wethReward ) > expectedRewardValue - expectedRewardValue * 5 / 1000 , "Should have received WETH for liquidating Alice");
     }
 
 
