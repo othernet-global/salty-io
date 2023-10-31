@@ -81,7 +81,7 @@ contract Liquidity is ILiquidity, StakingRewards
 	// With zapping, all the tokens specified by the user are added to the liqudiity pool regardless of their ratio.
 	// If one of the tokens has excess in regards to the reserves token ratio, then some of it is first swapped for the other before the liquidity is added. (See PoolMath.sol for details)
 	// bypassZapping allows this zapping to be avoided - which results in a simple addLiquidity call.
-	function _depositLiquidityAndIncreaseShare( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, bool useZapping ) internal returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
+	function _depositLiquidityAndIncreaseShare( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, bool useZapping ) internal nonReentrant returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
 		{
 		require( exchangeConfig.walletHasAccess(msg.sender), "Sender does not have exchange access" );
 
@@ -123,7 +123,8 @@ contract Liquidity is ILiquidity, StakingRewards
 	// Public wrapper for adding liquidity which prevents the direct deposit to the collateral pool.
 	// CollateralAndLiquidity.sol.depositCollateralAndIncreaseShare bypasses this and calls _depositLiquidityAndIncreaseShare directly.
 	// Requires exchange access for the sending wallet
-	function depositLiquidityAndIncreaseShare( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 deadline, bool useZapping ) public ensureNotExpired(deadline)  nonReentrant returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
+	// _depositLiquidityAndIncreaseShare is nonReentrant
+	function depositLiquidityAndIncreaseShare( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 deadline, bool useZapping ) public ensureNotExpired(deadline) returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
 		{
 		require( PoolUtils._poolIDOnly( tokenA, tokenB ) != collateralPoolID, "Stablecoin collateral cannot be deposited via Liquidity.depositLiquidityAndIncreaseShare" );
 
@@ -133,7 +134,7 @@ contract Liquidity is ILiquidity, StakingRewards
 
 	// Withdraw specified liquidity, decrease the user's liquidity share and claim any pending rewards.
 	// The DAO itself is not allowed to withdraw collateralAndLiquidity.
-    function _withdrawLiquidityAndClaim( IERC20 tokenA, IERC20 tokenB, uint256 liquidityToWithdraw, uint256 minReclaimedA, uint256 minReclaimedB ) internal returns (uint256 reclaimedA, uint256 reclaimedB)
+    function _withdrawLiquidityAndClaim( IERC20 tokenA, IERC20 tokenB, uint256 liquidityToWithdraw, uint256 minReclaimedA, uint256 minReclaimedB ) internal nonReentrant returns (uint256 reclaimedA, uint256 reclaimedB)
 		{
 		// Make sure that the DAO isn't trying to remove liquidity
 		require( msg.sender != address(exchangeConfig.dao()), "DAO is not allowed to withdraw liquidity" );
@@ -160,7 +161,8 @@ contract Liquidity is ILiquidity, StakingRewards
 
 	// Public wrapper for withdrawing liquidity which prevents the direct withdrawal from the collateral pool.
 	// CollateralAndLiquidity.withdrawCollateralAndClaim bypasses this and calls _withdrawLiquidityAndClaim directly.
-    function withdrawLiquidityAndClaim( IERC20 tokenA, IERC20 tokenB, uint256 liquidityToWithdraw, uint256 minReclaimedA, uint256 minReclaimedB, uint256 deadline ) public ensureNotExpired(deadline)  nonReentrant returns (uint256 reclaimedA, uint256 reclaimedB)
+	// _withdrawLiquidityAndClaim is nonReentrant
+    function withdrawLiquidityAndClaim( IERC20 tokenA, IERC20 tokenB, uint256 liquidityToWithdraw, uint256 minReclaimedA, uint256 minReclaimedB, uint256 deadline ) public ensureNotExpired(deadline) returns (uint256 reclaimedA, uint256 reclaimedB)
     	{
 		require( PoolUtils._poolIDOnly( tokenA, tokenB ) != collateralPoolID, "Stablecoin collateral cannot be withdrawn via Liquidity.withdrawLiquidityAndClaim" );
 

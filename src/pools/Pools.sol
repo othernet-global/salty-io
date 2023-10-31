@@ -16,7 +16,7 @@ import "./PoolMath.sol";
 
 
 // The Pools contract stores the reserves that are used for swaps within the DEX.
-// It handles deposits, arbitrage, and counterswaps for the various whitelisted pools.
+// It handles deposits, arbitrage, and counterswaps for the various whitelisted pools as well.
 
 // Only the CollateralAndLiquidity.sol contract can add and remove liquidity from the pools (and is as such the only owner of liquidity as far as Pools.sol is concerned).
 // Which users actually hold those reserves is handled by CollateralAndLiquidity.sol (via StakingRewards.userShare).
@@ -53,9 +53,6 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	PoolStats(_exchangeConfig, _poolsConfig)
 	ArbitrageSearch(_exchangeConfig)
 		{
-		require( address(_poolsConfig) != address(0), "_poolsConfig cannot be address(0)" );
-
-		poolsConfig = _poolsConfig;
 		usds = _exchangeConfig.usds();
 		}
 
@@ -88,9 +85,8 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		}
 
 
-	// Given two tokens and their maximum amounts for added liquidity, determine which amounts to actually add so that the added token ratio is the same as the existing reserve token ratio.
-	// The amounts returned are in reserve token order rather than in call token order.
-	// NOTE - this does not stake added collateralAndLiquidity. Liquidity.depositLiquidityAndIncreaseShare() needs to be used instead to add liquidity, stake it and receive added rewards.
+	// Add the given amount of two tokens to the specified liquidity pool.
+	// The maximum amount of tokens is added while having the added amount have the same ratio as the current reserves.
 	function _addLiquidity( bytes32 poolID, bool flipped, IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 totalLiquidity ) internal returns(uint256 addedAmount0, uint256 addedAmount1, uint256 addedLiquidity)
 		{
 		// Ensure that tokenA/B and maxAmountA/B are ordered in reserve token order: such that address(tokenA) < address(tokenB)
@@ -115,7 +111,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 			}
 
 		// Add liquidity to the pool proportional to the current existing token reserves in the pool.
-		// First, try the proportional amount of tokenA for the given maxAmountB
+		// First, try the proportional amount of tokenB for the given maxAmountA
 		uint256 proportionalB = ( maxAmountA * reserve1 ) / reserve0;
 
 		// proportionalB too large for the specified maxAmountB?
@@ -141,8 +137,8 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		}
 
 
-	// Add liquidity for the specified trading pair (must be whitelisted)
-	function addLiquidity( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 totalLiquidity ) public returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
+	// Add liquidity to the specified pool (must be a whitelisted pool)
+	function addLiquidity( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 totalLiquidity ) public nonReentrant returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
 		{
 		require( msg.sender == address(collateralAndLiquidity), "Pools.addLiquidity is only callable from the CollateralAndLiquidity contract" );
 		require( _startExchangeApproved, "The exchange is not yet live" );
@@ -206,7 +202,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 
 	// Allow the users to deposit tokens into the contract.
-	// Users who swap frequently can keep tokens in the contract in order to reduce gas costs of token transfers in and out of the contract.
+	// Users who swap frequently can keep tokens in the contract in order to reduce the gas costs of token transfers in and out of the contract.
 	// This is not rewarded or considered staking in any way.  It's simply a way to reduce gas costs by preventing transfers at swap time.
 	function deposit( IERC20 token, uint256 amount ) public nonReentrant
 		{
@@ -303,7 +299,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	// Determine an arbitrage path to use for the given swap which just occured in this same transaction
 	function _findArbitrageWhitelisted( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountInValueInETH ) internal view returns (IERC20 token2, IERC20 token3, uint256 arbtrageAmountIn)
     	{
-		// Whitelisted pairs have a direct pool within the exchange
+		// Whitelisted pairs are directly pooled within the exchange
    		(token2, token3) = _directArbitragePath( swapTokenIn, swapTokenOut );
 
 		// Cache the reserves for efficiency
@@ -320,7 +316,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	// Determine an arbitrage path to use for the swapTokenIn->WETH->swapTokenOut swap which just occured in this same transaction
 	function _findArbitrageNonWhitelisted( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountInValueInETH ) internal view returns (IERC20 token2, IERC20 token3, uint256 arbtrageAmountIn)
     	{
-		// Nonwhitelisted pairs will use intermediate WETH as: token1->WETH->token2
+		// Nonwhitelisted pairs will use intermediate WETH as in: token1->WETH->token2
     	(token2, token3) = _indirectArbitragePath( swapTokenIn, swapTokenOut );
 
 		// Cache the reserves for efficiency
@@ -340,15 +336,16 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		{
 		uint256 swapAmountInValueInETH;
 
-		// Determine the ETH equivalent of swapAmountIn of swapTokenIn
+		// Determine the WETH equivalent of swapAmountIn of swapTokenIn
 		if ( address(swapTokenIn) == address(weth) )
 			swapAmountInValueInETH = swapAmountIn;
 		else
 			{
+			// All tokens within the DEX are paired with both WBTC and WETH - so this pool will exist.
 			(uint256 reservesWETH, uint256 reservesTokenIn) = getPoolReserves(weth, swapTokenIn);
 
 			if ( (reservesWETH < PoolUtils.DUST) || (reservesTokenIn < PoolUtils.DUST) )
-				return; // can't arbitrage as there are not enough reserves to determine value in ETH
+				return; // can't arbitrage as there are not enough reserves to determine value in WETH
 
 			swapAmountInValueInETH = ( swapAmountIn * reservesWETH ) / reservesTokenIn;
 			}
@@ -359,6 +356,8 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		// Determine the best arbitragePath (if any) with the arbitrage cycle starting and ending with WETH.
 		IERC20 arbToken2;
 		IERC20 arbToken3;
+
+		// And also how much WETH to use at the start of the arbitrage trade.
 		uint256 arbitrageAmountIn;
 
 		if ( isWhitelistedPair )
@@ -394,16 +393,14 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 			// We'll be trying to to counterswap in the opposite direction of the user's swap
 			address counterswapAddress = Counterswap._determineCounterswapAddress(swapTokenOut, swapTokenIn, wbtc, weth, salt, usds);
 
-			// Check if a counterswap should be performed (for when the protocol itself wants to gradually swap some tokens at a reasonable price)
-			// Make sure a swap hasn't been made within the same block and the counterswap deposit exists
+			// Check if a counterswap should be performed
 			if ( ( ! counterswapDisabled ) && ( _counterswapDepositExists( counterswapAddress, swapTokenOut, swapAmountOut ) ) )
 				{
 				// Perform the counterswap (in the opposite direction of the user's swap)
+				// This essentially returns the reserves to what they were before the user's swap.
 				_adjustReservesForSwap( swapTokenOut, swapTokenIn, swapAmountOut );
 
 				// Adjust the Counterswap contract's token deposits: from performing the swapTokenOut->swapTokenIn counterswap.
-				// This essentially returns the reserves to what they were before the user's swap.
-				// Counterswap deposits are actually owned by the Pools contract - as the Pools contract is derived from the Counterswap contract.
 				_userDeposits[counterswapAddress][swapTokenOut] -= swapAmountOut;
 				_userDeposits[counterswapAddress][swapTokenIn] += swapAmountIn;
 
@@ -419,6 +416,8 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 			// Make sure the swap meets the specified minimums
 			require( swapAmountOut >= minAmountOut, "Insufficient resulting token amount" );
+
+			// No counterswap when swapping nonwhitelisted pairs
 			}
 
 		// The user's swap has just been made - attempt atomic arbitrage to rebalance the pool and yield arbitrage profit
@@ -429,7 +428,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
     // Swap one token for another.
     // Uses the direct pool between two tokens if available, or if not uses token1->WETH->token2 (as every token on the DEX is pooled with both WETH and WBTC)
     // Having simpler swaps without multiple tokens in the swap chain makes it simpler (and less expensive gas wise) to find suitable arbitrage opportunities.
-    // Cheap arbitrage gas-wise is important as arbitrage will be atomically attempted with every swap transaction.
+    // Cheap arbitrage gas-wise is important as arbitrage will be atomically attempted with every user swap transaction.
 
     // Requires that the first token in the chain has already been deposited for the caller.
     // Does not require exchange access on the contract level - as other contracts using the swap feature may not have the ability to grant themselves access.
@@ -454,7 +453,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	// Regional restrictions on swapping within the browser itself may be added by the DAO.
 	function depositSwapWithdraw(IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline, bool isWhitelistedPair ) public nonReentrant ensureNotExpired(deadline) returns (uint256 swapAmountOut)
 		{
-		// Transfer the tokens from the sender - only tokens without fees should be whitelsited on the DEX
+		// Transfer the tokens from the sender - only tokens without fees should be whitelisted on the DEX
 		swapTokenIn.safeTransferFrom(msg.sender, address(this), swapAmountIn );
 
 		swapAmountOut = _adjustReservesAndAttemptArbitrage(swapTokenIn, swapTokenOut, swapAmountIn, minAmountOut, isWhitelistedPair );
@@ -474,7 +473,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		}
 
 
-	// Transfer a specified token from the caller to this swap buffer and then deposit it into the Pools contract.
+	// Transfer a specified token from the caller to this contract and then deposit it into counterswap
 	function depositTokenForCounterswap( address counterswapAddress, IERC20 tokenToDeposit, uint256 amountToDeposit ) public
 		{
 		require( (msg.sender == address(exchangeConfig.upkeep())) || (msg.sender == address(usds)), "Pools.depositTokenForCounterswap is only callable from the Upkeep or USDS contracts" );
@@ -489,6 +488,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 	// Withdraw a specified token that is deposited in the Pools contract and send it to the caller.
 	// This is to withdraw the resulting tokens resulting from counterswaps.
+	// Assumes the deposited balance exists or the debit will underflow.
 	function withdrawTokenFromCounterswap( address counterswapAddress, IERC20 tokenToWithdraw, uint256 amountToWithdraw ) public
 		{
 		require( (msg.sender == address(exchangeConfig.upkeep())) || (msg.sender == address(usds)), "Pools.withdrawTokenFromCounterswap is only callable from the Upkeep or USDS contracts" );
