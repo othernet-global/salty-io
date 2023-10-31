@@ -194,14 +194,6 @@ contract TestCollateral is Deployment
 		vm.stopPrank();
 
 		// Liquidate Alice's position
-		vm.expectRevert( "Can't liquidate the same block as a recent swap" );
-		vm.prank(bob);
-		collateralAndLiquidity.liquidateUser(alice);
-
-		// Roll to the next block so liquidation can happen
-		vm.roll( block.number + 1 );
-
-		// Liquidate Alice's position
 		vm.prank(bob);
 
 		uint256 gas0 = gasleft();
