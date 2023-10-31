@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL 1.1
-pragma solidity =0.8.21;
+pragma solidity =0.8.22;
 
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "./PoolUtils.sol";
@@ -40,6 +40,9 @@ contract PoolStats is IPoolStats
 		if ( arbitrageProfit == 0 )
 			return;
 
+		// arbToken2/arbToken3 represent the exact arbitrage path that was taken
+		// For whitelisted user swaps: WETH->arbToken2->arbToken3->WETH
+		// For unwhitelisted user swaps: WETH->arbToken2->WBTC->arbToken3->WETH
 		bytes32 poolID = PoolUtils._poolIDOnly( arbToken2, arbToken3 );
 
 		if ( isWhitelistedPair )
@@ -102,6 +105,7 @@ contract PoolStats is IPoolStats
 	// Looks at the arbitrage that has been generated since the last performUpkeep and determines how much each of the pools
 	// contributed to those generated profits.
 	// Note that poolIDs must not include any duplicate ids to work correctly.
+	// Only callable by the Upkeep contract.
 	function profitsForPools( bytes32[] memory poolIDs ) public returns (uint256[] memory _calculatedProfits)
 		{
 		require(msg.sender == address(exchangeConfig.upkeep()), "PoolStats.profitsForPools is only callable from the Upkeep contract" );

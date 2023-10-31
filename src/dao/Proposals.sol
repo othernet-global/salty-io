@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL 1.1
-pragma solidity =0.8.21;
+pragma solidity =0.8.22;
 
 import "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
