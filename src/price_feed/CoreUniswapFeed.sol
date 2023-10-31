@@ -44,10 +44,10 @@ contract CoreUniswapFeed is IPriceFeed
 		wbtc = _wbtc;
 		weth = _weth;
 
-		// Assume WBTC/WETH order
+		// Non-flipped is WBTC/WETH order
 		wbtc_wethFlipped = address(weth) < address(wbtc);
 
-		// Assume WETH/USDC order
+		// Non-flipped is WETH/USDC order
 		weth_usdcFlipped = address(usdc) < address(weth);
 		}
 

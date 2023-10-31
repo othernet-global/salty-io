@@ -31,6 +31,7 @@ contract CoreSaltyFeed is IPriceFeed
 		}
 
 
+	// Returns zero for an invalid price
 	function getPriceBTC() public view returns (uint256)
 		{
         (uint256 reservesWBTC, uint256 reservesUSDS) = pools.getPoolReserves(wbtc, usds);
@@ -43,6 +44,7 @@ contract CoreSaltyFeed is IPriceFeed
 		}
 
 
+	// Returns zero for an invalid price
 	function getPriceETH() public view returns (uint256)
 		{
         (uint256 reservesWETH, uint256 reservesUSDS) = pools.getPoolReserves(weth, usds);
