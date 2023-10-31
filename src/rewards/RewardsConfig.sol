@@ -23,7 +23,7 @@ contract RewardsConfig is IRewardsConfig, Ownable
 
 	// The percent of SALT Rewards that will be sent to the SALT/USDS pool.
 	// This is done as SALT/USDS while an important pair for the exchange isn't involved in any arbitrage swap cycles (which would yield arbitrage profit for it as well as all pools which take part in arbitrage take a share of the profit).
-	// This is because it isn't part of the usual token/WBTC, token/WETH structure - which allows other pools to be part of arbitrage swap cycles when other pools are traded.
+	// This is because it isn't part of the usual token/WBTC and token/WETH structure - which allows other pools to be part of arbitrage swap cycles when other pools are traded.
 	// Range: 5% to 25% with an adjustment of 5%
     uint256 public percentRewardsSaltUSDS = 10;
 
