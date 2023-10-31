@@ -40,7 +40,7 @@ contract PoolStats is IPoolStats
 		if ( arbitrageProfit == 0 )
 			return;
 
-		// arbToken2/arbToken3 represent the exact arbitrage path that was taken
+		// arbToken2+arbToken3 represents the exact arbitrage path that was taken
 		// For whitelisted user swaps: WETH->arbToken2->arbToken3->WETH
 		// For unwhitelisted user swaps: WETH->arbToken2->WBTC->arbToken3->WETH
 		bytes32 poolID = PoolUtils._poolIDOnly( arbToken2, arbToken3 );
@@ -52,6 +52,7 @@ contract PoolStats is IPoolStats
 		}
 
 
+	// Called at the end of Upkeep.performUpkeep to reset the arbitrage stats for the pools
 	function clearProfitsForPools( bytes32[] memory poolIDs ) public
 		{
 		require(msg.sender == address(exchangeConfig.upkeep()), "PoolStats.clearProfitsForPools is only callable from the Upkeep contract" );
@@ -66,7 +67,8 @@ contract PoolStats is IPoolStats
 		}
 
 
-	// Split up the arbitrage that has been seen since the last performUpkeep call and credit the pools that have contributed towards it.
+	// Split up the arbitrage that has been seen since the last Upkeep.performUpkeep call and credit the pools that have contributed towards it.
+	// The calculated sums for each pool will then be used to proportionally distribute SALT rewards to each of the pools.
 	function _calculateArbitrageProfits( bytes32[] memory poolIDs, uint256[] memory _calculatedProfits ) internal view
 		{
 		IERC20 wbtc = exchangeConfig.wbtc();
@@ -78,12 +80,13 @@ contract PoolStats is IPoolStats
 
 			(IERC20 tokenA, IERC20 tokenB) = poolsConfig.underlyingTokenPair(poolID);
 
-			// Split the arbitrage profit between all the pools that contributed to generating it
+			// Split the arbitrage profit between all the pools that contributed to generating the arbitrage
 			if ( poolsConfig.isWhitelisted(poolID) )
 				{
 				// The generated profit will be divided between three pools
 				uint256 arbitrageProfit = _whitelistedArbitrage[poolID] / 3;
 
+				// Arbitrage path was WETH->tokenA->tokenB->WETH
 				_calculatedProfits[ _poolIndicies[ PoolUtils._poolIDOnly( weth, tokenA )] ] += arbitrageProfit;
 				_calculatedProfits[ _poolIndicies[ PoolUtils._poolIDOnly( tokenA, tokenB )] ] += arbitrageProfit;
 				_calculatedProfits[ _poolIndicies[ PoolUtils._poolIDOnly( tokenB, weth )] ] += arbitrageProfit;
@@ -93,6 +96,7 @@ contract PoolStats is IPoolStats
 				// The generated profit will be divided between four pools
 				uint256 arbitrageProfit = _whitelistedArbitrage[poolID] / 4;
 
+				// Arbitrage path was WETH->tokenA->WBTC->tokenB->WETH
 				_calculatedProfits[ _poolIndicies[ PoolUtils._poolIDOnly( weth, tokenA )] ] += arbitrageProfit;
 				_calculatedProfits[ _poolIndicies[ PoolUtils._poolIDOnly( tokenA, wbtc )] ] += arbitrageProfit;
 				_calculatedProfits[ _poolIndicies[ PoolUtils._poolIDOnly( wbtc, tokenB )] ] += arbitrageProfit;
@@ -102,9 +106,8 @@ contract PoolStats is IPoolStats
 		}
 
 
-	// Looks at the arbitrage that has been generated since the last performUpkeep and determines how much each of the pools
-	// contributed to those generated profits.
-	// Note that poolIDs must not include any duplicate ids to work correctly.
+	// Look at the arbitrage that has been generated since the last performUpkeep and determine how much each of the pools contributed to those generated profits.
+	// Note that poolIDs must not include any duplicate IDs to work correctly.
 	// Only callable by the Upkeep contract.
 	function profitsForPools( bytes32[] memory poolIDs ) public returns (uint256[] memory _calculatedProfits)
 		{
