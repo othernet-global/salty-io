@@ -486,8 +486,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		}
 
 
-	// Withdraw a specified token that is deposited in the Pools contract and send it to the caller.
-	// This is to withdraw the resulting tokens resulting from counterswaps.
+	// Withdraw the specified token from the specified counterswap address.
 	// Assumes the deposited balance exists or the debit will underflow.
 	function withdrawTokenFromCounterswap( address counterswapAddress, IERC20 tokenToWithdraw, uint256 amountToWithdraw ) public
 		{
