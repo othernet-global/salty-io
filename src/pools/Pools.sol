@@ -240,19 +240,17 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
         require((reserve0 >= PoolUtils.DUST) && (reserve1 >= PoolUtils.DUST), "Insufficient reserves before swap");
 
-        uint256 k = reserve0 * reserve1;
-
 		// See if the reserves are flipped in regards to the argument token order
         if (flipped)
         	{
 			reserve1 += amountIn;
-			amountOut = reserve0 - k / reserve1;
+			amountOut = reserve0 * amountIn / reserve1;
 			reserve0 -= amountOut;
         	}
         else
         	{
 			reserve0 += amountIn;
-			amountOut = reserve1 - k / reserve0;
+			amountOut = reserve1 * amountIn / reserve0;
 			reserve1 -= amountOut;
         	}
 
@@ -309,7 +307,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		(uint256 reservesC0, uint256 reservesC1) = getPoolReserves( token3, weth);
 
 		// Search for the most profitable arbtrageAmountIn
-		return (token2, token3, _binarySearchWhitelisted(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1 ) );
+		return (token2, token3, _binarySearch(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1, 0, 0 ) );
     	}
 
 
@@ -327,7 +325,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		(uint256 reservesD0, uint256 reservesD1) = getPoolReserves( token3, weth);
 
 		// Search for the most profitable arbtrageAmountIn
-		return (token2, token3, _binarySearchNonWhitelisted(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1, reservesD0, reservesD1 ) );
+		return (token2, token3, _binarySearch(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1, reservesD0, reservesD1 ) );
     	}
 
 
