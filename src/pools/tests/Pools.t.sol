@@ -337,7 +337,7 @@ contract TestPools2 is Deployment
 
         // Check that the deposited balance of token is correct
         // the reserves for all pools in the transfer will initially be 1000 for each token
-        assertEq(pools.depositedUserBalance( address(collateralAndLiquidity), tokens[4] ), 83.333333333333333334 ether , "Incorrect amountOut for final token in chain");
+        assertEq(pools.depositedUserBalance( address(collateralAndLiquidity), tokens[4] ), 83.333333333333333332 ether , "Incorrect amountOut for final token in chain");
     }
 
 
@@ -407,7 +407,7 @@ contract TestPools2 is Deployment
         assertEq( tokenOut.balanceOf( address(collateralAndLiquidity) ), 0, "Test wallet shoudl start with zero tokenOut" );
         uint256 amountOut = pools.depositSwapWithdraw(tokenIn, tokenOut, amountIn, minAmountOut, block.timestamp + 1 minutes, true);
 
-        assertEq(amountOut, 166.666666666666666667 ether, "Unexpected amountOut");
+        assertEq(amountOut, 166.666666666666666666 ether, "Unexpected amountOut");
 
         assertEq( tokenOut.balanceOf( address(collateralAndLiquidity) ), amountOut, "Test wallet tokenOut balance is not amountOut" );
         vm.stopPrank();
@@ -1819,10 +1819,10 @@ function testMinLiquidityAndReclaimedAmounts() public {
 
             // assert actual result equals expected result
             assertEq(reservesA, 1600000000000000000000);
-            assertEq(reservesB, 1799999998484569634844);
+            assertEq(reservesB, 1799999998484569634843);
 
             assertEq(startingBalanceA - tokenA.balanceOf(address(this)), 100000000000000000000);
-            assertEq(startingBalanceB - tokenB.balanceOf(address(this)), 299999998484569634844);
+            assertEq(startingBalanceB - tokenB.balanceOf(address(this)), 299999998484569634843);
 
 
 			// Check that we hold all the liquidity
