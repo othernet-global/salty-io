@@ -135,8 +135,8 @@ contract TestArbitrage is Deployment
 
 		// Check the swap itself (prices not accurate)
 		// 10 WBTC -> ~ 9.9 WETH
-		assertEq( amountOut, 9900990099009900991 );
-        assertEq( weth.balanceOf(alice) - startingWETH, 9900990099009900991 );
+		assertEq( amountOut, 9900990099009900990 );
+        assertEq( weth.balanceOf(alice) - startingWETH, 9900990099009900990 );
 
         // Check that the arbitrage swaps happened as expected
         (uint256 reservesA0, uint256 reservesA1) = pools.getPoolReserves(weth, wbtc);
@@ -172,8 +172,8 @@ contract TestArbitrage is Deployment
 		uint256 amountOut = pools.depositSwapWithdraw( weth, wbtc, 10 ether, 0, block.timestamp, true );
 
 		// Check the swap itself (prices not accurate)
-		assertEq( amountOut, 990099010 );
-        assertEq( wbtc.balanceOf(alice) - startingWBTC, 990099010 );
+		assertEq( amountOut, 990099009 );
+        assertEq( wbtc.balanceOf(alice) - startingWBTC, 990099009 );
 
         // Check that the arbitrage swaps happened as expected
         (uint256 reservesA0, uint256 reservesA1) = pools.getPoolReserves(weth, salt);
@@ -209,8 +209,8 @@ contract TestArbitrage is Deployment
 		uint256 amountOut = pools.depositSwapWithdraw( weth, token, 10 ether, 0, block.timestamp, true );
 
 		// Check the swap itself (prices not accurate)
-		assertEq( amountOut, 9090909090909090910 );
-        assertEq( token.balanceOf(alice) - startingBalance, 9090909090909090910 );
+		assertEq( amountOut, 9090909090909090909 );
+        assertEq( token.balanceOf(alice) - startingBalance, 9090909090909090909 );
 
         // Check that the arbitrage swaps happened as expected
         (uint256 reservesA0, uint256 reservesA1) = pools.getPoolReserves(weth, wbtc);
@@ -246,8 +246,8 @@ contract TestArbitrage is Deployment
 		uint256 amountOut = pools.depositSwapWithdraw( token, weth, 1 ether, 0, block.timestamp, true );
 
 		// Check the swap itself (prices not accurate)
-		assertEq( amountOut, 990099009900990100 );
-        assertEq( weth.balanceOf(alice) - startingWETH, 990099009900990100 );
+		assertEq( amountOut, 990099009900990099 );
+        assertEq( weth.balanceOf(alice) - startingWETH, 990099009900990099 );
 
         // Check that the arbitrage swaps happened as expected
         (uint256 reservesA0, uint256 reservesA1) = pools.getPoolReserves(weth, token);
@@ -295,8 +295,8 @@ contract TestArbitrage is Deployment
 		uint256 amountOut = pools.depositSwapWithdraw( token1, token2, 1 ether, 0, block.timestamp, true );
 
 		// Check the swap itself (prices not accurate)
-		assertEq( amountOut, 990099009900990100 );
-        assertEq( token2.balanceOf(alice) - startingBalance, 990099009900990100 );
+		assertEq( amountOut, 990099009900990099 );
+        assertEq( token2.balanceOf(alice) - startingBalance, 990099009900990099 );
 
         // Check that the arbitrage swaps happened as expected
         (uint256 reservesA0, uint256 reservesA1) = pools.getPoolReserves(weth, token2);
@@ -339,8 +339,8 @@ contract TestArbitrage is Deployment
 		uint256 amountOut = pools.depositSwapWithdraw( token1, token2, 1 ether, 0, block.timestamp, false );
 
 		// Check the swap itself (prices not accurate)
-		assertEq( amountOut, 980392156862745100 );
-        assertEq( token2.balanceOf(alice) - startingBalance, 980392156862745100 );
+		assertEq( amountOut, 980392156862745098 );
+        assertEq( token2.balanceOf(alice) - startingBalance, 980392156862745098 );
 
         // Check that the arbitrage swaps happened as expected
         (uint256 reservesA0, uint256 reservesA1) = pools.getPoolReserves(weth, token1);
@@ -349,17 +349,17 @@ contract TestArbitrage is Deployment
         (uint256 reservesD0, uint256 reservesD1) = pools.getPoolReserves(token2, weth);
 
 		assertFalse( reservesA0 == (100 ether), "Arbitrage did not happen" );
-		assertEq( reservesA0, 99492543623174198606, "reservesA0 incorrect" );
-		assertEq( reservesA1, 100510044630829603835, "reservesA1 incorrect" );
-		assertEq( reservesB0, 100489955369170396165, "reservesB0 incorrect" );
-		assertEq( reservesB1, 9951243348, "reservesB1 incorrect" );
-		assertEq( reservesC0, 10048756652, "reservesC0 incorrect" );
-		assertEq( reservesC1, 99514799156865879689, "reservesC1 incorrect" );
-		assertEq( reservesD0, 99504808686271375211, "reservesD0 incorrect" );
-		assertEq( reservesD1, 100497655661335838603, "reservesD1 incorrect" );
+		assertEq( reservesA0, 99492510116961572394, "reservesA0 incorrect" );
+		assertEq( reservesA1, 100510078479718555493, "reservesA1 incorrect" );
+		assertEq( reservesB0, 100489921520281444507, "reservesB0 incorrect" );
+		assertEq( reservesB1, 9951246701, "reservesB1 incorrect" );
+		assertEq( reservesC0, 10048753299, "reservesC0 incorrect" );
+		assertEq( reservesC1, 99514832362290636826, "reservesC1 incorrect" );
+		assertEq( reservesD0, 99504775480846618076, "reservesD0 incorrect" );
+		assertEq( reservesD1, 100497689198091508922, "reservesD1 incorrect" );
 
 //		console.log( "profit: ", pools.depositedUserBalance( address(dao), weth ) );
-		assertEq( pools.depositedUserBalance( address(dao), weth ), 9800715489962791, "arbitrage profit incorrect" );
+		assertEq( pools.depositedUserBalance( address(dao), weth ), 9800684946918684, "arbitrage profit incorrect" );
 		}
 
 
@@ -378,8 +378,8 @@ contract TestArbitrage is Deployment
 		uint256 amountOut = pools.depositSwapWithdraw( wbtc, weth, 10 *10**8, 0, block.timestamp, true );
 
 		// Check the swap itself (prices not accurate)
-		assertEq( amountOut, 9900990099009900991 );
-		assertEq( weth.balanceOf(alice) - startingWETH, 9900990099009900991 );
+		assertEq( amountOut, 9900990099009900990 );
+		assertEq( weth.balanceOf(alice) - startingWETH, 9900990099009900990 );
 
 		(uint256 reservesA0,) = pools.getPoolReserves(weth, wbtc);
 
@@ -464,8 +464,8 @@ contract TestArbitrage is Deployment
 		uint256 amountOut = pools.depositSwapWithdraw( wbtc, weth, 10000, 0, block.timestamp, true );
 
 		// Check the swap itself
-		assertEq( amountOut, 9090910 );
-        assertEq( weth.balanceOf(alice) - startingWETH, 9090910 );
+		assertEq( amountOut, 9090909 );
+        assertEq( weth.balanceOf(alice) - startingWETH, 9090909 );
 
         // Check that the arbitrage swaps happened as expected
         (uint256 reservesA0, uint256 reservesA1) = pools.getPoolReserves(weth, wbtc);
@@ -481,7 +481,7 @@ contract TestArbitrage is Deployment
 		assertTrue( reservesC1 < 100000000, "reservesC1 incorrect" );
 
 //		console.log( "profit: ", pools.depositedUserBalance( address(dao), weth ) );
-		assertEq( pools.depositedUserBalance( address(dao), weth ), 30459, "arbitrage profit incorrect" );
+		assertEq( pools.depositedUserBalance( address(dao), weth ), 25403, "arbitrage profit incorrect" );
 		}
 
 

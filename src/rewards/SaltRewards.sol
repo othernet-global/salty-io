@@ -48,7 +48,7 @@ contract SaltRewards is ISaltRewards, ReentrancyGuard
 		if ( amount == 0 )
 			return;
 
-		// Determine how much of the SALT rewards will be directly sent to the SALT/USDS pool.
+		// Determine how much of the SALT rewards will be directly sent to the liquidityRewardsEmitter for SALT/USDS.
 		// This is because SALT/USDS is important, but not included in other arbitrage trades - which would yield additional rewards for the pool by being part of arbitrage.
 		uint256 amountSaltUSDS = ( amount * rewardsConfig.percentRewardsSaltUSDS() ) / 100;
 		pendingRewardsSaltUSDS += amountSaltUSDS;

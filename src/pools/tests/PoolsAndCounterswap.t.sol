@@ -167,7 +167,7 @@ contract TestPoolsAndCounterswap is Deployment
 		// Reserves should have remained essentially the same (as the counterswap undid the user's swap within the same transaction)
 		(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves( weth, salt );
 		assertEq( reserve0, startingReserve0, "Incorrect reserve0" );
-		assertEq( reserve1, startingReserve1 - 1, "Incorrect reserve1" );
+		assertEq( reserve1, startingReserve1 + 1, "Incorrect reserve1" );
 		}
 
 

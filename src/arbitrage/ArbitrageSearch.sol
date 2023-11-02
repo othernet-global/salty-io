@@ -70,72 +70,83 @@ contract ArbitrageSearch
 		}
 
 
-	// Given the reserves for the arbitrage swap, calculate the profit at the midpoint of the current possible range and just to the right of the midpoint.
-	function _rightMoreProfitable( uint256 midpoint, uint256 reservesA0, uint256 reservesA1, uint256 reservesB0, uint256 reservesB1, uint256 reservesC0, uint256 reservesC1, uint256 reservesD0, uint256 reservesD1 ) internal pure returns (bool rightMoreProfitable, int256 lastMidpointProfit)
+	// Given the reserves for the arbitrage swap, determine if right of the midpoint looks to be more profitable than the midpoint itself.
+	// Used as a substitution for the overly complex derivative in order to determine which direction the optimal arbitrage amountIn is more likely to be.
+	function _rightMoreProfitable( uint256 midpoint, uint256 reservesA0, uint256 reservesA1, uint256 reservesB0, uint256 reservesB1, uint256 reservesC0, uint256 reservesC1, uint256 reservesD0, uint256 reservesD1 ) internal pure returns (bool rightMoreProfitable)
 		{
-		// Calculate the AMM output of the midpoint
-		uint256 amountOut = reservesA1 * midpoint/ ( reservesA0 + midpoint );
-		amountOut = reservesB1 * amountOut / ( reservesB0 + amountOut );
-		amountOut = reservesC1 * amountOut / ( reservesC0 + amountOut );
+		// Overflow/underflow checks can be skipped here as these calculations are repeated in Pools::_arbitrage when the arbitrage actually occurs (along with the standard overflow and underflow checks).
+		unchecked
+			{
+			// Calculate the AMM output of the midpoint
+			uint256 amountOut = reservesA1 * midpoint/ ( reservesA0 + midpoint );
+			amountOut = reservesB1 * amountOut / ( reservesB0 + amountOut );
+			amountOut = reservesC1 * amountOut / ( reservesC0 + amountOut );
 
-		if ( reservesD0 != 0 )
-			amountOut = reservesD1 * amountOut / ( reservesD0 + amountOut );
+			if ( reservesD0 != 0 )
+				amountOut = reservesD1 * amountOut / ( reservesD0 + amountOut );
 
-		int256 profitMidpoint = int256(amountOut) - int256(midpoint);
+			int256 profitMidpoint = int256(amountOut) - int256(midpoint);
 
-		// If the midpoint isn't profitable then we can remove the right half the range as nothing there will be profitable there either
-		if ( profitMidpoint < int256(PoolUtils.DUST) )
-			return (false, 0);
+			// If the midpoint isn't profitable then we can remove the right half the range as nothing there will be profitable there either.
+			if ( profitMidpoint < int256(PoolUtils.DUST) )
+				return false;
 
 
-		// Calculate the AMM output of a point just to the right of the midpoint
-		midpoint = (midpoint + MIDPOINT_PRECISION);
+			// Calculate the AMM output of a point just to the right of the midpoint
+			midpoint += MIDPOINT_PRECISION;
 
-		amountOut = reservesA1 * midpoint / ( reservesA0 + midpoint );
-		amountOut = reservesB1 * amountOut / ( reservesB0 + amountOut );
-		amountOut = reservesC1 * amountOut / ( reservesC0 + amountOut );
+			amountOut = reservesA1 * midpoint / ( reservesA0 + midpoint );
+			amountOut = reservesB1 * amountOut / ( reservesB0 + amountOut );
+			amountOut = reservesC1 * amountOut / ( reservesC0 + amountOut );
 
-		if ( reservesD0 != 0 )
-			amountOut = reservesD1 * amountOut / ( reservesD0 + amountOut );
+			if ( reservesD0 != 0 )
+				amountOut = reservesD1 * amountOut / ( reservesD0 + amountOut );
 
-		int256 profitRightOfMidpoint = int256(amountOut) - int256(midpoint);
+			int256 profitRightOfMidpoint = int256(amountOut) - int256(midpoint);
 
-		return (profitRightOfMidpoint > profitMidpoint, profitMidpoint);
+			return profitRightOfMidpoint > profitMidpoint;
+			}
 		}
 
 
-	// Perform a modified binary search to search for the bestArbAmountIn in a range of 1% to 125% of swapAmountInValueInETH.
+	// Perform a modified binary search to search for the bestArbAmountIn in a range of 1/128th to 125% of swapAmountInValueInETH.
 	// The search will be done using a binary search algorithm where profits are determined at the midpoint of the current range, and also just to the right of the midpoint.
 	// Assuming that the profit function is unimodal (which may not actually be true), the two profit calculations at and near the midpoint can show us which half of the range the maximum profit is in.
 	function _binarySearch( uint256 swapAmountInValueInETH, uint256 reservesA0, uint256 reservesA1, uint256 reservesB0, uint256 reservesB1, uint256 reservesC0, uint256 reservesC1, uint256 reservesD0, uint256 reservesD1 ) internal pure returns (uint256 bestArbAmountIn)
 		{
-		if ( reservesA0 <= PoolUtils.DUST || reservesA1 <= PoolUtils.DUST || reservesB0 <= PoolUtils.DUST || reservesB1 <= PoolUtils.DUST || reservesC0 <= PoolUtils.DUST || reservesC1 <= PoolUtils.DUST )
-			return 0;
-
-		// Search bestArbAmountIn in a range from 1/128th to 125% of swapAmountInValueInETH.
-    	uint256 leftPoint = swapAmountInValueInETH >> 7;
-    	uint256 rightPoint = swapAmountInValueInETH + swapAmountInValueInETH >> 2; // 125% of swapAmountInValueInETH
-
-		int256 lastMidpointProfit;
-
-		// Cost is about 2489 gas per loop iteration
-		for( uint256 i = 0; i < 5; i++ )
+		// Comparisons and bit-shifts shouldn't over/underflow
+		unchecked
 			{
-			bool rightMoreProfitable;
-			(rightMoreProfitable, lastMidpointProfit ) = _rightMoreProfitable( (leftPoint + rightPoint) >> 1, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1, reservesD0, reservesD1 );
+			if ( reservesA0 <= PoolUtils.DUST || reservesA1 <= PoolUtils.DUST || reservesB0 <= PoolUtils.DUST || reservesB1 <= PoolUtils.DUST || reservesC0 <= PoolUtils.DUST || reservesC1 <= PoolUtils.DUST )
+				return 0;
 
-			// Right of midpoint is more profitable?
-			if ( rightMoreProfitable )
-				leftPoint = (leftPoint + rightPoint) >> 1;
-			else
-				rightPoint = (leftPoint + rightPoint) >> 1;
+			// Search bestArbAmountIn in a range from 1/128th to 125% of swapAmountInValueInETH.
+			uint256 leftPoint = swapAmountInValueInETH >> 7;
+			uint256 rightPoint = swapAmountInValueInETH + swapAmountInValueInETH >> 2; // 125% of swapAmountInValueInETH
+
+			// Cost is about 581 gas per loop iteration
+			for( uint256 i = 0; i < 5; i++ )
+				{
+				uint256 midpoint = (leftPoint + rightPoint) >> 1;
+				bool rightMoreProfitable = _rightMoreProfitable( midpoint, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1, reservesD0, reservesD1 );
+
+				// Right of midpoint is more profitable?
+				if ( rightMoreProfitable )
+					leftPoint = midpoint;
+				else
+					rightPoint = midpoint;
+				}
+
+			bestArbAmountIn = (leftPoint + rightPoint) >> 1;
+
+			// Make sure bestArbAmountIn is actually profitable (taking into account precision errors)
+			uint256 amountOut = reservesA1 * bestArbAmountIn / ( reservesA0 + bestArbAmountIn );
+			amountOut = reservesB1 * amountOut / ( reservesB0 + amountOut );
+			amountOut = reservesC1 * amountOut / ( reservesC0 + amountOut );
+
+			if ( ( int256(amountOut) - int256(bestArbAmountIn) ) < int256(PoolUtils.DUST) )
+				return 0;
 			}
-
-		// Make sure the midpoint is actually profitable (taking into account precision errors)
-		if ( lastMidpointProfit < int256(PoolUtils.DUST) )
-			return 0;
-
-		return (leftPoint + rightPoint) >> 1;
 		}
 	}
 

@@ -212,7 +212,7 @@ contract TestCollateral is Deployment
 		assertEq(( depositedWBTC * 10 / 100 - PoolUtils.DUST / 10 ) / 2, bobRewardWBTC , "Bob should have received WBTC for liquidating Alice");
 
 		// Verify that USDS received the WBTC and WETH form Alice's liquidated collateral
-		assertEq(wbtc.balanceOf(address(usds)), depositedWBTC - bobRewardWBTC - PoolUtils.DUST - 1, "The USDS contract should have received Alice's WBTC");
+		assertEq(wbtc.balanceOf(address(usds)), depositedWBTC - bobRewardWBTC - PoolUtils.DUST + 1, "The USDS contract should have received Alice's WBTC");
 		assertEq(weth.balanceOf(address(usds)), depositedWETH - bobRewardWETH - PoolUtils.DUST, "The USDS contract should have received Alice's WETH - Bob's WETH reward");
 		}
 
