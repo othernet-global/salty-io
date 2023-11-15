@@ -11,6 +11,7 @@ interface IStableConfig
 	function changeMinimumCollateralValueForBorrowing(bool increase) external; // onlyOwner
 	function changeInitialCollateralRatioPercent(bool increase) external; // onlyOwner
 	function changeMinimumCollateralRatioPercent(bool increase) external; // onlyOwner
+	function changePercentArbitrageProfitsForStablePOL(bool increase) external; // onlyOwner
 
 	// Views
     function rewardPercentForCallingLiquidation() external view returns (uint256);
@@ -18,4 +19,5 @@ interface IStableConfig
     function minimumCollateralValueForBorrowing() external view returns (uint256);
 	function initialCollateralRatioPercent() external view returns (uint256);
 	function minimumCollateralRatioPercent() external view returns (uint256);
+	function percentArbitrageProfitsForStablePOL() external view returns (uint256);
 	}

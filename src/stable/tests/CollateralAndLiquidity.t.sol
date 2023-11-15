@@ -33,7 +33,6 @@ contract TestCollateral is Deployment
 		vm.prank(address(daoVestingWallet));
 		salt.transfer(DEPLOYER, 1000000 ether);
 
-		priceAggregator.performUpkeep();
 
 		collateralPoolID = PoolUtils._poolIDOnly( wbtc, weth );
 
@@ -114,8 +113,7 @@ contract TestCollateral is Deployment
 		vm.startPrank( DEPLOYER );
 		forcedPriceFeed.setBTCPrice( forcedPriceFeed.getPriceBTC() * 54 / 100);
 		forcedPriceFeed.setETHPrice( forcedPriceFeed.getPriceETH() * 54 / 100 );
-		priceAggregator.performUpkeep();
-		vm.stopPrank();
+			vm.stopPrank();
 		}
 
 
@@ -131,28 +129,52 @@ contract TestCollateral is Deployment
 
 	// A unit test that verifies the liquidateUser function correctly transfers WETH to the liquidator and WBTC/WETH to the USDS contract
 	function testLiquidatePosition() public {
+
 		assertEq(wbtc.balanceOf(address(usds)), 0, "USDS contract should start with zero WBTC");
 		assertEq(weth.balanceOf(address(usds)), 0, "USDS contract should start with zero WETH");
 		assertEq(usds.balanceOf(alice), 0, "Alice should start with zero USDS");
 
-		// Total needs to be at least 2500
-		priceAggregator.performUpkeep();
+		// Total needs to be worth at least $2500
 		uint256 depositedWBTC = ( 1000 ether *10**8) / priceAggregator.getPriceBTC();
 		uint256 depositedWETH = ( 1000 ether *10**18) / priceAggregator.getPriceETH();
 
+		(uint256 reserveWBTC, uint256 reserveWETH) = pools.getPoolReserves(wbtc, weth);
+		assertEq( reserveWBTC, 0, "reserveWBTC doesn't start as zero" );
+		assertEq( reserveWETH, 0, "reserveWETH doesn't start as zero" );
+
 		// Alice will deposit collateral and borrow max USDS
 		vm.startPrank(alice);
-		collateralAndLiquidity.depositCollateralAndIncreaseShare( depositedWBTC, depositedWETH, 0, block.timestamp, true );
+		collateralAndLiquidity.depositCollateralAndIncreaseShare( depositedWBTC, depositedWETH, 0, block.timestamp, false );
+
 		uint256 maxUSDS = collateralAndLiquidity.maxBorrowableUSDS(alice);
 		assertEq( maxUSDS, 0, "Alice doesn't have enough collateral to borrow USDS" );
 
+		// Deposit again
 		vm.warp( block.timestamp + 1 hours );
-		collateralAndLiquidity.depositCollateralAndIncreaseShare( depositedWBTC, depositedWETH, 0, block.timestamp, true );
-		maxUSDS = collateralAndLiquidity.maxBorrowableUSDS(alice);
+		collateralAndLiquidity.depositCollateralAndIncreaseShare( depositedWBTC, depositedWETH, 0, block.timestamp, false );
 
+		// Account for both deposits
 		depositedWBTC = depositedWBTC * 2;
 		depositedWETH = depositedWETH * 2;
+		vm.stopPrank();
 
+
+		// Deposit extra so alice can withdraw all liquidity without having to worry about the DUST reserve limit
+		vm.prank(DEPLOYER);
+		collateralAndLiquidity.depositCollateralAndIncreaseShare( 1 * 10**8, 1 ether, 0, block.timestamp, false );
+
+		vm.warp( block.timestamp + 1 hours );
+
+
+		vm.startPrank(alice);
+		maxUSDS = collateralAndLiquidity.maxBorrowableUSDS(alice);
+
+
+
+		vm.startPrank(alice);
+		vm.warp( block.timestamp + 1 hours);
+
+		maxUSDS = collateralAndLiquidity.maxBorrowableUSDS(alice);
 		collateralAndLiquidity.borrowUSDS( maxUSDS );
 		vm.stopPrank();
 
@@ -160,8 +182,7 @@ contract TestCollateral is Deployment
 		assertEq( maxWithdrawable, 0, "Alice shouldn't be able to withdraw any collateral" );
 
 		{
-		uint256 aliceCollateralValue = collateralAndLiquidity.collateralValueInUSD( collateralAndLiquidity.userShareForPool( alice, collateralPoolID )  );
-
+		uint256 aliceCollateralValue = collateralAndLiquidity.userCollateralValueInUSD(alice);
 
 		uint256 aliceBorrowedUSDS = usds.balanceOf(alice);
 		assertEq( collateralAndLiquidity.usdsBorrowedByUsers(alice), aliceBorrowedUSDS, "Alice amount USDS borrowed not what she has" );
@@ -185,20 +206,12 @@ contract TestCollateral is Deployment
 		uint256 bobStartingWETH = weth.balanceOf(bob);
 		uint256 bobStartingWBTC = wbtc.balanceOf(bob);
 
-		// Place a swap using the collateral pool
-		vm.startPrank(DEPLOYER);
-		wbtc.approve(address(pools), type(uint256).max);
-		weth.approve(address(pools), type(uint256).max);
-		uint256 amountOut = pools.depositSwapWithdraw(wbtc, weth, 101, 0, block.timestamp, true );
-		pools.depositSwapWithdraw(weth, wbtc, amountOut, 0, block.timestamp, true );
-		vm.stopPrank();
-
 		// Liquidate Alice's position
 		vm.prank(bob);
 
 		uint256 gas0 = gasleft();
 		collateralAndLiquidity.liquidateUser(alice);
-		console.log( "LIQUIDATE COST: ", gas0 - gasleft() );
+		console.log( "LIQUIDATE GAS: ", gas0 - gasleft() );
 
 		uint256 bobRewardWETH = weth.balanceOf(bob) - bobStartingWETH;
 		uint256 bobRewardWBTC = wbtc.balanceOf(bob) - bobStartingWBTC;
@@ -208,12 +221,12 @@ contract TestCollateral is Deployment
         assertEq( collateralAndLiquidity.usdsBorrowedByUsers(alice), 0 );
 
 		// Verify that Bob has received WBTC and WETH for the liquidation
-		assertEq(( depositedWETH * 10 / 100 - PoolUtils.DUST / 10 ) / 2, bobRewardWETH , "Bob should have received WETH for liquidating Alice");
-		assertEq(( depositedWBTC * 10 / 100 - PoolUtils.DUST / 10 ) / 2, bobRewardWBTC , "Bob should have received WBTC for liquidating Alice");
+		assertEq( depositedWETH * 5 / 100, bobRewardWETH , "Bob should have received WETH for liquidating Alice");
+		assertEq( depositedWBTC * 5 / 100, bobRewardWBTC , "Bob should have received WBTC for liquidating Alice");
 
-		// Verify that USDS received the WBTC and WETH form Alice's liquidated collateral
-		assertEq(wbtc.balanceOf(address(usds)), depositedWBTC - bobRewardWBTC - PoolUtils.DUST + 1, "The USDS contract should have received Alice's WBTC");
-		assertEq(weth.balanceOf(address(usds)), depositedWETH - bobRewardWETH - PoolUtils.DUST, "The USDS contract should have received Alice's WETH - Bob's WETH reward");
+		// Verify that the Liquidizer received the WBTC and WETH from Alice's liquidated collateral
+		assertEq(wbtc.balanceOf(address(liquidizer)), depositedWBTC - bobRewardWBTC - 1, "The Liquidizer contract should have received Alice's WBTC");
+		assertEq(weth.balanceOf(address(liquidizer)), depositedWETH - bobRewardWETH, "The Liquidizer contract should have received Alice's WETH - Bob's WETH reward");
 		}
 
 
@@ -385,7 +398,7 @@ contract TestCollateral is Deployment
     	_depositCollateralAndBorrowMax(alice);
 
 		(uint256 reserveWBTC, uint256 reserveWETH) = pools.getPoolReserves(wbtc, weth);
-		uint256 totalLP = collateralAndLiquidity.totalShareForPool(collateralPoolID);
+		uint256 totalLP = collateralAndLiquidity.totalShares(collateralPoolID);
 
 		uint256 aliceCollateral = collateralAndLiquidity.userShareForPool( alice, collateralPoolID );
 
@@ -395,8 +408,7 @@ contract TestCollateral is Deployment
 		vm.startPrank( DEPLOYER );
 		forcedPriceFeed.setBTCPrice( 20000 ether );
 		forcedPriceFeed.setETHPrice( 2000 ether );
-		priceAggregator.performUpkeep();
-		vm.stopPrank();
+			vm.stopPrank();
 
         uint256 aliceCollateralValue0 = collateralAndLiquidity.userCollateralValueInUSD(alice);
 
@@ -408,8 +420,7 @@ contract TestCollateral is Deployment
 		vm.startPrank( DEPLOYER );
 		forcedPriceFeed.setBTCPrice( 15000 ether );
 		forcedPriceFeed.setETHPrice( 1777 ether );
-		priceAggregator.performUpkeep();
-		vm.stopPrank();
+			vm.stopPrank();
 
         aliceCollateralValue0 = collateralAndLiquidity.userCollateralValueInUSD(alice);
 
@@ -421,8 +432,7 @@ contract TestCollateral is Deployment
 		vm.startPrank( DEPLOYER );
 		forcedPriceFeed.setBTCPrice( 45000 ether );
 		forcedPriceFeed.setETHPrice( 11777 ether );
-		priceAggregator.performUpkeep();
-		vm.stopPrank();
+			vm.stopPrank();
 
         aliceCollateralValue0 = collateralAndLiquidity.userCollateralValueInUSD(alice);
 
@@ -545,7 +555,7 @@ contract TestCollateral is Deployment
 		_depositCollateralAndBorrowMax(alice);
 
 		(uint256 reserveWBTC, uint256 reserveWETH) = pools.getPoolReserves( wbtc, weth );
-		uint256 totalCollateral = collateralAndLiquidity.totalShareForPool(collateralPoolID);
+		uint256 totalCollateral = collateralAndLiquidity.totalShares(collateralPoolID);
 
 		uint256 aliceCollateral = collateralAndLiquidity.userShareForPool( alice, collateralPoolID );
 		uint256 aliceBTC = ( reserveWBTC * aliceCollateral ) / totalCollateral;
@@ -578,7 +588,7 @@ contract TestCollateral is Deployment
 
     	// Verify the result
     	uint256 depositAmount = collateralAndLiquidity.userShareForPool(alice, collateralPoolID);
-    	assertEq(depositAmount, Math.sqrt( wbtcToDeposit * wethToDeposit ) );
+    	assertEq(depositAmount, wbtcToDeposit + wethToDeposit );
 
 		vm.warp( block.timestamp + 1 days );
 
@@ -677,8 +687,8 @@ contract TestCollateral is Deployment
         uint256 maxWithdrawableLPForAlice = collateralAndLiquidity.maxWithdrawableCollateral(alice);
         uint256 maxBorrowableUSDSForAlice = collateralAndLiquidity.maxBorrowableUSDS(alice);
 
-        assertTrue(maxWithdrawableLPForAlice == 10000, "maxWithdrawableCollateral should be 10000");
-        assertTrue(maxBorrowableUSDSForAlice == 0, "Max borrowable USDS should be zero");
+        assertEq(maxWithdrawableLPForAlice, 20000, "maxWithdrawableCollateral should be 10000");
+        assertEq(maxBorrowableUSDSForAlice,  0, "Max borrowable USDS should be zero");
 		vm.stopPrank();
 
         // Scenario where account does not have a position
@@ -893,25 +903,25 @@ contract TestCollateral is Deployment
         // Alice deposits 50
         vm.prank(alice);
 		collateralAndLiquidity.depositCollateralAndIncreaseShare(50*10**8, 50*10**8, 0, block.timestamp, true );
-		check( 50*10**8, 0, 0, 0, 0, 0, 0, 0, 0 );
+		check( 100*10**8, 0, 0, 0, 0, 0, 0, 0, 0 );
         AddedReward[] memory rewards = new AddedReward[](1);
         rewards[0] = AddedReward({poolID: collateralPoolID, amountToAdd: 50*10**8});
 
         vm.prank(DEPLOYER);
         collateralAndLiquidity.addSALTRewards(rewards);
         vm.warp( block.timestamp + 1 hours );
-		check( 50*10**8, 0, 0, 50*10**8, 0, 0, 0, 0, 0 );
+		check( 100*10**8, 0, 0, 50*10**8, 0, 0, 0, 0, 0 );
 
         // Bob stakes 10
         vm.prank(bob);
 		collateralAndLiquidity.depositCollateralAndIncreaseShare(10*10**8, 10*10**8, 0, block.timestamp, true );
-		check( 50*10**8, 10*10**8, 0, 50*10**8, 0, 0, 0, 0, 0 );
+		check( 100*10**8, 20*10**8, 0, 50*10**8, 0, 0, 0, 0, 0 );
         rewards[0] = AddedReward({poolID: collateralPoolID, amountToAdd: 30*10**8});
 
         vm.prank(DEPLOYER);
         collateralAndLiquidity.addSALTRewards(rewards);
         vm.warp( block.timestamp + 1 hours );
-		check( 50*10**8, 10*10**8, 0, 75*10**8, 5*10**8, 0, 0, 0, 0 );
+		check( 100*10**8, 20*10**8, 0, 75*10**8, 5*10**8, 0, 0, 0, 0 );
 
 		// Alice claims
 		bytes32[] memory pools = new bytes32[](1);
@@ -919,101 +929,101 @@ contract TestCollateral is Deployment
 
         vm.prank(alice);
         collateralAndLiquidity.claimAllRewards(pools);
-		check( 50*10**8, 10*10**8, 0, 0, 5*10**8, 0, 75*10**8, 0, 0 );
+		check( 100*10**8, 20*10**8, 0, 0, 5*10**8, 0, 75*10**8, 0, 0 );
         rewards[0] = AddedReward({poolID: collateralPoolID, amountToAdd: 30*10**8});
 
         vm.prank(DEPLOYER);
         collateralAndLiquidity.addSALTRewards(rewards);
         vm.warp( block.timestamp + 1 hours );
-		check( 50*10**8, 10*10**8, 0, 25*10**8, 10*10**8, 0, 75*10**8, 0, 0 );
+		check( 100*10**8, 20*10**8, 0, 25*10**8, 10*10**8, 0, 75*10**8, 0, 0 );
 
         // Charlie stakes 40
         vm.prank(charlie);
 		collateralAndLiquidity.depositCollateralAndIncreaseShare(40 *10**8, 40 *10**8, 0, block.timestamp, true );
-		check( 50*10**8, 10*10**8, 40*10**8, 25*10**8, 10*10**8, 0, 75*10**8, 0, 0 );
+		check( 100*10**8, 20*10**8, 80*10**8, 25*10**8, 10*10**8, 0, 75*10**8, 0, 0 );
         rewards[0] = AddedReward({poolID: collateralPoolID, amountToAdd: 100*10**8});
 
         vm.prank(DEPLOYER);
         collateralAndLiquidity.addSALTRewards(rewards);
         vm.warp( block.timestamp + 1 hours );
-		check( 50*10**8, 10*10**8, 40*10**8, 75*10**8, 20*10**8, 40*10**8, 75*10**8, 0, 0 );
+		check( 100*10**8, 20*10**8, 80*10**8, 75*10**8, 20*10**8, 40*10**8, 75*10**8, 0, 0 );
 
 		// Alice unstakes 10
         vm.prank(alice);
-        collateralAndLiquidity.withdrawCollateralAndClaim(10*10**8, 0, 0, block.timestamp);
-		check( 40*10**8, 10*10**8, 40*10**8, 60*10**8, 20*10**8, 40*10**8, 90*10**8, 0, 0 );
+        collateralAndLiquidity.withdrawCollateralAndClaim(20*10**8, 0, 0, block.timestamp);
+		check( 80*10**8, 20*10**8, 80*10**8, 60*10**8, 20*10**8, 40*10**8, 90*10**8, 0, 0 );
         rewards[0] = AddedReward({poolID: collateralPoolID, amountToAdd: 90*10**8});
 
         vm.prank(DEPLOYER);
         collateralAndLiquidity.addSALTRewards(rewards);
         vm.warp( block.timestamp + 1 hours );
-		check( 40*10**8, 10*10**8, 40*10**8, 100*10**8, 30*10**8, 80*10**8, 90*10**8, 0, 0 );
+		check( 80*10**8, 20*10**8, 80*10**8, 100*10**8, 30*10**8, 80*10**8, 90*10**8, 0, 0 );
 
 		// Bob claims
         vm.prank(bob);
         collateralAndLiquidity.claimAllRewards(pools);
-		check( 40*10**8, 10*10**8, 40*10**8, 100*10**8, 0, 80*10**8, 90*10**8, 30*10**8, 0 );
+		check( 80*10**8, 20*10**8, 80*10**8, 100*10**8, 0, 80*10**8, 90*10**8, 30*10**8, 0 );
         rewards[0] = AddedReward({poolID: collateralPoolID, amountToAdd: 90*10**8});
 
         vm.prank(DEPLOYER);
         collateralAndLiquidity.addSALTRewards(rewards);
         vm.warp( block.timestamp + 1 hours );
-		check( 40*10**8, 10*10**8, 40*10**8, 140*10**8, 10*10**8, 120*10**8, 90*10**8, 30*10**8, 0 );
+		check( 80*10**8, 20*10**8, 80*10**8, 140*10**8, 10*10**8, 120*10**8, 90*10**8, 30*10**8, 0 );
 
 		// Charlie claims
         vm.prank(charlie);
         collateralAndLiquidity.claimAllRewards(pools);
-		check( 40*10**8, 10*10**8, 40*10**8, 140*10**8, 10*10**8, 0, 90*10**8, 30*10**8, 120*10**8 );
+		check( 80*10**8, 20*10**8, 80*10**8, 140*10**8, 10*10**8, 0, 90*10**8, 30*10**8, 120*10**8 );
         rewards[0] = AddedReward({poolID: collateralPoolID, amountToAdd: 180*10**8});
 
         vm.prank(DEPLOYER);
         collateralAndLiquidity.addSALTRewards(rewards);
         vm.warp( block.timestamp + 1 hours );
-		check( 40*10**8, 10*10**8, 40*10**8, 220*10**8, 30*10**8, 80*10**8, 90*10**8, 30*10**8, 120*10**8 );
+		check( 80*10**8, 20*10**8, 80*10**8, 220*10**8, 30*10**8, 80*10**8, 90*10**8, 30*10**8, 120*10**8 );
 
 		// Alice adds 100
         vm.prank(alice);
 		collateralAndLiquidity.depositCollateralAndIncreaseShare(100 *10**8, 100 *10**8, 0, block.timestamp, true );
-		check( 140*10**8, 10*10**8, 40*10**8, 220*10**8, 30*10**8, 80*10**8, 90*10**8, 30*10**8, 120*10**8 );
+		check( 280*10**8, 20*10**8, 80*10**8, 220*10**8, 30*10**8, 80*10**8, 90*10**8, 30*10**8, 120*10**8 );
         rewards[0] = AddedReward({poolID: collateralPoolID, amountToAdd: 190*10**8});
 
         vm.prank(DEPLOYER);
         collateralAndLiquidity.addSALTRewards(rewards);
         vm.warp( block.timestamp + 1 hours );
-		check( 140*10**8, 10*10**8, 40*10**8, 360*10**8, 40*10**8, 120*10**8, 90*10**8, 30*10**8, 120*10**8 );
+		check( 280*10**8, 20*10**8, 80*10**8, 360*10**8, 40*10**8, 120*10**8, 90*10**8, 30*10**8, 120*10**8 );
 
 		// Charlie unstakes all
         vm.prank(charlie);
-        collateralAndLiquidity.withdrawCollateralAndClaim(40*10**8, 0, 0, block.timestamp);
-		check( 140*10**8, 10*10**8, 0, 360*10**8, 40*10**8, 0, 90*10**8, 30*10**8, 240*10**8 );
+        collateralAndLiquidity.withdrawCollateralAndClaim(80*10**8, 0, 0, block.timestamp);
+		check( 280*10**8, 20*10**8, 0, 360*10**8, 40*10**8, 0, 90*10**8, 30*10**8, 240*10**8 );
         rewards[0] = AddedReward({poolID: collateralPoolID, amountToAdd: 75*10**8});
 
         vm.prank(DEPLOYER);
         collateralAndLiquidity.addSALTRewards(rewards);
         vm.warp( block.timestamp + 1 hours );
-		check( 140*10**8, 10*10**8, 0, 430*10**8, 45*10**8, 0, 90*10**8, 30*10**8, 240*10**8 );
+		check( 280*10**8, 20*10**8, 0, 430*10**8, 45*10**8, 0, 90*10**8, 30*10**8, 240*10**8 );
 
-		// Bob unstakes 5
+		// Bob unstakes 2
         vm.prank(bob);
-        collateralAndLiquidity.withdrawCollateralAndClaim(2*10**8, 0, 0, block.timestamp);
-		check( 140*10**8, 8*10**8, 0, 430*10**8, 36*10**8, 0, 90*10**8, 39*10**8, 240*10**8 );
+        collateralAndLiquidity.withdrawCollateralAndClaim(4*10**8, 0, 0, block.timestamp);
+		check( 280*10**8, 16*10**8, 0, 430*10**8, 36*10**8, 0, 90*10**8, 39*10**8, 240*10**8 );
         rewards[0] = AddedReward({poolID: collateralPoolID, amountToAdd: 74*10**8});
 
         vm.prank(DEPLOYER);
         collateralAndLiquidity.addSALTRewards(rewards);
         vm.warp( block.timestamp + 1 hours );
-		check( 140*10**8, 8*10**8, 0, 500*10**8, 40*10**8, 0, 90*10**8, 39*10**8, 240*10**8 );
+		check( 280*10**8, 16*10**8, 0, 500*10**8, 40*10**8, 0, 90*10**8, 39*10**8, 240*10**8 );
 
 		// Bob adds 148
         vm.prank(bob);
-		collateralAndLiquidity.depositCollateralAndIncreaseShare(148 *10**8, 148 *10**8, 0, block.timestamp, true );
-		check( 140*10**8, 156*10**8, 0, 500*10**8, 40*10**8, 0, 90*10**8, 39*10**8, 240*10**8 );
+		collateralAndLiquidity.depositCollateralAndIncreaseShare(196 *10**8, 148 *10**8, 0, block.timestamp, true );
+		check( 280*10**8, 312*10**8, 0, 500*10**8, 40*10**8, 0, 90*10**8, 39*10**8, 240*10**8 );
         rewards[0] = AddedReward({poolID: collateralPoolID, amountToAdd: 592*10**8});
 
         vm.prank(DEPLOYER);
         collateralAndLiquidity.addSALTRewards(rewards);
         vm.warp( block.timestamp + 1 hours );
-		check( 140*10**8, 156*10**8, 0, 780*10**8, 352*10**8, 0, 90*10**8, 39*10**8, 240*10**8 );
+		check( 280*10**8, 312*10**8, 0, 780*10**8, 352*10**8, 0, 90*10**8, 39*10**8, 240*10**8 );
 	}
 
 
@@ -1026,8 +1036,8 @@ contract TestCollateral is Deployment
 		collateralAndLiquidity.borrowUSDS( maxUSDS );
 		vm.stopPrank();
 
-        uint256 aliceCollateralShare = collateralAndLiquidity.userShareForPool( alice, collateralPoolID );
-        uint256 aliceCollateralValue = collateralAndLiquidity.collateralValueInUSD( aliceCollateralShare );
+        collateralAndLiquidity.userShareForPool( alice, collateralPoolID );
+		uint256 aliceCollateralValue = collateralAndLiquidity.userCollateralValueInUSD(alice);
 
         uint256 aliceBorrowedUSDS = usds.balanceOf(alice);
         assertEq( collateralAndLiquidity.usdsBorrowedByUsers(alice), aliceBorrowedUSDS, "Alice amount USDS borrowed not what she has" );
@@ -1075,8 +1085,8 @@ contract TestCollateral is Deployment
 		collateralAndLiquidity.borrowUSDS( maxUSDS );
 		vm.stopPrank();
 
-        uint256 aliceCollateralShare = collateralAndLiquidity.userShareForPool( alice, collateralPoolID );
-        uint256 aliceCollateralValue = collateralAndLiquidity.collateralValueInUSD( aliceCollateralShare );
+        collateralAndLiquidity.userShareForPool( alice, collateralPoolID );
+		uint256 aliceCollateralValue = collateralAndLiquidity.userCollateralValueInUSD(alice);
 
         uint256 aliceBorrowedUSDS = usds.balanceOf(alice);
         assertEq( collateralAndLiquidity.usdsBorrowedByUsers(alice), aliceBorrowedUSDS, "Alice amount USDS borrowed not what she has" );
@@ -1084,7 +1094,7 @@ contract TestCollateral is Deployment
         // Artificially crash the collateral price
         _crashCollateralPrice();
 
-        aliceCollateralValue = collateralAndLiquidity.collateralValueInUSD( aliceCollateralShare );
+		aliceCollateralValue = collateralAndLiquidity.userCollateralValueInUSD(alice);
 
         // Delay before the liquidation
         vm.warp( block.timestamp + 1 days );
@@ -1161,10 +1171,9 @@ contract TestCollateral is Deployment
 
 		vm.stopPrank();
 
-		priceAggregator.performUpkeep();
 
         // Liquidate Alice's position
-        vm.expectRevert( "Invalid WBTC price" );
+        vm.expectRevert( "Invalid BTC price" );
         collateralAndLiquidity.liquidateUser(alice);
 
         assertFalse( collateralAndLiquidity.userShareForPool(alice, collateralPoolID) == 0 );
@@ -1196,10 +1205,9 @@ contract TestCollateral is Deployment
 		priceAggregator.setPriceFeed(3, IPriceFeed(address(forcedPriceFeed3)));
 		vm.stopPrank();
 
-		priceAggregator.performUpkeep();
 
         // Liquidate Alice's position
-        vm.expectRevert( "Invalid WBTC price" );
+        vm.expectRevert( "Invalid BTC price" );
         collateralAndLiquidity.liquidateUser(alice);
 
         assertFalse( collateralAndLiquidity.userShareForPool(alice, collateralPoolID) == 0 );
@@ -1231,7 +1239,6 @@ contract TestCollateral is Deployment
 		priceAggregator.setPriceFeed(3, IPriceFeed(address(forcedPriceFeed3)));
 		vm.stopPrank();
 
-		priceAggregator.performUpkeep();
 
         // Liquidate Alice's position
         collateralAndLiquidity.liquidateUser(alice);
@@ -1251,17 +1258,16 @@ contract TestCollateral is Deployment
 		priceAggregator.setPriceFeed(2, IPriceFeed(address(forcedPriceFeed)));
 		vm.stopPrank();
 
-		priceAggregator.performUpkeep();
 
 
         // Deposit and borrow for Alice
 		vm.startPrank( alice );
 		collateralAndLiquidity.depositCollateralAndIncreaseShare(wbtc.balanceOf(alice) / 2, weth.balanceOf(alice) / 2, 0, block.timestamp, true );
 
-        vm.expectRevert( "Invalid WBTC price" );
+        vm.expectRevert( "Invalid BTC price" );
 		uint256 maxUSDS = collateralAndLiquidity.maxBorrowableUSDS(alice);
 
-        vm.expectRevert( "Invalid WBTC price" );
+        vm.expectRevert( "Invalid BTC price" );
 		collateralAndLiquidity.borrowUSDS( maxUSDS );
 		vm.stopPrank();
         }
@@ -1281,7 +1287,7 @@ contract TestCollateral is Deployment
     function testBorrowUSDSWithoutCollateral() public {
 
     	// Give access to the user
-		bytes memory sig = abi.encodePacked(hex"140e05ee4a808d731d7a8d72d685f7335c13b502823a4ff504fb894b96b230a277a693cc4d7ad68065776e05d9b7159fdb193912611d3c3c39abffe6f0e73bbf1c");
+		bytes memory sig = abi.encodePacked(oneTwoThreeFourAccessSignature);
 		vm.prank( address(0x1234) );
 		accessManager.grantAccess(sig);
 
@@ -1335,7 +1341,7 @@ contract TestCollateral is Deployment
     	assertTrue( _userHasCollateral(alice) );
 
     	// Ensure the total shares for pool is greater than zero
-    	assertTrue(collateralAndLiquidity.totalShareForPool(collateralPoolID) > 0, "Total shares for pool should be greater than zero");
+    	assertTrue(collateralAndLiquidity.totalShares(collateralPoolID) > 0, "Total shares for pool should be greater than zero");
 
     	// Withdraw all collateral of Alice
     	vm.startPrank(address(alice));
@@ -1347,7 +1353,7 @@ contract TestCollateral is Deployment
     	assertFalse( _userHasCollateral(alice) );
 
     	// After withdrawing all collaterals the total shares for pool should be zero
-    	assertEq(collateralAndLiquidity.totalShareForPool(collateralPoolID), 0, "Total shares for pool should be zero after withdrawing all collaterals");
+    	assertEq(collateralAndLiquidity.totalShares(collateralPoolID), 0, "Total shares for pool should be zero after withdrawing all collaterals");
     }
 
 
@@ -1407,7 +1413,6 @@ contract TestCollateral is Deployment
         vm.startPrank( DEPLOYER );
         forcedPriceFeed.setBTCPrice( newPriceBTC );
         forcedPriceFeed.setETHPrice( newPriceETH );
-        priceAggregator.performUpkeep();
         vm.stopPrank();
 
         // Alice should now be just above the liquidation threshold
@@ -1425,7 +1430,6 @@ contract TestCollateral is Deployment
         vm.startPrank( DEPLOYER );
         forcedPriceFeed.setBTCPrice( newPriceBTC );
         forcedPriceFeed.setETHPrice( newPriceETH );
-        priceAggregator.performUpkeep();
         vm.stopPrank();
 
         // Alice should now be under the liquidation threshold
@@ -1534,7 +1538,7 @@ contract TestCollateral is Deployment
     		assertEq(collateralAndLiquidity.userShareForPool(bob, collateralPoolID), 0, "Bob should start with no collateral in pool");
 
     		// The collateral value for Bob should be 0 as there is no collateral in the pool
-    		uint256 collateralValueUSD = collateralAndLiquidity.collateralValueInUSD(collateralAndLiquidity.userShareForPool(bob, collateralPoolID));
+			uint256 collateralValueUSD = collateralAndLiquidity.userCollateralValueInUSD(bob);
     		assertEq(collateralValueUSD, 0, "Bob's collateral value should be 0 with no collateral in the pool");
     	}
 
@@ -1582,11 +1586,15 @@ contract TestCollateral is Deployment
     function testInvalidConstructorInputs() public {
     	// Invalid _stableConfig parameter
     	vm.expectRevert("_stableConfig cannot be address(0)");
-		collateralAndLiquidity = new CollateralAndLiquidity(pools, exchangeConfig, poolsConfig, stakingConfig, IStableConfig(address(0)), priceAggregator);
+		collateralAndLiquidity = new CollateralAndLiquidity(pools, exchangeConfig, poolsConfig, stakingConfig, IStableConfig(address(0)), priceAggregator, liquidizer);
 
     	// Invalid _priceAggregator parameter
     	vm.expectRevert("_priceAggregator cannot be address(0)");
-		collateralAndLiquidity = new CollateralAndLiquidity(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, IPriceAggregator(address(0)));
+		collateralAndLiquidity = new CollateralAndLiquidity(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, IPriceAggregator(address(0)), liquidizer);
+
+    	// Invalid _priceAggregator parameter
+    	vm.expectRevert("_liquidizer cannot be address(0)");
+		collateralAndLiquidity = new CollateralAndLiquidity(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator, ILiquidizer(address(0)));
     }
 
 
@@ -1617,7 +1625,7 @@ contract TestCollateral is Deployment
         // Prepare
         uint256 zeroCollateralValue = 0;
         // Call
-        uint256 result = collateralAndLiquidity.collateralValueInUSD(zeroCollateralValue);
+        uint256 result = collateralAndLiquidity.userCollateralValueInUSD(address(0x3));
         // Assert
         assertEq(result, zeroCollateralValue, "Expect collateralValueInUSD with zero collateral to be zero");
     }
@@ -1677,7 +1685,7 @@ contract TestCollateral is Deployment
         collateralAndLiquidity.withdrawCollateralAndClaim(collateralToWithdraw, 0, 0, block.timestamp);
 
         // Total shares should be reduced by the withdrawn collateral amount
-        uint256 sharesAfterWithdrawal = collateralAndLiquidity.totalShareForPool(collateralPoolID);
+        uint256 sharesAfterWithdrawal = collateralAndLiquidity.totalShares(collateralPoolID);
         assertEq(aliceCollateralAmount - collateralToWithdraw, sharesAfterWithdrawal, "totalSharesForPool did not update");
 
         assertEq(collateralAndLiquidity.userShareForPool(alice, collateralPoolID), sharesAfterWithdrawal);
@@ -1751,7 +1759,6 @@ contract TestCollateral is Deployment
             vm.stopPrank();
 
 			vm.prank(address(upkeep));
-			priceAggregator.performUpkeep();
 
             uint256 expectedUnderlyingTokenValueInUSD = mockBTCPriceInUSD + mockETHPriceInUSD;
 
@@ -1858,4 +1865,41 @@ contract TestCollateral is Deployment
 
 		assertEq( salt.balanceOf(alice) - startingBalance, expectedClaim );
     	}
+
+
+	// A unit test that tests depositing and withdrawing collateral
+	function testDepositAndWithdrawCollateral2() public {
+
+		// Total needs to be worth at least $2500
+		uint256 depositedWBTC = ( 2000 ether *10**8) / priceAggregator.getPriceBTC();
+		uint256 depositedWETH = ( 2000 ether *10**18) / priceAggregator.getPriceETH();
+
+		(uint256 reserveWBTC, uint256 reserveWETH) = pools.getPoolReserves(wbtc, weth);
+		assertEq( reserveWBTC, 0, "reserveWBTC doesn't start as zero" );
+		assertEq( reserveWETH, 0, "reserveWETH doesn't start as zero" );
+
+		// Alice deposits collateral
+		vm.prank(alice);
+		collateralAndLiquidity.depositCollateralAndIncreaseShare( depositedWBTC, depositedWETH, 0, block.timestamp, false );
+
+		vm.warp( block.timestamp + 1 hours);
+
+		// Deposit extra so alice can withdraw all liquidity without having to worry about DUST reserve limit
+		vm.prank(DEPLOYER);
+		collateralAndLiquidity.depositCollateralAndIncreaseShare( 1 * 10**8, 1 ether, 0, block.timestamp, false );
+
+		vm.startPrank(alice);
+		uint256 aliceCollateral = collateralAndLiquidity.userShareForPool(alice, collateralPoolID);
+		(uint256 removedWBTC, uint256 removedWETH) = collateralAndLiquidity.withdrawCollateralAndClaim(aliceCollateral, 0, 0, block.timestamp );
+
+		assertEq( depositedWBTC, removedWBTC + 1 );
+		assertEq( depositedWETH, removedWETH );
+//
+//		console.log( "depositedWBTC: ", depositedWBTC );
+//		console.log( "depositedWETH: ", depositedWETH );
+//		console.log( "removedWBTC: ", removedWBTC );
+//		console.log( "removedWETH: ", removedWETH );
+		}
+
+
 }

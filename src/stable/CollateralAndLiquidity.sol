@@ -2,29 +2,30 @@
 pragma solidity =0.8.22;
 
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
-import "../staking/Liquidity.sol";
+import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import "../price_feed/interfaces/IPriceAggregator.sol";
 import "./interfaces/ICollateralAndLiquidity.sol";
 import "./interfaces/IStableConfig.sol";
-import "../price_feed/interfaces/IPriceAggregator.sol";
+import "./interfaces/ILiquidizer.sol";
+import "../staking/Liquidity.sol";
 
-
-// The contract through which all liquidity on the exchange is added and removed.
-
+// The deployed contract through which all liquidity on the exchange is deposited and withdrawn.
 // Also allows users to deposit WBTC/WETH liquidity as collateral for borrowing USDS stablecoin.
-// Deposited WBTC/WETH liquidity is owned by this contract (as it makes external calls to Pools.sol to add and remove liquidity) and the user making the deposit is given increased collateral share.
-// This contract needs to maintain control over the liquidity collateral in case a user's collateral ratio falls below required minimums and their collateral needs to be liquidated.
-// When users withdraw liquidity: their collateral share is reduced, this contract pulls liquidity from Pools.sol and the reclaimed tokens are sent back to the user.
-// The functionality to add and remove liquidity is inherited from Liquidity.sol
 
 // The default initial collateralization ratio of collateral / borrowed USDS is 200%.
 // The minimum default collateral ratio is 110%, below which positions can be liquidated by any user.
-// Users who call the liquidation function on undercollateralized positions receive a default 5% of the liquidated collateral (up to a default max of $500).
+// Users who call the liquidation function on undercollateralized positions receive a default 5% of the liquidated collateral (up to a default max value of $500).
 // Liquidated users lose their deposited WBTC/WETH collateral and keep the USDS that they borrowed.
 
 contract CollateralAndLiquidity is Liquidity, ICollateralAndLiquidity
     {
+    event CollateralDeposited(address indexed depositor, uint256 amountWBTC, uint256 amountWETH, uint256 liquidity);
+    event CollateralWithdrawn(address indexed withdrawer, uint256 collateralWithdrawn, uint256 reclaimedWBTC, uint256 reclaimedWETH);
+    event BorrowedUSDS(address indexed borrower, uint256 amountBorrowed);
+    event RepaidUSDS(address indexed repayer, uint256 amountRepaid);
+    event Liquidation(address indexed liquidator, address indexed liquidatee, uint256 reclaimedWBTC, uint256 reclaimedWETH, uint256 originallyBorrowedUSDS);
+
 	using SafeERC20 for IERC20;
 	using SafeERC20 for IUSDS;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -34,6 +35,7 @@ contract CollateralAndLiquidity is Liquidity, ICollateralAndLiquidity
     IUSDS immutable public usds;
 	IERC20 immutable public wbtc;
 	IERC20 immutable public weth;
+	ILiquidizer immutable public liquidizer;
 
 	// Cached for efficiency
 	uint256 immutable public wbtcDecimals;
@@ -46,14 +48,16 @@ contract CollateralAndLiquidity is Liquidity, ICollateralAndLiquidity
     mapping(address=>uint256) public usdsBorrowedByUsers;
 
 
-    constructor( IPools _pools, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IStableConfig _stableConfig, IPriceAggregator _priceAggregator )
+    constructor( IPools _pools, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IStableConfig _stableConfig, IPriceAggregator _priceAggregator, ILiquidizer _liquidizer )
 		Liquidity( _pools, _exchangeConfig, _poolsConfig, _stakingConfig )
     	{
 		require( address(_stableConfig) != address(0), "_stableConfig cannot be address(0)" );
 		require( address(_priceAggregator) != address(0), "_priceAggregator cannot be address(0)" );
+		require( address(_liquidizer) != address(0), "_liquidizer cannot be address(0)" );
 
 		priceAggregator = _priceAggregator;
         stableConfig = _stableConfig;
+        liquidizer = _liquidizer;
 
 		usds = _exchangeConfig.usds();
 		wbtc = exchangeConfig.wbtc();
@@ -65,18 +69,18 @@ contract CollateralAndLiquidity is Liquidity, ICollateralAndLiquidity
 
 
 	// Deposit WBTC/WETH liqudity as collateral and increase the caller's collateral share for future rewards.
-	// The called function depositLiquidityAndIncreaseShare is nonReentrant.
 	// Requires exchange access for the sending wallet (through depositLiquidityAndIncreaseShare)
-	function depositCollateralAndIncreaseShare( uint256 maxAmountWBTC, uint256 maxAmountWETH, uint256 minLiquidityReceived, uint256 deadline, bool useZapping ) public ensureNotExpired(deadline)  returns (uint256 addedAmountWBTC, uint256 addedAmountWETH, uint256 addedLiquidity)
+	function depositCollateralAndIncreaseShare( uint256 maxAmountWBTC, uint256 maxAmountWETH, uint256 minLiquidityReceived, uint256 deadline, bool useZapping ) external nonReentrant ensureNotExpired(deadline)  returns (uint256 addedAmountWBTC, uint256 addedAmountWETH, uint256 addedLiquidity)
 		{
 		// Have the user deposit the specified WBTC/WETH liquidity and increase their collateral share
 		(addedAmountWBTC, addedAmountWETH, addedLiquidity) = _depositLiquidityAndIncreaseShare( wbtc, weth, maxAmountWBTC, maxAmountWETH, minLiquidityReceived, useZapping );
+
+		emit CollateralDeposited(msg.sender, addedAmountWBTC, addedAmountWETH, addedLiquidity);
 		}
 
 
 	// Withdraw WBTC/WETH collateral and claim any pending rewards.
-	// The called function withdrawLiquidityAndClaim is nonReentrant
-    function withdrawCollateralAndClaim( uint256 collateralToWithdraw, uint256 minReclaimedWBTC, uint256 minReclaimedWETH, uint256 deadline ) public ensureNotExpired(deadline) returns (uint256 reclaimedWBTC, uint256 reclaimedWETH)
+    function withdrawCollateralAndClaim( uint256 collateralToWithdraw, uint256 minReclaimedWBTC, uint256 minReclaimedWETH, uint256 deadline ) external nonReentrant ensureNotExpired(deadline) returns (uint256 reclaimedWBTC, uint256 reclaimedWETH)
 		{
 		// Make sure that the user has collateral and if they have borrowed USDS that collateralToWithdraw doesn't bring their collateralRatio below allowable levels.
 		require( userShareForPool( msg.sender, collateralPoolID ) > 0, "User does not have any collateral" );
@@ -84,12 +88,14 @@ contract CollateralAndLiquidity is Liquidity, ICollateralAndLiquidity
 
 		// Withdraw the WBTC/WETH liquidity from the liquidity pool (sending the reclaimed tokens back to the user)
 		(reclaimedWBTC, reclaimedWETH) = _withdrawLiquidityAndClaim( wbtc, weth, collateralToWithdraw, minReclaimedWBTC, minReclaimedWETH );
+
+		emit CollateralWithdrawn(msg.sender, collateralToWithdraw, reclaimedWBTC, reclaimedWETH);
 		}
 
 
 	// Borrow USDS using existing collateral, making sure that the amount being borrowed does not exceed maxBorrowable
 	// Requires exchange access for the sending wallet
-    function borrowUSDS( uint256 amountBorrowed ) public nonReentrant
+    function borrowUSDS( uint256 amountBorrowed ) external nonReentrant
 		{
 		require( exchangeConfig.walletHasAccess(msg.sender), "Sender does not have exchange access" );
 		require( userShareForPool( msg.sender, collateralPoolID ) > 0, "User does not have any collateral" );
@@ -103,11 +109,13 @@ contract CollateralAndLiquidity is Liquidity, ICollateralAndLiquidity
 
 		// Mint USDS and send it to the user
 		usds.mintTo( msg.sender, amountBorrowed );
+
+		emit BorrowedUSDS(msg.sender, amountBorrowed);
 		}
 
 
      // Repay borrowed USDS and adjust the user's usdsBorrowedByUser
-     function repayUSDS( uint256 amountRepaid ) public nonReentrant
+     function repayUSDS( uint256 amountRepaid ) external nonReentrant
 		{
 		require( userShareForPool( msg.sender, collateralPoolID ) > 0, "User does not have any collateral" );
 		require( amountRepaid <= usdsBorrowedByUsers[msg.sender], "Cannot repay more than the borrowed amount" );
@@ -120,28 +128,30 @@ contract CollateralAndLiquidity is Liquidity, ICollateralAndLiquidity
 		usds.safeTransferFrom(msg.sender, address(usds), amountRepaid);
 
 		// Have USDS remember that the USDS should be burned
-		usds.shouldBurnMoreUSDS( amountRepaid );
+		liquidizer.shouldBurnMoreUSDS( amountRepaid );
 
 		// Check if the user no longer has any borrowed USDS
 		if ( usdsBorrowedByUsers[msg.sender] == 0 )
 			_walletsWithBorrowedUSDS.remove(msg.sender);
+
+		emit RepaidUSDS(msg.sender, amountRepaid);
 		}
 
 
 	// Liquidate a position which has fallen under the minimum collateral ratio.
 	// A default 5% of the value of the collateral is sent to the caller, with the rest being sent to the Liquidator for later conversion to USDS which is then burned.
-	function liquidateUser( address wallet ) public nonReentrant
+	function liquidateUser( address wallet ) external nonReentrant
 		{
 		require( wallet != msg.sender, "Cannot liquidate self" );
 
-		// First, make sure that the user's colalteral ratio is below the required level
+		// First, make sure that the user's collateral ratio is below the required level
 		require( canUserBeLiquidated(wallet), "User cannot be liquidated" );
 
 		uint256 userCollateralAmount = userShareForPool( wallet, collateralPoolID );
 
 		// Withdraw the liquidated collateral from the liquidity pool.
 		// The liquidity is owned by this contract so when it is withdrawn it will be reclaimed by this contract.
-		(uint256 reclaimedWBTC, uint256 reclaimedWETH) = pools.removeLiquidity(wbtc, weth, userCollateralAmount, 0, 0, totalShareForPool(collateralPoolID) );
+		(uint256 reclaimedWBTC, uint256 reclaimedWETH) = pools.removeLiquidity(wbtc, weth, userCollateralAmount, 0, 0, totalShares[collateralPoolID] );
 
 		// Decrease the user's share of collateral as it has been liquidated and they no longer have it.
 		_decreaseUserShare( wallet, collateralPoolID, userCollateralAmount, true );
@@ -165,20 +175,69 @@ contract CollateralAndLiquidity is Liquidity, ICollateralAndLiquidity
 		wbtc.safeTransfer( msg.sender, rewardedWBTC );
 		weth.safeTransfer( msg.sender, rewardedWETH );
 
-		// Send the remaining WBTC and WETH to the USDS contract so that the tokens can later be converted to USDS via counterswap and burned (on USDS.performUpkeep)
-		wbtc.safeTransfer( address(usds), wbtc.balanceOf(address(this)) );
-		weth.safeTransfer( address(usds), weth.balanceOf(address(this)) );
+		// Send the remaining WBTC and WETH to the Liquidizer contract so that the tokens can be converted to USDS and burned (on Liquidizer.performUpkeep)
+		wbtc.safeTransfer( address(liquidizer), reclaimedWBTC - rewardedWBTC );
+		weth.safeTransfer( address(liquidizer), reclaimedWETH - rewardedWETH );
 
-		// Have the USDS contract remember the amount of USDS that will need to be burned.
-		usds.shouldBurnMoreUSDS( usdsBorrowedByUsers[wallet] );
+		// Have the Liquidizer contract remember the amount of USDS that will need to be burned.
+		uint256 originallyBorrowedUSDS = usdsBorrowedByUsers[wallet];
+		liquidizer.shouldBurnMoreUSDS(originallyBorrowedUSDS);
 
 		// Clear the borrowedUSDS for the user who was liquidated so that they can simply keep the USDS they previously borrowed.
 		usdsBorrowedByUsers[wallet] = 0;
 		_walletsWithBorrowedUSDS.remove(wallet);
+
+		emit Liquidation(msg.sender, wallet, reclaimedWBTC, reclaimedWETH, originallyBorrowedUSDS);
 		}
 
 
 	// === VIEWS ===
+
+	// The current market value in USD for a given amount of BTC and ETH using the PriceAggregator
+	// Returns the value with 18 decimals
+	function underlyingTokenValueInUSD( uint256 amountBTC, uint256 amountETH ) public view returns (uint256)
+		{
+		// Prices from the price feed have 18 decimals
+		uint256 btcPrice = priceAggregator.getPriceBTC();
+        uint256 ethPrice = priceAggregator.getPriceETH();
+
+		// Keep the 18 decimals from the price and remove the decimals from the token balance
+		uint256 btcValue = ( amountBTC * btcPrice ) / (10 ** wbtcDecimals );
+		uint256 ethValue = ( amountETH * ethPrice ) / (10 ** wethDecimals );
+
+		return btcValue + ethValue;
+		}
+
+
+	// The current market value of all WBTC/WETH collateral that has been deposited
+	// Returns the value with 18 decimals
+	function totalCollateralValueInUSD() public view returns (uint256)
+		{
+		(uint256 reservesWBTC, uint256 reservesWETH) = pools.getPoolReserves(wbtc, weth);
+
+		return underlyingTokenValueInUSD( reservesWBTC, reservesWETH );
+		}
+
+
+	// The current market value of the user's collateral in USD
+	// Returns the value with 18 decimals
+	function userCollateralValueInUSD( address wallet ) public view returns (uint256)
+		{
+		uint256 userCollateralAmount = userShareForPool( wallet, collateralPoolID );
+		if ( userCollateralAmount == 0 )
+			return 0;
+
+		uint256 totalCollateralShares = totalShares[collateralPoolID];
+
+		// Determine how much collateral share the user currently has
+		(uint256 reservesWBTC, uint256 reservesWETH) = pools.getPoolReserves(wbtc, weth);
+
+		uint256 userWBTC = (reservesWBTC * userCollateralAmount ) / totalCollateralShares;
+		uint256 userWETH = (reservesWETH * userCollateralAmount ) / totalCollateralShares;
+
+		return underlyingTokenValueInUSD( userWBTC, userWETH );
+		}
+
 
 	// The maximum amount of collateral that can be withdrawn while keeping the collateral ratio above a default of 200%
 	// Returns value with 18 decimals
@@ -192,17 +251,17 @@ contract CollateralAndLiquidity is Liquidity, ICollateralAndLiquidity
 
 		// When withdrawing, require that the user keep at least the inital collateral ratio (default 200%)
 		uint256 requiredCollateralValueAfterWithdrawal = ( usdsBorrowedByUsers[wallet] * stableConfig.initialCollateralRatioPercent() ) / 100;
-		uint256 value = userCollateralValueInUSD( wallet );
+		uint256 userCollateralValue = userCollateralValueInUSD( wallet );
 
 		// If the user doesn't even have the minimum amount of required collateral then return zero
-		if ( value <= requiredCollateralValueAfterWithdrawal )
+		if ( userCollateralValue <= requiredCollateralValueAfterWithdrawal )
 			return 0;
 
 		// The maximum withdrawable value in USD
-		uint256 maxWithdrawableValue = value - requiredCollateralValueAfterWithdrawal;
+		uint256 maxWithdrawableValue = userCollateralValue - requiredCollateralValueAfterWithdrawal;
 
 		// Return the collateralAmount that can be withdrawn
-		return userCollateralAmount * maxWithdrawableValue / value;
+		return userCollateralAmount * maxWithdrawableValue / userCollateralValue;
    		}
 
 
@@ -216,12 +275,12 @@ contract CollateralAndLiquidity is Liquidity, ICollateralAndLiquidity
 			return 0;
 
 		// The user's current collateral value will determine the maximum amount that can be borrowed
-		uint256 value  = userCollateralValueInUSD( wallet );
+		uint256 userCollateralValue  = userCollateralValueInUSD( wallet );
 
-		if ( value < stableConfig.minimumCollateralValueForBorrowing() )
+		if ( userCollateralValue < stableConfig.minimumCollateralValueForBorrowing() )
 			return 0;
 
-		uint256 maxBorrowableAmount = ( value * 100 ) / stableConfig.initialCollateralRatioPercent();
+		uint256 maxBorrowableAmount = ( userCollateralValue * 100 ) / stableConfig.initialCollateralRatioPercent();
 
 		// Already borrowing more than the max?
 		if ( usdsBorrowedByUsers[wallet] >= maxBorrowableAmount )
@@ -258,23 +317,24 @@ contract CollateralAndLiquidity is Liquidity, ICollateralAndLiquidity
 		uint256 count = 0;
 
 		// Cache
-		uint256 totalCollateralShares = totalShareForPool( collateralPoolID );
+		uint256 totalCollateralShares = totalShares[collateralPoolID];
 		uint256 totalCollateralValue = totalCollateralValueInUSD();
 
-		for ( uint256 i = startIndex; i <= endIndex; i++ )
-			{
-			address wallet = _walletsWithBorrowedUSDS.at(i);
+		if ( totalCollateralValue != 0 )
+			for ( uint256 i = startIndex; i <= endIndex; i++ )
+				{
+				address wallet = _walletsWithBorrowedUSDS.at(i);
 
-			// Determine the minCollateralValue a user needs to have based on their borrowedUSDS
-			uint256 minCollateralValue = (usdsBorrowedByUsers[wallet] * stableConfig.minimumCollateralRatioPercent()) / 100;
+				// Determine the minCollateralValue a user needs to have based on their borrowedUSDS
+				uint256 minCollateralValue = (usdsBorrowedByUsers[wallet] * stableConfig.minimumCollateralRatioPercent()) / 100;
 
-			// Determine minCollateral in terms of minCollateralValue
-			uint256 minCollateral = (minCollateralValue * totalCollateralShares) / totalCollateralValue;
+				// Determine minCollateral in terms of minCollateralValue
+				uint256 minCollateral = (minCollateralValue * totalCollateralShares) / totalCollateralValue;
 
-			// Make sure the user has at least minCollateral
-			if ( userShareForPool( wallet, collateralPoolID ) < minCollateral )
-				liquidatableUsers[count++] = wallet;
-			}
+				// Make sure the user has at least minCollateral
+				if ( userShareForPool( wallet, collateralPoolID ) < minCollateral )
+					liquidatableUsers[count++] = wallet;
+				}
 
 		// Resize the array to match the actual number of liquidatable positions found
 		address[] memory resizedLiquidatableUsers = new address[](count);
@@ -285,65 +345,11 @@ contract CollateralAndLiquidity is Liquidity, ICollateralAndLiquidity
 		}
 
 
-	function findLiquidatableUsers() public view returns (address[] memory)
+	function findLiquidatableUsers() external view returns (address[] memory)
 		{
 		if ( numberOfUsersWithBorrowedUSDS() == 0 )
 			return new address[](0);
 
 		return findLiquidatableUsers( 0, numberOfUsersWithBorrowedUSDS() - 1 );
-		}
-
-
-	// The current market value in USD for a given amount of BTC and ETH using the PriceAggregator
-	// Returns the value with 18 decimals
-	function underlyingTokenValueInUSD( uint256 amountBTC, uint256 amountETH ) public view returns (uint256)
-		{
-		// Prices from the price feed have 18 decimals
-		uint256 btcPrice = priceAggregator.getPriceBTC();
-        uint256 ethPrice = priceAggregator.getPriceETH();
-
-		// Keep the 18 decimals from the price and remove the decimals from the token balance
-		uint256 btcValue = ( amountBTC * btcPrice ) / (10 ** wbtcDecimals );
-		uint256 ethValue = ( amountETH * ethPrice ) / (10 ** wethDecimals );
-
-		return btcValue + ethValue;
-		}
-
-
-	// Returns the specified collateral value based on the PriceAggregator.sol WBTC and WETH prices
-	// Returns the value with 18 decimals
-	function collateralValueInUSD( uint256 collateralAmount ) public view returns (uint256)
-		{
-		// If thethere is no collateral then the value of their collateral is zero
-		if ( collateralAmount == 0 )
-			return 0;
-
-		uint256 totalCollateralShares = totalShareForPool( collateralPoolID );
-
-		(uint256 reservesWBTC, uint256 reservesWETH) = pools.getPoolReserves(wbtc, weth);
-		uint256 totalCollateralValue = underlyingTokenValueInUSD( reservesWBTC, reservesWETH );
-
-		return totalCollateralValue * collateralAmount / totalCollateralShares;
-		}
-
-
-	// The current market value of all WBTC/WETH collateral that has been deposited
-	// Returns the value with 18 decimals
-	function totalCollateralValueInUSD() public view returns (uint256)
-		{
-		(uint256 reservesWBTC, uint256 reservesWETH) = pools.getPoolReserves(wbtc, weth);
-
-		return underlyingTokenValueInUSD( reservesWBTC, reservesWETH );
-		}
-
-
-	// The current market value of the user's collateral in USD
-	// Returns the value with 18 decimals
-	function userCollateralValueInUSD( address wallet ) public view returns (uint256)
-		{
-		// Determine how much collateral share the user currently has
-		uint256 userCollateralAmount = userShareForPool( wallet, collateralPoolID );
-
-		return collateralValueInUSD( userCollateralAmount );
 		}
 	}

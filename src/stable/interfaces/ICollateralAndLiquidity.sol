@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.22;
+
 import "../../staking/interfaces/ILiquidity.sol";
+import "./ILiquidizer.sol";
 
 
 interface ICollateralAndLiquidity is ILiquidity
@@ -12,6 +14,7 @@ interface ICollateralAndLiquidity is ILiquidity
 	function liquidateUser( address wallet ) external;
 
 	// Views
+	function liquidizer() external view returns (ILiquidizer);
 	function usdsBorrowedByUsers( address wallet ) external view returns (uint256);
 
 	function maxWithdrawableCollateral( address wallet ) external view returns (uint256);
@@ -22,7 +25,6 @@ interface ICollateralAndLiquidity is ILiquidity
 	function findLiquidatableUsers() external view returns (address[] calldata);
 
 	function underlyingTokenValueInUSD( uint256 amountBTC, uint256 amountETH ) external view returns (uint256);
-	function collateralValueInUSD( uint256 collateralAmount ) external view returns (uint256);
 	function totalCollateralValueInUSD() external view returns (uint256);
 	function userCollateralValueInUSD( address wallet ) external view returns (uint256);
 	}
