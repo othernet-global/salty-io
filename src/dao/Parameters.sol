@@ -1,20 +1,21 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.22;
 
-import "./interfaces/IDAOConfig.sol";
-import "../rewards/interfaces/IRewardsConfig.sol";
-import "../stable/interfaces/IStableConfig.sol";
-import "../staking/interfaces/IStakingConfig.sol";
-import "../pools/interfaces/IPoolsConfig.sol";
 import "../price_feed/interfaces/IPriceAggregator.sol";
+import "../rewards/interfaces/IRewardsConfig.sol";
+import "../staking/interfaces/IStakingConfig.sol";
+import "../stable/interfaces/IStableConfig.sol";
+import "../pools/interfaces/IPoolsConfig.sol";
+import "./interfaces/IDAOConfig.sol";
 
 
-contract Parameters
+abstract contract Parameters
     {
 	enum ParameterTypes {
 
 		// PoolsConfig
 		maximumWhitelistedPools,
+		maximumInternalSwapPercentTimes1000,
 
 		// StakingConfig
 		minUnstakeWeeks,
@@ -34,6 +35,7 @@ contract Parameters
 		minimumCollateralValueForBorrowing,
 		initialCollateralRatioPercent,
 		minimumCollateralRatioPercent,
+		percentArbitrageProfitsForStablePOL,
 
 		// DAOConfig
 		bootstrappingRewards,
@@ -57,6 +59,8 @@ contract Parameters
 		// PoolsConfig
 		if ( parameterType == ParameterTypes.maximumWhitelistedPools )
 			poolsConfig.changeMaximumWhitelistedPools( increase );
+		else if ( parameterType == ParameterTypes.maximumInternalSwapPercentTimes1000 )
+			poolsConfig.changeMaximumInternalSwapPercentTimes1000( increase );
 
 		// StakingConfig
 		else if ( parameterType == ParameterTypes.minUnstakeWeeks )
@@ -89,6 +93,8 @@ contract Parameters
 			stableConfig.changeInitialCollateralRatioPercent(increase);
 		else if ( parameterType == ParameterTypes.minimumCollateralRatioPercent )
 			stableConfig.changeMinimumCollateralRatioPercent(increase);
+		else if ( parameterType == ParameterTypes.percentArbitrageProfitsForStablePOL )
+			stableConfig.changePercentArbitrageProfitsForStablePOL(increase);
 
 		// DAOConfig
 		else if ( parameterType == ParameterTypes.bootstrappingRewards )
