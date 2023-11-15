@@ -16,6 +16,6 @@ interface IBootstrapBallot
 	function startExchangeYes() external returns (uint256);
 	function startExchangeNo() external returns (uint256);
 
-	function geoExclusionYes() external returns (uint256[] memory);
-	function geoExclusionNo() external returns (uint256[] memory);
+	function initialGeoExclusionYes() external returns (uint256[] memory);
+	function initialGeoExclusionNo() external returns (uint256[] memory);
 	}
