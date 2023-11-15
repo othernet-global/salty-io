@@ -99,6 +99,7 @@ abstract contract ArbitrageSearch
 	// The unimodal assumption has been tested with fuzzing (see BinarySearch.t.sol) and looks to return optimum bestArbAmountIn within 1% of a brute force search method for fuzzed uint112 size reserves.
 	// Additionally, fuzzing and testing reveal that the non-overflow assumptions are valid if the assumption is made that reserves do not exceed uint112.max.
    	// The uint112 size would allow tokens with 18 decimals of precision and a 5 quadrillion max supply - which is excluded from the whitelist process.
+   	// Additionally, for tokens that may increase total supply over time, these calculations are duplicated with overflow checking intact within Pools._arbitrage() when arbitrage actually occurs.
 	function _binarySearch( uint256 swapAmountInValueInETH, uint256 reservesA0, uint256 reservesA1, uint256 reservesB0, uint256 reservesB1, uint256 reservesC0, uint256 reservesC1 ) internal pure returns (uint256 bestArbAmountIn)
 		{
 		unchecked
