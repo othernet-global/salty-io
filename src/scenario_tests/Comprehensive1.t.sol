@@ -17,6 +17,8 @@ contract TestComprehensive1 is Deployment
 
     function setUp() public
 		{
+		initializeContracts();
+
 		grantAccessAlice();
 		grantAccessBob();
 		grantAccessCharlie();
@@ -70,18 +72,18 @@ contract TestComprehensive1 is Deployment
 	function testComprehensive() public
 		{
 		// Cast votes for the BootstrapBallot so that the initialDistribution can happen
-		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
+		bytes memory sig = abi.encodePacked(aliceVotingSignature);
 		vm.startPrank(alice);
 		uint256[] memory regionalVotes = new uint256[](5);
 		bootstrapBallot.vote(true, regionalVotes, sig);
 		vm.stopPrank();
 
-		sig = abi.encodePacked(hex"98ea2c8a10e4fc75b13147210b54aaaf5d45922fa576ca9968db642afa6241b100bcb8139fd7f4fce46b028a68941769f70b3085375c9ae22d69d80fc35f90551c");
+		sig = abi.encodePacked(bobVotingSignature);
 		vm.startPrank(bob);
 		bootstrapBallot.vote(true, regionalVotes, sig);
 		vm.stopPrank();
 
-		sig = abi.encodePacked(hex"8c7115467b37b4409a2781c8aa4ac8b3eb3a75542ec698b675a1c92c88e018db2ea8edd25c67920a980ae969ac5a77fb0bb1a2b0e0ffffe2edb823bb84b3ee141b");
+		sig = abi.encodePacked(charlieVotingSignature);
 		vm.startPrank(charlie);
 		bootstrapBallot.vote(false, regionalVotes, sig);
 		vm.stopPrank();
@@ -146,8 +148,8 @@ contract TestComprehensive1 is Deployment
 
     	// Charlie places some trades
     	vm.startPrank(charlie);
-    	uint256 amountOut1 = pools.depositSwapWithdraw(weth, salt, 1 ether, 0, block.timestamp, true);
-    	uint256 amountOut2 = pools.depositSwapWithdraw(weth, salt, 1 ether, 0, block.timestamp, true);
+    	uint256 amountOut1 = pools.depositSwapWithdraw(weth, salt, 1 ether, 0, block.timestamp);
+    	uint256 amountOut2 = pools.depositSwapWithdraw(weth, salt, 1 ether, 0, block.timestamp);
 		vm.stopPrank();
 
 		console.log( "ARBITRAGE PROFITS: ", pools.depositedUserBalance( address(dao), weth ) );
