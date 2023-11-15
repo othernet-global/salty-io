@@ -1,24 +1,29 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.22;
 
-import "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
+import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import "openzeppelin-contracts/contracts/utils/Strings.sol";
+import "../pools/interfaces/IPoolsConfig.sol";
 import "../staking/interfaces/IStaking.sol";
 import "../interfaces/IExchangeConfig.sol";
 import "./interfaces/IDAOConfig.sol";
-import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IProposals.sol";
-import "../pools/interfaces/IPoolsConfig.sol";
-import "openzeppelin-contracts/contracts/utils/Strings.sol";
 import "./interfaces/IDAO.sol";
 import "../pools/PoolUtils.sol";
 
 
-// Allows users to propose and vote on various types of ballots such as parameter changes, token whitelisting/unwhitelisting, sending tokens, calling contracts, and updating website URLs.
+// Allows SALT stakers to propose and vote on various types of ballots such as parameter changes, token whitelisting/unwhitelisting, sending tokens, calling contracts, and updating website URLs.
 // Ensures ballot uniqueness, tracks and validates user voting power, enforces quorums, and provides a mechanism for users to alter votes.
+
 contract Proposals is IProposals, ReentrancyGuard
     {
+    event ProposalCreated(uint256 indexed ballotID, BallotType ballotType, string ballotName);
+    event BallotFinalized(uint256 indexed ballotID);
+    event VoteCast(address indexed voter, uint256 indexed ballotID, Vote vote, uint256 votingPower);
+
 	using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.UintSet;
 
@@ -28,7 +33,7 @@ contract Proposals is IProposals, ReentrancyGuard
     IDAOConfig immutable public daoConfig;
     ISalt immutable public salt;
 
-	// Mapping from ballotName to the currently open ballotID (zero if none).
+	// Mapping from ballotName to a currently open ballotID (zero if none).
 	// Used to check for existing ballots by name so as to not allow duplicate ballots to be created.
 	mapping(string=>uint256) public openBallotsByName;
 
@@ -51,7 +56,7 @@ contract Proposals is IProposals, ReentrancyGuard
 
 	// Which users currently have active proposals
 	// Useful for checking that users are only able to create one active proposal at a time (to discourage spam proposals).
-	mapping(address=>bool) private _usersWithActiveProposals;
+	mapping(address=>bool) private _userHasActiveProposal;
 
 	// Which users proposed which ballots.
 	// Useful when a ballot is finalized - so that the user that proposed it can have their _usersWithActiveProposals status cleared
@@ -59,7 +64,7 @@ contract Proposals is IProposals, ReentrancyGuard
 
 	// The time at which the first proposal can be made (45 days after deployment).
 	// This is to allow some time for users to start staking - as some percent of stake is required to propose ballots and if the total amount staked.
-	uint256 firstPossibleProposalTimestamp = block.timestamp + 45 days;
+	uint256 immutable firstPossibleProposalTimestamp = block.timestamp + 45 days;
 
 
     constructor( IStaking _staking, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IDAOConfig _daoConfig )
@@ -86,8 +91,8 @@ contract Proposals is IProposals, ReentrancyGuard
 		if ( msg.sender != address(exchangeConfig.dao() ) )
 			{
 			// Make sure that the sender has the minimum amount of xSALT required to make the proposal
-			uint256 totalStaked = staking.totalShareForPool(PoolUtils.STAKED_SALT);
-			require( totalStaked > 0, "Staking required to make a proposal" );
+			uint256 totalStaked = staking.totalShares(PoolUtils.STAKED_SALT);
+			require( totalStaked > 0, "Total staked cannot be zero" );
 
 			uint256 requiredXSalt = ( totalStaked * daoConfig.requiredProposalPercentStakeTimes1000() ) / ( 100 * 1000 );
 
@@ -95,7 +100,7 @@ contract Proposals is IProposals, ReentrancyGuard
 			require( userXSalt >= requiredXSalt, "Sender does not have enough xSALT to make the proposal" );
 
 			// Make sure that the user doesn't already have an active proposal
-			require( ! _usersWithActiveProposals[msg.sender], "Users can only have one active proposal at a time" );
+			require( ! _userHasActiveProposal[msg.sender], "Users can only have one active proposal at a time" );
 			}
 
 		// Make sure that a proposal of the same name is not already open for the ballot
@@ -111,13 +116,15 @@ contract Proposals is IProposals, ReentrancyGuard
 		_allOpenBallots.add( ballotID );
 
 		// Remember that the user made a proposal
-		_usersWithActiveProposals[msg.sender] = true;
+		_userHasActiveProposal[msg.sender] = true;
 		_usersThatProposedBallots[ballotID] = msg.sender;
+
+		emit ProposalCreated(ballotID, ballotType, ballotName);
 		}
 
 
 	// Create a confirmation proposal from the DAO
-	function createConfirmationProposal( string memory ballotName, BallotType ballotType, address address1, string memory string1, string memory description ) public
+	function createConfirmationProposal( string calldata ballotName, BallotType ballotType, address address1, string calldata string1, string calldata description ) external
 		{
 		require( msg.sender == address(exchangeConfig.dao()), "Only the DAO can create a confirmation proposal" );
 
@@ -125,7 +132,7 @@ contract Proposals is IProposals, ReentrancyGuard
 		}
 
 
-	function markBallotAsFinalized( uint256 ballotID ) public nonReentrant
+	function markBallotAsFinalized( uint256 ballotID ) external nonReentrant
 		{
 		require( msg.sender == address(exchangeConfig.dao()), "Only the DAO can mark a ballot as finalized" );
 
@@ -142,22 +149,25 @@ contract Proposals is IProposals, ReentrancyGuard
 
 		// Indicate that the user who posted the proposal no longer has an active proposal
 		address userThatPostedBallot = _usersThatProposedBallots[ballotID];
-		_usersWithActiveProposals[userThatPostedBallot] = false;
+		_userHasActiveProposal[userThatPostedBallot] = false;
 
 		delete openBallotsByName[ballot.ballotName];
+
+		emit BallotFinalized(ballotID);
 		}
 
 
-	function proposeParameterBallot( uint256 parameterType, string memory description ) public nonReentrant
+	function proposeParameterBallot( uint256 parameterType, string calldata description ) external nonReentrant
 		{
 		string memory ballotName = string.concat("parameter:", Strings.toString(parameterType) );
 		_possiblyCreateProposal( ballotName, BallotType.PARAMETER, address(0), parameterType, "", description );
 		}
 
 
-	function proposeTokenWhitelisting( IERC20 token, string memory tokenIconURL, string memory description ) public nonReentrant
+	function proposeTokenWhitelisting( IERC20 token, string calldata tokenIconURL, string calldata description ) external nonReentrant
 		{
 		require( address(token) != address(0), "token cannot be address(0)" );
+		require( token.totalSupply() < type(uint112).max, "Token supply cannot exceed uint112.max" ); // 5 quadrillion max supply with 18 decimals of precision
 
 		require( _openBallotsForTokenWhitelisting.length() < daoConfig.maxPendingTokensForWhitelisting(), "The maximum number of token whitelisting proposals are already pending" );
 		require( poolsConfig.numberOfWhitelistedPools() < poolsConfig.maximumWhitelistedPools(), "Maximum number of whitelisted pools already reached" );
@@ -170,7 +180,7 @@ contract Proposals is IProposals, ReentrancyGuard
 		}
 
 
-	function proposeTokenUnwhitelisting( IERC20 token, string memory tokenIconURL, string memory description ) public nonReentrant
+	function proposeTokenUnwhitelisting( IERC20 token, string calldata tokenIconURL, string calldata description ) external nonReentrant
 		{
 		require( poolsConfig.tokenHasBeenWhitelisted(token, exchangeConfig.wbtc(), exchangeConfig.weth()), "Can only unwhitelist a whitelisted token" );
 		require( address(token) != address(exchangeConfig.wbtc()), "Cannot unwhitelist WBTC" );
@@ -186,14 +196,14 @@ contract Proposals is IProposals, ReentrancyGuard
 
 	// Proposes sending a specified amount of SALT to a wallet or contract.
 	// Only one sendSALT Ballot can be open at a time and the sending limit is 5% of the current SALT balance of the DAO.
-	function proposeSendSALT( address wallet, uint256 amount, string memory description ) public nonReentrant
+	function proposeSendSALT( address wallet, uint256 amount, string calldata description ) external nonReentrant
 		{
 		require( wallet != address(0), "Cannot send SALT to address(0)" );
 
 		// Limit to 5% of current balance
 		uint256 balance = exchangeConfig.salt().balanceOf( address(exchangeConfig.dao()) );
 		uint256 maxSendable = balance * 5 / 100;
-		require( amount < maxSendable, "Cannot send more than 5% of the DAO SALT balance" );
+		require( amount <= maxSendable, "Cannot send more than 5% of the DAO SALT balance" );
 
 		// This ballotName is not unique for the receiving wallet and enforces the restriction of one sendSALT ballot at a time.
 		// If more receivers are necessary at once, a splitter can be used.
@@ -202,8 +212,8 @@ contract Proposals is IProposals, ReentrancyGuard
 		}
 
 
-	// Proposes calling the callFromDAO(uint256) method on an arbitrary contract.
-	function proposeCallContract( address contractAddress, uint256 number, string memory description ) public nonReentrant
+	// Proposes calling the callFromDAO(uint256) function on an arbitrary contract.
+	function proposeCallContract( address contractAddress, uint256 number, string calldata description ) external nonReentrant
 		{
 		require( contractAddress != address(0), "Contract address cannot be address(0)" );
 
@@ -212,25 +222,25 @@ contract Proposals is IProposals, ReentrancyGuard
 		}
 
 
-	function proposeCountryInclusion( string memory country, string memory description ) public nonReentrant
+	function proposeCountryInclusion( string calldata country, string calldata description ) external nonReentrant
 		{
-		require( keccak256(abi.encodePacked(country)) != keccak256(abi.encodePacked("")), "Country cannot be empty" );
+		require( bytes(country).length == 3, "Country must be an ISO 3166 Alpha-3 Code" );
 
 		string memory ballotName = string.concat("include:", country );
 		_possiblyCreateProposal( ballotName, BallotType.INCLUDE_COUNTRY, address(0), 0, country, description );
 		}
 
 
-	function proposeCountryExclusion( string memory country, string memory description ) public nonReentrant
+	function proposeCountryExclusion( string calldata country, string calldata description ) external nonReentrant
 		{
-		require( keccak256(abi.encodePacked(country)) != keccak256(abi.encodePacked("")), "Country cannot be empty" );
+		require( bytes(country).length == 3, "Country must be an ISO 3166 Alpha-3 Code" );
 
 		string memory ballotName = string.concat("exclude:", country );
 		_possiblyCreateProposal( ballotName, BallotType.EXCLUDE_COUNTRY, address(0), 0, country, description );
 		}
 
 
-	function proposeSetContractAddress( string memory contractName, address newAddress, string memory description ) public nonReentrant
+	function proposeSetContractAddress( string calldata contractName, address newAddress, string calldata description ) external nonReentrant
 		{
 		require( newAddress != address(0), "Proposed address cannot be address(0)" );
 
@@ -239,7 +249,7 @@ contract Proposals is IProposals, ReentrancyGuard
 		}
 
 
-	function proposeWebsiteUpdate( string memory newWebsiteURL, string memory description ) public nonReentrant
+	function proposeWebsiteUpdate( string calldata newWebsiteURL, string calldata description ) external nonReentrant
 		{
 		require( keccak256(abi.encodePacked(newWebsiteURL)) != keccak256(abi.encodePacked("")), "newWebsiteURL cannot be empty" );
 
@@ -249,7 +259,7 @@ contract Proposals is IProposals, ReentrancyGuard
 
 
 	// Cast a vote on an open ballot
-	function castVote( uint256 ballotID, Vote vote ) public nonReentrant
+	function castVote( uint256 ballotID, Vote vote ) external nonReentrant
 		{
 		Ballot memory ballot = ballots[ballotID];
 
@@ -281,23 +291,25 @@ contract Proposals is IProposals, ReentrancyGuard
 
 		// Remember how the user voted in case they change their vote later
 		_lastUserVoteForBallot[ballotID][msg.sender] = UserVote( vote, userVotingPower );
+
+		emit VoteCast(msg.sender, ballotID, vote, userVotingPower);
 		}
 
 
 	// === VIEWS ===
-	function ballotForID( uint256 ballotID ) public view returns (Ballot memory)
+	function ballotForID( uint256 ballotID ) external view returns (Ballot memory)
 		{
 		return ballots[ballotID];
 		}
 
 
-	function lastUserVoteForBallot( uint256 ballotID, address user ) public view returns (UserVote memory)
+	function lastUserVoteForBallot( uint256 ballotID, address user ) external view returns (UserVote memory)
 		{
 		return _lastUserVoteForBallot[ballotID][user];
 		}
 
 
-	function votesCastForBallot( uint256 ballotID, Vote vote ) public view returns (uint256)
+	function votesCastForBallot( uint256 ballotID, Vote vote ) external view returns (uint256)
 		{
 		return _votesCastForBallot[ballotID][vote];
 		}
@@ -308,7 +320,7 @@ contract Proposals is IProposals, ReentrancyGuard
 	function requiredQuorumForBallotType( BallotType ballotType ) public view returns (uint256 requiredQuorum)
 		{
 		// The quorum will be specified as a percentage of the total amount of SALT staked
-		uint256 totalStaked = staking.totalShareForPool( PoolUtils.STAKED_SALT );
+		uint256 totalStaked = staking.totalShares( PoolUtils.STAKED_SALT );
 		require( totalStaked != 0, "SALT staked cannot be zero to determine quorum" );
 
 		if ( ballotType == BallotType.PARAMETER )
@@ -343,21 +355,22 @@ contract Proposals is IProposals, ReentrancyGuard
 
 
 	// Assumes that the quorum has been checked elsewhere
-	function ballotIsApproved( uint256 ballotID ) public view returns (bool)
+	function ballotIsApproved( uint256 ballotID ) external view returns (bool)
 		{
-		uint256 yesTotal = _votesCastForBallot[ballotID][Vote.YES];
-		uint256 noTotal = _votesCastForBallot[ballotID][Vote.NO];
+		mapping(Vote=>uint256) storage votes = _votesCastForBallot[ballotID];
 
-		return yesTotal > noTotal;
+		return votes[Vote.YES] > votes[Vote.NO];
 		}
 
 
 	// Assumes that the quorum has been checked elsewhere
-	function winningParameterVote( uint256 ballotID ) public view returns (Vote)
+	function winningParameterVote( uint256 ballotID ) external view returns (Vote)
 		{
-		uint256 increaseTotal = _votesCastForBallot[ballotID][Vote.INCREASE];
-		uint256 decreaseTotal = _votesCastForBallot[ballotID][Vote.DECREASE];
-		uint256 noChangeTotal = _votesCastForBallot[ballotID][Vote.NO_CHANGE];
+		mapping(Vote=>uint256) storage votes = _votesCastForBallot[ballotID];
+
+		uint256 increaseTotal = votes[Vote.INCREASE];
+		uint256 decreaseTotal = votes[Vote.DECREASE];
+		uint256 noChangeTotal = votes[Vote.NO_CHANGE];
 
 		if ( increaseTotal > decreaseTotal )
 		if ( increaseTotal > noChangeTotal )
@@ -371,8 +384,8 @@ contract Proposals is IProposals, ReentrancyGuard
 		}
 
 
-	// Checks that ballot is live, and minimumEndTime and quorum have both been reached
-	function canFinalizeBallot( uint256 ballotID ) public view returns (bool)
+	// Checks that ballot is live, and minimumEndTime and quorum have both been reached.
+	function canFinalizeBallot( uint256 ballotID ) external view returns (bool)
 		{
         Ballot memory ballot = ballots[ballotID];
         if ( ! ballot.ballotIsLive )
@@ -390,25 +403,13 @@ contract Proposals is IProposals, ReentrancyGuard
 	    }
 
 
-	function numberOfOpenBallots() public view returns (uint256)
-		{
-		return _allOpenBallots.length();
-		}
-
-
-	function openBallots() public view returns (uint256[] memory)
+	function openBallots() external view returns (uint256[] memory)
 		{
 		return _allOpenBallots.values();
 		}
 
 
-	function numberOfOpenBallotsForTokenWhitelisting() public view returns (uint256)
-		{
-		return _openBallotsForTokenWhitelisting.length();
-		}
-
-
-	function openBallotsForTokenWhitelisting() public view returns (uint256[] memory)
+	function openBallotsForTokenWhitelisting() external view returns (uint256[] memory)
 		{
 		return _openBallotsForTokenWhitelisting.values();
 		}
@@ -416,13 +417,12 @@ contract Proposals is IProposals, ReentrancyGuard
 
 	// Returns the ballotID of the whitelisting ballot that currently has the most yes votes
 	// Requires that the quorum has been reached and that the number of yes votes is greater than the number no votes
-	function tokenWhitelistingBallotWithTheMostVotes() public view returns (uint256)
+	function tokenWhitelistingBallotWithTheMostVotes() external view returns (uint256)
 		{
-		uint256 bestID = 0;
-		uint256 mostYes = 0;
-
 		uint256 quorum = requiredQuorumForBallotType( BallotType.WHITELIST_TOKEN);
 
+		uint256 bestID = 0;
+		uint256 mostYes = 0;
 		for( uint256 i = 0; i < _openBallotsForTokenWhitelisting.length(); i++ )
 			{
 			uint256 ballotID = _openBallotsForTokenWhitelisting.at(i);
@@ -442,8 +442,8 @@ contract Proposals is IProposals, ReentrancyGuard
 		}
 
 
-	function userHasActiveProposal( address user ) public view returns (bool)
+	function userHasActiveProposal( address user ) external view returns (bool)
 		{
-		return _usersWithActiveProposals[user];
+		return _userHasActiveProposal[user];
 		}
 	}
