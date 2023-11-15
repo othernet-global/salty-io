@@ -1,32 +1,25 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.22;
 
-import "../dao/interfaces/IDAO.sol";
-import "../interfaces/IAccessManager.sol";
-import "../stable/interfaces/IUSDS.sol";
+import "openzeppelin-contracts/contracts/finance/VestingWallet.sol";
 import "../stable/interfaces/ICollateralAndLiquidity.sol";
-import "../interfaces/ISalt.sol";
+import "../launch/interfaces/IInitialDistribution.sol";
 import "../rewards/interfaces/IRewardsEmitter.sol";
 import "../rewards/interfaces/ISaltRewards.sol";
 import "../rewards/interfaces/IEmissions.sol";
-import "./IUpkeep.sol";
-import "../launch/interfaces/IInitialDistribution.sol";
+import "../interfaces/IAccessManager.sol";
 import "../launch/interfaces/IAirdrop.sol";
+import "../stable/interfaces/IUSDS.sol";
+import "../dao/interfaces/IDAO.sol";
+import "../interfaces/ISalt.sol";
+import "./IUpkeep.sol";
+import "./IManagedWallet.sol";
 
 
 interface IExchangeConfig
 	{
-	function setDAO( IDAO _dao ) external; // onlyOwner
-	function setUpkeep( IUpkeep _upkeep ) external; // onlyOwner
+	function setContracts( IDAO _dao, IUpkeep _upkeep, IInitialDistribution _initialDistribution, IAirdrop _airdrop, VestingWallet _teamVestingWallet, VestingWallet _daoVestingWallet ) external; // onlyOwner
 	function setAccessManager( IAccessManager _accessManager ) external; // onlyOwner
-	function setStakingRewardsEmitter( IRewardsEmitter _rewardsEmitter ) external; // onlyOwner
-	function setLiquidityRewardsEmitter( IRewardsEmitter _rewardsEmitter ) external; // onlyOwner
-	function setAirdrop( IAirdrop _airdrop ) external; // onlyOwner
-
-	function proposeTeamWallet( address _teamWallet ) external;
-	function confirmTeamWallet() external;
-	function setVestingWallets( address _teamVestingWallet, address _daoVestingWallet ) external;
-	function setInitialDistribution( IInitialDistribution _initialDistribution ) external;
 
 	// Views
 	function salt() external view returns (ISalt);
@@ -35,17 +28,14 @@ interface IExchangeConfig
 	function dai() external view returns (IERC20);
 	function usds() external view returns (IUSDS);
 
-	function teamWallet() external view returns (address);
-	function proposedTeamWallet() external view returns (address);
-	function daoVestingWallet() external view returns (address);
-    function teamVestingWallet() external view returns (address);
+	function managedTeamWallet() external view returns (IManagedWallet);
+	function daoVestingWallet() external view returns (VestingWallet);
+    function teamVestingWallet() external view returns (VestingWallet);
     function initialDistribution() external view returns (IInitialDistribution);
 
 	function accessManager() external view returns (IAccessManager);
 	function dao() external view returns (IDAO);
 	function upkeep() external view returns (IUpkeep);
-	function stakingRewardsEmitter() external view returns (IRewardsEmitter);
-	function liquidityRewardsEmitter() external view returns (IRewardsEmitter);
 	function airdrop() external view returns (IAirdrop);
 
 	function walletHasAccess( address wallet ) external view returns (bool);
