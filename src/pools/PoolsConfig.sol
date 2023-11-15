@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.22;
 
-import "openzeppelin-contracts/contracts/access/Ownable.sol";
 import "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
+import "openzeppelin-contracts/contracts/access/Ownable.sol";
 import "./interfaces/IPoolsConfig.sol";
 import "./PoolUtils.sol";
 
@@ -10,6 +10,11 @@ import "./PoolUtils.sol";
 // Contract owned by the DAO and only modifiable by the DAO
 contract PoolsConfig is IPoolsConfig, Ownable
     {
+	event PoolWhitelisted(address indexed tokenA, address indexed tokenB);
+	event PoolUnwhitelisted(address indexed tokenA, address indexed tokenB);
+	event MaximumWhitelistedPoolsChanged(uint256 newMaxPools);
+	event maximumInternalSwapPercentTimes1000Changed(uint256 newMaxSwap);
+
 	struct TokenPair
 		{
 		// Note that these will be ordered in underlyingPoolTokens as specified in whitelistPool() - rather than ordered such that address(tokenA) < address(tokenB) as with the reserves in Pools.sol
@@ -31,32 +36,42 @@ contract PoolsConfig is IPoolsConfig, Ownable
 	// Range: 20 to 100 with an adjustment of 10
 	uint256 public maximumWhitelistedPools = 50;
 
+	// For swaps internal to the protocol, the maximum swap size as a percent of the reserves.
+	// Range: .25 to 2% with an adjustment of .25%
+	uint256 public maximumInternalSwapPercentTimes1000 = 1000;  // Defaults to 1.0% with a 1000x multiplier
+
 
 	// Whitelist a given pair of tokens
-	function whitelistPool( IERC20 tokenA, IERC20 tokenB ) public onlyOwner
+	function whitelistPool( IERC20 tokenA, IERC20 tokenB ) external onlyOwner
 		{
 		require( _whitelist.length() < maximumWhitelistedPools, "Maximum number of whitelisted pools already reached" );
 		require(tokenA != tokenB, "tokenA and tokenB cannot be the same token");
 
 		bytes32 poolID = PoolUtils._poolIDOnly(tokenA, tokenB);
 
-		// If this whitelist is new then remember the underlying tokens for the poolID
-		if ( _whitelist.add(poolID) )
-			underlyingPoolTokens[poolID] = TokenPair(tokenA, tokenB);
+		// Add to the whitelist and remember the underlying tokens for the pool
+		_whitelist.add(poolID);
+		underlyingPoolTokens[poolID] = TokenPair(tokenA, tokenB);
+
+ 		emit PoolWhitelisted(address(tokenA), address(tokenB));
 		}
 
 
-	function unwhitelistPool( IERC20 tokenA, IERC20 tokenB ) public onlyOwner
+	function unwhitelistPool( IPools pools, IERC20 tokenA, IERC20 tokenB ) external onlyOwner
 		{
 		bytes32 poolID = PoolUtils._poolIDOnly(tokenA,tokenB);
 
 		_whitelist.remove(poolID);
+		delete underlyingPoolTokens[poolID];
 
-		// underlyingPoolTokens still maps the poolID to the underlying tokens - but that is not authoratative for whitelisting
+		// Make sure that the cached arbitrage indicies are updated as EnumerableSet.remove alters the order of the whitelist
+		pools.updateArbitrageIndicies();
+
+		emit PoolUnwhitelisted(address(tokenA), address(tokenB));
 		}
 
 
-	function changeMaximumWhitelistedPools(bool increase) public onlyOwner
+	function changeMaximumWhitelistedPools(bool increase) external onlyOwner
         {
         if (increase)
             {
@@ -68,12 +83,31 @@ contract PoolsConfig is IPoolsConfig, Ownable
             if (maximumWhitelistedPools > 20)
                 maximumWhitelistedPools -= 10;
             }
+
+		emit MaximumWhitelistedPoolsChanged(maximumWhitelistedPools);
+        }
+
+
+	function changeMaximumInternalSwapPercentTimes1000(bool increase) external onlyOwner
+        {
+        if (increase)
+            {
+            if (maximumInternalSwapPercentTimes1000 < 2000)
+                maximumInternalSwapPercentTimes1000 += 250;
+            }
+        else
+            {
+            if (maximumInternalSwapPercentTimes1000 > 250)
+                maximumInternalSwapPercentTimes1000 -= 250;
+            }
+
+		emit maximumInternalSwapPercentTimes1000Changed(maximumInternalSwapPercentTimes1000);
         }
 
 
 	// === VIEWS ===
 
-	function numberOfWhitelistedPools() public view returns (uint256)
+	function numberOfWhitelistedPools() external view returns (uint256)
 		{
 		return _whitelist.length();
 		}
@@ -90,13 +124,13 @@ contract PoolsConfig is IPoolsConfig, Ownable
 
 
 	// Return an array of the currently whitelisted poolIDs
-	function whitelistedPools() public view returns (bytes32[] memory)
+	function whitelistedPools() external view returns (bytes32[] memory)
 		{
 		return _whitelist.values();
 		}
 
 
-	function underlyingTokenPair( bytes32 poolID ) public view returns (IERC20 tokenA, IERC20 tokenB)
+	function underlyingTokenPair( bytes32 poolID ) external view returns (IERC20 tokenA, IERC20 tokenB)
 		{
 		TokenPair memory pair = underlyingPoolTokens[poolID];
 		require(address(pair.tokenA) != address(0) && address(pair.tokenB) != address(0), "This poolID does not exist");
@@ -106,7 +140,7 @@ contract PoolsConfig is IPoolsConfig, Ownable
 
 
 	// Returns true if the token has been whitelisted (meaning it has been pooled with either WBTC and WETH)
-	function tokenHasBeenWhitelisted( IERC20 token, IERC20 wbtc, IERC20 weth ) public view returns (bool)
+	function tokenHasBeenWhitelisted( IERC20 token, IERC20 wbtc, IERC20 weth ) external view returns (bool)
 		{
 		// See if the token has been whitelisted with either WBTC or WETH, as all whitelisted tokens are pooled with both WBTC and WETH
 		bytes32 poolID1 = PoolUtils._poolIDOnly( token, wbtc );

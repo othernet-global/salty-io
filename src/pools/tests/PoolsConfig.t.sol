@@ -38,6 +38,7 @@ contract PoolsConfigTest is Deployment
 	// A unit test which tests the default values for the contract
 	function testConstructor() public {
 		assertEq(poolsConfig.maximumWhitelistedPools(), 50, "Incorrect maximumWhitelistedPools");
+		assertEq(poolsConfig.maximumInternalSwapPercentTimes1000(), 1000, "Incorrect maximumInternalSwapPercentTimes1000");
 		assertEq(PoolUtils.STAKED_SALT, bytes32(0), "Incorrect STAKED_SALT value");
 	}
 
@@ -106,7 +107,7 @@ contract PoolsConfigTest is Deployment
     assertTrue(poolsConfig.isWhitelisted(poolID));
 
     // Unwhitelist the test pool
-    poolsConfig.unwhitelistPool(  token1, token3);
+    poolsConfig.unwhitelistPool( pools, token1, token3);
 
     // Ensure the pool is no longer whitelisted
     assertFalse(poolsConfig.isWhitelisted(poolID));
@@ -296,7 +297,7 @@ contract PoolsConfigTest is Deployment
     	 vm.stopPrank();
 
     	vm.expectRevert("Ownable: caller is not the owner");
-        poolsConfig.unwhitelistPool(  token1, token3);
+        poolsConfig.unwhitelistPool( pools, token1, token3);
         assertTrue(poolsConfig.isWhitelisted(poolID), "Whitelisted pool should still be valid after attempted non-owner unwhitelisting");
     }
 
@@ -315,7 +316,7 @@ contract PoolsConfigTest is Deployment
 
     	// Unwhitelist the fake token from WBTC, and check if the function returns false now
     	vm.prank(address(dao));
-    	poolsConfig.unwhitelistPool(  fakeToken, wbtc);
+    	poolsConfig.unwhitelistPool( pools, fakeToken, wbtc);
     	assertFalse(poolsConfig.tokenHasBeenWhitelisted(fakeToken, wbtc, weth), "Function should return false when the token is unwhitelisted from WBTC");
 
     	// Whitelist the fake token with WETH, and check if the function returns true
@@ -325,7 +326,7 @@ contract PoolsConfigTest is Deployment
 
     	// Unwhitelist the fake token from WETH, and check if the function returns false now
     	vm.prank(address(dao));
-    	poolsConfig.unwhitelistPool(  fakeToken, weth);
+    	poolsConfig.unwhitelistPool( pools, fakeToken, weth);
     	assertFalse(poolsConfig.tokenHasBeenWhitelisted(fakeToken, wbtc, weth), "Function should return false when the token is unwhitelisted from WETH");
     }
 

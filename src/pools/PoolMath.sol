@@ -1,7 +1,7 @@
 pragma solidity =0.8.22;
 
-import "openzeppelin-contracts/contracts/utils/math/Math.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import "openzeppelin-contracts/contracts/utils/math/Math.sol";
 import "./interfaces/IPools.sol";
 import "./PoolUtils.sol";
 
@@ -109,14 +109,15 @@ library PoolMath
 	{
 	// The number of decimals that are used in the calculations for zapping in liquidity
 	// Note that REDUCED_DECIMALS = 7 was tested with 800 billion and 500 billion 18 decimal pools with 100 billion tokens being
-	// zapped in and the calculations did not overflow.  Dropping down to 6 will allow even larger amounts to be used without issue.
+	// zapped in and the calculations did not overflow.  Dropping down to 6 will allow even larger amounts to be used without issue at reasonable precision.
 	uint256 constant private REDUCED_DECIMALS = 6;
 
 
 	// Reduce the precision of the decimals to avoid overflow / underflow and convert to int256
 	function _reducePrecision( uint256 n, uint8 decimals ) internal pure returns (int256)
 		{
-		if ( n == 0 )
+		// Make sure n doesn't overflow
+		if ( ( n == 0 ) || ( n >= uint256(type(int256).max )) )
 			return 0;
 
 		// Decimals already at REDUCED_DECIMALS?
@@ -135,7 +136,8 @@ library PoolMath
 	// Convert from the reduced precision int back to uint256
 	function _restorePrecision( int256 n, uint8 decimals ) internal pure returns (uint256)
 		{
-		if ( n == 0 )
+		// Negative n shouldn't happen, but the check is here just in case
+		if ( n <= 0 )
 			return 0;
 
 		// Original decimals already at REDUCED_DECIMALS?
@@ -213,10 +215,7 @@ library PoolMath
 		if ( zapAmountA * reserveB < reserveA * zapAmountB )
 			(swapAmountA, swapAmountB) = (0, _zapSwapAmount( reserveB, reserveA, zapAmountB, zapAmountA, decimalsB, decimalsA ));
 
-		if ( swapAmountA > zapAmountA )
-			return (0, 0);
-
-		if ( swapAmountB > zapAmountB )
+		if ( ( swapAmountA > zapAmountA ) || ( swapAmountB > zapAmountB ) )
 			return (0, 0);
 
 		return (swapAmountA, swapAmountB);

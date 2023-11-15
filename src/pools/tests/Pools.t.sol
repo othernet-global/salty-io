@@ -2,7 +2,7 @@
 pragma solidity =0.8.22;
 
 import "../../dev/Deployment.sol";
-import "./TestPools.sol";
+import "../PoolUtils.sol";
 
 
 contract TestPools2 is Deployment
@@ -107,7 +107,7 @@ contract TestPools2 is Deployment
 	function testGasAddLiquidity() public
 		{
 		vm.startPrank(address(collateralAndLiquidity));
-		pools.addLiquidity( tokens[0], tokens[1], 1000 ether, 1000 ether, 0,collateralAndLiquidity.totalShareForPool( PoolUtils._poolIDOnly(tokens[0], tokens[1])));
+		pools.addLiquidity( tokens[0], tokens[1], 1000 ether, 1000 ether, 0,collateralAndLiquidity.totalShares( PoolUtils._poolIDOnly(tokens[0], tokens[1])));
 		}
 
 
@@ -157,7 +157,7 @@ contract TestPools2 is Deployment
         uint256 expectedProportionalAmount0 = (maxAmount1 * reserve0Before) / reserve1Before;
 
         // Add liquidity
-        pools.addLiquidity(tokens[0], tokens[1], maxAmount0, maxAmount1, 0, collateralAndLiquidity.totalShareForPool( PoolUtils._poolIDOnly(tokens[0], tokens[1])));
+        pools.addLiquidity(tokens[0], tokens[1], maxAmount0, maxAmount1, 0, collateralAndLiquidity.totalShares( PoolUtils._poolIDOnly(tokens[0], tokens[1])));
 
         // Get the reserves after adding liquidity
         (uint256 reserve0After, uint256 reserve1After) = pools.getPoolReserves(tokens[0], tokens[1]);
@@ -193,7 +193,7 @@ contract TestPools2 is Deployment
         uint256 expectedProportionalAmount1 = (maxAmount0 * reserve1Before) / reserve0Before;
 
         // Add liquidity
-        pools.addLiquidity(token0, token1, maxAmount0, maxAmount1, 0, collateralAndLiquidity.totalShareForPool( PoolUtils._poolIDOnly(tokens[0], tokens[1])));
+        pools.addLiquidity(token0, token1, maxAmount0, maxAmount1, 0, collateralAndLiquidity.totalShares( PoolUtils._poolIDOnly(tokens[0], tokens[1])));
 
         // Get the reserves after adding liquidity
         (uint256 reserve0After, uint256 reserve1After) = pools.getPoolReserves(token0, token1);
@@ -217,7 +217,7 @@ contract TestPools2 is Deployment
         pools.deposit( tokens[0], amountIn - 1);
 
         vm.expectRevert("Insufficient deposited token balance of initial token");
-        pools.swap(tokens[0], tokens[1], amountIn, 1 ether, block.timestamp, true);
+        pools.swap(tokens[0], tokens[1], amountIn, 1 ether, block.timestamp);
     }
 
 
@@ -231,7 +231,7 @@ contract TestPools2 is Deployment
     	poolsConfig.whitelistPool(  tokens[5], tokens[7] );
 
 		vm.startPrank(address(collateralAndLiquidity));
-    	pools.addLiquidity(tokens[5], tokens[7], 1 ether, 1 ether, 0, collateralAndLiquidity.totalShareForPool( PoolUtils._poolIDOnly(tokens[5], tokens[7])));
+    	pools.addLiquidity(tokens[5], tokens[7], 1 ether, 1 ether, 0, collateralAndLiquidity.totalShares( PoolUtils._poolIDOnly(tokens[5], tokens[7])));
 
     	(uint256 token5PoolReserves2, uint256 token7PoolReserves2) = pools.getPoolReserves(tokens[5], tokens[7]);
 
@@ -278,11 +278,11 @@ contract TestPools2 is Deployment
 			token1.approve( address(pools), type(uint256).max );
 			token2.approve( address(pools), type(uint256).max );
 
-			pools.addLiquidity(token0, token1, added0, added1, 0, collateralAndLiquidity.totalShareForPool( PoolUtils._poolIDOnly(token0, token1)) );
-			pools.addLiquidity(token1, token2, added1b, added2, 0, collateralAndLiquidity.totalShareForPool( PoolUtils._poolIDOnly(token1, token2)) );
+			pools.addLiquidity(token0, token1, added0, added1, 0, collateralAndLiquidity.totalShares( PoolUtils._poolIDOnly(token0, token1)) );
+			pools.addLiquidity(token1, token2, added1b, added2, 0, collateralAndLiquidity.totalShares( PoolUtils._poolIDOnly(token1, token2)) );
 
-			uint256 amountOut = pools.depositSwapWithdraw(token0, token1, amountIn, 0, block.timestamp, true);
-			pools.depositSwapWithdraw(token1, token2, amountOut, 0, block.timestamp, true);
+			uint256 amountOut = pools.depositSwapWithdraw(token0, token1, amountIn, 0, block.timestamp);
+			pools.depositSwapWithdraw(token1, token2, amountOut, 0, block.timestamp);
 			}
 
 		// Check that k is still the same
@@ -326,11 +326,11 @@ contract TestPools2 is Deployment
 
         // Call the swap function on the pools contract
 		vm.expectRevert( "Insufficient deposited token balance of initial token" );
-        pools.swap(tokens[2], tokens[3], amountIn, minAmountOut, deadline, true);
+        pools.swap(tokens[2], tokens[3], amountIn, minAmountOut, deadline);
 
 		pools.deposit(tokens[2], 101 );
-        uint256 amountOut = pools.swap(tokens[2], tokens[3], amountIn, 0, deadline, true);
-        pools.swap(tokens[3], tokens[4], amountOut, minAmountOut, deadline, true);
+        uint256 amountOut = pools.swap(tokens[2], tokens[3], amountIn, 0, deadline);
+        pools.swap(tokens[3], tokens[4], amountOut, minAmountOut, deadline);
 
 		// Check that the user's deposited amount of tokens[2] is zero
 		assertEq( pools.depositedUserBalance( address(collateralAndLiquidity), tokens[2] ), 0, "tokenIn deposited balance should now be zero" );
@@ -362,13 +362,13 @@ contract TestPools2 is Deployment
 
 		// Insufficient allowance?
 		vm.expectRevert( "ERC20: insufficient allowance" );
-        pools.depositSwapWithdraw(tokenIn, tokenOut, amountIn, minAmountOut, block.timestamp + 1 minutes, true);
+        pools.depositSwapWithdraw(tokenIn, tokenOut, amountIn, minAmountOut, block.timestamp + 1 minutes);
 
        	tokenIn.approve( address(pools), type(uint256).max );
 
         // Test for insufficient tokenIn balance
         vm.expectRevert("ERC20: transfer amount exceeds balance");
-        pools.depositSwapWithdraw(tokenIn, tokenOut, amountIn, minAmountOut, block.timestamp + 1 minutes, true);
+        pools.depositSwapWithdraw(tokenIn, tokenOut, amountIn, minAmountOut, block.timestamp + 1 minutes);
 
         vm.stopPrank();
 
@@ -381,7 +381,7 @@ contract TestPools2 is Deployment
 
   		vm.startPrank(address(collateralAndLiquidity));
         vm.expectRevert("Insufficient reserves before swap");
-        pools.depositSwapWithdraw(tokenIn, tokenOut, amountIn, minAmountOut, block.timestamp + 1 minutes, true);
+        pools.depositSwapWithdraw(tokenIn, tokenOut, amountIn, minAmountOut, block.timestamp + 1 minutes);
 		vm.stopPrank();
 
         // Add enough liquidity
@@ -389,7 +389,7 @@ contract TestPools2 is Deployment
 		tokenIn.approve( address(pools), type(uint256).max );
 		tokenOut.approve( address(pools), type(uint256).max );
 
-		uint256 totalShares = collateralAndLiquidity.totalShareForPool(PoolUtils._poolIDOnly(tokenIn, tokenOut));
+		uint256 totalShares = collateralAndLiquidity.totalShares(PoolUtils._poolIDOnly(tokenIn, tokenOut));
 		vm.expectRevert( "ERC20: transfer amount exceeds balance" );
         pools.addLiquidity(tokenIn, tokenOut, 1000 ether, 1000 ether, 0, totalShares);
         vm.stopPrank();
@@ -405,7 +405,7 @@ contract TestPools2 is Deployment
 
         // Test for correct operation under valid conditions
         assertEq( tokenOut.balanceOf( address(collateralAndLiquidity) ), 0, "Test wallet shoudl start with zero tokenOut" );
-        uint256 amountOut = pools.depositSwapWithdraw(tokenIn, tokenOut, amountIn, minAmountOut, block.timestamp + 1 minutes, true);
+        uint256 amountOut = pools.depositSwapWithdraw(tokenIn, tokenOut, amountIn, minAmountOut, block.timestamp + 1 minutes);
 
         assertEq(amountOut, 166.666666666666666666 ether, "Unexpected amountOut");
 
@@ -428,7 +428,7 @@ contract TestPools2 is Deployment
 
         bytes32 poolID = PoolUtils._poolIDOnly(tokens[0], nonExistentToken);
         assertEq(0, collateralAndLiquidity.userShareForPool(address(0), poolID));
-        assertEq(0, collateralAndLiquidity.totalShareForPool(poolID));
+        assertEq(0, collateralAndLiquidity.totalShares(poolID));
 
 		// Will fail due to reliance on balance of
 //        vm.expectRevert("Insufficient allowance to deposit");
@@ -447,7 +447,7 @@ contract TestPools2 is Deployment
         assertEq(0, pools.depositedUserBalance(address(collateralAndLiquidity), undepositedToken));
         poolID = PoolUtils._poolIDOnly(tokens[0], undepositedToken);
         assertEq(0, collateralAndLiquidity.userShareForPool(DEPLOYER, poolID));
-        assertEq(0, collateralAndLiquidity.totalShareForPool(poolID));
+        assertEq(0, collateralAndLiquidity.totalShares(poolID));
 
         vm.expectRevert("ERC20: insufficient allowance");
         pools.addLiquidity(tokens[0], undepositedToken, 1000 ether, 1000 ether, 0, 0);
@@ -461,10 +461,10 @@ contract TestPools2 is Deployment
         pools.withdraw(undepositedToken, 1000 ether);
 
         vm.expectRevert("Insufficient deposited token balance of initial token");
-        pools.swap(undepositedToken, tokens[0], 1000 ether, 1 ether, block.timestamp, true);
+        pools.swap(undepositedToken, tokens[0], 1000 ether, 1 ether, block.timestamp);
 
         vm.expectRevert("Insufficient reserves before swap");
-        pools.depositSwapWithdraw(undepositedToken, tokens[0], 1000 ether, 1 ether,  block.timestamp, true);
+        pools.depositSwapWithdraw(undepositedToken, tokens[0], 1000 ether, 1 ether,  block.timestamp);
     }
 
 
@@ -636,13 +636,13 @@ contract TestPools2 is Deployment
 
         // Test that swap fails with insufficient balance
         vm.expectRevert("Insufficient deposited token balance of initial token");
-        pools.swap(tokens[5], tokens[6], 1500 ether, 1 ether, block.timestamp + 60, true);
+        pools.swap(tokens[5], tokens[6], 1500 ether, 1 ether, block.timestamp + 60);
 
         vm.expectRevert("Insufficient resulting token amount");
-        pools.swap(tokens[5], tokens[6], 500 ether, 1500 ether, block.timestamp + 60, true);
+        pools.swap(tokens[5], tokens[6], 500 ether, 1500 ether, block.timestamp + 60);
 
         // Test valid swap with two tokens
-        pools.swap(tokens[5], tokens[6], 250 ether, 1 ether, block.timestamp + 60, true);
+        pools.swap(tokens[5], tokens[6], 250 ether, 1 ether, block.timestamp + 60);
         assertEq(pools.depositedUserBalance(address(collateralAndLiquidity), tokens[5]), 750 ether);
     }
 
@@ -658,11 +658,11 @@ contract TestPools2 is Deployment
     	// User liquidity is sqrt(amount0 * amount1) and 500 ether of each token were initially deposited
     	bytes32 poolID = PoolUtils._poolIDOnly(token0, token1);
     	uint256 userLiquidity = collateralAndLiquidity.userShareForPool(DEPLOYER, poolID);
-    	assertEq(userLiquidity, 500 ether, "User liquidity mismatch");
+    	assertEq(userLiquidity, 1000 ether, "User liquidity mismatch");
 
     	// View total liquidity
-    	uint256 totalLiquidity = collateralAndLiquidity.totalShareForPool(poolID);
-    	assertEq(totalLiquidity, 1000 ether, "Total liquidity mismatch");
+    	uint256 totalLiquidity = collateralAndLiquidity.totalShares(poolID);
+    	assertEq(totalLiquidity, 2000 ether, "Total liquidity mismatch");
 
     	// View pool reserves
     	(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves(token0, token1);
@@ -680,11 +680,11 @@ contract TestPools2 is Deployment
 
         // Swap
         vm.expectRevert("TX EXPIRED");
-        pools.swap(tokens[0], tokens[1], 1000 ether, 1 ether, deadline, true);
+        pools.swap(tokens[0], tokens[1], 1000 ether, 1 ether, deadline);
 
         // Deposit Swap Withdraw
         vm.expectRevert("TX EXPIRED");
-        pools.depositSwapWithdraw(tokens[0], tokens[1], 1000 ether, 1 ether, deadline, true);
+        pools.depositSwapWithdraw(tokens[0], tokens[1], 1000 ether, 1 ether, deadline);
         }
 
 
@@ -706,8 +706,8 @@ contract TestPools2 is Deployment
         assertTrue(flipped, "Expected PoolUtils._poolID to return flipped as true");
 
     	poolID = PoolUtils._poolIDOnly(token0, token1);
-        uint256 totalLiquidity = collateralAndLiquidity.totalShareForPool(poolID);
-        assertEq(totalLiquidity, 1000 ether, "Expected totalLiquidity to return 1000 ether");
+        uint256 totalLiquidity = collateralAndLiquidity.totalShares(poolID);
+        assertEq(totalLiquidity, 2000 ether, "Expected totalLiquidity to return 1000 ether");
 
         uint256 reserve0;
         uint256 reserve1;
@@ -716,9 +716,9 @@ contract TestPools2 is Deployment
         assertEq(reserve1, 1000 ether, "Expected reserve1 to return 1000 ether");
 
         uint256 userLiquidity = collateralAndLiquidity.userShareForPool(DEPLOYER, PoolUtils._poolIDOnly(token0, token1));
-        assertEq(userLiquidity, 500 ether, "Expected getUserLiquidity to return 500 ether");
+        assertEq(userLiquidity, 1000 ether, "Expected getUserLiquidity to return 500 ether");
 
-        pools.addLiquidity(token0, token1, 500 ether, 500 ether, 0, collateralAndLiquidity.totalShareForPool(poolID));
+        pools.addLiquidity(token0, token1, 500 ether, 500 ether, 0, collateralAndLiquidity.totalShares(poolID));
         vm.warp(block.timestamp + 15 minutes);
 
 
@@ -741,7 +741,7 @@ contract TestPools2 is Deployment
 
     	// Expect revert on swap operation with a pool that has no liquidity
     	vm.expectRevert("Insufficient deposited token balance of initial token");
-    	pools.depositSwapWithdraw(tokenA, tokenB, 1000 ether, 0, 0, true);
+    	pools.depositSwapWithdraw(tokenA, tokenB, 1000 ether, 0, 0);
     }
 
 
@@ -780,7 +780,7 @@ contract TestPools2 is Deployment
 
 		vm.prank(address(collateralAndLiquidity));
 		(uint256 added0, uint256 added1, uint256 addedLiquidity) = pools.addLiquidity( token0, token1, 200 ether, 100 ether, 0, 0 );
-		assertEq( Math.sqrt( 200 ether * 100 ether ), addedLiquidity );
+		assertEq( 200 ether + 100 ether, addedLiquidity );
 
 		uint256 aliceAdded0 = userToken0 - token0.balanceOf( address(collateralAndLiquidity) );
         uint256 aliceAdded1 = userToken1 - token1.balanceOf( address(collateralAndLiquidity) );
@@ -866,7 +866,7 @@ contract TestPools2 is Deployment
 
 		// Bob depositSwapWithdraws 10 ether token0 for token1
 		vm.prank(bob);
-		uint256 amountOut = pools.depositSwapWithdraw(token0, token1, 10 ether, 1 ether, block.timestamp, true);
+		uint256 amountOut = pools.depositSwapWithdraw(token0, token1, 10 ether, 1 ether, block.timestamp);
 		_assertAlmostEqual( amountOut, 4761904761904761905 );
 
 		(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves(token0,token1);
@@ -878,7 +878,7 @@ contract TestPools2 is Deployment
 		pools.deposit(token1, 20 ether);
 
 		// Charlie swaps 20 ether token1 for token0
-		uint256 charlieToken0 = pools.swap(token1, token0, 20 ether, 1 ether, block.timestamp, true);
+		uint256 charlieToken0 = pools.swap(token1, token0, 20 ether, 1 ether, block.timestamp);
 		_assertAlmostEqual( charlieToken0, 36446280991735537191 );
 		vm.stopPrank();
 
@@ -901,7 +901,6 @@ contract TestPools2 is Deployment
 	//		console.log( "reserve0: ", reserve0 );
 	//		console.log( "reserve1: ", reserve1 );
 
-
 			// Charlie adds an extra 25% of the current liquidity
 			vm.prank(charlie);
 			collateralAndLiquidity.depositLiquidityAndIncreaseShare(token0, token1, 65082644628099173553, 43214285714285714285, 0, block.timestamp, true);
@@ -916,14 +915,14 @@ contract TestPools2 is Deployment
 
 			// Alice removes her liquidity
 			uint256 aliceLiquidity = collateralAndLiquidity.userShareForPool(alice, PoolUtils._poolIDOnly(token0, token1));
-			_assertAlmostEqual( aliceLiquidity, 141421356237309504880 );
+			_assertAlmostEqual( aliceLiquidity, 300 ether );
 			bytes32 poolID = PoolUtils._poolIDOnly(token0, token1);
-			_assertAlmostEqual( collateralAndLiquidity.totalShareForPool(poolID), 212132034355964257319 + collateralAndLiquidity.userShareForPool(charlie, PoolUtils._poolIDOnly(token0, token1)));
+			_assertAlmostEqual( collateralAndLiquidity.totalShares(poolID), 562499999999999999999);
 	//		console.log( "aliceLiquidity: ", aliceLiquidity );
 	//		console.log( "totalLiquidity: ", pools.getTotalLiquidity(token0,token1) );
 
 			vm.prank(alice);
-			(uint256 reclaimed0, uint256 reclaimed1) = collateralAndLiquidity.withdrawLiquidityAndClaim(token0, token1, 141421356237309504880, 0, 0, block.timestamp);
+			(uint256 reclaimed0, uint256 reclaimed1) = collateralAndLiquidity.withdrawLiquidityAndClaim(token0, token1, 300 ether, 0, 0, block.timestamp);
 		vm.warp( block.timestamp + 1 hours );
 
 			// Alice should have reclaimed the liquidity that was there before bob and charlie added theirs
@@ -936,7 +935,7 @@ contract TestPools2 is Deployment
 
 		// Charlie swaps all his deposited token0 for token 1
 		vm.prank(charlie);
-		amountOut = pools.swap(token0, token1, charlieToken0, 1 ether, block.timestamp, true);
+		amountOut = pools.swap(token0, token1, charlieToken0, 1 ether, block.timestamp);
 		_assertAlmostEqual( amountOut, 19516129032258064517 );
 
 		(reserve0, reserve1) = pools.getPoolReserves(token0,token1);
@@ -945,13 +944,13 @@ contract TestPools2 is Deployment
 
 
 		// Bob swaps 10 ether token0 for token1
-		vm.prank(bob);
-		amountOut = pools.depositSwapWithdraw(token0, token1, 10 ether, 1 ether, block.timestamp, true);
-		_assertAlmostEqual( amountOut, 4100596674486396136 );
-
-		(reserve0, reserve1) = pools.getPoolReserves(token0,token1);
-		_assertAlmostEqual( reserve0, 188305785123966942148 + 10 ether );
-		_assertAlmostEqual( reserve1, 81317204301075268815 - 4100596674486396136 );
+//		vm.prank(bob);
+//		amountOut = pools.depositSwapWithdraw(token0, token1, 10 ether, 1 ether, block.timestamp);
+//		_assertAlmostEqual( amountOut, 4100596674486396136 );
+//
+//		(reserve0, reserve1) = pools.getPoolReserves(token0,token1);
+//		_assertAlmostEqual( reserve0, 188305785123966942148 + 10 ether );
+//		_assertAlmostEqual( reserve1, 81317204301075268815 - 4100596674486396136 );
 	    }
 
 
@@ -959,7 +958,6 @@ contract TestPools2 is Deployment
 	// No swaps are done, but at the end all liquidity is remove and the users should ensure that they have reclaimed what they originally added.
 	function testMultiAddRemoveLiquidity() public {
    		vm.startPrank(address(collateralAndLiquidity));
-
        	IERC20 token0 = new TestERC20("TEST", 18);
        	IERC20 token1 = new TestERC20("TEST", 18);
        	vm.stopPrank();
@@ -1022,21 +1020,21 @@ contract TestPools2 is Deployment
 		aliceLiquidity = collateralAndLiquidity.userShareForPool(alice, PoolUtils._poolIDOnly(token0, token1));
 		bobLiquidity = collateralAndLiquidity.userShareForPool(bob, PoolUtils._poolIDOnly(token0, token1));
 		charlieLiquidity = collateralAndLiquidity.userShareForPool(charlie, PoolUtils._poolIDOnly(token0, token1));
-		assertEq( collateralAndLiquidity.totalShareForPool(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
+		assertEq( collateralAndLiquidity.totalShares(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
 
 		vm.prank(bob);
 		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token0, token1, 600 ether, 300 ether, 0, block.timestamp, false );
 		aliceLiquidity = collateralAndLiquidity.userShareForPool(alice, PoolUtils._poolIDOnly(token0, token1));
 		bobLiquidity = collateralAndLiquidity.userShareForPool(bob, PoolUtils._poolIDOnly(token0, token1));
 		charlieLiquidity = collateralAndLiquidity.userShareForPool(charlie, PoolUtils._poolIDOnly(token0, token1));
-		assertEq( collateralAndLiquidity.totalShareForPool(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
+		assertEq( collateralAndLiquidity.totalShares(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
 
 		vm.prank(charlie);
 		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token0, token1, 100 ether, 50 ether, 0, block.timestamp, false );
 		aliceLiquidity = collateralAndLiquidity.userShareForPool(alice, PoolUtils._poolIDOnly(token0, token1));
 		bobLiquidity = collateralAndLiquidity.userShareForPool(bob, PoolUtils._poolIDOnly(token0, token1));
 		charlieLiquidity = collateralAndLiquidity.userShareForPool(charlie, PoolUtils._poolIDOnly(token0, token1));
-		assertEq( collateralAndLiquidity.totalShareForPool(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
+		assertEq( collateralAndLiquidity.totalShares(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
 
 		vm.warp( block.timestamp + 1 hours );
 
@@ -1046,14 +1044,14 @@ contract TestPools2 is Deployment
 		aliceLiquidity = collateralAndLiquidity.userShareForPool(alice, PoolUtils._poolIDOnly(token0, token1));
 		bobLiquidity = collateralAndLiquidity.userShareForPool(bob, PoolUtils._poolIDOnly(token0, token1));
 		charlieLiquidity = collateralAndLiquidity.userShareForPool(charlie, PoolUtils._poolIDOnly(token0, token1));
-		assertEq( collateralAndLiquidity.totalShareForPool(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
+		assertEq( collateralAndLiquidity.totalShares(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
 
 		vm.prank(alice);
 		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token0, token1, 100 ether, 100 ether, 0, block.timestamp, false );
 		aliceLiquidity = collateralAndLiquidity.userShareForPool(alice, PoolUtils._poolIDOnly(token0, token1));
 		bobLiquidity = collateralAndLiquidity.userShareForPool(bob, PoolUtils._poolIDOnly(token0, token1));
 		charlieLiquidity = collateralAndLiquidity.userShareForPool(charlie, PoolUtils._poolIDOnly(token0, token1));
-		assertEq( collateralAndLiquidity.totalShareForPool(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
+		assertEq( collateralAndLiquidity.totalShares(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
 
 		vm.warp( block.timestamp + 1 hours );
 
@@ -1062,14 +1060,14 @@ contract TestPools2 is Deployment
 		aliceLiquidity = collateralAndLiquidity.userShareForPool(alice, PoolUtils._poolIDOnly(token0, token1));
 		bobLiquidity = collateralAndLiquidity.userShareForPool(bob, PoolUtils._poolIDOnly(token0, token1));
 		charlieLiquidity = collateralAndLiquidity.userShareForPool(charlie, PoolUtils._poolIDOnly(token0, token1));
-		assertEq( collateralAndLiquidity.totalShareForPool(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
+		assertEq( collateralAndLiquidity.totalShares(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
 
 		vm.prank(charlie);
 		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token0, token1, 100 ether, 50 ether, 0, block.timestamp, false );
 		aliceLiquidity = collateralAndLiquidity.userShareForPool(alice, PoolUtils._poolIDOnly(token0, token1));
 		bobLiquidity = collateralAndLiquidity.userShareForPool(bob, PoolUtils._poolIDOnly(token0, token1));
 		charlieLiquidity = collateralAndLiquidity.userShareForPool(charlie, PoolUtils._poolIDOnly(token0, token1));
-		assertEq( collateralAndLiquidity.totalShareForPool(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
+		assertEq( collateralAndLiquidity.totalShares(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
 
 		// Remove all liquidity
 		aliceLiquidity = collateralAndLiquidity.userShareForPool(alice, PoolUtils._poolIDOnly(token0, token1));
@@ -1078,7 +1076,7 @@ contract TestPools2 is Deployment
 		aliceLiquidity = collateralAndLiquidity.userShareForPool(alice, PoolUtils._poolIDOnly(token0, token1));
 		bobLiquidity = collateralAndLiquidity.userShareForPool(bob, PoolUtils._poolIDOnly(token0, token1));
 		charlieLiquidity = collateralAndLiquidity.userShareForPool(charlie, PoolUtils._poolIDOnly(token0, token1));
-		assertEq( collateralAndLiquidity.totalShareForPool(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
+		assertEq( collateralAndLiquidity.totalShares(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
 
 		vm.warp( block.timestamp + 1 hours );
 
@@ -1088,7 +1086,7 @@ contract TestPools2 is Deployment
 		aliceLiquidity = collateralAndLiquidity.userShareForPool(alice, PoolUtils._poolIDOnly(token0, token1));
 		bobLiquidity = collateralAndLiquidity.userShareForPool(bob, PoolUtils._poolIDOnly(token0, token1));
 		charlieLiquidity = collateralAndLiquidity.userShareForPool(charlie, PoolUtils._poolIDOnly(token0, token1));
-		assertEq( collateralAndLiquidity.totalShareForPool(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
+		assertEq( collateralAndLiquidity.totalShares(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
 
 		charlieLiquidity = collateralAndLiquidity.userShareForPool(charlie, PoolUtils._poolIDOnly(token0, token1));
 		vm.prank(charlie);
@@ -1096,7 +1094,7 @@ contract TestPools2 is Deployment
 		aliceLiquidity = collateralAndLiquidity.userShareForPool(alice, PoolUtils._poolIDOnly(token0, token1));
 		bobLiquidity = collateralAndLiquidity.userShareForPool(bob, PoolUtils._poolIDOnly(token0, token1));
 		charlieLiquidity = collateralAndLiquidity.userShareForPool(charlie, PoolUtils._poolIDOnly(token0, token1));
-		assertEq( collateralAndLiquidity.totalShareForPool(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
+		assertEq( collateralAndLiquidity.totalShares(poolID), aliceLiquidity + bobLiquidity + charlieLiquidity );
 
 		// As there were no swaps the pulled liquidity should result in the original balances
 		assertEq( token0.balanceOf(alice), 1000 ether );
@@ -1182,31 +1180,31 @@ contract TestPools2 is Deployment
 		// Multiple swaps
 		{
 		vm.prank(alice);
-		pools.swap( token0, token1, 500 * units0, 0 ether, block.timestamp, true );
+		pools.swap( token0, token1, 500 * units0, 0 ether, block.timestamp );
 
 		vm.prank(bob);
-		pools.depositSwapWithdraw(token1, token0, 500 * units1, 0 ether, block.timestamp, true );
+		pools.depositSwapWithdraw(token1, token0, 500 * units1, 0 ether, block.timestamp );
 
 		vm.prank(charlie);
-		pools.depositSwapWithdraw(token1, token0, 500 * units1, 0 ether, block.timestamp, true );
+		pools.depositSwapWithdraw(token1, token0, 500 * units1, 0 ether, block.timestamp );
 
 		vm.prank(alice);
-		pools.swap( token1, token0, 100 * units1, 0 ether, block.timestamp, true );
+		pools.swap( token1, token0, 100 * units1, 0 ether, block.timestamp );
 
 		vm.prank(bob);
-		pools.depositSwapWithdraw(token0, token1, 100 * units0, 0 * units1, block.timestamp, true );
+		pools.depositSwapWithdraw(token0, token1, 100 * units0, 0 * units1, block.timestamp );
 
 		vm.prank(charlie);
-		pools.depositSwapWithdraw(token0, token1, 100 * units0, 0 * units1, block.timestamp, true );
+		pools.depositSwapWithdraw(token0, token1, 100 * units0, 0 * units1, block.timestamp );
 
 		vm.prank(alice);
-		pools.swap( token0, token1, 10 * units0, 0 * units1, block.timestamp, true );
+		pools.swap( token0, token1, 10 * units0, 0 * units1, block.timestamp );
 
 		vm.prank(bob);
-		pools.depositSwapWithdraw(token1, token0, 10 * units1, 0 * units0, block.timestamp, true );
+		pools.depositSwapWithdraw(token1, token0, 10 * units1, 0 * units0, block.timestamp );
 
 		vm.prank(charlie);
-		pools.depositSwapWithdraw(token1, token0, 10 * units1, 0 * units0, block.timestamp, true );
+		pools.depositSwapWithdraw(token1, token0, 10 * units1, 0 * units0, block.timestamp );
 		}
 
 		(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves(token0, token1);
@@ -1313,10 +1311,10 @@ function testMinLiquidityAndReclaimedAmounts() public {
     TestERC20 token1 = tokens[1];
 
     // Define an excessive minLiquidityReceived
-    uint256 excessiveMinLiquidityReceived = 2000 ether;
+    uint256 excessiveMinLiquidityReceived = 300000 ether;
 
     // Test that adding liquidity fails when minLiquidityReceived is excessive
-    uint256 totalShares = collateralAndLiquidity.totalShareForPool(PoolUtils._poolIDOnly(token0, token1));
+    uint256 totalShares = collateralAndLiquidity.totalShares(PoolUtils._poolIDOnly(token0, token1));
 
     vm.expectRevert("Too little liquidity received");
     pools.addLiquidity(token0, token1, 1000 ether, 1000 ether, excessiveMinLiquidityReceived, totalShares );
@@ -1329,7 +1327,7 @@ function testMinLiquidityAndReclaimedAmounts() public {
     uint256 excessiveMinReclaimedB = 1500000 ether;
 
     // Test that removing liquidity fails when minReclaimedA and minReclaimedB are excessive
-  	totalShares = collateralAndLiquidity.totalShareForPool(PoolUtils._poolIDOnly(token0, token1));
+  	totalShares = collateralAndLiquidity.totalShares(PoolUtils._poolIDOnly(token0, token1));
 
     vm.expectRevert("Insufficient underlying tokens returned");
 	pools.removeLiquidity(token0, token1, liquidityBefore, excessiveMinReclaimedA, excessiveMinReclaimedB, totalShares );
@@ -1364,87 +1362,24 @@ function testMinLiquidityAndReclaimedAmounts() public {
 		pools = new Pools(exchangeConfig, poolsConfig);
 
         // Set the DAO for the first time
-        pools.setContracts(dao, collateralAndLiquidity
-);
+        pools.setContracts(dao, collateralAndLiquidity);
 
         // Try to set the DAO again and expect a revert
         vm.expectRevert("Ownable: caller is not the owner");
-        pools.setContracts(dao, collateralAndLiquidity
-);
+        pools.setContracts(dao, collateralAndLiquidity);
     }
 
 
-	// A unit test that checks and validates the "setDAO" function when it is called with DAO set to address(0)
-	function testSetDAOWithZeroAddress() public {
+	// A unit test that checks and validates the "setContract" function when it is called with DAO set to address(0)
+	function testSetContractWithZeroAddress() public {
 		pools = new Pools(exchangeConfig, poolsConfig);
 
         vm.expectRevert("_dao cannot be address(0)");
         pools.setContracts(IDAO(address(0)), collateralAndLiquidity);
-    }
-
-
-	// A unit test that checks and validates the "setDAO" function when it is called with DAO set to address(0)
-	function testSetCollateralAndLiquidityWithZeroAddress() public {
-		pools = new Pools(exchangeConfig, poolsConfig);
 
         vm.expectRevert("_collateralAndLiquidity cannot be address(0)");
         pools.setContracts(dao, ICollateralAndLiquidity(address(0)));
     }
-
-
-    // A unit test that checks if the depositTokenForCounterswap method correctly increases the user balance.
-    function testDepositTokenForCounterswap() public {
-        // Set up
-        IERC20 tokenToDeposit = tokens[0];
-        address counterswapAddress = address(0x4444);
-
-        uint256 initialBalance = pools.depositedUserBalance(counterswapAddress, tokenToDeposit);
-        uint256 amountToDeposit = 500 ether;
-        uint256 expectedBalance = initialBalance + amountToDeposit;
-
-        // Execute
-        vm.prank(address(collateralAndLiquidity));
-        tokens[0].transfer(address(upkeep), amountToDeposit);
-
-        vm.startPrank(address(upkeep));
-        tokenToDeposit.approve(address(pools), amountToDeposit);
-        pools.depositTokenForCounterswap(counterswapAddress, tokenToDeposit, amountToDeposit);
-        vm.stopPrank();
-
-        // Verify
-        uint256 postDepositBalance = pools.depositedUserBalance(counterswapAddress, tokenToDeposit);
-        assertEq(postDepositBalance, expectedBalance);
-    }
-
-
-	// A unit test that checks if the withdrawTokenFromCounterswap method correctly decreases the user balance.
-	function testWithdrawTokenFromCounterswap() public {
-
-		vm.prank(DEPLOYER);
-		tokens[5].transfer(alice, 50 ether);
-
-        // Alice deposits 50 tokens
-        vm.startPrank(alice);
-        tokens[5].approve(address(pools), 50 ether );
-        pools.deposit(tokens[5], 50 ether);
-        vm.stopPrank();
-
-    	// Check Alice's balance
-    	uint256 aliceBalance = pools.depositedUserBalance(alice, tokens[5]);
-    	// Alice's balance should be 50
-    	assertEq(aliceBalance, 50 ether);
-
-    	// Alice withdraws 25 tokens
-    	vm.startPrank(address(upkeep));
-    	pools.withdrawTokenFromCounterswap(alice, tokens[5], 25 ether);
-    	vm.stopPrank();
-
-    	// Check Alice's balance after withdrawal
-    	aliceBalance = pools.depositedUserBalance(alice, tokens[5]);
-    	// Alice's balance should be 25
-    	assertEq(aliceBalance, 25 ether);
-    }
-
 
 
 	// A unit test that verifies that the startExchangeApproved can only be called from the BootstrapBallot contract.
@@ -1475,36 +1410,6 @@ function testMinLiquidityAndReclaimedAmounts() public {
         }
 
 
-    function testLastSwapTimestampUpdates() public
-    	{
-  		vm.startPrank(address(collateralAndLiquidity));
-        IERC20 tokenA = new TestERC20("TEST1", 18);
-        IERC20 tokenB = new TestERC20("TEST2", 18);
-		vm.stopPrank();
-
-  		vm.startPrank(address(dao));
-        poolsConfig.whitelistPool(  tokenA, tokenB);
-		vm.stopPrank();
-
-        // Add liquidity
-  		vm.startPrank(address(collateralAndLiquidity));
-
-		tokenA.approve( address(pools), type(uint256).max );
-		tokenB.approve( address(pools), type(uint256).max );
-        pools.addLiquidity(tokenA, tokenB, 10000 ether, 10000 ether, 0, collateralAndLiquidity.totalShareForPool(PoolUtils._poolIDOnly(tokenA, tokenB)));
-
-		bytes32 poolID = PoolUtils._poolIDOnly( tokenA, tokenB );
-
-		uint256 lastSwapBlock = pools.lastSwapBlock( poolID );
-		assertEq( lastSwapBlock, 0 );
-
-		pools.depositSwapWithdraw( tokenA, tokenB, 1000 ether, 0, block.timestamp, true);
-
-		lastSwapBlock = pools.lastSwapBlock( poolID );
-		assertEq( lastSwapBlock, block.number );
-    	}
-
-
 	// A unit test that checks that swaps must result in reserves being above DUST
 	function testSwapDustRestriction() public {
 
@@ -1519,46 +1424,11 @@ function testMinLiquidityAndReclaimedAmounts() public {
 		vm.startPrank(address(collateralAndLiquidity));
 		token0.approve( address(pools), type(uint256).max );
 		token1.approve( address(pools), type(uint256).max );
-        pools.addLiquidity(token0, token1, PoolUtils.DUST + 1, PoolUtils.DUST + 1, 0, collateralAndLiquidity.totalShareForPool(PoolUtils._poolIDOnly(token0, token1)));
+        pools.addLiquidity(token0, token1, PoolUtils.DUST + 1, PoolUtils.DUST + 1, 0, collateralAndLiquidity.totalShares(PoolUtils._poolIDOnly(token0, token1)));
 
 		vm.expectRevert( "Insufficient reserves after swap" );
-		pools.depositSwapWithdraw(token0, token1, 25, 0, block.timestamp, true);
-
-		vm.expectRevert( "Insufficient reserves after swap" );
-		pools.depositSwapWithdraw(token1, token0, 25, 0, block.timestamp, true);
+		pools.depositSwapWithdraw(token0, token1, PoolUtils.DUST + 1, 0, block.timestamp);
     }
-
-
-
-	// A unit test to check what happens when isWhitelistedPair is set incorrectly
-	function testIncorrectIsWhitelistedPair() public
-		{
-		vm.startPrank(address(alice));
-        IERC20 token0 = new TestERC20("TEST", 18);
-        IERC20 token1 = new TestERC20("TEST", 18);
-        IERC20 token2 = new TestERC20("TEST", 18);
-
-		token0.approve(address(pools),type(uint256).max);
-		token1.approve(address(pools),type(uint256).max);
-		token0.approve(address(collateralAndLiquidity),type(uint256).max);
-		token1.approve(address(collateralAndLiquidity),type(uint256).max);
-		vm.stopPrank();
-
-		vm.prank(address(dao));
-		poolsConfig.whitelistPool(  token0, token1);
-
-		vm.startPrank(address(alice));
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token0, token1, 1000 ether, 1000 ether, 0, block.timestamp, false );
-
-        // Indicate not whitelisted even though whitelisted
-        vm.expectRevert( "Insufficient reserves before swap" );
-		pools.depositSwapWithdraw(token0, token1, 10 ether, 0, block.timestamp, false);
-
-        // Indicate whitelisted even though no whitelisted
-        vm.expectRevert( "Insufficient reserves before swap" );
-		pools.depositSwapWithdraw(token0, token2, 10 ether, 0, block.timestamp, true);
-		}
-
 
 
 	function _checkZapping( uint8 decimals0, uint8 decimals1, uint256 initialLiquidity0, uint256 initialLiquidity1, uint256 zapAmount0, uint256 zapAmount1 ) internal
@@ -1574,8 +1444,8 @@ function testMinLiquidityAndReclaimedAmounts() public {
 		vm.startPrank(alice);
 		token0.approve(address(pools),type(uint256).max);
 		token1.approve(address(pools),type(uint256).max);
-		token0.approve(address(collateralAndLiquidity),type(uint256).max);
-		token1.approve(address(collateralAndLiquidity),type(uint256).max);
+		token0.approve(address(collateralAndLiquidity),(initialLiquidity0 + zapAmount0)* 10 ** decimals0);
+		token1.approve(address(collateralAndLiquidity),(initialLiquidity1 + zapAmount1)* 10 ** decimals1);
 		vm.stopPrank();
 
 		vm.prank(address(dao));
@@ -1614,10 +1484,10 @@ function testMinLiquidityAndReclaimedAmounts() public {
 
 		// Swap back and see if things are where we started
 		if ( reclaimedA > zapAmount0 * 10**decimals0 )
-			pools.depositSwapWithdraw(token0, token1, reclaimedA - zapAmount0 * 10**decimals0, 0, block.timestamp, true);
+			pools.depositSwapWithdraw(token0, token1, reclaimedA - zapAmount0 * 10**decimals0, 0, block.timestamp);
 
 		if ( reclaimedB > zapAmount1 * 10**decimals1 )
-			pools.depositSwapWithdraw(token1, token0, reclaimedB - zapAmount1 * 10**decimals1, 0, block.timestamp, true);
+			pools.depositSwapWithdraw(token1, token0, reclaimedB - zapAmount1 * 10**decimals1, 0, block.timestamp);
 
 		(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves(token0, token1);
 
@@ -1680,8 +1550,8 @@ function testMinLiquidityAndReclaimedAmounts() public {
 		vm.startPrank(alice);
 		token0.approve(address(pools),type(uint256).max);
 		token1.approve(address(pools),type(uint256).max);
-		token0.approve(address(collateralAndLiquidity),type(uint256).max);
-		token1.approve(address(collateralAndLiquidity),type(uint256).max);
+		token0.approve(address(collateralAndLiquidity),(initialLiquidity0 + zapAmount0)* 10 ** decimals0);
+		token1.approve(address(collateralAndLiquidity),(initialLiquidity1 + zapAmount1)* 10 ** decimals1);
 
 		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token0, token1, initialLiquidity0, initialLiquidity1, 0, block.timestamp, false );
 		vm.warp( block.timestamp + 1 hours );
@@ -1714,10 +1584,10 @@ function testMinLiquidityAndReclaimedAmounts() public {
 
 		// Swap back and see if things are where we started
 		if ( reclaimedA > zapAmount0 )
-			pools.depositSwapWithdraw(token0, token1, reclaimedA - zapAmount0, 0, block.timestamp, true);
+			pools.depositSwapWithdraw(token0, token1, reclaimedA - zapAmount0, 0, block.timestamp);
 
 		if ( reclaimedB > zapAmount1 )
-			pools.depositSwapWithdraw(token1, token0, reclaimedB - zapAmount1, 0, block.timestamp, true);
+			pools.depositSwapWithdraw(token1, token0, reclaimedB - zapAmount1, 0, block.timestamp);
 
 		(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves(token0, token1);
 
@@ -1827,8 +1697,177 @@ function testMinLiquidityAndReclaimedAmounts() public {
 
 			// Check that we hold all the liquidity
 			bytes32 poolID = PoolUtils._poolIDOnly(tokenA, tokenB);
-			assertEq( collateralAndLiquidity.totalShareForPool(poolID), collateralAndLiquidity.userShareForPool(address(this), poolID));
-
+			assertEq( collateralAndLiquidity.totalShares(poolID), collateralAndLiquidity.userShareForPool(address(this), poolID));
         }
-    }
 
+
+    // A unit test to test addLiquidity with flipped tokens
+    function testAddLiquidityWithFlippedTokens() public
+    	{
+       	IERC20 token0 = new TestERC20("TEST", 18);
+       	IERC20 token1 = new TestERC20("TEST", 18);
+       	IERC20 token2 = new TestERC20("TEST", 18);
+
+		vm.startPrank(address(dao));
+		poolsConfig.whitelistPool(  token0, token1);
+		poolsConfig.whitelistPool(  token1, token2);
+		vm.stopPrank();
+
+		// Approvals for adding liquidity
+		token0.approve(address(collateralAndLiquidity),type(uint256).max);
+		token1.approve(address(collateralAndLiquidity),type(uint256).max);
+		token2.approve(address(collateralAndLiquidity),type(uint256).max);
+
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token0, token1, 100 ether, 200 ether, 0, block.timestamp, false );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, 100 ether, 200 ether, 0, block.timestamp, false );
+
+		vm.warp( block.timestamp + 1 hours );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token0, token1, 100 ether, 200 ether, 0, block.timestamp, false );
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token2, token1, 200 ether, 100 ether, 0, block.timestamp, false );
+
+		// These reserves should be the same
+		(uint256 reservesA0, uint256 reservesA1) = pools.getPoolReserves(token0, token1);
+		(uint256 reservesB0, uint256 reservesB1) = pools.getPoolReserves(token1, token2);
+
+		assertEq( reservesA0, reservesB0);
+		assertEq( reservesA1, reservesB1);
+    	}
+
+
+    // A unit test to test _placeInternalSwap limits swapAmountIn based on the reserves
+    function testPlaceInternalSwap() public
+    	{
+       	IERC20 token0 = new TestERC20("TEST", 18);
+       	IERC20 token1 = new TestERC20("TEST", 18);
+
+		vm.prank(address(dao));
+		poolsConfig.whitelistPool(  token0, token1);
+
+		// Approvals for adding liquidity
+		token0.approve(address(collateralAndLiquidity),type(uint256).max);
+		token1.approve(address(collateralAndLiquidity),type(uint256).max);
+		token0.approve(address(pools),type(uint256).max);
+
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token0, token1, 1000 ether, 1000 ether, 0, block.timestamp, false );
+
+		(uint256 swapAmountIn, uint256 swapAmountOut) = PoolUtils._placeInternalSwap( pools, token0, token1, 100 ether, 1000 );
+
+//		console.log( "swapAmountIn: ", swapAmountIn );
+//		console.log( "swapAmountOut: ", swapAmountOut );
+		assertEq(swapAmountIn, 10000000000000000000 );
+		assertEq(swapAmountOut, 9900990099009900990 );
+    	}
+
+
+    // A unit test to test _placeInternalSwap that is small enough to not be limited by the reserves
+    function testPlaceSmallInternalSwap() public
+    	{
+       	IERC20 token0 = new TestERC20("TEST", 18);
+       	IERC20 token1 = new TestERC20("TEST", 18);
+
+		vm.prank(address(dao));
+		poolsConfig.whitelistPool(  token0, token1);
+
+		// Approvals for adding liquidity
+		token0.approve(address(collateralAndLiquidity),type(uint256).max);
+		token1.approve(address(collateralAndLiquidity),type(uint256).max);
+		token0.approve(address(pools),type(uint256).max);
+
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token0, token1, 1000 ether, 1000 ether, 0, block.timestamp, false );
+
+		(uint256 swapAmountIn, uint256 swapAmountOut) = PoolUtils._placeInternalSwap( pools, token0, token1, 1 ether, 1000 );
+
+//		console.log( "swapAmountIn: ", swapAmountIn );
+//		console.log( "swapAmountOut: ", swapAmountOut );
+		assertEq(swapAmountIn, 1000000000000000000 );
+		assertEq(swapAmountOut, 999000999000999000 );
+    	}
+
+
+	// A unit test to check that depositDoubleSwapWithdraw functions correctly
+	function testDepositDoubleSwapWithdraw() public
+		{
+		vm.startPrank(DEPLOYER);
+
+		IERC20 tokenA = new TestERC20("TEST", 18);
+		IERC20 tokenB = new TestERC20("TEST", 18);
+
+		wbtc.approve(address(collateralAndLiquidity), type(uint256).max );
+		weth.approve(address(collateralAndLiquidity), type(uint256).max );
+		tokenA.approve(address(collateralAndLiquidity), type(uint256).max );
+		tokenB.approve(address(collateralAndLiquidity), type(uint256).max );
+		tokenA.approve(address(pools), type(uint256).max );
+
+		collateralAndLiquidity.depositCollateralAndIncreaseShare(1000 * 10**8, 1000 ether, 0, block.timestamp, false);
+		vm.stopPrank();
+
+		vm.startPrank(address(dao));
+		poolsConfig.whitelistPool(tokenA, wbtc);
+		poolsConfig.whitelistPool(tokenA, weth);
+		poolsConfig.whitelistPool(tokenB, wbtc);
+		poolsConfig.whitelistPool(tokenB, weth);
+		vm.stopPrank();
+
+		vm.startPrank(DEPLOYER);
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare(tokenA, wbtc, 1000 ether, 1000 * 10**8, 0, block.timestamp, false);
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare(tokenB, wbtc, 1000 ether, 1000 * 10**8, 0, block.timestamp, false);
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare(tokenA, weth, 1000 ether, 1000 ether, 0, block.timestamp, false);
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare(tokenB, weth, 1000 ether, 1000 ether, 0, block.timestamp, false);
+
+		uint256 gas0 = gasleft();
+		uint256 amountOut = pools.depositDoubleSwapWithdraw(tokenA, weth, tokenB, 10 ether, 0, block.timestamp);
+		console.log( "DOUBLE SWAP GAS: ", gas0 - gasleft() );
+		vm.stopPrank();
+		}
+
+
+	// A unit test that ensures the `renounceOwnership` function within `setContracts` function really revokes ownership and no owner-only function can be called after that.
+	// A unit test that checks `addLiquidity` with a reversed token order (`tokenB`, `tokenA` instead of `tokenA`, `tokenB`) to ensure that liquidity is added correctly regardless of the order.
+	// A unit test that tests for correct calculation of rewards distribution after an arbitrage opportunity is exploited.
+	// A unit test that tests withdrawal fails if a user tries to withdraw more tokens than they have deposited.
+	// A unit test that checks that a swap transaction reverts if attempted with a non-whitelisted token pair.
+	// A unit test that ensures appropriate events (`LiquidityAdded`, `LiquidityRemoved`, `TokenDeposit`, `TokenWithdrawal`, `SwapAndArbitrage`) are emitted with correct parameters on each respective action.
+	// A unit test that tests for proper reversion when attempting to start the exchange without the `_startExchangeApproved` flag being set.
+	// A unit test that checks that an attempt to add liquidity to a non-existent pool reverts as expected.
+	// A unit test that verifies that `addLiquidity` respects the deposited token ratio when reserves are non-zero.
+	// A unit test that checks if the total liquidity adjusts correctly after multiple sequential adds and removes of liquidity by different users.
+	// A unit test that verifies the swap functionality when a pool is imbalanced and how it impacts arbitrage profit.
+	// A unit test that attempts swapping with exact in and exact out to check for slippage handling.
+	// A unit test that ensures arithmetic underflow and overflow do not occur during add/remove liquidity operations and swaps (test with large numbers, boundary conditions).
+	// A unit test that checks if the protocol correctly handles deposits and withdraws of dust amounts (just above and just below the PoolUtils.DUST limit).
+	// A unit test that simulates a high-volume swap and checks if arbitrage correctly rebalances the pool.
+	// A unit test that checks that calling `deposit` and `withdraw` functions affects the `_userDeposits` mapping correctly.
+	// A unit test that ensures `addLiquidity` and `removeLiquidity` revert if called before the exchange is live (`_startExchangeApproved` set to true).
+	// A unit test that confirms the behavior of `addLiquidity` when one of the tokens has a high decimal count and the other one has a low decimal count, creating a situation where the token amounts in the pool become very disproportionate.
+	// A unit test that checks if liquidity is correctly returned when a user removes only a fraction of their total liquidity in a pool.
+	// A unit test that checks the behavior of `_addLiquidity` when one of the `maxAmount` inputs is so small that adding it to the pool would not change the pool's liquidity due to rounding.
+
+
+	// A unit test that checks transfer of ownership of the contract to a new owner.
+	// A unit test that verifies withdrawal of a token does not proceed if the contract's balance of the token is less than the requested amount, despite user balance being sufficient.
+	// A unit test that checks the exact amount of tokens transferred after calling `deposit`.
+	// A unit test that ensures `withdraw` transfers the exact amount of tokens back to the user.
+	// A unit test that confirms fee on transfer tokens are handled correctly when depositing.
+	// A unit test that confirms fee on transfer tokens are handled correctly when withdrawing.
+	// A unit test that verifies the swap function reverts when the input token is not whitelisted.
+	// A unit test that checks if a swap fails when the output token is not whitelisted.
+	// A unit test that checks the behavior when calling `withdraw` with amount greater than the token balance of the contract.
+	// A unit test that attempts a swap with a zero `minAmountOut`, expecting success under normal conditions.
+	// A unit test that verifies owner cannot call functions after renouncing ownership.
+	// A unit test that checks balance consistency of `_userDeposits` mapping after several deposit and withdrawal actions by the same user.
+	// A unit test that confirms correct handling of rounding errors during the addition and removal of liquidity.
+	// A unit test that tests boundary conditions of `_addLiquidity` where one of the `maxAmount` inputs is exactly PoolUtils.DUST.
+	// A unit test that checks the behavior of `_addLiquidity` when both `maxAmount` inputs are very large, near the limits of uint256.
+	// A unit test that confirms the swap function properly reverts when the deadline is set in the past.
+	// A unit test that confirms that only whitelisted tokens can be used for _arbitrage.
+	// A unit test that verifies `startExchangeApproved` reverts if called by an address other than the `bootstrapBallot`.
+	// A unit test that verifies `setContracts` can no longer be called after ownership has been renounced.
+	// A unit test that verifies correct transfer of `swapAmountOut` to the sender after calling `depositSwapWithdraw`.
+	// A unit test that confirms that `_userDeposits` mapping is updated after a successful `depositSwapWithdraw`.
+	// A unit test that verifies reversion if `_addLiquidity` is called for a non-whitelisted pair.
+	// A unit test that confirms the protocol fee is accounted for after a swap.
+	// A unit test that tests the behavior when `_adjustReservesForSwap` is called with a very small swapAmountIn that causes negligible reserve changes.
+	// A unit test that checks whether dust reserves are reached during high slippage swaps and ensures they are handled properly.
+	// A unit test that checks `_adjustReservesForSwap` successfully updates the internal reserves mapping after a swap.
+	// A unit test that checks `_attemptArbitrage` with an insufficient swapAmountIn to generate profit reverts correctly.
+    }

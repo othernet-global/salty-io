@@ -4,9 +4,10 @@ pragma solidity =0.8.22;
 
 interface IPoolStats
 	{
-	function clearProfitsForPools( bytes32[] memory poolIDs ) external;
+	function clearProfitsForPools( bytes32[] calldata poolIDs ) external;
+	function updateArbitrageIndicies() external;
 
 	// Views
-	function profitsForPools( bytes32[] memory poolIDs ) external returns (uint256[] memory _profits);
+	function profitsForPools( bytes32[] memory poolIDs ) external view returns (uint256[] memory _profits);
 	}
 
