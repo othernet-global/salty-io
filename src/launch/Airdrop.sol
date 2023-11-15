@@ -1,30 +1,34 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.22;
 
-import "forge-std/Test.sol";
-import "./interfaces/IAirdrop.sol";
 import "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
+import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import "../interfaces/IExchangeConfig.sol";
 import "../staking/interfaces/IStaking.sol";
-import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
+import "./interfaces/IAirdrop.sol";
 
 
-// The Airdrop contract keeps track of users who qualify for the Salty.IO Airdrop (participants of prominent DeFi protocols who retweeted the launch announcement and voted).
-// The airdrop participants are able to claim staked SALT after the airdrop authorization period has ending (after the BootingstappingBallot has concluded).
+// The Airdrop contract keeps track of users who qualify for the Salty.IO Airdrop (participants of prominent DeFi protocols who retweet the launch announcement and vote).
+// The airdrop participants are able to claim staked SALT after the BootingstapBallot has concluded.
+
 contract Airdrop is IAirdrop, ReentrancyGuard
     {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-	IExchangeConfig public exchangeConfig;
-    IStaking public staking;
-    ISalt public salt;
+	IExchangeConfig immutable public exchangeConfig;
+    IStaking immutable public staking;
+    ISalt immutable public salt;
 
-	// These are authorized users who have retweeted the launch announcement and voted and have been authorized to receive the airdrop
+	// These are users who have retweeted the launch announcement and voted
 	EnumerableSet.AddressSet private _authorizedUsers;
 
+	// Set to true when airdrop claiming is allowed
 	bool public claimingAllowed;
+
+	// Those users who have already claimed
 	mapping(address=>bool) public claimed;
 
+	// How much SALT each user receives for the airdrop
 	uint256 public saltAmountForEachUser;
 
 
@@ -41,7 +45,8 @@ contract Airdrop is IAirdrop, ReentrancyGuard
 
 
 	// Authorize the wallet as being able to claim the airdrop.
-    function authorizeWallet( address wallet ) public
+	// The BootstrapBallot would have already confirmed the user retweeted and voted.
+    function authorizeWallet( address wallet ) external
     	{
     	require( msg.sender == address(exchangeConfig.initialDistribution().bootstrapBallot()), "Only the BootstrapBallot can call Airdrop.authorizeWallet" );
     	require( ! claimingAllowed, "Cannot authorize after claiming is allowed" );
@@ -51,24 +56,25 @@ contract Airdrop is IAirdrop, ReentrancyGuard
 
 
 	// Called by the InitialDistribution contract during its distributionApproved() function - which is called on successful conclusion of the BootstrappingBallot
-    function allowClaiming() public
+    function allowClaiming() external
     	{
     	require( msg.sender == address(exchangeConfig.initialDistribution()), "Airdrop.allowClaiming can only be called by the InitialDistribution contract" );
     	require( ! claimingAllowed, "Claiming is already allowed" );
 		require(numberAuthorized() > 0, "No addresses authorized to claim airdrop.");
 
-    	// All users receive an equal share of the airdrop
-		saltAmountForEachUser = salt.balanceOf(address(this)) / numberAuthorized();
+    	// All users receive an equal share of the airdrop.
+    	uint256 saltBalance = salt.balanceOf(address(this));
+		saltAmountForEachUser = saltBalance / numberAuthorized();
 
-		// Have the Airdrop approve max so that that xSALT (staked SALT) can later be transferred to airdrop recipients
-		salt.approve( address(staking), type(uint256).max );
+		// Have the Airdrop approve max so that that xSALT (staked SALT) can later be transferred to airdrop recipients.
+		salt.approve( address(staking), saltBalance );
 
     	claimingAllowed = true;
     	}
 
 
 	// Sends a fixed amount of xSALT (staked SALT) to a qualifying user
-    function claimAirdrop() public nonReentrant
+    function claimAirdrop() external nonReentrant
     	{
     	require( claimingAllowed, "Claiming is not allowed yet" );
     	require( isAuthorized(msg.sender), "Wallet is not authorized for airdrop" );
@@ -76,7 +82,7 @@ contract Airdrop is IAirdrop, ReentrancyGuard
 
 		// Have the Airdrop contract stake a specified amount of SALT and then transfer it to the user
 		staking.stakeSALT( saltAmountForEachUser );
-		staking.transferXSaltFromAirdrop( msg.sender, saltAmountForEachUser );
+		staking.transferStakedSaltFromAirdropToUser( msg.sender, saltAmountForEachUser );
 
     	claimed[msg.sender] = true;
     	}
@@ -98,7 +104,7 @@ contract Airdrop is IAirdrop, ReentrancyGuard
 
 
 	// Returns an array of the currently authorized wallets
-	function authorizedWallets() public view returns (address[] memory)
+	function authorizedWallets() external view returns (address[] memory)
 		{
 		return _authorizedUsers.values();
 		}
