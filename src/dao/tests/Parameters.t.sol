@@ -42,7 +42,7 @@ contract TestParametersOffchain is Test
 		stakingConfig = new StakingConfig();
 		rewardsConfig = new RewardsConfig();
 		stableConfig = new StableConfig();
-		exchangeConfig = new ExchangeConfig(deployment.salt(), deployment.wbtc(), deployment.weth(), deployment.dai(), deployment.usds(), deployment.teamWallet());
+		exchangeConfig = new ExchangeConfig(deployment.salt(), deployment.wbtc(), deployment.weth(), deployment.dai(), deployment.usds(), deployment.managedTeamWallet());
 		daoConfig = new DAOConfig();
 		priceAggregator = new PriceAggregator();
 
@@ -54,6 +54,8 @@ contract TestParametersOffchain is Test
 		{
 		if ( parameter == Parameters.ParameterTypes.maximumWhitelistedPools )
 			return poolsConfig.maximumWhitelistedPools();
+		if ( parameter == Parameters.ParameterTypes.maximumInternalSwapPercentTimes1000 )
+			return poolsConfig.maximumInternalSwapPercentTimes1000();
 
 		else if ( parameter == Parameters.ParameterTypes.minUnstakeWeeks )
 			return stakingConfig.minUnstakeWeeks();
@@ -83,6 +85,8 @@ contract TestParametersOffchain is Test
 			return stableConfig.initialCollateralRatioPercent();
 		else if ( parameter == Parameters.ParameterTypes.minimumCollateralRatioPercent )
 			return stableConfig.minimumCollateralRatioPercent();
+		else if ( parameter == Parameters.ParameterTypes.percentArbitrageProfitsForStablePOL )
+			return stableConfig.percentArbitrageProfitsForStablePOL();
 
 		else if ( parameter == Parameters.ParameterTypes.bootstrappingRewards )
 			return daoConfig.bootstrappingRewards();
@@ -166,6 +170,7 @@ contract TestParametersOffchain is Test
 		vm.startPrank(address(parameters));
 
 		_checkParameter( Parameters.ParameterTypes.maximumWhitelistedPools, 20, 50, 100, 10 );
+		_checkParameter( Parameters.ParameterTypes.maximumInternalSwapPercentTimes1000, 250, 1000, 2000, 250 );
 		}
 
 
@@ -209,6 +214,7 @@ contract TestParametersOffchain is Test
 		_checkParameter( Parameters.ParameterTypes.minimumCollateralValueForBorrowing, 1000 ether, 2500 ether, 5000 ether, 500 ether );
 		_checkParameter( Parameters.ParameterTypes.initialCollateralRatioPercent, 150, 200, 300, 25 );
 		_checkParameter( Parameters.ParameterTypes.minimumCollateralRatioPercent, 110, 110, 120, 1 );
+		_checkParameter( Parameters.ParameterTypes.percentArbitrageProfitsForStablePOL, 1, 5, 10, 1 );
 		}
 
 
@@ -219,7 +225,7 @@ contract TestParametersOffchain is Test
 		_checkParameter( Parameters.ParameterTypes.percentPolRewardsBurned, 25, 50, 75, 5 );
 		_checkParameter( Parameters.ParameterTypes.baseBallotQuorumPercentTimes1000, 5000, 10000, 20000, 1000 );
 		_checkParameter( Parameters.ParameterTypes.ballotDuration, 3 days, 10 days, 14 days, 1 days );
-		_checkParameter( Parameters.ParameterTypes.requiredProposalPercentStakeTimes1000, 1, 5, 20, 1 );
+		_checkParameter( Parameters.ParameterTypes.requiredProposalPercentStakeTimes1000, 100, 500, 2000, 100 );
 		_checkParameter( Parameters.ParameterTypes.maxPendingTokensForWhitelisting, 3, 5, 12, 1 );
 		_checkParameter( Parameters.ParameterTypes.arbitrageProfitsPercentPOL, 15, 20, 45, 5 );
 		_checkParameter( Parameters.ParameterTypes.upkeepRewardPercent, 1, 5, 10, 1 );
