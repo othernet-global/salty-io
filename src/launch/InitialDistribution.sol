@@ -1,16 +1,15 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.22;
 
-import "../interfaces/ISalt.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import "../pools/interfaces/IPoolsConfig.sol";
+import "openzeppelin-contracts/contracts/finance/VestingWallet.sol";
 import "../rewards/interfaces/ISaltRewards.sol";
 import "../rewards/interfaces/IEmissions.sol";
-import "openzeppelin-contracts/contracts/finance/VestingWallet.sol";
+import "../pools/interfaces/IPoolsConfig.sol";
 import "./interfaces/IInitialDistribution.sol";
-import "../staking/interfaces/ILiquidity.sol";
-import "./interfaces/IAirdrop.sol";
 import "./interfaces/IBootstrapBallot.sol";
+import "./interfaces/IAirdrop.sol";
+import "../interfaces/ISalt.sol";
 
 
 contract InitialDistribution is IInitialDistribution
@@ -20,23 +19,21 @@ contract InitialDistribution is IInitialDistribution
 	uint256 constant public MILLION_ETHER = 1000000 ether;
 
 
-   	ISalt public salt;
-
-	IPoolsConfig public poolsConfig;
-   	IEmissions public emissions;
-   	IBootstrapBallot public bootstrapBallot;
-	IDAO public dao;
-	VestingWallet public daoVestingWallet;
-	VestingWallet public teamVestingWallet;
-	IAirdrop public airdrop;
-	ISaltRewards public saltRewards;
-	ICollateralAndLiquidity public collateralAndLiquidity;
+   	ISalt immutable public salt;
+	IPoolsConfig immutable public poolsConfig;
+   	IEmissions immutable public emissions;
+   	IBootstrapBallot immutable public bootstrapBallot;
+	IDAO immutable public dao;
+	VestingWallet immutable public daoVestingWallet;
+	VestingWallet immutable public teamVestingWallet;
+	IAirdrop immutable public airdrop;
+	ISaltRewards immutable public saltRewards;
+	ICollateralAndLiquidity immutable public collateralAndLiquidity;
 
 
 	constructor( ISalt _salt, IPoolsConfig _poolsConfig, IEmissions _emissions, IBootstrapBallot _bootstrapBallot, IDAO _dao, VestingWallet _daoVestingWallet, VestingWallet _teamVestingWallet, IAirdrop _airdrop, ISaltRewards _saltRewards, ICollateralAndLiquidity _collateralAndLiquidity  )
 		{
 		require( address(_salt) != address(0), "_salt cannot be address(0)" );
-
 		require( address(_poolsConfig) != address(0), "_poolsConfig cannot be address(0)" );
 		require( address(_emissions) != address(0), "_emissions cannot be address(0)" );
 		require( address(_bootstrapBallot) != address(0), "_bootstrapBallot cannot be address(0)" );
@@ -48,7 +45,6 @@ contract InitialDistribution is IInitialDistribution
 		require( address(_collateralAndLiquidity) != address(0), "_collateralAndLiquidity cannot be address(0)" );
 
 		salt = _salt;
-
 		poolsConfig = _poolsConfig;
 		emissions = _emissions;
 		bootstrapBallot = _bootstrapBallot;
@@ -61,11 +57,11 @@ contract InitialDistribution is IInitialDistribution
         }
 
 
-    // Called when the BootstrapBallot is approved by the initial airdrop recipients
-    function distributionApproved() public
+    // Called when the BootstrapBallot is approved by the initial airdrop recipients.
+    function distributionApproved() external
     	{
     	require( msg.sender == address(bootstrapBallot), "InitialDistribution.distributionApproved can only be called from the BootstrapBallot contract" );
-		require( salt.balanceOf(address(this)) > 0, "SALT has already been sent from the contract" );
+		require( salt.balanceOf(address(this)) == 100 * MILLION_ETHER, "SALT has already been sent from the contract" );
 
     	// 52 million		Emissions
 		salt.safeTransfer( address(emissions), 52 * MILLION_ETHER );
@@ -73,7 +69,7 @@ contract InitialDistribution is IInitialDistribution
 	    // 25 million		DAO Reserve Vesting Wallet
 		salt.safeTransfer( address(daoVestingWallet), 25 * MILLION_ETHER );
 
-	    // 10 million		Team Vesting Wallet
+	    // 10 million		Initial Development Team Vesting Wallet
 		salt.safeTransfer( address(teamVestingWallet), 10 * MILLION_ETHER );
 
 	    // 5 million		Airdrop Participants
