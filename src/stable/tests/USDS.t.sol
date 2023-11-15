@@ -19,43 +19,32 @@ contract USDSTest is Deployment
 		grantAccessDeployer();
 		grantAccessDefault();
 
-
-		priceAggregator.performUpkeep();
-
 		finalizeBootstrap();
 		}
 
 
 	// // A unit test in which the collateral address is set for the first time. This test should validate that the collateral address is correctly updated and can only be set once.
-	function testSetContractsOnlyOnce() public
+	function testSetCollateralAndLiquidityOnlyOnce() public
 		{
 		address _collateral = address(0x5555);
-		address _pools = address(0x6666);
-		address _exchangeConfig = address(0x7777);
 
 		// New USDS in case CollateralAndLiquidity.sol was set in the deployed version already
-		usds = new USDS(wbtc, weth);
+		usds = new USDS();
 
 		// Initial set up
 		assertEq(address(usds.collateralAndLiquidity()), address(0));
-		assertEq(address(usds.pools()), address(0));
-		assertEq(address(usds.exchangeConfig()), address(0));
 
-		usds.setContracts( ICollateralAndLiquidity(_collateral), IPools(_pools), IExchangeConfig(_exchangeConfig) );
+		usds.setCollateralAndLiquidity( ICollateralAndLiquidity(_collateral));
 
 		assertEq(address(usds.collateralAndLiquidity()), address(_collateral));
-		assertEq(address(usds.pools()), address(_pools));
-		assertEq(address(usds.exchangeConfig()), address(_exchangeConfig));
 
 		address invalid = address(0xdead);
 
 		vm.expectRevert("Ownable: caller is not the owner");
-		usds.setContracts( ICollateralAndLiquidity(invalid), IPools(invalid), IExchangeConfig(invalid) );
+		usds.setCollateralAndLiquidity( ICollateralAndLiquidity(invalid) );
 
 		// Validate that the addresses did not change
 		assertEq(address(usds.collateralAndLiquidity()), address(_collateral));
-		assertEq(address(usds.pools()), address(_pools));
-		assertEq(address(usds.exchangeConfig()), address(_exchangeConfig));
 	}
 
 
@@ -80,37 +69,6 @@ contract USDSTest is Deployment
     }
 
 
-	// A unit test where an attempt is made to burn more USD than is available in the contract.
-	function testBurnMoreThanAvailable() public {
-        uint256 usdsToBurn = 2 ether; // Amount greater than current balance
-
-        assertEq(usds.usdsThatShouldBeBurned(), 0 ether);
-
-        // Try burning more than available
-        vm.prank(address(collateralAndLiquidity));
-        usds.shouldBurnMoreUSDS(usdsToBurn);
-
-        // Validate that the amount that should be burnt is set correctly
-        assertEq(usds.usdsThatShouldBeBurned(), usdsToBurn);
-}
-
-
-   // A unit test where a different address attempts to call the shouldBurnMoreUSDS function. This test should validate that only the collateral address is allowed to signal the contract to burn tokens.
-   function testOnlyCollateralCanSignalBurn2() public {
-		   address otherAddress = address(0x6666);
-		   uint256 amountToBurn = 1 ether;
-
-		   vm.prank(address(collateralAndLiquidity));
-		   usds.shouldBurnMoreUSDS(amountToBurn);
-		   assertEq(usds.usdsThatShouldBeBurned(), amountToBurn);
-
-		   // Try signalling burn from a non-collateral address
-		   vm.expectRevert("USDS.shouldBurnMoreUSDS is only callable from the Collateral contract");
-		   vm.prank(otherAddress);
-		   usds.shouldBurnMoreUSDS(amountToBurn);
-   }
-
-
 	// A unit test where a different address attempts to call the mintTo function. This test should validate that only the collateral address is allowed to mint tokens.
 	function testOnlyCollateralCanMint2() public {
         address otherAddress = address(0x6666);
@@ -133,23 +91,6 @@ contract USDSTest is Deployment
     }
 
 
-	// A unit test where a different address attempts to call the shouldBurnMoreUSDS function. This test should validate that only the collateral address is allowed to signal the contract to burn tokens.
-	function testOnlyCollateralCanSignalBurn() public {
-        address otherAddress = address(0x6666);
-        uint256 burnAmount = 1 ether;
-
-        // Set up a new instance of USDS and set collateral
-        // Signal burn from the collateral address
-        vm.prank(address(collateralAndLiquidity));
-        usds.shouldBurnMoreUSDS(burnAmount);
-        assertEq(usds.usdsThatShouldBeBurned(), burnAmount);
-
-        // Attempt to signal burn from a different address
-        vm.expectRevert("USDS.shouldBurnMoreUSDS is only callable from the Collateral contract");
-        vm.prank(otherAddress);
-        usds.shouldBurnMoreUSDS(burnAmount);
-    }
-
 
 	// A unit test where a call is made to mintTo function without calling the setCollateral function first. This test will validate that before the mint operation can be made, the CollateralAndLiquidity.sol.sol contract has to be set.
     function testMintWithoutSettingCollateral() public {
@@ -162,46 +103,6 @@ contract USDSTest is Deployment
 
         // Validate that the balance did not increase
         assertEq(usds.balanceOf(wallet), 0);
-    }
-
-
-	// A unit test where a call is made to shouldBurnMoreUSDS function without calling the setCollateral function first. This test will validate that before the burn operation can be made, the CollateralAndLiquidity.sol contract has to be set.
-    function testShouldBurnMoreUSDSWithoutCollateralSet() public {
-        uint256 usdsToBurn = 1 ether;
-
-        // New USDS instance in case CollateralAndLiquidity.sol was set in the deployed version already
-    	USDS newUSDS = new USDS(wbtc, weth);
-
-        // Expect revert as the CollateralAndLiquidity.sol contract is not set yet
-        vm.expectRevert("USDS.shouldBurnMoreUSDS is only callable from the Collateral contract");
-        newUSDS.shouldBurnMoreUSDS(usdsToBurn);
-    }
-
-	// A unit test to check if an incorrect or zero address is provided to the constructor of USDS. The test should fail since these addresses would be invalid.
-    function testInvalidAddressInConstructor() public {
-        address zeroAddress = address(0);
-        address wbtcAddress = address(0x1111); // Suppose this is a valid wbtc address
-        address wethAddress = address(0x2222); // Suppose this is a valid weth address
-
-        // Test with zero address as wbtc
-        vm.expectRevert("_wbtc cannot be address(0)");
-        USDS newUSDS = new USDS( IERC20(zeroAddress), IERC20(wethAddress));
-
-        // Test with zero address as weth
-        vm.expectRevert("_weth cannot be address(0)");
-        newUSDS = new USDS( IERC20(wbtcAddress), IERC20(zeroAddress));
-    }
-
-
-	// A unit test which tries to mint USDS to a zero address. The test should fail since minting to zero addresses should be prohibited.
-    function testMintToZeroAddress() public {
-        address zeroAddress = address(0);
-        uint256 mintAmount = 1 ether;
-
-        // Attempt to mint to a zero address
-        vm.expectRevert("Cannot mint to address(0)");
-        vm.prank(address(collateralAndLiquidity));
-        usds.mintTo(zeroAddress, mintAmount);
     }
 
 
@@ -223,65 +124,6 @@ contract USDSTest is Deployment
 
         // The total supply of USDS should not increase
         assertEq(usds.totalSupply(), totalSupplyBeforeMint);
-    }
-
-
-	// A unit test to check for integer overflow/underflow in burn, and mint functions.
-	// A unit test to check for integer overflow/underflow in burn, mint, and swap functions.
-    function testCheckForIntegerOverflowUnderflow() public {
-        vm.startPrank(address(collateralAndLiquidity));
-
-        uint256 maxUint = type(uint256).max;
-        address wallet = address(0x7777);
-
-        // Test overflow in mintTo function
-        usds.mintTo(wallet, maxUint);
-
-        vm.expectRevert();
-        usds.mintTo(wallet, 1);
-        vm.stopPrank();
-
-        // Test underflow in shouldBurnMoreUSDS function
-        vm.prank(address(collateralAndLiquidity));
-        usds.shouldBurnMoreUSDS(maxUint);
-
-        vm.expectRevert();
-        usds.shouldBurnMoreUSDS(1);
-    }
-
-
-	// A unit test that checks setting usdsToBurn to very small and very large values to test edge cases.
-    function testSetUsdsToBurnEdgeCases() public {
-        uint256 smallAmount = 1;  // smallest non-zero value
-        uint256 largeAmount = 10**30 * 1 ether;  // arbitrarily large value
-
-        // Test with very small amount
-        vm.prank(address(collateralAndLiquidity));
-        usds.shouldBurnMoreUSDS(smallAmount);
-        assertEq(usds.usdsThatShouldBeBurned(), smallAmount);
-
-        // Test with very large amount
-        vm.prank(address(collateralAndLiquidity));
-        usds.shouldBurnMoreUSDS(largeAmount);
-        assertEq(usds.usdsThatShouldBeBurned(), smallAmount + largeAmount);
-    }
-
-
-	//	A unit test that burns 0 amount. Total supply should not change.
-	function testBurnZeroAmount() public {
-        uint256 initialSupply = usds.totalSupply();
-        uint256 burnAmount = 0 ether;
-
-        // Prank as the collateral contract to pass the sender check
-        vm.prank(address(collateralAndLiquidity));
-        usds.shouldBurnMoreUSDS(burnAmount);
-
-        // Perform upkeep which should burn the indicated amount
-        vm.prank(address(upkeep));
-        usds.performUpkeep();
-
-        // Check that the total supply did not change
-        assertEq(usds.totalSupply(), initialSupply);
     }
 
 
@@ -308,501 +150,95 @@ contract USDSTest is Deployment
 	    }
 
 
-	// A unit test where a call is made to performUpkeep from an address that is not the DAO. This test should validate that only the DAO address can call this function.
-	function testPerformUpkeepOnlyByDAO() public {
-        // Trying to call performUpkeep from an address that is not the Upkeep contract
-        vm.startPrank(address(0xdeadbeef));
-        vm.expectRevert("USDS.performUpkeep is only callable from the Upkeep contract");
-        usds.performUpkeep();
-        vm.stopPrank();
+	// A unit test that makes sure the constructor initializes the token with correct name and symbol.
+	function testConstructorInitializesTokenWithCorrectNameAndSymbol() public {
+        // Create a new instance of USDS to test constructor initialization.
+        USDS usdsToken = new USDS();
+
+        // Check that the token name is set correctly.
+        assertEq(usdsToken.name(), "USDS");
+
+        // Check that the token symbol is set correctly.
+        assertEq(usdsToken.symbol(), "USDS");
     }
 
 
-	// A unit test that mimics liquidation, and performs upkeep with the amount of usdsToBurn less that the amount of USDS deposited for counterswap
-	function testPerformUpkeepWithSufficientUSDSToBurn() public {
-        uint256 wbtcAmount = 5 ether;
-        uint256 wethAmount = 3 ether;
-        uint256 usdsToBurn = 2 ether;
-        uint256 depositedUSDS = 3 ether;
+    // A unit test ensuring the burnTokensInContract function does not allow burning when the contract's balance is zero.
+	function testDisallowBurningWhenBalanceIsZero() public {
+        // Contract's initial USDS balance is expected to be zero
+        assertEq(usds.balanceOf(address(usds)), 0);
 
-        // Send WBTC and WETH to USDS to mimic WBTC/WETH liquidity colalteral that was liquidated
-        vm.startPrank( DEPLOYER );
-        wbtc.transfer(address(usds), wbtcAmount);
-        weth.transfer(address(usds), wethAmount);
-        vm.stopPrank();
+        // Expect revert with the correct error message
+        uint256 supply0 = usds.totalSupply();
+        usds.burnTokensInContract();
 
-		// Deposit USDS directly to act like USDS that was a result of counterswaps
-		vm.startPrank( address(collateralAndLiquidity) );
-		usds.mintTo( Counterswap.WBTC_TO_USDS, depositedUSDS / 2 );
-		usds.mintTo( Counterswap.WETH_TO_USDS, depositedUSDS / 2 );
-		vm.stopPrank();
-
-		vm.startPrank(Counterswap.WBTC_TO_USDS);
-		usds.approve( address(pools), depositedUSDS / 2 );
-		pools.deposit( usds, depositedUSDS / 2 );
-		vm.stopPrank();
-
-		vm.startPrank(Counterswap.WETH_TO_USDS);
-		usds.approve( address(pools), depositedUSDS / 2 );
-		pools.deposit( usds, depositedUSDS / 2 );
-		vm.stopPrank();
-
-		// Verify the USDS deposits
-        assertEq(pools.depositedUserBalance(Counterswap.WBTC_TO_USDS, usds), depositedUSDS / 2);
-        assertEq(pools.depositedUserBalance(Counterswap.WETH_TO_USDS, usds), depositedUSDS / 2);
-
-		// Mimic liquidation calling shouldBurnMoreUSDS
-        vm.prank( address(collateralAndLiquidity) );
-        usds.shouldBurnMoreUSDS(usdsToBurn);
-
-        // Simulate the DAO address calling performUpkeep
-        vm.prank(address(upkeep));
-        usds.performUpkeep();
-
-        // performUpkeep should have transfer all WBTC and WETH in the contract to the correct counterswap addresses
-        assertEq(pools.depositedUserBalance(Counterswap.WBTC_TO_USDS, wbtc), wbtcAmount);
-        assertEq(pools.depositedUserBalance(Counterswap.WETH_TO_USDS, weth), wethAmount);
-
-        // Check that the USDS balances for the counterswap addresses has been reduced
-        // USDS would have been removed from the WBTC_TO_USDS first and then from the WETH_TO_USDS address
-        assertEq(pools.depositedUserBalance(Counterswap.WBTC_TO_USDS, usds), 0);
-        assertEq(pools.depositedUserBalance(Counterswap.WETH_TO_USDS, usds), 1 ether);
-
-        // Check that USDS was burned
-        assertEq(usds.totalSupply(), depositedUSDS - usdsToBurn);
-        assertEq(usds.usdsThatShouldBeBurned(), 0);
+        assertEq( supply0, usds.totalSupply() );
     }
 
 
-	// A unit test that mimics liquidation, and performs upkeep with the amount of usdsToBurn greater that the amount of USDS deposited for counterswap
-	function testPerformUpkeepWithInsufficientUSDSToBurn() public {
-        uint256 wbtcAmount = 5 ether;
-        uint256 wethAmount = 3 ether;
-        uint256 usdsToBurn = 8 ether;
-        uint256 depositedUSDS = 3 ether;
+    // A unit test confirming the burnTokensInContract function only works when there are USDS tokens in the contract.
+	function testBurnTokensInContract() public {
+        uint256 burnAmount = 5 ether;
 
-        // Send WBTC and WETH to USDS to mimic WBTC/WETH liquidity colalteral that was liquidated
-        vm.startPrank( DEPLOYER );
-        wbtc.transfer(address(usds), wbtcAmount);
-        weth.transfer(address(usds), wethAmount);
-        vm.stopPrank();
-
-		// Deposit USDS directly to act like USDS that was a result of counterswaps
-		vm.startPrank( address(collateralAndLiquidity) );
-		usds.mintTo( Counterswap.WBTC_TO_USDS, depositedUSDS / 2 );
-		usds.mintTo( Counterswap.WETH_TO_USDS, depositedUSDS / 2 );
+		// If there are USDS tokens in the contract, we simulate sending USDS to the contract
+		vm.startPrank(address(collateralAndLiquidity));
+		usds.mintTo(address(usds), burnAmount);
 		vm.stopPrank();
+		assertEq(usds.balanceOf(address(usds)), burnAmount);
 
-		vm.startPrank(Counterswap.WBTC_TO_USDS);
-		usds.approve( address(pools), depositedUSDS / 2 );
-		pools.deposit( usds, depositedUSDS / 2 );
-		vm.stopPrank();
+		// Then we call the burnTokensInContract function and expect it to succeed
+		usds.burnTokensInContract();
 
-		vm.startPrank(Counterswap.WETH_TO_USDS);
-		usds.approve( address(pools), depositedUSDS / 2 );
-		pools.deposit( usds, depositedUSDS / 2 );
-		vm.stopPrank();
+		// After burning, the balance of USDS in the contract should be 0
+		assertEq(usds.balanceOf(address(usds)), 0);
+	    }
 
-		// Verify the USDS deposits
-        assertEq(pools.depositedUserBalance(Counterswap.WBTC_TO_USDS, usds), depositedUSDS / 2);
-        assertEq(pools.depositedUserBalance(Counterswap.WETH_TO_USDS, usds), depositedUSDS / 2);
 
-		// Mimic liquidation calling shouldBurnMoreUSDS
-        vm.prank( address(collateralAndLiquidity) );
-        usds.shouldBurnMoreUSDS(usdsToBurn);
+    // A unit test that ensures after burning tokens with the burnTokensInContract function, the total supply is reduced accordingly.
+    function testBurnTokensReducesTotalSupply() public {
+        assertEq(usds.totalSupply(), 0, "Initial supply should be zero");
 
-        // Simulate the DAO address calling performUpkeep
-        vm.prank(address(upkeep));
-        usds.performUpkeep();
+        uint256 burnAmount = 5 ether;
 
-        // performUpkeep should have transfer all WBTC and WETH in the contract to the correct counterswap addresses
-        assertEq(pools.depositedUserBalance(Counterswap.WBTC_TO_USDS, wbtc), wbtcAmount);
-        assertEq(pools.depositedUserBalance(Counterswap.WETH_TO_USDS, weth), wethAmount);
+        // Mint some tokens to the contract itself to simulate users repaying loans
+        vm.prank(address(collateralAndLiquidity));
+        usds.mintTo(address(usds), burnAmount);
 
-        // Check that the USDS balances for the counterswap addresses has been reduced
-        // USDS would have been completely removed from both WBTC_TO_USDS and WETH_TO_USDS as the usdsToBurn is excessive
-        assertEq(pools.depositedUserBalance(Counterswap.WBTC_TO_USDS, usds), 0);
-        assertEq(pools.depositedUserBalance(Counterswap.WETH_TO_USDS, usds), 0);
+        assertEq(usds.balanceOf(address(usds)), burnAmount);
 
-        // Check that USDS was burned
+        // Burn the tokens and verify the total supply is reduced accordingly
+        usds.burnTokensInContract();
+        assertEq(usds.totalSupply(), 0, "Total supply did not reduce after burning tokens in contract");
+    }
+
+
+    // A unit test validating an attempt to mint USDS to an invalid address (address(0)) fails.
+    function testMintToInvalidAddressFails() public {
+        uint256 mintAmount = 1 ether;
+
+        // Attempt to mint to the invalid address (address(0))
+        vm.expectRevert("ERC20: mint to the zero address");
+        vm.prank(address(collateralAndLiquidity));
+        usds.mintTo(address(0), mintAmount);
+
+        // Validate that the total supply did not increase
         assertEq(usds.totalSupply(), 0);
-        assertEq(usds.usdsThatShouldBeBurned(), usdsToBurn - depositedUSDS);
     }
 
 
-	// A unit test where an invalid address tries to call setContracts function. This test should validate that only the contract owner can set the contract dependencies.
-	function testInvalidAddressSetContracts() public {
-            address invalid = address(0xBEEF);
-        	address _collateral = address(0x5555);
-    		address _pools = address(0x6666);
-    		address _exchangeConfig = address(0x7777);
-
-            // New USDS in case CollateralAndLiquidity.sol was set in the deployed version already
-            usds = new USDS(wbtc, weth);
-
-            // Prank the call to come from invalid address
-            vm.prank(invalid);
-
-            // Expect revert as the invalid address is not the contract owner
-            vm.expectRevert("Ownable: caller is not the owner");
-            usds.setContracts( ICollateralAndLiquidity(_collateral), IPools(_pools), IExchangeConfig(_exchangeConfig));
-
-            // Validate that the contracts did not change
-            assertEq(address(usds.collateralAndLiquidity()), address(0));
-            assertEq(address(usds.pools()), address(0));
-            assertEq(address(usds.exchangeConfig()), address(0));
-        }
-
-
-	// A unit test to verify the withdrawal of USDS tokens from previous counterswaps in performUpkeep function. This test should validate that the withdrawal logic is correctly retrieving USDS tokens based on previous counterswaps.
-	function testCounterswapAndBurn() public {
-
-		// Arbitrary test amount to burn
-    	uint256 amountToBurn = 1 ether;
-
-		vm.prank(address(collateralAndLiquidity));
-		usds.shouldBurnMoreUSDS(amountToBurn);
-
-		assertEq( usds.usdsThatShouldBeBurned(), amountToBurn );
-
-
-		vm.prank(address(collateralAndLiquidity));
-		usds.mintTo(DEPLOYER, 10000000 ether);
-
-    	// Deposit WBTC and WETH to the contract
-    	vm.startPrank(DEPLOYER);
-    	IERC20(wbtc).transfer(address(usds), 100 * 10**8 );
-    	IERC20(weth).transfer(address(usds), 100 ether);
-
-    	// Liquidity for counterswap pools
-    	wbtc.approve(address(pools), type(uint256).max);
-    	weth.approve(address(pools), type(uint256).max);
-    	usds.approve(address(pools), type(uint256).max);
-
-    	wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
-    	weth.approve(address(collateralAndLiquidity), type(uint256).max);
-    	usds.approve(address(collateralAndLiquidity), type(uint256).max);
-
-    	collateralAndLiquidity.depositLiquidityAndIncreaseShare(wbtc, usds, 100 *10**8, 1000000 ether, 0, block.timestamp, false );
-    	collateralAndLiquidity.depositLiquidityAndIncreaseShare(weth, usds, 100 ether, 100000 ether, 0, block.timestamp, false );
-    	vm.stopPrank();
-
-    	// Perform upkeep to deposit WBTC and WETH to the corresponding counterswap and withdraw USDS
-    	vm.prank(address(upkeep));
-    	usds.performUpkeep();
-
-		vm.startPrank(DEPLOYER);
-		// First swap will establish the ema of the reserves in each pool
-		pools.depositSwapWithdraw(usds, wbtc, 1000 ether, 0, block.timestamp, true);
-		pools.depositSwapWithdraw(usds, weth, 1000 ether, 0, block.timestamp, true);
-
-		// Second swap will make the reserve favorable for counterswap (in comparison to the ema)
-		pools.depositSwapWithdraw(usds, wbtc, 100 ether, 0, block.timestamp, true);
-		pools.depositSwapWithdraw(usds, weth, 100 ether, 0, block.timestamp, true);
-		vm.stopPrank();
-
-		vm.warp( block.timestamp + 1 minutes );
-
-
-		assertEq( usds.usdsThatShouldBeBurned(), amountToBurn );
-
-		uint256 usdsSupply = usds.totalSupply();
-
-    	vm.prank(address(upkeep));
-    	usds.performUpkeep();
-
-		// All the specified USDS should have been burned
-		assertEq( usds.usdsThatShouldBeBurned(), 0 );
-
-		// Make sure the correct amount was burned
-		uint256 amountBurned = usdsSupply - usds.totalSupply();
-		assertEq( amountBurned, amountToBurn );
-    }
-
-
-	// A unit test to verify the withdrawal of USDS tokens from previous counterswaps in performUpkeep function. This test should validate that the withdrawal logic is correctly retrieving USDS tokens based on previous counterswaps.
-	function testCounterswapAndInsufficientBurn() public {
-
-		// Arbitrary test amount to burn
-    	uint256 amountToBurn = 1000 ether;
-
-		vm.prank(address(collateralAndLiquidity));
-		usds.shouldBurnMoreUSDS(amountToBurn);
-
-		assertEq( usds.usdsThatShouldBeBurned(), amountToBurn );
-
-
-		vm.prank(address(collateralAndLiquidity));
-		usds.mintTo(DEPLOYER, 10000000 ether);
-
-    	// Deposit WBTC and WETH to the contract
-    	vm.startPrank(DEPLOYER);
-    	IERC20(wbtc).transfer(address(usds), 100 * 10**8 );
-    	IERC20(weth).transfer(address(usds), 100 ether);
-
-    	// Liquidity for counterswap pools
-    	wbtc.approve(address(pools), type(uint256).max);
-    	weth.approve(address(pools), type(uint256).max);
-    	usds.approve(address(pools), type(uint256).max);
-
-    	wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
-    	weth.approve(address(collateralAndLiquidity), type(uint256).max);
-    	usds.approve(address(collateralAndLiquidity), type(uint256).max);
-
-    	collateralAndLiquidity.depositLiquidityAndIncreaseShare(wbtc, usds, 100 *10**8, 1000000 ether, 0, block.timestamp, false );
-    	collateralAndLiquidity.depositLiquidityAndIncreaseShare(weth, usds, 100 ether, 100000 ether, 0, block.timestamp, false );
-    	vm.stopPrank();
-
-    	// Perform upkeep to deposit WBTC and WETH to the corresponding counterswap and withdraw USDS
-    	vm.prank(address(upkeep));
-    	usds.performUpkeep();
-
-		vm.startPrank(DEPLOYER);
-		// First swap will establish the ema of the reserves in each pool
-		pools.depositSwapWithdraw(usds, wbtc, 100 ether, 0, block.timestamp, true);
-		pools.depositSwapWithdraw(usds, weth, 100 ether, 0, block.timestamp, true);
-
-		// Second swap will make the reserve favorable for counterswap (in comparison to the ema)
-		pools.depositSwapWithdraw(usds, wbtc, 10 ether, 0, block.timestamp, true);
-		pools.depositSwapWithdraw(usds, weth, 10 ether, 0, block.timestamp, true);
-		vm.stopPrank();
-
-		assertEq( usds.usdsThatShouldBeBurned(), amountToBurn );
-
-		uint256 usdsSupply = usds.totalSupply();
-
-    	vm.prank(address(upkeep));
-    	usds.performUpkeep();
-
-		uint256 amountBurned = usdsSupply - usds.totalSupply();
-		assertEq( usds.usdsThatShouldBeBurned(), amountToBurn - amountBurned );
-    }
-
-
-	// A unit test which tries to call shouldBurnMoreUSDS with zero value. This test should validate that it doesn't affect usdsThatShouldBeBurned.
-	function testShouldBurnMoreUSDSWithZeroValue() public {
-		uint256 usdsToBurn = 0 ether;
-
-		// Initial set up
-		assertEq(usds.usdsThatShouldBeBurned(), 0 ether);
-
-		// Call shouldBurnMoreUSDS with zero value
-		vm.prank(address(collateralAndLiquidity));
-		usds.shouldBurnMoreUSDS(usdsToBurn);
-
-		// Validate that it does not affect usdsThatShouldBeBurned
-		assertEq(usds.usdsThatShouldBeBurned(), 0 ether);
-	}
-
-
-	// A unit test which tries to call setContracts after ownership has been renounced. The test should fail since only the owner should be able to set these contracts.
-	function testSetContractsAfterRenouncingOwnership() public {
-        address _collateral = address(0x5555);
-        address _pools = address(0x6666);
-        address _exchangeConfig = address(0x7777);
-
-        // New USDS instance
-        USDS newUSDS = new USDS(wbtc, weth);
-
-        // Set up contracts
-        newUSDS.setContracts(ICollateralAndLiquidity(_collateral), IPools(_pools), IExchangeConfig(_exchangeConfig));
-
-        assertEq(address(newUSDS.collateralAndLiquidity()), _collateral);
-        assertEq(address(newUSDS.pools()), _pools);
-        assertEq(address(newUSDS.exchangeConfig()), _exchangeConfig);
-
-        _collateral = address(0x8888);
-        _pools = address(0x9999);
-        _exchangeConfig = address(0xAAAA);
-
-        vm.expectRevert("Ownable: caller is not the owner");
-        newUSDS.setContracts(ICollateralAndLiquidity(_collateral), IPools(_pools), IExchangeConfig(_exchangeConfig));
-
-        assertEq(address(newUSDS.collateralAndLiquidity()), address(0x5555)); // these addresses should not have changed
-        assertEq(address(newUSDS.pools()), address(0x6666)); // these addresses should not have changed
-        assertEq(address(newUSDS.exchangeConfig()), address(0x7777)); // these addresses should not have changed
-    }
-
-
-	// A unit test to validate if the initial supply of USDS is zero.
-	function testInitialTotalSupplyIsZero() public
-    {
-        // Verify initial USDS supply
-        assertEq(usds.totalSupply(), 0 ether, "Initial USDS supply is not zero");
-    }
-
-
-	// A unit test to verify if performUpkeep correctly burns USDS tokens when there is no remaining balance to burn in Counterswap. This test should validate that all USDS tokens in the contract are burned regardless of the balance in Counterswap.
-	function testPerformUpkeepBurnsAllUSDSInContract() public {
-
-        uint256 initialBalance = 10 ether;
-        uint256 initialUsdsToBurn = 10 ether;
-
-        // Send tokens to the contract
-        vm.startPrank(address(collateralAndLiquidity));
-        usds.mintTo(address(usds), initialBalance);
-        usds.shouldBurnMoreUSDS(initialUsdsToBurn);
-        vm.stopPrank();
-
-        // Check initial balances and burn amount
-        assertEq(usds.usdsThatShouldBeBurned(), initialUsdsToBurn);
-        assertEq(usds.balanceOf(address(usds)), initialBalance);
-
-    	vm.prank(address(upkeep));
-    	usds.performUpkeep();
-
-//		uint256 amountBurned = usdsSupply - usds.totalSupply();
-//		console.log( "amountBurned: ", amountBurned );
-
-        // All tokens should be burned
-        assertEq(usds.balanceOf(address(usds)), 0);
-
-        // No more tokens should be marked to burn
-        assertEq(usds.usdsThatShouldBeBurned(), 0);
-    }
-
-
-	// A unit test to verify if performUpkeep correctly burns USDS tokens when there are remaining balance to burn in Counterswap.
-	function testPerformUpkeepInsufficientUSDS() public {
-
-        uint256 initialBalance = 10 ether;
-        uint256 initialUsdsToBurn = 30 ether;
-
-        // Send tokens to the contract
-        vm.startPrank(address(collateralAndLiquidity));
-        usds.mintTo(address(usds), initialBalance);
-        usds.shouldBurnMoreUSDS(initialUsdsToBurn);
-        vm.stopPrank();
-
-        // Check initial balances and burn amount
-        assertEq(usds.usdsThatShouldBeBurned(), initialUsdsToBurn);
-        assertEq(usds.balanceOf(address(usds)), initialBalance);
-
-        // Perform upkeep
-        vm.prank(address(exchangeConfig.upkeep()));
-        usds.performUpkeep();
-
-        // All tokens should be burned
-        assertEq(usds.balanceOf(address(usds)), 0);
-
-        // No more tokens should be marked to burn
-        assertEq(usds.usdsThatShouldBeBurned(), 20 ether);
-    }
-
-
-	// A unit test to verify if performUpkeep correctly burns USDS tokens when there is excess burnable balance in Counterswap.
-	function testPerformUpkeepExcessUSDS() public {
-
-        uint256 initialBalance = 30 ether;
-        uint256 initialUsdsToBurn = 10 ether;
-
-        // Send tokens to the contract
-        vm.startPrank(address(collateralAndLiquidity));
-        usds.mintTo(address(usds), initialBalance);
-        usds.shouldBurnMoreUSDS(initialUsdsToBurn);
-        vm.stopPrank();
-
-        // Check initial balances and burn amount
-        assertEq(usds.usdsThatShouldBeBurned(), initialUsdsToBurn);
-        assertEq(usds.balanceOf(address(usds)), initialBalance);
-
-        // Perform upkeep
-        vm.prank(address(exchangeConfig.upkeep()));
-        usds.performUpkeep();
-
-        // All tokens should be burned
-        assertEq(usds.balanceOf(address(usds)), 20 ether);
-
-        // No more tokens should be marked to burn
-        assertEq(usds.usdsThatShouldBeBurned(), 0 ether);
-    }
-
-
-	// A unit test which checks the performUpkeep behavior when there is no WBTC or WETH balance in the contract and usdsThatShouldBeBurned is zero. It should validate that no operation will be performed under this scenario.
-	function testPerformUpkeepWithoutFundsOrBurn() public {
-        // Arrange: Ensure no WBTC balance
-        assertEq(wbtc.balanceOf(address(usds)), 0);
-
-        // Arrange: Ensure no WETH balance
-        assertEq(weth.balanceOf(address(usds)), 0);
-
-        // Arrange: Ensure no USDS that should be burned
-        assertEq(usds.usdsThatShouldBeBurned(), 0 ether);
-
-        // Act: Perform Upkeep
-        vm.prank(address(exchangeConfig.upkeep()));
-        usds.performUpkeep();
-
-        // Assert: Still no WBTC balance
-        assertEq(wbtc.balanceOf(address(usds)), 0);
-
-        // Assert: Still no WETH balance
-        assertEq(weth.balanceOf(address(usds)), 0);
-
-        // Assert: Still no USDS that should be burned
-        assertEq(usds.usdsThatShouldBeBurned(), 0 ether);
-    }
-
-
-	// A unit test that checks the scenario when _withdrawUSDSFromCounterswap is called with zero remainingUSDSToBurn. In this case, the function should not affect the Counterswap balance and the returned value should be zero.
-	function testCounterswapAndNothingToBurn() public {
-
-		// Arbitrary test amount to burn
-    	uint256 amountToBurn = 0;
-
-		vm.prank(address(collateralAndLiquidity));
-		usds.shouldBurnMoreUSDS(amountToBurn);
-
-		assertEq( usds.usdsThatShouldBeBurned(), amountToBurn );
-
-
-		vm.prank(address(collateralAndLiquidity));
-		usds.mintTo(DEPLOYER, 10000000 ether);
-
-    	// Deposit WBTC and WETH to the contract
-    	vm.startPrank(DEPLOYER);
-    	IERC20(wbtc).transfer(address(usds), 100 * 10**8 );
-    	IERC20(weth).transfer(address(usds), 100 ether);
-
-    	// Liquidity for counterswap pools
-    	wbtc.approve(address(pools), type(uint256).max);
-    	weth.approve(address(pools), type(uint256).max);
-    	usds.approve(address(pools), type(uint256).max);
-
-    	wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
-    	weth.approve(address(collateralAndLiquidity), type(uint256).max);
-    	usds.approve(address(collateralAndLiquidity), type(uint256).max);
-
-    	collateralAndLiquidity.depositLiquidityAndIncreaseShare(wbtc, usds, 100 *10**8, 1000000 ether, 0, block.timestamp, false );
-    	collateralAndLiquidity.depositLiquidityAndIncreaseShare(weth, usds, 100 ether, 100000 ether, 0, block.timestamp, false );
-    	vm.stopPrank();
-
-    	// Perform upkeep to deposit WBTC and WETH to the corresponding counterswap and withdraw USDS
-    	vm.prank(address(upkeep));
-    	usds.performUpkeep();
-
-		vm.startPrank(DEPLOYER);
-		// First swap will establish the ema of the reserves in each pool
-		pools.depositSwapWithdraw(usds, wbtc, 1000 ether, 0, block.timestamp, true);
-		pools.depositSwapWithdraw(usds, weth, 1000 ether, 0, block.timestamp, true);
-
-		// Second swap will make the reserve favorable for counterswap (in comparison to the ema)
-		pools.depositSwapWithdraw(usds, wbtc, 100 ether, 0, block.timestamp, true);
-		pools.depositSwapWithdraw(usds, weth, 100 ether, 0, block.timestamp, true);
-		vm.stopPrank();
-
-		assertEq( usds.usdsThatShouldBeBurned(), amountToBurn );
-
-		uint256 usdsSupply = usds.totalSupply();
-
-    	vm.prank(address(upkeep));
-    	usds.performUpkeep();
-
-		// None  USDS should be been burned
-		assertEq( usds.usdsThatShouldBeBurned(), 0 );
-
-		// Make sure that nothing was burned
-		uint256 amountBurned = usdsSupply - usds.totalSupply();
-		assertEq( amountBurned, 0 );
+    // A unit test to ensure the totalSupply of USDS increases correctly after minting operations.
+    function testTotalSupplyIncreasesAfterMint() public {
+        address wallet = address(0x7777);
+        uint256 mintAmount = 5 ether;
+        uint256 initialTotalSupply = usds.totalSupply();
+
+        // Mint to the wallet from the collateral address
+        vm.prank(address(collateralAndLiquidity));
+        usds.mintTo(wallet, mintAmount);
+
+        uint256 newTotalSupply = usds.totalSupply();
+
+        // The total supply should have increased by the mint amount
+        assertEq(newTotalSupply, initialTotalSupply + mintAmount);
     }
 	}
