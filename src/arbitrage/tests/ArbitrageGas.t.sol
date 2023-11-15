@@ -24,8 +24,7 @@ contract TestArbitrage is Deployment
 		vm.prank(address(daoVestingWallet));
 		salt.transfer(DEPLOYER, 1000000 ether);
 
-		priceAggregator.performUpkeep();
-		uint256 priceBTC = priceAggregator.getPriceBTC();
+			uint256 priceBTC = priceAggregator.getPriceBTC();
 		uint256 priceETH = priceAggregator.getPriceETH();
 
 		tokenE = new TestERC20("TEST", 18);
@@ -59,36 +58,36 @@ contract TestArbitrage is Deployment
 		pools.deposit( tokenE, 100 ether );
 
 		// Initial transactions cost more gas so perform the first ones here
-		pools.swap( tokenE, weth, 10 ether, 0, block.timestamp, true );
-		pools.depositSwapWithdraw( weth, tokenE, 10 ether, 0, block.timestamp, true );
+		pools.swap( tokenE, weth, 10 ether, 0, block.timestamp );
+		pools.depositSwapWithdraw( weth, tokenE, 10 ether, 0, block.timestamp );
 		}
 
 
 	function testGasDepositSwapWithdrawAndArbitrage() public
 		{
 		uint256 gas0 = gasleft();
-		pools.depositSwapWithdraw( tokenE, weth, 10 ether, 0, block.timestamp, true );
-		console.log( "DEPOSIT/SWAP/ARB COST: ", gas0 - gasleft() );
+		pools.depositSwapWithdraw( tokenE, weth, 10 ether, 0, block.timestamp );
+		console.log( "DEPOSIT/SWAP/ARB GAS: ", gas0 - gasleft() );
 		}
 
 
 	function testGasSwapAndArbitrage() public
 		{
 		uint256 gas0 = gasleft();
-		pools.swap( tokenE, weth, 10 ether, 0, block.timestamp, true );
-		console.log( "SWAP/ARB COST: ", gas0 - gasleft() );
+		pools.swap( tokenE, weth, 10 ether, 0, block.timestamp );
+		console.log( "SWAP/ARB GAS: ", gas0 - gasleft() );
 		}
 
 
 	function testDepositSwapWithdrawAndArbitrage() public
 		{
-		uint256 amountOut = pools.depositSwapWithdraw( tokenE, weth, 10 ether, 0, block.timestamp, true );
+		uint256 amountOut = pools.depositSwapWithdraw( tokenE, weth, 10 ether, 0, block.timestamp );
 
 //		console.log( "amountOut: ", amountOut );
 //		console.log( "ending pools balance: ", pools.depositedUserBalance( address(pools), weth ) );
 
-		assertEq( amountOut, 9900223788143066990 );
-		assertEq( pools.depositedUserBalance( address(dao), weth ), 154270583332075802 );
+		assertEq( amountOut, 9900435969090386410 );
+		assertEq( pools.depositedUserBalance( address(dao), weth ), 175267603798507364 );
 		}
 	}
 
