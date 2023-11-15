@@ -37,11 +37,18 @@ contract CoreChainlinkFeed is IPriceFeed
 			uint80, // _roundID
 			int256 _price,
 			uint256, // _startedAt
-			uint256, // _timeStamp
+			uint256 _answerTimestamp,
 			uint80 // _answeredInRound
 		)
 			{
 			price = _price;
+
+			// Make sure that the Chainlink price update has occurred within its 60 minute heartbeat
+			// https://docs.chain.link/data-feeds#check-the-timestamp-of-the-latest-answer
+			uint256 answerDelay = block.timestamp - _answerTimestamp;
+
+			if ( answerDelay > 60 minutes )
+				price = 0;
 			}
 		catch (bytes memory) // Catching any failure
 			{
@@ -56,13 +63,13 @@ contract CoreChainlinkFeed is IPriceFeed
 		}
 
 
-	function getPriceBTC() public view returns (uint256)
+	function getPriceBTC() external view returns (uint256)
 		{
 		return latestChainlinkPrice( CHAINLINK_BTC_USD );
 		}
 
 
-	function getPriceETH() public view returns (uint256)
+	function getPriceETH() external view returns (uint256)
 		{
 		return latestChainlinkPrice( CHAINLINK_ETH_USD );
 		}
