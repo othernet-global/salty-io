@@ -130,7 +130,7 @@ contract TestAccessManager is Deployment
 		assertEq(accessManager.walletHasAccess(alice), false, "There should not be access after geoVersion update");
 
 		// User grants access again
-		bytes memory sig = abi.encodePacked(hex"8b213e0ebbb653419203488db6b2ea3dcd35067906b813aee2e2ae20db4218233a72959b5aa61d2e1673aac95a75ac46cb80d93630f7b2d98de5e7344e6f14821c");
+		bytes memory sig = abi.encodePacked(aliceAccessSignature1);
 		vm.prank( address(0x1111) );
 		accessManager.grantAccess(sig);
 
@@ -174,11 +174,11 @@ contract TestAccessManager is Deployment
     	accessManager.excludedCountriesUpdated();
 
     	// Some users grant access to Alice and Charlie
-		bytes memory sig = abi.encodePacked(hex"8b213e0ebbb653419203488db6b2ea3dcd35067906b813aee2e2ae20db4218233a72959b5aa61d2e1673aac95a75ac46cb80d93630f7b2d98de5e7344e6f14821c");
+		bytes memory sig = abi.encodePacked(aliceAccessSignature1);
 		vm.prank( address(0x1111) );
 		accessManager.grantAccess(sig);
 
-		sig = abi.encodePacked(hex"21b0ce1a5fefbdbe547f7cc3774c70e1464e36e2826afad8508c90e9fd05abd8363f04b93ba09c530ff09dc5d6ad0551a36fa8637ac82bf764f1e3fbf7090c981c");
+		sig = abi.encodePacked(charlieAccessSignature1);
 		vm.prank( address(0x3333) );
 		accessManager.grantAccess(sig);
 

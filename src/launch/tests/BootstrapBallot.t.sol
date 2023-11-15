@@ -45,16 +45,18 @@ contract TestBootstrapBallot is Deployment
 			vm.startPrank(DEPLOYER);
 
 			poolsConfig = new PoolsConfig();
-			usds = new USDS(wbtc, weth);
+			usds = new USDS();
 
-			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, dai, usds, teamWallet );
+			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, dai, usds, managedTeamWallet );
 
 			priceAggregator = new PriceAggregator();
 			priceAggregator.setInitialFeeds( IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)) );
 
-			pools = new Pools(exchangeConfig, poolsConfig);
-			staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
-			collateralAndLiquidity = new CollateralAndLiquidity(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
+		liquidizer = new Liquidizer(exchangeConfig, poolsConfig);
+		pools = new Pools(exchangeConfig, poolsConfig);
+		staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
+		collateralAndLiquidity = new CollateralAndLiquidity(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator, liquidizer);
+		liquidizer.setContracts(collateralAndLiquidity, pools, dao);
 
 			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig, false );
 			liquidityRewardsEmitter = new RewardsEmitter( collateralAndLiquidity, exchangeConfig, poolsConfig, rewardsConfig, true );
@@ -74,31 +76,25 @@ contract TestBootstrapBallot is Deployment
 			proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 
 			address oldDAO = address(dao);
-			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidityRewardsEmitter);
+			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidityRewardsEmitter, collateralAndLiquidity);
 
 			airdrop = new Airdrop(exchangeConfig, staking);
 
 			accessManager = new AccessManager(dao);
 
-			exchangeConfig.setAccessManager( accessManager );
-			exchangeConfig.setStakingRewardsEmitter( stakingRewardsEmitter);
-			exchangeConfig.setLiquidityRewardsEmitter( liquidityRewardsEmitter);
-			exchangeConfig.setDAO( dao );
-			exchangeConfig.setAirdrop(airdrop);
+			saltRewards = new SaltRewards(stakingRewardsEmitter, liquidityRewardsEmitter, exchangeConfig, rewardsConfig);
 
-			saltRewards = new SaltRewards(exchangeConfig, rewardsConfig);
-
-			upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, collateralAndLiquidity, emissions);
-			exchangeConfig.setUpkeep(upkeep);
+			upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, stableConfig, priceAggregator, saltRewards, collateralAndLiquidity, emissions, dao);
 
 			bootstrapBallot = new BootstrapBallot(exchangeConfig, airdrop, 60 * 60 * 24 * 3 );
 			initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, collateralAndLiquidity);
-			exchangeConfig.setInitialDistribution(initialDistribution);
 
-			pools.setContracts(dao, collateralAndLiquidity
-);
+			pools.setContracts(dao, collateralAndLiquidity);
 
-			usds.setContracts(collateralAndLiquidity, pools, exchangeConfig );
+			usds.setCollateralAndLiquidity(collateralAndLiquidity);
+
+			exchangeConfig.setContracts(dao, upkeep, initialDistribution, airdrop, teamVestingWallet, daoVestingWallet );
+			exchangeConfig.setAccessManager(accessManager);
 
 			// Transfer ownership of the newly created config files to the DAO
 			Ownable(address(exchangeConfig)).transferOwnership( address(dao) );
@@ -130,13 +126,13 @@ contract TestBootstrapBallot is Deployment
     // A unit test to check the finalizeBallot function when ballotFinalized is false, the current timestamp is greater than completionTimestamp, and yesVotes are more than noVotes. Verify that the InitialDistribution.distributionApproved function is called.
 	function test_finalizeBallot() public {
         // Voting stage (yesVotes: 2, noVotes: 0)
-		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
+		bytes memory sig = abi.encodePacked(aliceVotingSignature);
         vm.startPrank(alice);
 		uint256[] memory regionalVotes = new uint256[](5);
 		bootstrapBallot.vote(true, regionalVotes, sig);
         vm.stopPrank();
 
-		sig = abi.encodePacked(hex"98ea2c8a10e4fc75b13147210b54aaaf5d45922fa576ca9968db642afa6241b100bcb8139fd7f4fce46b028a68941769f70b3085375c9ae22d69d80fc35f90551c");
+		sig = abi.encodePacked(bobVotingSignature);
         vm.startPrank(bob);
 		bootstrapBallot.vote(true, regionalVotes, sig);
         vm.stopPrank();
@@ -156,7 +152,7 @@ contract TestBootstrapBallot is Deployment
 
     // A unit test to check the finalizeBallot function when ballotFinalized is false, the current timestamp is less than completionTimestamp. Verify that it throws an error as ballot duration is not yet complete.
 	function test_finalizeBallotNotComplete() public {
-		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
+		bytes memory sig = abi.encodePacked(aliceVotingSignature);
 
         // Voting stage (yesVotes: 2, noVotes: 0)
         vm.startPrank(alice);
@@ -164,7 +160,7 @@ contract TestBootstrapBallot is Deployment
 		bootstrapBallot.vote(true, regionalVotes, sig);
         vm.stopPrank();
 
-		sig = abi.encodePacked(hex"98ea2c8a10e4fc75b13147210b54aaaf5d45922fa576ca9968db642afa6241b100bcb8139fd7f4fce46b028a68941769f70b3085375c9ae22d69d80fc35f90551c");
+		sig = abi.encodePacked(bobVotingSignature);
         vm.startPrank(bob);
 		bootstrapBallot.vote(true, regionalVotes, sig);
         vm.stopPrank();
@@ -185,7 +181,7 @@ contract TestBootstrapBallot is Deployment
 
     // A unit test to check the finalizeBallot function when ballotFinalized is already true. Verify that it throws an error stating the ballot has already been finalized.
 	function test_finalizeBallotAlreadyFinalized() public {
-		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
+		bytes memory sig = abi.encodePacked(aliceVotingSignature);
 
         // Voting stage (yesVotes: 2, noVotes: 0)
         vm.startPrank(alice);
@@ -193,7 +189,7 @@ contract TestBootstrapBallot is Deployment
 		bootstrapBallot.vote(true, regionalVotes, sig);
         vm.stopPrank();
 
-		sig = abi.encodePacked(hex"98ea2c8a10e4fc75b13147210b54aaaf5d45922fa576ca9968db642afa6241b100bcb8139fd7f4fce46b028a68941769f70b3085375c9ae22d69d80fc35f90551c");
+		sig = abi.encodePacked(bobVotingSignature);
         vm.startPrank(bob);
 		bootstrapBallot.vote(true, regionalVotes, sig);
         vm.stopPrank();
@@ -217,13 +213,13 @@ contract TestBootstrapBallot is Deployment
     // A unit test to check the finalizeBallot function when yesVotes are less than noVotes. Verify that the InitialDistribution.distributionApproved function is not called.
 	function test_finalizeBallotFailedVote() public {
         // Voting stage (yesVotes: 2, noVotes: 0)
-		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
+		bytes memory sig = abi.encodePacked(aliceVotingSignature);
         vm.startPrank(alice);
 		uint256[] memory regionalVotes = new uint256[](5);
 		bootstrapBallot.vote(false, regionalVotes, sig);
         vm.stopPrank();
 
-		sig = abi.encodePacked(hex"98ea2c8a10e4fc75b13147210b54aaaf5d45922fa576ca9968db642afa6241b100bcb8139fd7f4fce46b028a68941769f70b3085375c9ae22d69d80fc35f90551c");
+		sig = abi.encodePacked(bobVotingSignature);
         vm.startPrank(bob);
 		bootstrapBallot.vote(false, regionalVotes, sig);
         vm.stopPrank();
@@ -244,18 +240,18 @@ contract TestBootstrapBallot is Deployment
     // A unit test to check the vote function when the voter is whitelisted, has exchange access, and has not yet voted. Verify that the vote count is correctly incremented and the voter is marked as having voted.
     function test_vote() public {
         // Cast votes (yesVotes: 2, noVotes: 1)
-		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
+		bytes memory sig = abi.encodePacked(aliceVotingSignature);
         vm.startPrank(alice);
 		uint256[] memory regionalVotes = new uint256[](5);
 		bootstrapBallot.vote(true, regionalVotes, sig);
         vm.stopPrank();
 
-		sig = abi.encodePacked(hex"98ea2c8a10e4fc75b13147210b54aaaf5d45922fa576ca9968db642afa6241b100bcb8139fd7f4fce46b028a68941769f70b3085375c9ae22d69d80fc35f90551c");
+		sig = abi.encodePacked(bobVotingSignature);
         vm.startPrank(bob);
 		bootstrapBallot.vote(true, regionalVotes, sig);
         vm.stopPrank();
 
-		sig = abi.encodePacked(hex"8c7115467b37b4409a2781c8aa4ac8b3eb3a75542ec698b675a1c92c88e018db2ea8edd25c67920a980ae969ac5a77fb0bb1a2b0e0ffffe2edb823bb84b3ee141b");
+		sig = abi.encodePacked(charlieVotingSignature);
         vm.startPrank(charlie);
 		bootstrapBallot.vote(false, regionalVotes, sig);
         vm.stopPrank();
@@ -271,7 +267,7 @@ contract TestBootstrapBallot is Deployment
 
     // A unit test to check the vote function when the voter has already voted. Verify that it throws an error stating the user already voted.
     function test_votesTwice() public {
-		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
+		bytes memory sig = abi.encodePacked(aliceVotingSignature);
 
         // Alice casts her vote
         vm.startPrank(alice);
@@ -320,7 +316,7 @@ contract TestBootstrapBallot is Deployment
 
     // A unit test to check the vote function when a voter votes No. Verify that the noVotes count is correctly incremented.
 	function test_vote_No() public {
-		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
+		bytes memory sig = abi.encodePacked(aliceVotingSignature);
 
 		vm.startPrank(alice);
 		uint256[] memory regionalVotes = new uint256[](5);
@@ -333,7 +329,7 @@ contract TestBootstrapBallot is Deployment
 
     // A unit test to check the finalizeBallot function when yesVotes are equal to noVotes. Verify that the InitialDistribution.distributionApproved function is not called.
 	function test_finalizeBallotTieVote() public {
-		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
+		bytes memory sig = abi.encodePacked(aliceVotingSignature);
 
         // Voting stage (yesVotes: 1, noVotes: 1)
         vm.startPrank(alice);
@@ -341,7 +337,7 @@ contract TestBootstrapBallot is Deployment
 		bootstrapBallot.vote(true, regionalVotes, sig);
         vm.stopPrank();
 
-		sig = abi.encodePacked(hex"98ea2c8a10e4fc75b13147210b54aaaf5d45922fa576ca9968db642afa6241b100bcb8139fd7f4fce46b028a68941769f70b3085375c9ae22d69d80fc35f90551c");
+		sig = abi.encodePacked(bobVotingSignature);
         vm.startPrank(bob);
 		bootstrapBallot.vote(false, regionalVotes, sig);
         vm.stopPrank();
@@ -377,7 +373,7 @@ contract TestBootstrapBallot is Deployment
 
         // A unit test to check if the mapping hasVoted correctly recognizes an address after that address has called the vote function.
         function test_MapHasVotedAfterVoteCalled() public {
-		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
+		bytes memory sig = abi.encodePacked(aliceVotingSignature);
 
             // Vote stage
             vm.startPrank(alice);
@@ -393,9 +389,9 @@ contract TestBootstrapBallot is Deployment
 
         // A unit test to check that regional exclusion tallies update correct on voting
         function _testRegionalExclusionVoting( uint256 votingIndex ) public {
-            assertTrue(bootstrapBallot.geoExclusionYes()[votingIndex] == 0, "Shouldn't be an initial yes vote");
+            assertTrue(bootstrapBallot.initialGeoExclusionYes()[votingIndex] == 0, "Shouldn't be an initial yes vote");
 
-		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
+		bytes memory sig = abi.encodePacked(aliceVotingSignature);
 
             // Vote stage
             vm.startPrank(alice);
@@ -404,7 +400,7 @@ contract TestBootstrapBallot is Deployment
 			bootstrapBallot.vote(true, regionalVotes, sig);
             vm.stopPrank();
 
-            assertTrue(bootstrapBallot.geoExclusionYes()[votingIndex] == 1, "User vote not recognized");
+            assertTrue(bootstrapBallot.initialGeoExclusionYes()[votingIndex] == 1, "User vote not recognized");
         }
 
 
@@ -440,9 +436,9 @@ contract TestBootstrapBallot is Deployment
 
         // A unit test to check that regional exclusion tallies update correct on voting
         function _testRegionalExclusionVotingNo( uint256 votingIndex ) public {
-            assertTrue(bootstrapBallot.geoExclusionNo()[votingIndex] == 0, "Shouldn't be an initial yes vote");
+            assertTrue(bootstrapBallot.initialGeoExclusionNo()[votingIndex] == 0, "Shouldn't be an initial yes vote");
 
-		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
+		bytes memory sig = abi.encodePacked(aliceVotingSignature);
 
             // Vote stage
             vm.startPrank(alice);
@@ -451,7 +447,7 @@ contract TestBootstrapBallot is Deployment
 			bootstrapBallot.vote(false, regionalVotes, sig);
             vm.stopPrank();
 
-            assertTrue(bootstrapBallot.geoExclusionNo()[votingIndex] == 1, "User vote not recognized");
+            assertTrue(bootstrapBallot.initialGeoExclusionNo()[votingIndex] == 1, "User vote not recognized");
         }
 
 
@@ -488,11 +484,11 @@ contract TestBootstrapBallot is Deployment
 
         // A unit test to check that regional exclusion tallies update correct on voting
         function testMultipleRegionalExclusionVotes() public {
-            assertTrue(bootstrapBallot.geoExclusionNo()[0] == 0, "Shouldn't be an initial yes vote");
-            assertTrue(bootstrapBallot.geoExclusionYes()[0] == 0, "Shouldn't be an initial yes vote");
+            assertTrue(bootstrapBallot.initialGeoExclusionNo()[0] == 0, "Shouldn't be an initial yes vote");
+            assertTrue(bootstrapBallot.initialGeoExclusionYes()[0] == 0, "Shouldn't be an initial yes vote");
 
             // Vote stage
-		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
+		bytes memory sig = abi.encodePacked(aliceVotingSignature);
 
             vm.startPrank(alice);
 			uint256[] memory regionalVotes = new uint256[](5);
@@ -500,7 +496,7 @@ contract TestBootstrapBallot is Deployment
 			bootstrapBallot.vote(true, regionalVotes, sig);
             vm.stopPrank();
 
-		sig = abi.encodePacked(hex"98ea2c8a10e4fc75b13147210b54aaaf5d45922fa576ca9968db642afa6241b100bcb8139fd7f4fce46b028a68941769f70b3085375c9ae22d69d80fc35f90551c");
+		sig = abi.encodePacked(bobVotingSignature);
 
             vm.startPrank(bob);
 			regionalVotes = new uint256[](5);
@@ -509,15 +505,15 @@ contract TestBootstrapBallot is Deployment
             vm.stopPrank();
 
 
-		sig = abi.encodePacked(hex"8c7115467b37b4409a2781c8aa4ac8b3eb3a75542ec698b675a1c92c88e018db2ea8edd25c67920a980ae969ac5a77fb0bb1a2b0e0ffffe2edb823bb84b3ee141b");
+		sig = abi.encodePacked(charlieVotingSignature);
             vm.startPrank(charlie);
 			regionalVotes = new uint256[](5);
 			regionalVotes[0] = 2; // no on exclusion
 			bootstrapBallot.vote(true, regionalVotes, sig);
             vm.stopPrank();
 
-            assertTrue(bootstrapBallot.geoExclusionYes()[0] == 2, "User votes not recognized");
-            assertTrue(bootstrapBallot.geoExclusionNo()[0] == 1, "User votes not recognized");
+            assertTrue(bootstrapBallot.initialGeoExclusionYes()[0] == 2, "User votes not recognized");
+            assertTrue(bootstrapBallot.initialGeoExclusionNo()[0] == 1, "User votes not recognized");
         }
 
 
