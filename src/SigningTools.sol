@@ -3,7 +3,7 @@ pragma solidity =0.8.22;
 
 library SigningTools
 	{
-	// The public address of the signer for the Airdrop whitelist and default AccessManager
+	// The public address of the signer for BootstrapBallot voting and default AccessManager
 	address constant public EXPECTED_SIGNER = 0x1234519DCA2ef23207E1CA7fd70b96f281893bAa;
 
 
@@ -22,6 +22,8 @@ library SigningTools
 	// Verify that the messageHash was signed by the authoratative signer.
     function _verifySignature(bytes32 messageHash, bytes memory signature ) internal pure returns (bool)
     	{
+    	require( signature.length == 65, "Invalid signature length" );
+
 		bytes32 r = _slice32(signature, 0);
 		bytes32 s = _slice32(signature, 32);
 		uint8 v = uint8(signature[64]);
