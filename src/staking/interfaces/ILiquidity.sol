@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.22;
 
-import "./IStakingRewards.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import "./IStakingRewards.sol";
 
 
 interface ILiquidity is IStakingRewards

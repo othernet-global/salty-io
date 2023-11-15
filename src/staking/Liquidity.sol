@@ -2,26 +2,29 @@
 pragma solidity =0.8.22;
 
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./interfaces/IStakingConfig.sol";
-import "./StakingRewards.sol";
-import "../interfaces/IExchangeConfig.sol";
-import "./interfaces/ILiquidity.sol";
-import "../pools/interfaces/IPools.sol";
 import "../pools/interfaces/IPoolsConfig.sol";
-import "../pools/PoolUtils.sol";
+import "../interfaces/IExchangeConfig.sol";
+import "./interfaces/IStakingConfig.sol";
+import "../pools/interfaces/IPools.sol";
+import "./interfaces/ILiquidity.sol";
+import "./StakingRewards.sol";
 import "../pools/PoolMath.sol";
+import "../pools/PoolUtils.sol";
 
 
 // Allows users to add liquidity and increase their liquidity share in the StakingRewards pool so that they can receive proportional future rewards.
-// Keeps track of the liquidity held by each user via StakingRewards.userShare
+// Keeps track of the liquidity held by each user via StakingRewards.userShare.
 
-contract Liquidity is ILiquidity, StakingRewards
+abstract contract Liquidity is ILiquidity, StakingRewards
     {
+    event LiquidityDeposited(address indexed user, address indexed tokenA, address indexed tokenB, uint256 amountA, uint256 amountB, uint256 addedLiquidity);
+    event LiquidityWithdrawn(address indexed user, address indexed tokenA, address indexed tokenB, uint256 amountA, uint256 amountB, uint256 withdrawnLiquidity);
+
 	using SafeERC20 for IERC20;
 
 	IPools immutable public pools;
 
-	// The poolID of WBTC/WETH collateral - which should not be withdrawable from this contract directly
+	// The poolID of WBTC/WETH collateral - which should not be withdrawable from this contract directly.
     bytes32 immutable public collateralPoolID;
 
 
@@ -51,8 +54,6 @@ contract Liquidity is ILiquidity, StakingRewards
 		(uint256 reserveA, uint256 reserveB) = pools.getPoolReserves(tokenA, tokenB);
 		(uint256 swapAmountA, uint256 swapAmountB ) = PoolMath._determineZapSwapAmount( reserveA, reserveB, tokenA, tokenB, zapAmountA, zapAmountB );
 
-		bytes32 poolID = PoolUtils._poolIDOnly( tokenA, tokenB );
-
 		// tokenA is in excess so swap some of it to tokenB?
 		if ( swapAmountA > 0)
 			{
@@ -60,7 +61,7 @@ contract Liquidity is ILiquidity, StakingRewards
 
 			// Swap from tokenA to tokenB and adjust the zapAmounts
 			zapAmountA -= swapAmountA;
-			zapAmountB += pools.depositSwapWithdraw( tokenA, tokenB, swapAmountA, 0, block.timestamp, poolsConfig.isWhitelisted(poolID) );
+			zapAmountB += pools.depositSwapWithdraw( tokenA, tokenB, swapAmountA, 0, block.timestamp );
 			}
 
 		// tokenB is in excess so swap some of it to tokenA?
@@ -70,18 +71,18 @@ contract Liquidity is ILiquidity, StakingRewards
 
 			// Swap from tokenB to tokenA and adjust the zapAmounts
 			zapAmountB -= swapAmountB;
-			zapAmountA += pools.depositSwapWithdraw( tokenB, tokenA, swapAmountB, 0, block.timestamp, poolsConfig.isWhitelisted(poolID) );
+			zapAmountA += pools.depositSwapWithdraw( tokenB, tokenA, swapAmountB, 0, block.timestamp );
 			}
 
 		return (zapAmountA, zapAmountB);
 		}
 
 
-	// Add a certain amount of liquidity to the specified pool and increase the user's liqudiity share for that pool so that they can receive future rewards.
-	// With zapping, all the tokens specified by the user are added to the liqudiity pool regardless of their ratio.
+	// Add a certain amount of liquidity to the specified pool and increase the user's liquidity share for that pool so that they can receive future rewards.
+	// With zapping, all the tokens specified by the user are added to the liquidity pool regardless of their ratio.
 	// If one of the tokens has excess in regards to the reserves token ratio, then some of it is first swapped for the other before the liquidity is added. (See PoolMath.sol for details)
-	// bypassZapping allows this zapping to be avoided - which results in a simple addLiquidity call.
-	function _depositLiquidityAndIncreaseShare( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, bool useZapping ) internal nonReentrant returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
+	// Requires exchange access for the user.
+	function _depositLiquidityAndIncreaseShare( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, bool useZapping ) internal returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
 		{
 		require( exchangeConfig.walletHasAccess(msg.sender), "Sender does not have exchange access" );
 
@@ -104,11 +105,11 @@ contract Liquidity is ILiquidity, StakingRewards
 		// Deposit the specified liquidity into the Pools contract
 		// The added liquidity will be owned by this contract. (external call to Pools contract)
 		bytes32 poolID = PoolUtils._poolIDOnly( tokenA, tokenB );
-		(addedAmountA, addedAmountB, addedLiquidity) = pools.addLiquidity( tokenA, tokenB, maxAmountA, maxAmountB, minLiquidityReceived, totalShareForPool(poolID));
+		(addedAmountA, addedAmountB, addedLiquidity) = pools.addLiquidity( tokenA, tokenB, maxAmountA, maxAmountB, minLiquidityReceived, totalShares[poolID]);
 
 		// Increase the user's liquidity share by the amount of addedLiquidity.
 		// Cooldown is specified to prevent reward hunting (ie - quickly depositing and withdrawing large amounts of liquidity to snipe rewards as they arrive)
-		// Here the pool will be confirmed as whitelisted as well.
+		// _increaseUserShare confirms the pool as whitelisted as well.
 		_increaseUserShare( msg.sender, poolID, addedLiquidity, true );
 
 		// If any of the user's tokens were not used, then send them back
@@ -117,14 +118,38 @@ contract Liquidity is ILiquidity, StakingRewards
 
 		if ( tokenB.balanceOf( address(this) ) > startingBalanceB )
 			tokenB.safeTransfer( msg.sender, tokenB.balanceOf( address(this) ) - startingBalanceB );
+
+		emit LiquidityDeposited(msg.sender, address(tokenA), address(tokenB), addedAmountA, addedAmountB, addedLiquidity);
 		}
 
 
-	// Public wrapper for adding liquidity which prevents the direct deposit to the collateral pool.
-	// CollateralAndLiquidity.sol.depositCollateralAndIncreaseShare bypasses this and calls _depositLiquidityAndIncreaseShare directly.
-	// Requires exchange access for the sending wallet
-	// _depositLiquidityAndIncreaseShare is nonReentrant
-	function depositLiquidityAndIncreaseShare( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 deadline, bool useZapping ) public ensureNotExpired(deadline) returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
+	// Withdraw specified liquidity, decrease the user's liquidity share and claim any pending rewards.
+    function _withdrawLiquidityAndClaim( IERC20 tokenA, IERC20 tokenB, uint256 liquidityToWithdraw, uint256 minReclaimedA, uint256 minReclaimedB ) internal returns (uint256 reclaimedA, uint256 reclaimedB)
+		{
+		bytes32 poolID = PoolUtils._poolIDOnly( tokenA, tokenB );
+		require( userShareForPool(msg.sender, poolID) >= liquidityToWithdraw, "Cannot withdraw more than existing user share" );
+
+		// Remove the amount of liquidity specified by the user.
+		// The liquidity in the pool is currently owned by this contract. (external call)
+		(reclaimedA, reclaimedB) = pools.removeLiquidity( tokenA, tokenB, liquidityToWithdraw, minReclaimedA, minReclaimedB, totalShares[poolID] );
+
+		// Transfer the reclaimed tokens to the user
+		tokenA.safeTransfer( msg.sender, reclaimedA );
+		tokenB.safeTransfer( msg.sender, reclaimedB );
+
+		// Reduce the user's liquidity share for the specified pool so that they receive less rewards.
+		// Cooldown is specified to prevent reward hunting (ie - quickly depositing and withdrawing large amounts of liquidity to snipe rewards)
+		// This call will send any pending SALT rewards to msg.sender as well.
+		_decreaseUserShare( msg.sender, poolID, liquidityToWithdraw, true );
+
+		emit LiquidityWithdrawn(msg.sender, address(tokenA), address(tokenB), reclaimedA, reclaimedB, liquidityToWithdraw);
+		}
+
+
+	// Public wrapper for adding liquidity which prevents direct deposits to the collateral pool.
+	// CollateralAndLiquidity::depositCollateralAndIncreaseShare bypasses this and calls _depositLiquidityAndIncreaseShare directly.
+	// Requires exchange access for the sending wallet.
+	function depositLiquidityAndIncreaseShare( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 deadline, bool useZapping ) external nonReentrant ensureNotExpired(deadline) returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
 		{
 		require( PoolUtils._poolIDOnly( tokenA, tokenB ) != collateralPoolID, "Stablecoin collateral cannot be deposited via Liquidity.depositLiquidityAndIncreaseShare" );
 
@@ -132,37 +157,10 @@ contract Liquidity is ILiquidity, StakingRewards
 		}
 
 
-	// Withdraw specified liquidity, decrease the user's liquidity share and claim any pending rewards.
-	// The DAO itself is not allowed to withdraw collateralAndLiquidity.
-    function _withdrawLiquidityAndClaim( IERC20 tokenA, IERC20 tokenB, uint256 liquidityToWithdraw, uint256 minReclaimedA, uint256 minReclaimedB ) internal nonReentrant returns (uint256 reclaimedA, uint256 reclaimedB)
-		{
-		// Make sure that the DAO isn't trying to remove liquidity
-		require( msg.sender != address(exchangeConfig.dao()), "DAO is not allowed to withdraw liquidity" );
-
-		bytes32 poolID = PoolUtils._poolIDOnly( tokenA, tokenB );
-		require( userShareForPool(msg.sender, poolID) >= liquidityToWithdraw, "Cannot withdraw more than existing user share" );
-
-		// Reduce the user's liqudiity share for the specified pool so that they receive less rewards.
-		// Cooldown is specified to prevent reward hunting (ie - quickly depositing and withdrawing large amounts of liquidity to snipe rewards)
-		// This call will send any pending SALT rewards to msg.sender as well.
-
-		// Remove the amount of liquidity specified by the user.
-		// The liquidity in the pool is currently owned by this contract. (external call)
-		(reclaimedA, reclaimedB) = pools.removeLiquidity( tokenA, tokenB, liquidityToWithdraw, minReclaimedA, minReclaimedB, totalShareForPool(poolID) );
-
-		// Transfer the reclaimed tokens to the user
-		tokenA.safeTransfer( msg.sender, reclaimedA );
-		tokenB.safeTransfer( msg.sender, reclaimedB );
-
-		// Note: _decreaseUserShare checks to make sure that the user has the specified liquidity share.
-		_decreaseUserShare( msg.sender, poolID, liquidityToWithdraw, true );
-		}
-
-
 	// Public wrapper for withdrawing liquidity which prevents the direct withdrawal from the collateral pool.
 	// CollateralAndLiquidity.withdrawCollateralAndClaim bypasses this and calls _withdrawLiquidityAndClaim directly.
-	// _withdrawLiquidityAndClaim is nonReentrant
-    function withdrawLiquidityAndClaim( IERC20 tokenA, IERC20 tokenB, uint256 liquidityToWithdraw, uint256 minReclaimedA, uint256 minReclaimedB, uint256 deadline ) public ensureNotExpired(deadline) returns (uint256 reclaimedA, uint256 reclaimedB)
+	// No exchange access required for withdrawals.
+    function withdrawLiquidityAndClaim( IERC20 tokenA, IERC20 tokenB, uint256 liquidityToWithdraw, uint256 minReclaimedA, uint256 minReclaimedB, uint256 deadline ) external nonReentrant ensureNotExpired(deadline) returns (uint256 reclaimedA, uint256 reclaimedB)
     	{
 		require( PoolUtils._poolIDOnly( tokenA, tokenB ) != collateralPoolID, "Stablecoin collateral cannot be withdrawn via Liquidity.withdrawLiquidityAndClaim" );
 
