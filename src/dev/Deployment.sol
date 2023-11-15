@@ -11,7 +11,6 @@ import "../price_feed/interfaces/IPriceAggregator.sol";
 import "../staking/interfaces/IStakingConfig.sol";
 import "../staking/interfaces/IStaking.sol";
 import "../staking/Staking.sol";
-import "../staking/interfaces/ILiquidity.sol";
 import "../rewards/interfaces/IRewardsEmitter.sol";
 import "../rewards/Emissions.sol";
 import "../dao/interfaces/IDAOConfig.sol";
@@ -36,7 +35,12 @@ import "../rewards/RewardsEmitter.sol";
 import "../root_tests/TestERC20.sol";
 import "../launch/Airdrop.sol";
 import "../launch/BootstrapBallot.sol";
-
+import "../stable/interfaces/ILiquidizer.sol";
+import "../stable/Liquidizer.sol";
+import "../stable/StableConfig.sol";
+import "../Salt.sol";
+import "../ManagedWallet.sol";
+import "../dao/DAOConfig.sol";
 
 // Stores the contract addresses for the various parts of the exchange and allows the unit tests to be run on them.
 
@@ -56,7 +60,7 @@ contract Deployment is Test
 	IForcedPriceFeed public forcedPriceFeed = IForcedPriceFeed(address(0x3B0Eb37f26b502bAe83df4eCc54afBDfb90B5d3a));
 
 	// The DAO contract can provide us with all other contract addresses in the protocol
-	IDAO public dao = IDAO(address(0x4C53649080ABf9ACC7F10eD879dF053085b8D010));
+	IDAO public dao = IDAO(address(0xc6a8a03BC3D3da6F3a482db313599594E9aae53c));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));
@@ -66,7 +70,10 @@ contract Deployment is Test
 	IDAOConfig public daoConfig = IDAOConfig(getContract(address(dao), "daoConfig()" ));
 	IPriceAggregator public priceAggregator = IPriceAggregator(getContract(address(dao), "priceAggregator()" ));
 
-	address public teamWallet = exchangeConfig.teamWallet();
+	IManagedWallet public managedTeamWallet = exchangeConfig.managedTeamWallet();
+	address public teamWallet = managedTeamWallet.mainWallet();
+	address public teamConfirmationWallet = managedTeamWallet.confirmationWallet();
+
 	IUpkeep public upkeep = exchangeConfig.upkeep();
 	IEmissions public emissions = IEmissions(getContract(address(upkeep), "emissions()" ));
 
@@ -76,17 +83,17 @@ contract Deployment is Test
     IERC20 public dai = exchangeConfig.dai();
     USDS public usds = USDS(address(exchangeConfig.usds()));
 
-	IRewardsEmitter public stakingRewardsEmitter = IRewardsEmitter(getContract(address(exchangeConfig), "stakingRewardsEmitter()" ));
-	IRewardsEmitter public liquidityRewardsEmitter = IRewardsEmitter(getContract(address(exchangeConfig), "liquidityRewardsEmitter()" ));
+	ISaltRewards public saltRewards = ISaltRewards(getContract(address(upkeep), "saltRewards()" ));
+	IRewardsEmitter public stakingRewardsEmitter = IRewardsEmitter(getContract(address(saltRewards), "stakingRewardsEmitter()" ));
+	IRewardsEmitter public liquidityRewardsEmitter = IRewardsEmitter(getContract(address(saltRewards), "liquidityRewardsEmitter()" ));
 
 	IStaking public staking = IStaking(getContract(address(stakingRewardsEmitter), "stakingRewards()" ));
 	ICollateralAndLiquidity public collateralAndLiquidity = ICollateralAndLiquidity(getContract(address(usds), "collateralAndLiquidity()" ));
-
+	ILiquidizer  public liquidizer = ILiquidizer( getContract(address(collateralAndLiquidity), "liquidizer()" ));
 	IPools public pools = IPools(getContract(address(collateralAndLiquidity), "pools()" ));
 
 	IProposals public proposals = IProposals(getContract(address(dao), "proposals()" ));
 
-	ISaltRewards public saltRewards = ISaltRewards(getContract(address(upkeep), "saltRewards()" ));
 	IAccessManager public accessManager = exchangeConfig.accessManager();
 
 	VestingWallet public daoVestingWallet = VestingWallet(payable(exchangeConfig.daoVestingWallet()));
@@ -95,6 +102,24 @@ contract Deployment is Test
 	IInitialDistribution public initialDistribution = exchangeConfig.initialDistribution();
 	IAirdrop public airdrop = IAirdrop(getContract(address(initialDistribution), "airdrop()" ));
 	IBootstrapBallot public bootstrapBallot = IBootstrapBallot(getContract(address(initialDistribution), "bootstrapBallot()" ));
+
+	// Access signatures
+	bytes aliceAccessSignature = hex"a34525874e8d962ca56353ee341719744ce31cb7558e2fbcfe25edb82924bf93460bf47d787dd6ca17382424919cdfa2a525f762ad8eac7292f56be6053c461d1b";
+	bytes bobAccessSignature = hex"8df147d8434c21eec85c39a7372de1c49c4d9a031089d74034aa6baeed9c5b9e0d8234d966956bc92cba35e9e527f97ddd952e3125bf48da306fdc800349480f1b";
+	bytes charlieAccessSignature = hex"8e2f4b7ee253a53ae9167de5182f612cd3b3b76566c34a448d6544d1bbeda6c574e5c98da44df387766a6c936e041d813ced8af26cff2ead588d13466d3217951c";
+	bytes deployerAccessSignature = hex"94b8d45a45a9e6c48a1f110a1371c6f36e8638b8faaa0785af1254c52e51db656c4367ef191327b59334a228db8cbaaa892d4ee7c332fcd59378082a640190211c";
+	bytes defaultAccessSignature = hex"c05e8d92e0cc66ddce0c88a1b49335866a2af521add73bbf904cd76db9a7934a0ee49f6f60f4ba90cf8fe44564b8fc3a1314625639518d3ba82317dc3d8363f11c";
+	bytes teamAccessSignature = hex"a6980de89b6a0696affae222317f5317438b5c3823ce18cace5d9078bbf7b17c45a71cc823149a1c478d6503ed869dd4d6f6c33acd6d08a9518e12a7f82e781b1b";
+	bytes oneTwoThreeFourAccessSignature = hex"1c4f137653c4d06e5e0230b4e741667037b44bc944d9165884f914163a0da6d6480705db5584bbbf28e42e783ec2cbfbb4e3602c4f7eb55cce68184b114818121c";
+
+	bytes aliceAccessSignature1 = hex"4fbe3e8f1daba07f674f831ccfae103f2b172b547f51826e1b4673962d8ca2e14170e1fb2793ca5ef12a067db6a99ae1891cb8e1e7f7c70872bb442ce6df6b051c";
+	bytes bobAccessSignature1 = hex"6cd08533c08306735cb435c8b3ef43f3307b8083f679e0b60728e3a8de243e7f3af8b5e81fd156a726702a5c9e232fb027420b2ccdb848a1d7fd0ede4ae1e47c1c";
+	bytes charlieAccessSignature1 = hex"4c0901d584be8b570a8a03a2c4bdd60ac3339c4bef4b27d9bc292d1eaeaed02b30b65c69f42ec2404dd420c1bf9cb16bf44875258e385c004dd67eecc726e8811b";
+
+	// Voting signatures
+	bytes aliceVotingSignature = hex"291f777bcf554105b4067f14d2bb3da27f778af49fe2f008e718328a91cae2f81eceb0b4ed1d65c546bf0603c6c35567a69c8cb371cf4880a2964df8f6d1c0601c";
+	bytes bobVotingSignature = hex"a08a0612b60d9c911d357664de578cd8e17c5f0ee10b82b829e35a999fa3f5e11a33e5f3d06c6b2b6f3ef3066cee3b47285a57cfc85f2c3e166f831a285aebcd1c";
+	bytes charlieVotingSignature = hex"7fec06ab9da26790e4520b4476b7043ef8444178ec10cdf37942a229290ec70d01c7dced0a6e22080239df6fdc3983f515f52d06a32c03d5d6a0077f31fd9f841c";
 
 
 	function getContract( address _contract, string memory _functionName ) public returns (address result) {
@@ -130,80 +155,83 @@ contract Deployment is Test
 		{
 //		console.log( "DEFAULT: ", address(this) );
 
-		// Transfer the salt from the original initialDistribution to the DEPLOYER
-		vm.prank(address(initialDistribution));
-		salt.transfer(DEPLOYER, 100000000 ether);
+		vm.startPrank(DEPLOYER);
+		dai = new TestERC20("DAI", 18);
+		weth = new TestERC20("WETH", 18);
+		wbtc = new TestERC20("WBTC", 8);
+		salt = new Salt();
+		vm.stopPrank();
 
 		vm.startPrank(DEPLOYER);
 
+		daoConfig = new DAOConfig();
 		poolsConfig = new PoolsConfig();
-		usds = new USDS(wbtc, weth);
+		usds = new USDS();
 
-		exchangeConfig = new ExchangeConfig(salt, wbtc, weth, dai, usds, teamWallet );
+		managedTeamWallet = new ManagedWallet(teamWallet, teamConfirmationWallet);
+		exchangeConfig = new ExchangeConfig(salt, wbtc, weth, dai, usds, managedTeamWallet );
 
 		priceAggregator = new PriceAggregator();
 		priceAggregator.setInitialFeeds( IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)) );
 
+		liquidizer = new Liquidizer(exchangeConfig, poolsConfig);
+
 		pools = new Pools(exchangeConfig, poolsConfig);
 		staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
-		collateralAndLiquidity = new CollateralAndLiquidity(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
+		collateralAndLiquidity = new CollateralAndLiquidity(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator, liquidizer);
 
 		stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig, false );
 		liquidityRewardsEmitter = new RewardsEmitter( collateralAndLiquidity, exchangeConfig, poolsConfig, rewardsConfig, true );
 
-		saltRewards = new SaltRewards(exchangeConfig, rewardsConfig);
+		saltRewards = new SaltRewards(stakingRewardsEmitter, liquidityRewardsEmitter, exchangeConfig, rewardsConfig);
 		emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
-		poolsConfig.whitelistPool(  salt, wbtc);
-		poolsConfig.whitelistPool(  salt, weth);
-		poolsConfig.whitelistPool(  salt, usds);
-		poolsConfig.whitelistPool(  wbtc, usds);
-		poolsConfig.whitelistPool(  weth, usds);
-		poolsConfig.whitelistPool(  wbtc, dai);
-		poolsConfig.whitelistPool(  weth, dai);
-		poolsConfig.whitelistPool(  usds, dai);
-		poolsConfig.whitelistPool(  wbtc, weth);
+		poolsConfig.whitelistPool( salt, wbtc);
+		poolsConfig.whitelistPool( salt, weth);
+		poolsConfig.whitelistPool( salt, usds);
+		poolsConfig.whitelistPool( wbtc, usds);
+		poolsConfig.whitelistPool( weth, usds);
+		poolsConfig.whitelistPool( wbtc, dai);
+		poolsConfig.whitelistPool( weth, dai);
+		poolsConfig.whitelistPool( usds, dai);
+		poolsConfig.whitelistPool( wbtc, weth);
 
 		proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 
 		address oldDAO = address(dao);
-		dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidityRewardsEmitter);
+		dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidityRewardsEmitter, collateralAndLiquidity);
 
 		airdrop = new Airdrop(exchangeConfig, staking);
 
 		accessManager = new AccessManager(dao);
 
-		exchangeConfig.setAccessManager( accessManager );
-		exchangeConfig.setStakingRewardsEmitter( stakingRewardsEmitter);
-		exchangeConfig.setLiquidityRewardsEmitter( liquidityRewardsEmitter);
-		exchangeConfig.setDAO( dao );
-		exchangeConfig.setAirdrop(airdrop);
+		liquidizer.setContracts(collateralAndLiquidity, pools, dao);
 
-		upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, collateralAndLiquidity, emissions);
-		exchangeConfig.setUpkeep(upkeep);
+		upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, stableConfig, priceAggregator, saltRewards, collateralAndLiquidity, emissions, dao);
 
-		daoVestingWallet = new VestingWallet( address(dao), uint64(block.timestamp + 60 * 60 * 24 * 7), 60 * 60 * 24 * 365 * 10 );
-		teamVestingWallet = new VestingWallet( address(upkeep), uint64(block.timestamp + 60 * 60 * 24 * 7), 60 * 60 * 24 * 365 * 10 );
-		exchangeConfig.setVestingWallets(address(teamVestingWallet), address(daoVestingWallet));
+		daoVestingWallet = new VestingWallet( address(dao), uint64(block.timestamp), 60 * 60 * 24 * 365 * 10 );
+		teamVestingWallet = new VestingWallet( address(upkeep), uint64(block.timestamp), 60 * 60 * 24 * 365 * 10 );
 
-		bootstrapBallot = new BootstrapBallot(exchangeConfig, airdrop, 60 * 60 * 24 * 3 );
+		bootstrapBallot = new BootstrapBallot(exchangeConfig, airdrop, 60 * 60 * 24 * 5 );
 		initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, collateralAndLiquidity);
-		exchangeConfig.setInitialDistribution(initialDistribution);
 
 		pools.setContracts(dao, collateralAndLiquidity);
-		usds.setContracts(collateralAndLiquidity, pools, exchangeConfig );
+		usds.setCollateralAndLiquidity(collateralAndLiquidity);
+
+		exchangeConfig.setContracts(dao, upkeep, initialDistribution, airdrop, teamVestingWallet, daoVestingWallet );
+		exchangeConfig.setAccessManager(accessManager);
 
 		// Transfer ownership of the newly created config files to the DAO
 		Ownable(address(exchangeConfig)).transferOwnership( address(dao) );
 		Ownable(address(poolsConfig)).transferOwnership( address(dao) );
 		Ownable(address(priceAggregator)).transferOwnership(address(dao));
+		Ownable(address(daoConfig)).transferOwnership( address(dao) );
 		vm.stopPrank();
 
 		vm.startPrank(address(oldDAO));
 		Ownable(address(stakingConfig)).transferOwnership( address(dao) );
 		Ownable(address(rewardsConfig)).transferOwnership( address(dao) );
 		Ownable(address(stableConfig)).transferOwnership( address(dao) );
-		Ownable(address(daoConfig)).transferOwnership( address(dao) );
 		vm.stopPrank();
 
 		// Move the SALT to the new initialDistribution contract
@@ -214,7 +242,7 @@ contract Deployment is Test
 
 	function grantAccessAlice() public
 		{
-		bytes memory sig = abi.encodePacked(hex"4f69e68f57bbd5d369c62eaf3e2bf4ab8f34ba5c0b3a782303e71664149fef4d0b7c9426a932c9c7f5b8e1186e193ebacc929651ad95130de9f1b306e5ef913e1c");
+		bytes memory sig = abi.encodePacked(aliceAccessSignature);
 
 		vm.prank( address(0x1111) );
 		accessManager.grantAccess(sig);
@@ -223,7 +251,7 @@ contract Deployment is Test
 
 	function grantAccessBob() public
 		{
-		bytes memory sig = abi.encodePacked(hex"9692bd8568d725621e169001b02c11bc3ef89bb195bc04758b16db4e02422b423400ce4729dd2896998f5e4fcd500704859039d642ab2818fc3ba7d69df97b3b1b");
+		bytes memory sig = abi.encodePacked(bobAccessSignature);
 
 		vm.prank( address(0x2222) );
 		accessManager.grantAccess(sig);
@@ -232,7 +260,7 @@ contract Deployment is Test
 
 	function grantAccessCharlie() public
 		{
-		bytes memory sig = abi.encodePacked(hex"4440eb129ab41dd8cf12baa0366ce7c54bc10d185450830745d7eb6ee3a680231edd64db7c2df80b5988ef2880274f91b1df2a24a77d8b9176325ee13091e3741c");
+		bytes memory sig = abi.encodePacked(charlieAccessSignature);
 
 		vm.prank( address(0x3333) );
 		accessManager.grantAccess(sig);
@@ -241,7 +269,7 @@ contract Deployment is Test
 
 	function grantAccessDeployer() public
 		{
-		bytes memory sig = abi.encodePacked(hex"7b562514293d56c3cf7012eb63b771846d6a44f9195c0b94d2d340fae9e31e82366ebec63b0e52f8a385fe754f88150ae1defc979351cda7bd45123a0b1445481c");
+		bytes memory sig = abi.encodePacked(deployerAccessSignature);
 
 		vm.prank( 0x73107dA86708c2DAd0D91388fB057EeE3E2581aF );
 		accessManager.grantAccess(sig);
@@ -250,7 +278,7 @@ contract Deployment is Test
 
 	function grantAccessDefault() public
 		{
-		bytes memory sig = abi.encodePacked(hex"a32e7c2d1b0d660c7051f2586d5370dc2bb034cf6cfbec76a0126077758189b328c3312eaf1b0ef03b854819c82c239d7eca596eb5e35cd29a5de78855c53c301b");
+		bytes memory sig = abi.encodePacked(defaultAccessSignature);
 
 		vm.prank( 0x7FA9385bE102ac3EAc297483Dd6233D62b3e1496 );
 		accessManager.grantAccess(sig);
@@ -259,7 +287,7 @@ contract Deployment is Test
 
 	function grantAccessTeam() public
 		{
-		bytes memory sig = abi.encodePacked(hex"afeb237b3ae4c6ac8169fc21d78ba4a69249311b79d4b63c644f5830cb19053a553b8c8855709216516704d9bd35679e77807989c73803a2a994b60de13385801c");
+		bytes memory sig = abi.encodePacked(teamAccessSignature);
 
 		vm.prank( address(0x123456789 ));
 		accessManager.grantAccess(sig);
@@ -309,12 +337,12 @@ contract Deployment is Test
 		uint256[] memory regionalVotes = new uint256[](5);
 
 
-		bytes memory sig = abi.encodePacked(hex"53d24a49fc79e56ebcfc268dac964bb50beabe79024eda84158c5826428092fc3122b2dcc20e23109a3e44a7356bacedcda41214562801eebdf7695ec08c80b31b");
+		bytes memory sig = abi.encodePacked(aliceVotingSignature);
 		vm.startPrank(alice);
 		bootstrapBallot.vote(true, regionalVotes, sig);
 		vm.stopPrank();
 
-		sig = abi.encodePacked(hex"98ea2c8a10e4fc75b13147210b54aaaf5d45922fa576ca9968db642afa6241b100bcb8139fd7f4fce46b028a68941769f70b3085375c9ae22d69d80fc35f90551c");
+		sig = abi.encodePacked(bobVotingSignature);
 		vm.startPrank(bob);
 		bootstrapBallot.vote(true, regionalVotes, sig);
 		vm.stopPrank();
