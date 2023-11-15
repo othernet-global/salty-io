@@ -3,26 +3,7 @@ pragma solidity =0.8.22;
 
 import "forge-std/Test.sol";
 import "../dev/Deployment.sol";
-import "../root_tests/TestERC20.sol";
-import "../pools/PoolUtils.sol";
-import "../Upkeep.sol";
-import "../pools/PoolsConfig.sol";
-import "../price_feed/PriceAggregator.sol";
-import "../ExchangeConfig.sol";
-import "../staking/Liquidity.sol";
-import "../stable/CollateralAndLiquidity.sol";
-import "../pools/Pools.sol";
-import "../staking/Staking.sol";
-import "../rewards/RewardsEmitter.sol";
-import "../dao/Proposals.sol";
-import "../dao/DAO.sol";
-import "../AccessManager.sol";
-import "../launch/InitialDistribution.sol";
-import "../dao/DAOConfig.sol";
-import "./ITestUpkeep.sol";
 import "./UpkeepFlawed.sol";
-import "./IUpkeepFlawed.sol";
-import "../launch/tests/TestBootstrapBallot.sol";
 
 
 contract TestUpkeepFlawed is Deployment
@@ -32,92 +13,161 @@ contract TestUpkeepFlawed is Deployment
 
 	function _initFlawed( uint256 stepToRevert ) internal
 		{
-		// Transfer the salt from the original initialDistribution to the DEPLOYER
-		vm.prank(address(initialDistribution));
-		salt.transfer(DEPLOYER, 100000000 ether);
+		vm.startPrank(DEPLOYER);
+		dai = new TestERC20("DAI", 18);
+		weth = new TestERC20("WETH", 18);
+		wbtc = new TestERC20("WBTC", 8);
+		salt = new Salt();
+		vm.stopPrank();
 
 		vm.startPrank(DEPLOYER);
 
+		daoConfig = new DAOConfig();
 		poolsConfig = new PoolsConfig();
-		usds = new USDS(wbtc, weth);
+		usds = new USDS();
 
-		exchangeConfig = new ExchangeConfig(salt, wbtc, weth, dai, usds, teamWallet );
+		managedTeamWallet = new ManagedWallet(teamWallet, teamConfirmationWallet);
+		exchangeConfig = new ExchangeConfig(salt, wbtc, weth, dai, usds, managedTeamWallet );
 
 		priceAggregator = new PriceAggregator();
 		priceAggregator.setInitialFeeds( IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)) );
 
+		liquidizer = new Liquidizer(exchangeConfig, poolsConfig);
+
 		pools = new Pools(exchangeConfig, poolsConfig);
 		staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
-		collateralAndLiquidity = new CollateralAndLiquidity(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
+		collateralAndLiquidity = new CollateralAndLiquidity(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator, liquidizer);
 
 		stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig, false );
 		liquidityRewardsEmitter = new RewardsEmitter( collateralAndLiquidity, exchangeConfig, poolsConfig, rewardsConfig, true );
 
-		saltRewards = new SaltRewards(exchangeConfig, rewardsConfig);
+		saltRewards = new SaltRewards(stakingRewardsEmitter, liquidityRewardsEmitter, exchangeConfig, rewardsConfig);
 		emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
-		poolsConfig.whitelistPool(  salt, wbtc);
-		poolsConfig.whitelistPool(  salt, weth);
-		poolsConfig.whitelistPool(  salt, usds);
-		poolsConfig.whitelistPool(  wbtc, usds);
-		poolsConfig.whitelistPool(  weth, usds);
-		poolsConfig.whitelistPool(  wbtc, dai);
-		poolsConfig.whitelistPool(  weth, dai);
-		poolsConfig.whitelistPool(  usds, dai);
-		poolsConfig.whitelistPool(  wbtc, weth);
+		poolsConfig.whitelistPool( salt, wbtc);
+		poolsConfig.whitelistPool( salt, weth);
+		poolsConfig.whitelistPool( salt, usds);
+		poolsConfig.whitelistPool( wbtc, usds);
+		poolsConfig.whitelistPool( weth, usds);
+		poolsConfig.whitelistPool( wbtc, dai);
+		poolsConfig.whitelistPool( weth, dai);
+		poolsConfig.whitelistPool( usds, dai);
+		poolsConfig.whitelistPool( wbtc, weth);
 
 		proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 
 		address oldDAO = address(dao);
-		dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidityRewardsEmitter);
+		dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidityRewardsEmitter, collateralAndLiquidity);
 
 		airdrop = new Airdrop(exchangeConfig, staking);
 
 		accessManager = new AccessManager(dao);
 
-		exchangeConfig.setAccessManager( accessManager );
-		exchangeConfig.setStakingRewardsEmitter( stakingRewardsEmitter);
-		exchangeConfig.setLiquidityRewardsEmitter( liquidityRewardsEmitter);
-		exchangeConfig.setDAO( dao );
-		exchangeConfig.setAirdrop(airdrop);
+		liquidizer.setContracts(collateralAndLiquidity, pools, dao);
 
-		upkeep = new UpkeepFlawed(pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, collateralAndLiquidity, emissions, stepToRevert);
-		exchangeConfig.setUpkeep(upkeep);
+		upkeep = new UpkeepFlawed(pools, exchangeConfig, poolsConfig, daoConfig, stableConfig, priceAggregator, saltRewards, collateralAndLiquidity, emissions, dao, stepToRevert);
 
-		daoVestingWallet = new VestingWallet( address(dao), uint64(block.timestamp + 60 * 60 * 24 * 7), 60 * 60 * 24 * 365 * 10 );
-		teamVestingWallet = new VestingWallet( address(upkeep), uint64(block.timestamp + 60 * 60 * 24 * 7), 60 * 60 * 24 * 365 * 10 );
-		exchangeConfig.setVestingWallets(address(teamVestingWallet), address(daoVestingWallet));
+		daoVestingWallet = new VestingWallet( address(dao), uint64(block.timestamp), 60 * 60 * 24 * 365 * 10 );
+		teamVestingWallet = new VestingWallet( address(upkeep), uint64(block.timestamp), 60 * 60 * 24 * 365 * 10 );
 
-		bootstrapBallot = new TestBootstrapBallot(exchangeConfig, airdrop, 60 * 60 * 24 * 3 );
+		bootstrapBallot = new BootstrapBallot(exchangeConfig, airdrop, 60 * 60 * 24 * 5 );
 		initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, collateralAndLiquidity);
-		exchangeConfig.setInitialDistribution(initialDistribution);
 
 		pools.setContracts(dao, collateralAndLiquidity);
+		usds.setCollateralAndLiquidity(collateralAndLiquidity);
 
-
-		usds.setContracts(collateralAndLiquidity, pools, exchangeConfig );
+		exchangeConfig.setContracts(dao, upkeep, initialDistribution, airdrop, teamVestingWallet, daoVestingWallet );
+		exchangeConfig.setAccessManager(accessManager);
 
 		// Transfer ownership of the newly created config files to the DAO
 		Ownable(address(exchangeConfig)).transferOwnership( address(dao) );
 		Ownable(address(poolsConfig)).transferOwnership( address(dao) );
 		Ownable(address(priceAggregator)).transferOwnership(address(dao));
+		Ownable(address(daoConfig)).transferOwnership( address(dao) );
 		vm.stopPrank();
 
 		vm.startPrank(address(oldDAO));
 		Ownable(address(stakingConfig)).transferOwnership( address(dao) );
 		Ownable(address(rewardsConfig)).transferOwnership( address(dao) );
 		Ownable(address(stableConfig)).transferOwnership( address(dao) );
-		Ownable(address(daoConfig)).transferOwnership( address(dao) );
 		vm.stopPrank();
 
 		// Move the SALT to the new initialDistribution contract
 		vm.prank(DEPLOYER);
 		salt.transfer(address(initialDistribution), 100000000 ether);
 
-		whitelistAlice();
+		finalizeBootstrap();
+
+		grantAccessAlice();
+		grantAccessBob();
+		grantAccessCharlie();
 		grantAccessDeployer();
 		grantAccessDefault();
-		grantAccessTeam();
+		}
+
+
+	function _setupLiquidity() internal
+		{
+		vm.prank(address(collateralAndLiquidity));
+		usds.mintTo(DEPLOYER, 100000 ether );
+
+		vm.prank(address(teamVestingWallet));
+		salt.transfer(DEPLOYER, 100000 ether );
+
+		vm.startPrank(DEPLOYER);
+		weth.approve( address(collateralAndLiquidity), 300000 ether);
+		usds.approve( address(collateralAndLiquidity), 100000 ether);
+		dai.approve( address(collateralAndLiquidity), 100000 ether);
+		salt.approve( address(collateralAndLiquidity), 100000 ether);
+
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare(weth, usds, 100000 ether, 100000 ether, 0, block.timestamp, false);
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare(weth, dai, 100000 ether, 100000 ether, 0, block.timestamp, false);
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare(weth, salt, 100000 ether, 100000 ether, 0, block.timestamp, false);
+
+		vm.stopPrank();
+		}
+
+
+	function _swapToGenerateProfits() internal
+		{
+		vm.startPrank(DEPLOYER);
+		pools.depositSwapWithdraw(salt, weth, 1 ether, 0, block.timestamp);
+		pools.depositSwapWithdraw(salt, wbtc, 1 ether, 0, block.timestamp);
+		pools.depositSwapWithdraw(weth, wbtc, 1 ether, 0, block.timestamp);
+		vm.stopPrank();
+		}
+
+
+	function _generateArbitrageProfits( bool despositSaltUSDS ) internal
+		{
+		/// Pull some SALT from the daoVestingWallet
+    	vm.prank(address(daoVestingWallet));
+    	salt.transfer(DEPLOYER, 100000 ether);
+
+		// Mint some USDS
+		vm.prank(address(collateralAndLiquidity));
+		usds.mintTo(DEPLOYER, 1000 ether);
+
+		vm.startPrank(DEPLOYER);
+		salt.approve(address(collateralAndLiquidity), type(uint256).max);
+		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
+		weth.approve(address(collateralAndLiquidity), type(uint256).max);
+		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
+		weth.approve(address(collateralAndLiquidity), type(uint256).max);
+
+		if ( despositSaltUSDS )
+			collateralAndLiquidity.depositLiquidityAndIncreaseShare( salt, weth, 1000 ether, 1000 ether, 0, block.timestamp, false );
+
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( wbtc, salt, 1000 * 10**8, 1000 ether, 0, block.timestamp, false );
+		collateralAndLiquidity.depositCollateralAndIncreaseShare( 1000 * 10**8, 1000 ether, 0, block.timestamp, false );
+
+		salt.approve(address(pools), type(uint256).max);
+		wbtc.approve(address(pools), type(uint256).max);
+		weth.approve(address(pools), type(uint256).max);
+		vm.stopPrank();
+
+		// Place some sample trades to create arbitrage profits
+		_swapToGenerateProfits();
 		}
 
 
@@ -125,53 +175,18 @@ contract TestUpkeepFlawed is Deployment
 	function testRevertStep1() public
 		{
 		_initFlawed(1);
-		finalizeBootstrap();
+		_setupLiquidity();
+		_generateArbitrageProfits(false);
 
-		// Set an initial price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 10000 ether );
-		forcedPriceFeed.setETHPrice( 1000 ether );
-		vm.stopPrank();
+    	// Dummy WBTC and WETH to send to Liquidizer
+    	vm.prank(DEPLOYER);
+    	weth.transfer( address(liquidizer), 50 ether );
 
-		priceAggregator.performUpkeep();
-
-		assertEq( priceAggregator.getPriceBTC(), 10000 ether );
-		assertEq( priceAggregator.getPriceETH(), 1000 ether );
-
-		// Set a new price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 20000 ether );
-		forcedPriceFeed.setETHPrice( 2000 ether );
-		vm.stopPrank();
-
-
-    	// Dummy WBTC and WETH to send to USDS
-    	vm.startPrank(DEPLOYER);
-    	wbtc.transfer( address(usds), 5 ether );
-    	weth.transfer( address(usds), 50 ether );
-    	vm.stopPrank();
-
-    	// USDS to usds contract to mimic withdrawn counterswap trades
-    	vm.startPrank( address(collateralAndLiquidity));
-    	usds.mintTo( address(usds), 30 ether );
-    	usds.shouldBurnMoreUSDS( 20 ether );
-    	vm.stopPrank();
-
-		assertEq( usds.totalSupply(), 30 ether );
-
-
-    	// USDS deposited to counterswap to mimic completed counterswap trades
+    	// Indicate that some USDS should be burned
     	vm.prank( address(collateralAndLiquidity));
-    	usds.mintTo( address(usds), 30 ether );
+    	liquidizer.shouldBurnMoreUSDS( 40 ether);
 
-    	vm.startPrank(address(usds));
-    	usds.approve( address(pools), type(uint256).max );
-    	pools.depositTokenForCounterswap(Counterswap.WBTC_TO_USDS, usds, 15 ether);
-    	pools.depositTokenForCounterswap(Counterswap.WETH_TO_USDS, usds, 15 ether);
-		vm.stopPrank();
-
-
-    	// Arbitrage profits are deposited as WETH for the DAO
+    	// Mimic arbitrage profits deposited as WETH for the DAO
     	vm.prank(DEPLOYER);
     	weth.transfer(address(dao), 100 ether);
 
@@ -180,2861 +195,1576 @@ contract TestUpkeepFlawed is Deployment
     	pools.deposit(weth, 100 ether);
     	vm.stopPrank();
 
-		// Create some initial WBTC/WETH liquidity so that it can receive bootstrapping rewards
-		vm.startPrank(DEPLOYER);
-		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
-		weth.approve(address(collateralAndLiquidity), type(uint256).max);
-		collateralAndLiquidity.depositCollateralAndIncreaseShare(100 * 10**8, 1000 * 10**8, 0, block.timestamp, true);
-		vm.stopPrank();
-
-		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
-		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
-
 		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
 		assertEq( salt.balanceOf(address(staking)), 0 );
 
+		assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049050423279843 );
+
+		uint256 usdsSupply0 = usds.totalSupply();
 
 		// === Perform upkeep ===
 		address upkeepCaller = address(0x9999);
 
 		vm.prank(upkeepCaller);
-		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
+		UpkeepFlawed(address(upkeep)).performFlawedUpkeep();
 		// ==================
 
 
-		// Check Step 1. Update the prices of BTC and ETH in the PriceAggregator.
-//		assertEq( priceAggregator.getPriceBTC(), 20000 ether );
-//		assertEq( priceAggregator.getPriceETH(), 2000 ether );
-		assertEq( priceAggregator.getPriceBTC(), 10000 ether, "step1 A" );
-		assertEq( priceAggregator.getPriceETH(), 1000 ether, "step1 B" );
+		// [FAILED] Check 1. Swap tokens previously sent to the Liquidizer contract for USDS and burn specified amounts of USDS.
+		assertEq( usds.balanceOf( address(liquidizer) ), 0 );
 
-		// Check Step 2. Send WBTC and WETH from the USDS contract to the counterswap addresses (for conversion to USDS) and withdraw USDS from counterswap for burning.
-		assertEq( pools.depositedUserBalance( Counterswap.WBTC_TO_USDS, wbtc ), 5 ether, "step2 A" );
-		assertEq( pools.depositedUserBalance( Counterswap.WETH_TO_USDS, weth ), 59500000000000000000, "step2 B" );
-
-		// Check that USDS has been burned
-		assertEq( usds.totalSupply(), 40 ether, "step2 C" );
-
-		// Check Step 3. Withdraw the remaining USDS already counterswapped from WBTC and WETH (for later formation of SALT/USDS liquidity).
-		assertEq( usds.balanceOf(address(upkeep)), 30 ether, "step3 A" );
-
-		// Check Step 4. Have the DAO withdraw the WETH arbitrage profits from the Pools contract and send the withdrawn WETH to this contract.
-    	assertEq( pools.depositedUserBalance(address(dao), weth), 0 ether, "step4 A" );
-
-		// Check Step 5. Send a default 5% of the withdrawn WETH to the caller of performUpkeep().
-    	assertEq( weth.balanceOf(upkeepCaller), 5 ether, "step5 A" );
-
-		// Check Step 6. Send a default 10% (20% / 2 ) of the remaining WETH to counterswap for conversion to USDS (for later formation of SALT/USDS liquidity).
-		// Includes deposited WETH from step2 as well
-    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_USDS, weth), 59500000000000000000, "step6 A" );
-
-		// Check Step 7. Send all remaining WETH to counterswap for conversion to SALT (for later SALT/USDS POL formation and SaltRewards).
-    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_SALT, weth), 85500000000000000000, "step7 A" );
+		// [FAILED] 40 ether should have been burnt
+		assertEq( usdsSupply0 - usds.totalSupply(), 0 ether );
 
 
-		// Checking steps 8-9 skipped for now as no one has SALT as it hasn't been distributed yet
-
-		// Check Step 11. Send SALT Emissions to the stakingRewardsEmitter
-		// Check Step 12. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter and call clearProfitsForPools.
-		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
-
-		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
-		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
-
-		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(collateralAndLiquidity)), 49999999999999999999995, "step11-13 C" );
-
-		// Checking step 14 can be ignored for now as the DAO hasn't formed POL yet (as it didn't yet have SALT)
-
-		// Check Step 15. Send SALT from the DAO vesting wallet to the DAO (linear distribution of 25 million tokens over 10 years).
-    	assertEq( salt.balanceOf(address(dao)), uint256( 25 * 1000000 ether ) * 24 hours / (60 * 60 * 24 * 365 * 10), "step 15 A" );
-
-		// Check Step 16. Send SALT from the team vesting wallet to the team (linear distribution over 10 years).
-    	assertEq( salt.balanceOf(address(teamWallet)), uint256( 10 * 1000000 ether ) * 24 hours / (60 * 60 * 24 * 365 * 10), "step 16 A" );
+		// Check Step 2. Withdraw existing WETH arbitrage profits from the Pools contract and reward the caller of performUpkeep() with default 5% of the withdrawn amount.
+		// From the directly added 100 ether + arbitrage profits
+    	assertEq( weth.balanceOf(upkeepCaller), 5000049050423279843 );
 
 
-		// Have the team form some initial SALT/USDS liquidity
-		vm.prank(address(collateralAndLiquidity));
-		usds.mintTo(teamWallet, 1 ether);
+		// Check Step 3. Convert a default 5% of the remaining WETH to USDS/DAI Protocol Owned Liquidity.
 
-		vm.startPrank(teamWallet);
-		salt.approve(address(collateralAndLiquidity), 1 ether);
-		usds.approve(address(collateralAndLiquidity), 1 ether);
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare(salt, usds, 1 ether, 1 ether, 0, block.timestamp, true);
-		vm.stopPrank();
+		// Check that 5% of the remaining WETH (5% of 95 ether) has been converted to USDS/DAI
+		(uint256 reservesA, uint256 reservesB) = pools.getPoolReserves(usds, dai);
+		assertEq( reservesA, 2374966892934008368 ); // Close to 2.375 ether
+		assertEq( reservesB, 2374966892934008368 ); // Close to 2.375 ether
 
-		// Send some SALT from the teamWallet to mimic WETH to SALT counterswap
-		vm.prank(teamWallet);
-		salt.transfer(address(upkeep), 1 ether);
+		uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(usds, dai));
+		assertEq( daoLiquidity, 4749933785868016736 ); // Close to 4.75 ether
 
-//		vm.startPrank(address(upkeep));
-//		salt.approve(address(pools), type(uint256).max);
-//		pools.depositTokenForCounterswap(Counterswap.WETH_TO_SALT, salt, 1 ether);
-//		vm.stopPrank();
-//
-//    	assertEq( salt.balanceOf(address(upkeep)), 0 ether );
-//
-//		uint256 saltSupply = salt.totalSupply();
-//
-//		// =====Perform another performUpkeep
-//		vm.warp(block.timestamp + 1 days);
-//
-//		vm.prank(upkeepCaller);
-//		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-//		// =====
-//
-//
-//		// Check Step 8. Withdraw SALT from previous counterswaps.
-//		// This is used to form SALT/USDS POL and is sent to the DAO - so the balance here is zero
-//    	assertEq( salt.balanceOf(address(upkeep)), 0, "step 8 A" );
-//
-//		// Check Step 9. Send SALT and USDS (from steps 8 and 3) to the DAO and have it form SALT/USDS Protocol Owned Liquidity
-//		(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves(salt, usds);
-//		assertEq( reserve0, 31000000000000000000, "step 9 A" );
-//		assertEq( reserve1, 31000000000000000000, "step 9 B" );
-//
-//		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-//		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428571, "step 10 A" );
-//
-//		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
-//		uint256 saltBurned = saltSupply - salt.totalSupply();
-//
-//   		assertEq( saltBurned, 7462500000000000000000, "step 14 A" );
+
+		// Check Step 4. Convert a default 20% of the remaining WETH to SALT/USDS Protocol Owned Liquidity.
+
+		// Check that 20% of the remaining WETH (20% of 90.25 ether) has been converted to SALT/USDS
+		(reservesA, reservesB) = pools.getPoolReserves(salt, usds);
+		assertEq( reservesA, 9024453775958744234 ); // Close to 9.025 ether
+		assertEq( reservesB, 9023845464674444490 ); // Close to 9.025 ether - a little worse because some of the USDS reserve was also used for USDS/DAI POL
+
+		daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds));
+		assertEq( daoLiquidity, 18048299240633188724 ); // Close to 18.05 ether
+
+
+		// Check Step 5. Convert remaining WETH to SALT and sends it to SaltRewards.
+		// Check Step 6. Send SALT Emissions to the SaltRewards contract.
+		// Check Step 7. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter.
+		// Check Step 8. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
+
+		// Check that about 72.2 ether of WETH has been converted to SALT and sent to SaltRewards.
+		// Emissions also emit about 185715 SALT as 5 days have gone by since the deployment (delay for the bootstrap ballot to complete).
+		// This is due to Emissions holding 52 million SALT and emitting at a default rate of .50% / week.
+
+		// As there were profits, SaltRewards distributed the 185715 ether + 72.2 ether rewards
+		// 10% to SALT/USDS rewards, 45% to stakingRewardsEmitter and 45% to liquidityRewardsEmitter,
+		assertEq( salt.balanceOf(address(saltRewards)), 2 ); // should be basically empty now
+
+		// Additionally stakingRewardsEmitter started with 3 million bootstrapping rewards.
+		// liquidityRewardsEmitter started with 5 millions bootstrapping rewards, divided evenly amongst the 9 initial pools.
+
+		// Determine that rewards were sent correctly by the stakingRewardsEmitter and liquidityRewardsEmitter
+		bytes32[] memory poolIDsA = new bytes32[](1);
+		poolIDsA[0] = PoolUtils.STAKED_SALT;
+
+		// Check that the staking rewards were transferred to the staking contract:
+		// 1% max of (3 million bootstrapping in the stakingRewardsEmitter + 45% of 185786 ether sent from saltRewards)
+		// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
+		uint256 expectedStakingRewardsFromBootstrapping = uint256(3000000 ether) / 100;
+    	uint256 expectedStakingRewardsFromArbitrageProfits = uint( 185786 ether * 45 ) / 100 / 100;
+		assertEq( staking.totalRewardsForPools(poolIDsA)[0], expectedStakingRewardsFromBootstrapping + expectedStakingRewardsFromArbitrageProfits + 3836898935172364  );
+
+		bytes32[] memory poolIDs = new bytes32[](5);
+		poolIDs[0] = PoolUtils._poolIDOnly(salt,weth);
+		poolIDs[1] = PoolUtils._poolIDOnly(salt,wbtc);
+		poolIDs[2] = PoolUtils._poolIDOnly(wbtc,weth);
+		poolIDs[3] = PoolUtils._poolIDOnly(salt,usds);
+		poolIDs[4] = PoolUtils._poolIDOnly(usds,dai);
+
+		// Check if the rewards were transferred to the liquidity contract:
+		// 1% max of ( 5 million / 9 pools + 45% of 185786 ether sent from saltRewards).
+		// SALT/USDS should received an additional 1% of 10% of 47.185786.
+		// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
+		uint256[] memory rewards = collateralAndLiquidity.totalRewardsForPools(poolIDs);
+
+		// Expected for all pools
+		uint256 expectedLiquidityRewardsFromBootstrapping = uint256(5000000 ether) / 9 / 100;
+
+		// Expected for WBTC/WETH, SALT/WETH and SALT/WTBC
+       	uint256 expectedLiquidityRewardsFromArbitrageProfits = uint( 185786 ether * 45 ) / 100 / 100 / 3;
+
+		// Expected for SALT/USDS
+       	uint256 expectedAdditionalForSaltUSDS = ( 185786 ether * 10 ) / 100 / 100;
+
+		assertEq( rewards[0], expectedLiquidityRewardsFromBootstrapping + expectedLiquidityRewardsFromArbitrageProfits + 1278966311724122);
+		assertEq( rewards[1], expectedLiquidityRewardsFromBootstrapping + expectedLiquidityRewardsFromArbitrageProfits + 1278966311724122);
+		assertEq( rewards[2], expectedLiquidityRewardsFromBootstrapping + expectedLiquidityRewardsFromArbitrageProfits + 1278966311724122);
+		assertEq( rewards[3], expectedLiquidityRewardsFromBootstrapping + expectedAdditionalForSaltUSDS + 852644207816081);
+		assertEq( rewards[4], expectedLiquidityRewardsFromBootstrapping);
+
+
+		// Check Step 9. Collect SALT rewards from the DAO's Protocol Owned Liquidity: send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.
+		// Check Step 10. Sends SALT from the DAO vesting wallet to the DAO (linear distribution over 10 years).
+		// Check Step 11. Sends SALT from the team vesting wallet to the team (linear distribution over 10 years).
+
+		// The DAO currently has all of the SALT/USDS and USDS/DAI liquidity - so it will claim all of the above calculated rewards for those two pools.
+		uint256 polRewards = rewards[3] + rewards[4];
+
+		// 10% of the POL Rewards for the team wallet
+		// The teamVestingWallet contains 10 million SALT and vests over a 10 year period.
+		// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days
+		assertEq( salt.balanceOf(teamWallet), polRewards / 10 + 13561675228310502283105 );
+
+		// 50% of the remaining rewards are burned
+		uint256 halfOfRemaining = ( polRewards * 45 ) / 100;
+		assertEq( salt.totalBurned(), halfOfRemaining + 1 );
+
+		// Other 50% should stay in the DAO
+		// The daoVestingWallet contains 25 million SALT and vests over a 10 year period.
+		// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days
+		assertEq( salt.balanceOf(address(dao)), halfOfRemaining + 1 + 34109667998477929984779 );
 		}
 
 
 	// A unit test to revert step2 and ensure other steps continue functioning
-	function testRevertStep2() public
-		{
-		_initFlawed(2);
-		finalizeBootstrap();
+    function testRevertStep2() public
+    	{
+    	_initFlawed(2);
+    	_setupLiquidity();
+    	_generateArbitrageProfits(false);
 
-		// Set an initial price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 10000 ether );
-		forcedPriceFeed.setETHPrice( 1000 ether );
-		vm.stopPrank();
+       	// Dummy WBTC and WETH to send to Liquidizer
+       	vm.prank(DEPLOYER);
+       	weth.transfer( address(liquidizer), 50 ether );
 
-		priceAggregator.performUpkeep();
+       	// Indicate that some USDS should be burned
+       	vm.prank( address(collateralAndLiquidity));
+       	liquidizer.shouldBurnMoreUSDS( 40 ether);
 
-		assertEq( priceAggregator.getPriceBTC(), 10000 ether );
-		assertEq( priceAggregator.getPriceETH(), 1000 ether );
+       	// Mimic arbitrage profits deposited as WETH for the DAO
+       	vm.prank(DEPLOYER);
+       	weth.transfer(address(dao), 100 ether);
 
-		// Set a new price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 20000 ether );
-		forcedPriceFeed.setETHPrice( 2000 ether );
-		vm.stopPrank();
+       	vm.startPrank(address(dao));
+       	weth.approve(address(pools), 100 ether);
+       	pools.deposit(weth, 100 ether);
+       	vm.stopPrank();
 
+    	assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
+    	assertEq( salt.balanceOf(address(staking)), 0 );
 
-    	// Dummy WBTC and WETH to send to USDS
-    	vm.startPrank(DEPLOYER);
-    	wbtc.transfer( address(usds), 5 ether );
-    	weth.transfer( address(usds), 50 ether );
-    	vm.stopPrank();
+    	assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049050423279843 );
 
-    	// USDS to usds contract to mimic withdrawn counterswap trades
-    	vm.startPrank( address(collateralAndLiquidity));
-    	usds.mintTo( address(usds), 30 ether );
-    	usds.shouldBurnMoreUSDS( 20 ether );
-    	vm.stopPrank();
+    	uint256 usdsSupply0 = usds.totalSupply();
 
-		assertEq( usds.totalSupply(), 30 ether );
+    	// === Perform upkeep ===
+    	address upkeepCaller = address(0x9999);
 
-
-    	// USDS deposited to counterswap to mimic completed counterswap trades
-    	vm.prank( address(collateralAndLiquidity));
-    	usds.mintTo( address(usds), 30 ether );
-
-    	vm.startPrank(address(usds));
-    	usds.approve( address(pools), type(uint256).max );
-    	pools.depositTokenForCounterswap(Counterswap.WBTC_TO_USDS, usds, 15 ether);
-    	pools.depositTokenForCounterswap(Counterswap.WETH_TO_USDS, usds, 15 ether);
-		vm.stopPrank();
+    	vm.prank(upkeepCaller);
+    	UpkeepFlawed(address(upkeep)).performFlawedUpkeep();
+    	// ==================
 
 
-    	// Arbitrage profits are deposited as WETH for the DAO
-    	vm.prank(DEPLOYER);
-    	weth.transfer(address(dao), 100 ether);
+    	// Check 1. Swap tokens previously sent to the Liquidizer contract for USDS and burn specified amounts of USDS.
+    	assertEq( usds.balanceOf( address(liquidizer) ), 9975012493753123438 ); // 50 WETH converted to about 50 USDS and then 40 burned
 
-    	vm.startPrank(address(dao));
-    	weth.approve(address(pools), 100 ether);
-    	pools.deposit(weth, 100 ether);
-    	vm.stopPrank();
-
-		// Create some initial WBTC/WETH liquidity so that it can receive bootstrapping rewards
-		vm.startPrank(DEPLOYER);
-		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
-		weth.approve(address(collateralAndLiquidity), type(uint256).max);
-		collateralAndLiquidity.depositCollateralAndIncreaseShare(100 * 10**8, 1000 * 10**8, 0, block.timestamp, true);
-		vm.stopPrank();
-
-		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
-		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
-
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
-		assertEq( salt.balanceOf(address(staking)), 0 );
+    	// 40 ether should have been burnt
+    	assertEq( usdsSupply0 - usds.totalSupply(), 40 ether );
 
 
-		// === Perform upkeep ===
-		address upkeepCaller = address(0x9999);
-
-		vm.prank(upkeepCaller);
-		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-		// ==================
+    	// [FAILED] Check Step 2. Withdraw existing WETH arbitrage profits from the Pools contract and reward the caller of performUpkeep() with default 5% of the withdrawn amount.
+    	// From the directly added 100 ether + arbitrage profits
+       	assertEq( weth.balanceOf(upkeepCaller), 0 );
 
 
-		// Check Step 1. Update the prices of BTC and ETH in the PriceAggregator.
-		assertEq( priceAggregator.getPriceBTC(), 20000 ether );
-		assertEq( priceAggregator.getPriceETH(), 2000 ether );
+    	// [FAILED] Check Step 3. Convert a default 5% of the remaining WETH to USDS/DAI Protocol Owned Liquidity.
 
-		// Check Step 2. Send WBTC and WETH from the USDS contract to the counterswap addresses (for conversion to USDS) and withdraw USDS from counterswap for burning.
-//		assertEq( pools.depositedUserBalance( Counterswap.WBTC_TO_USDS, wbtc ), 5 ether, "step2 A" );
-//		assertEq( pools.depositedUserBalance( Counterswap.WETH_TO_USDS, weth ), 59500000000000000000, "step2 B" );
-		assertEq( pools.depositedUserBalance( Counterswap.WBTC_TO_USDS, wbtc ), 0 ether, "step2 A" );
-		assertEq( pools.depositedUserBalance( Counterswap.WETH_TO_USDS, weth ), 9500000000000000000, "step2 B" );
+    	// Check that 5% of the remaining WETH (5% of 95 ether) has been converted to USDS/DAI
+    	(uint256 reservesA, uint256 reservesB) = pools.getPoolReserves(usds, dai);
+    	assertEq( reservesA, 0 ); // Close to 2.375 ether
+    	assertEq( reservesB, 0 ); // Close to 2.375 ether
 
-		// Check that USDS has been burned
-//		assertEq( usds.totalSupply(), 40 ether, "step2 C" );
-		assertEq( usds.totalSupply(), 60 ether, "step2 C" );
-
-		// Check Step 3. Withdraw the remaining USDS already counterswapped from WBTC and WETH (for later formation of SALT/USDS liquidity).
-		assertEq( usds.balanceOf(address(upkeep)), 30 ether, "step3 A" );
-
-		// Check Step 4. Have the DAO withdraw the WETH arbitrage profits from the Pools contract and send the withdrawn WETH to this contract.
-    	assertEq( pools.depositedUserBalance(address(dao), weth), 0 ether, "step4 A" );
-
-		// Check Step 5. Send a default 5% of the withdrawn WETH to the caller of performUpkeep().
-    	assertEq( weth.balanceOf(upkeepCaller), 5 ether, "step5 A" );
-
-		// Check Step 6. Send a default 10% (20% / 2 ) of the remaining WETH to counterswap for conversion to USDS (for later formation of SALT/USDS liquidity).
-		// Includes deposited WETH from step2 as well
-    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_USDS, weth), 9500000000000000000, "step6 A" );
-
-		// Check Step 7. Send all remaining WETH to counterswap for conversion to SALT (for later SALT/USDS POL formation and SaltRewards).
-    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_SALT, weth), 85500000000000000000, "step7 A" );
+    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(usds, dai));
+    	assertEq( daoLiquidity, 0 ); // Close to 4.75 ether
 
 
-		// Checking steps 8-9 skipped for now as no one has SALT as it hasn't been distributed yet
+    	// [FAILED] Check Step 4. Convert a default 20% of the remaining WETH to SALT/USDS Protocol Owned Liquidity.
 
-		// Check Step 11. Send SALT Emissions to the stakingRewardsEmitter
-		// Check Step 12. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter and call clearProfitsForPools.
-		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
+    	// [FAILED] Check that 20% of the remaining WETH (20% of 90.25 ether) has been converted to SALT/USDS
+    	(reservesA, reservesB) = pools.getPoolReserves(salt, usds);
+    	assertEq( reservesA, 0 ); // Close to 9.025 ether
+    	assertEq( reservesB, 0 ); // Close to 9.025 ether - a little worse because some of the USDS reserve was also used for USDS/DAI POL
 
-		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
-		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
-
-		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(collateralAndLiquidity)), 49999999999999999999995, "step11-13 C" );
-
-		// Checking step 14 can be ignored for now as the DAO hasn't formed POL yet (as it didn't yet have SALT)
-
-		// Check Step 15. Send SALT from the DAO vesting wallet to the DAO (linear distribution of 25 million tokens over 10 years).
-    	assertEq( salt.balanceOf(address(dao)), uint256( 25 * 1000000 ether ) * 24 hours / (60 * 60 * 24 * 365 * 10), "step 15 A" );
-
-		// Check Step 16. Send SALT from the team vesting wallet to the team (linear distribution over 10 years).
-    	assertEq( salt.balanceOf(address(teamWallet)), uint256( 10 * 1000000 ether ) * 24 hours / (60 * 60 * 24 * 365 * 10), "step 16 A" );
+    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds));
+    	assertEq( daoLiquidity, 0 ); // Close to 18.05 ether
 
 
-		// Have the team form some initial SALT/USDS liquidity
-		vm.prank(address(collateralAndLiquidity));
-		usds.mintTo(teamWallet, 1 ether);
+    	// Check Step 5. Convert remaining WETH to SALT and sends it to SaltRewards.
+    	// Check Step 6. Send SALT Emissions to the SaltRewards contract.
+    	// Check Step 7. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter.
+    	// Check Step 8. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
-		vm.startPrank(teamWallet);
-		salt.approve(address(collateralAndLiquidity), 1 ether);
-		usds.approve(address(collateralAndLiquidity), 1 ether);
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare(salt, usds, 1 ether, 1 ether, 0, block.timestamp, true);
-		vm.stopPrank();
+    	// Check that about 72.2 ether of WETH has been converted to SALT and sent to SaltRewards.
+    	// Emissions also emit about 185715 SALT as 5 days have gone by since the deployment (delay for the bootstrap ballot to complete).
+    	// This is due to Emissions holding 52 million SALT and emitting at a default rate of .50% / week.
 
-		// Send some SALT from the teamWallet to mimic WETH to SALT counterswap
-		vm.prank(teamWallet);
-		salt.transfer(address(upkeep), 1 ether);
+    	// As there were profits, SaltRewards distributed the 185715 ether + 72.2 ether rewards
+    	// 10% to SALT/USDS rewards, 45% to stakingRewardsEmitter and 45% to liquidityRewardsEmitter,
+    	assertEq( salt.balanceOf(address(saltRewards)), 1 ); // should be basically empty now
 
-		vm.startPrank(address(upkeep));
-		salt.approve(address(pools), type(uint256).max);
-		pools.depositTokenForCounterswap(Counterswap.WETH_TO_SALT, salt, 1 ether);
-		vm.stopPrank();
+    	// Additionally stakingRewardsEmitter started with 3 million bootstrapping rewards.
+    	// liquidityRewardsEmitter started with 5 millions bootstrapping rewards, divided evenly amongst the 9 initial pools.
 
-    	assertEq( salt.balanceOf(address(upkeep)), 0 ether );
+    	// Determine that rewards were sent correctly by the stakingRewardsEmitter and liquidityRewardsEmitter
+    	bytes32[] memory poolIDsA = new bytes32[](1);
+    	poolIDsA[0] = PoolUtils.STAKED_SALT;
 
-		uint256 saltSupply = salt.totalSupply();
+    	// Check that the staking rewards were transferred to the staking contract:
+    	// 1% max of (3 million bootstrapping in the stakingRewardsEmitter + 45% of 185786 ether sent from saltRewards)
+    	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
+    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 30835716220238095238095  );
 
-		// =====Perform another performUpkeep
-		vm.warp(block.timestamp + 1 days);
+    	bytes32[] memory poolIDs = new bytes32[](5);
+    	poolIDs[0] = PoolUtils._poolIDOnly(salt,weth);
+    	poolIDs[1] = PoolUtils._poolIDOnly(salt,wbtc);
+    	poolIDs[2] = PoolUtils._poolIDOnly(wbtc,weth);
+    	poolIDs[3] = PoolUtils._poolIDOnly(salt,usds);
+    	poolIDs[4] = PoolUtils._poolIDOnly(usds,dai);
 
-		vm.prank(upkeepCaller);
-		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-		// =====
+    	// Check if the rewards were transferred to the liquidity contract:
+    	// 1% max of ( 5 million / 9 pools + 45% of 185786 ether sent from saltRewards).
+    	// SALT/USDS should received an additional 1% of 10% of 47.185786.
+    	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
+    	uint256[] memory rewards = collateralAndLiquidity.totalRewardsForPools(poolIDs);
+
+    	// Expected for all pools
+    	uint256 expectedLiquidityRewardsFromBootstrapping = uint256(5000000 ether) / 9 / 100;
+
+    	assertEq( rewards[0], 5834127628968253968253);
+    	assertEq( rewards[1], 5834127628968253968253);
+    	assertEq( rewards[2], 5834127628968253968253);
+    	assertEq( rewards[3], 5741270271164021164021);
+    	assertEq( rewards[4], expectedLiquidityRewardsFromBootstrapping);
 
 
-		// Check Step 8. Withdraw SALT from previous counterswaps.
-		// This is used to form SALT/USDS POL and is sent to the DAO - so the balance here is zero
-    	assertEq( salt.balanceOf(address(upkeep)), 0, "step 8 A" );
+    	// Check Step 9. Collect SALT rewards from the DAO's Protocol Owned Liquidity: send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.
+    	// Check Step 10. Sends SALT from the DAO vesting wallet to the DAO (linear distribution over 10 years).
+    	// Check Step 11. Sends SALT from the team vesting wallet to the team (linear distribution over 10 years).
 
-		// Check Step 9. Send SALT and USDS (from steps 8 and 3) to the DAO and have it form SALT/USDS Protocol Owned Liquidity
-		(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves(salt, usds);
-		assertEq( reserve0, 31000000000000000000, "step 9 A" );
-		assertEq( reserve1, 31000000000000000000, "step 9 B" );
+    	// 10% of the POL Rewards for the team wallet
+    	// The teamVestingWallet contains 10 million SALT and vests over a 10 year period.
+    	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days
+    	assertEq( salt.balanceOf(teamWallet), 13561675228310502283105 );
 
-		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428571, "step 10 A" );
+    	// 50% of the remaining rewards are burned
+    	assertEq( salt.totalBurned(), 0 );
 
-		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
-		uint256 saltBurned = saltSupply - salt.totalSupply();
-
-   		assertEq( saltBurned, 3592741935483870967741, "step 14 A" );
-		}
+    	// Other 50% should stay in the DAO
+    	// The daoVestingWallet contains 25 million SALT and vests over a 10 year period.
+    	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days
+    	assertEq( salt.balanceOf(address(dao)), 34109667998477929984779 );
+    	}
 
 
 	// A unit test to revert step3 and ensure other steps continue functioning
-	function testRevertStep3() public
-		{
-		_initFlawed(3);
-		finalizeBootstrap();
+    function testRevertStep3() public
+    	{
+    	_initFlawed(3);
+    	_setupLiquidity();
+    	_generateArbitrageProfits(false);
 
-		// Set an initial price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 10000 ether );
-		forcedPriceFeed.setETHPrice( 1000 ether );
-		vm.stopPrank();
+       	// Dummy WBTC and WETH to send to Liquidizer
+       	vm.prank(DEPLOYER);
+       	weth.transfer( address(liquidizer), 50 ether );
 
-		priceAggregator.performUpkeep();
+       	// Indicate that some USDS should be burned
+       	vm.prank( address(collateralAndLiquidity));
+       	liquidizer.shouldBurnMoreUSDS( 40 ether);
 
-		assertEq( priceAggregator.getPriceBTC(), 10000 ether );
-		assertEq( priceAggregator.getPriceETH(), 1000 ether );
+       	// Mimic arbitrage profits deposited as WETH for the DAO
+       	vm.prank(DEPLOYER);
+       	weth.transfer(address(dao), 100 ether);
 
-		// Set a new price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 20000 ether );
-		forcedPriceFeed.setETHPrice( 2000 ether );
-		vm.stopPrank();
+       	vm.startPrank(address(dao));
+       	weth.approve(address(pools), 100 ether);
+       	pools.deposit(weth, 100 ether);
+       	vm.stopPrank();
 
+    	assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
+    	assertEq( salt.balanceOf(address(staking)), 0 );
 
-    	// Dummy WBTC and WETH to send to USDS
-    	vm.startPrank(DEPLOYER);
-    	wbtc.transfer( address(usds), 5 ether );
-    	weth.transfer( address(usds), 50 ether );
-    	vm.stopPrank();
+    	assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049050423279843 );
 
-    	// USDS to usds contract to mimic withdrawn counterswap trades
-    	vm.startPrank( address(collateralAndLiquidity));
-    	usds.mintTo( address(usds), 30 ether );
-    	usds.shouldBurnMoreUSDS( 20 ether );
-    	vm.stopPrank();
+    	uint256 usdsSupply0 = usds.totalSupply();
 
-		assertEq( usds.totalSupply(), 30 ether );
+    	// === Perform upkeep ===
+    	address upkeepCaller = address(0x9999);
 
-
-    	// USDS deposited to counterswap to mimic completed counterswap trades
-    	vm.prank( address(collateralAndLiquidity));
-    	usds.mintTo( address(usds), 30 ether );
-
-    	vm.startPrank(address(usds));
-    	usds.approve( address(pools), type(uint256).max );
-    	pools.depositTokenForCounterswap(Counterswap.WBTC_TO_USDS, usds, 15 ether);
-    	pools.depositTokenForCounterswap(Counterswap.WETH_TO_USDS, usds, 15 ether);
-		vm.stopPrank();
+    	vm.prank(upkeepCaller);
+    	UpkeepFlawed(address(upkeep)).performFlawedUpkeep();
+    	// ==================
 
 
-    	// Arbitrage profits are deposited as WETH for the DAO
-    	vm.prank(DEPLOYER);
-    	weth.transfer(address(dao), 100 ether);
+    	// Check 1. Swap tokens previously sent to the Liquidizer contract for USDS and burn specified amounts of USDS.
+    	assertEq( usds.balanceOf( address(liquidizer) ), 9975012493753123438 ); // 50 WETH converted to about 50 USDS and then 40 burned
 
-    	vm.startPrank(address(dao));
-    	weth.approve(address(pools), 100 ether);
-    	pools.deposit(weth, 100 ether);
-    	vm.stopPrank();
-
-		// Create some initial WBTC/WETH liquidity so that it can receive bootstrapping rewards
-		vm.startPrank(DEPLOYER);
-		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
-		weth.approve(address(collateralAndLiquidity), type(uint256).max);
-		collateralAndLiquidity.depositCollateralAndIncreaseShare(100 * 10**8, 1000 * 10**8, 0, block.timestamp, true);
-		vm.stopPrank();
-
-		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
-		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
-
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
-		assertEq( salt.balanceOf(address(staking)), 0 );
+    	// 40 ether should have been burnt
+    	assertEq( usdsSupply0 - usds.totalSupply(), 40 ether );
 
 
-		// === Perform upkeep ===
-		address upkeepCaller = address(0x9999);
-
-		vm.prank(upkeepCaller);
-		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-		// ==================
+    	// Check Step 2. Withdraw existing WETH arbitrage profits from the Pools contract and reward the caller of performUpkeep() with default 5% of the withdrawn amount.
+    	// From the directly added 100 ether + arbitrage profits
+       	assertEq( weth.balanceOf(upkeepCaller), 5000049050423279843 );
 
 
-		// Check Step 1. Update the prices of BTC and ETH in the PriceAggregator.
-		assertEq( priceAggregator.getPriceBTC(), 20000 ether, "step1 A" );
-		assertEq( priceAggregator.getPriceETH(), 2000 ether, "step1 B" );
+    	// [FAILED] Check Step 3. Convert a default 5% of the remaining WETH to USDS/DAI Protocol Owned Liquidity.
 
-		// Check Step 2. Send WBTC and WETH from the USDS contract to the counterswap addresses (for conversion to USDS) and withdraw USDS from counterswap for burning.
-		assertEq( pools.depositedUserBalance( Counterswap.WBTC_TO_USDS, wbtc ), 5 ether, "step2 A" );
-		assertEq( pools.depositedUserBalance( Counterswap.WETH_TO_USDS, weth ), 59500000000000000000, "step2 B" );
+    	// Check that 5% of the remaining WETH (5% of 95 ether) has been converted to USDS/DAI
+    	(uint256 reservesA, uint256 reservesB) = pools.getPoolReserves(usds, dai);
+    	assertEq( reservesA, 0 ); // Close to 2.375 ether
+    	assertEq( reservesB, 0 ); // Close to 2.375 ether
 
-		// Check that USDS has been burned
-		assertEq( usds.totalSupply(), 40 ether, "step2 C" );
-
-		// Check Step 3. Withdraw the remaining USDS already counterswapped from WBTC and WETH (for later formation of SALT/USDS liquidity).
-//		assertEq( usds.balanceOf(address(upkeep)), 30 ether, "step3 A" );
-		assertEq( usds.balanceOf(address(upkeep)), 0 ether, "step3 A" );
-
-		// Check Step 4. Have the DAO withdraw the WETH arbitrage profits from the Pools contract and send the withdrawn WETH to this contract.
-    	assertEq( pools.depositedUserBalance(address(dao), weth), 0 ether, "step4 A" );
-
-		// Check Step 5. Send a default 5% of the withdrawn WETH to the caller of performUpkeep().
-    	assertEq( weth.balanceOf(upkeepCaller), 5 ether, "step5 A" );
-
-		// Check Step 6. Send a default 10% (20% / 2 ) of the remaining WETH to counterswap for conversion to USDS (for later formation of SALT/USDS liquidity).
-		// Includes deposited WETH from step2 as well
-    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_USDS, weth), 59500000000000000000, "step6 A" );
-
-		// Check Step 7. Send all remaining WETH to counterswap for conversion to SALT (for later SALT/USDS POL formation and SaltRewards).
-    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_SALT, weth), 85500000000000000000, "step7 A" );
+    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(usds, dai));
+    	assertEq( daoLiquidity, 0 ); // Close to 4.75 ether
 
 
-		// Checking steps 8-9 skipped for now as no one has SALT as it hasn't been distributed yet
+    	// Check Step 4. Convert a default 20% of the remaining WETH to SALT/USDS Protocol Owned Liquidity.
 
-		// Check Step 11. Send SALT Emissions to the stakingRewardsEmitter
-		// Check Step 12. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter and call clearProfitsForPools.
-		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
+    	// Check that 20% of the remaining WETH (20% of 90.25 ether) has been converted to SALT/USDS
+    	(reservesA, reservesB) = pools.getPoolReserves(salt, usds);
+    	assertEq( reservesA, 9499379908450585589 ); // Close to 9.025 ether
+    	assertEq( reservesB, 9489699143208499853 ); // Close to 9.025 ether - a little worse because some of the USDS reserve was also used for USDS/DAI POL
 
-		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
-		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
-
-		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(collateralAndLiquidity)), 49999999999999999999995, "step11-13 C" );
-
-		// Checking step 14 can be ignored for now as the DAO hasn't formed POL yet (as it didn't yet have SALT)
-
-		// Check Step 15. Send SALT from the DAO vesting wallet to the DAO (linear distribution of 25 million tokens over 10 years).
-    	assertEq( salt.balanceOf(address(dao)), uint256( 25 * 1000000 ether ) * 24 hours / (60 * 60 * 24 * 365 * 10), "step 15 A" );
-
-		// Check Step 16. Send SALT from the team vesting wallet to the team (linear distribution over 10 years).
-    	assertEq( salt.balanceOf(address(teamWallet)), uint256( 10 * 1000000 ether ) * 24 hours / (60 * 60 * 24 * 365 * 10), "step 16 A" );
+    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds));
+    	assertEq( daoLiquidity, 18989079051659085442 ); // Close to 18.05 ether
 
 
-		// Have the team form some initial SALT/USDS liquidity
-		vm.prank(address(collateralAndLiquidity));
-		usds.mintTo(teamWallet, 1 ether);
+    	// Check Step 5. Convert remaining WETH to SALT and sends it to SaltRewards.
+    	// Check Step 6. Send SALT Emissions to the SaltRewards contract.
+    	// Check Step 7. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter.
+    	// Check Step 8. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
-		vm.startPrank(teamWallet);
-		salt.approve(address(collateralAndLiquidity), 1 ether);
-		usds.approve(address(collateralAndLiquidity), 1 ether);
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare(salt, usds, 1 ether, 1 ether, 0, block.timestamp, true);
-		vm.stopPrank();
+    	// Check that about 72.2 ether of WETH has been converted to SALT and sent to SaltRewards.
+    	// Emissions also emit about 185715 SALT as 5 days have gone by since the deployment (delay for the bootstrap ballot to complete).
+    	// This is due to Emissions holding 52 million SALT and emitting at a default rate of .50% / week.
 
-		// Send some SALT from the teamWallet to mimic WETH to SALT counterswap
-		vm.prank(teamWallet);
-		salt.transfer(address(upkeep), 1 ether);
+    	// As there were profits, SaltRewards distributed the 185715 ether + 72.2 ether rewards
+    	// 10% to SALT/USDS rewards, 45% to stakingRewardsEmitter and 45% to liquidityRewardsEmitter,
+    	assertEq( salt.balanceOf(address(saltRewards)), 1 ); // should be basically empty now
 
-		vm.startPrank(address(upkeep));
-		salt.approve(address(pools), type(uint256).max);
-		pools.depositTokenForCounterswap(Counterswap.WETH_TO_SALT, salt, 1 ether);
-		vm.stopPrank();
+    	// Additionally stakingRewardsEmitter started with 3 million bootstrapping rewards.
+    	// liquidityRewardsEmitter started with 5 millions bootstrapping rewards, divided evenly amongst the 9 initial pools.
 
-    	assertEq( salt.balanceOf(address(upkeep)), 0 ether );
+    	// Determine that rewards were sent correctly by the stakingRewardsEmitter and liquidityRewardsEmitter
+    	bytes32[] memory poolIDsA = new bytes32[](1);
+    	poolIDsA[0] = PoolUtils.STAKED_SALT;
 
-		uint256 saltSupply = salt.totalSupply();
+    	// Check that the staking rewards were transferred to the staking contract:
+    	// 1% max of (3 million bootstrapping in the stakingRewardsEmitter + 45% of 185786 ether sent from saltRewards)
+    	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
+    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 30836057905767896890493  );
 
-		// =====Perform another performUpkeep
-		vm.warp(block.timestamp + 1 days);
+    	bytes32[] memory poolIDs = new bytes32[](5);
+    	poolIDs[0] = PoolUtils._poolIDOnly(salt,weth);
+    	poolIDs[1] = PoolUtils._poolIDOnly(salt,wbtc);
+    	poolIDs[2] = PoolUtils._poolIDOnly(wbtc,weth);
+    	poolIDs[3] = PoolUtils._poolIDOnly(salt,usds);
+    	poolIDs[4] = PoolUtils._poolIDOnly(usds,dai);
 
-		vm.prank(upkeepCaller);
-		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-		// =====
+    	// Check if the rewards were transferred to the liquidity contract:
+    	// 1% max of ( 5 million / 9 pools + 45% of 185786 ether sent from saltRewards).
+    	// SALT/USDS should received an additional 1% of 10% of 47.185786.
+    	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
+    	uint256[] memory rewards = collateralAndLiquidity.totalRewardsForPools(poolIDs);
 
+    	// Expected for all pools
+    	uint256 expectedLiquidityRewardsFromBootstrapping = uint256(5000000 ether) / 9 / 100;
 
-		// Check Step 8. Withdraw SALT from previous counterswaps.
-		// This is used to form SALT/USDS POL and is sent to the DAO - so the balance here is zero
-//    	assertEq( salt.balanceOf(address(upkeep)), 0, "step 8 A" );
-    	assertEq( salt.balanceOf(address(upkeep)), 1000000000000000000, "step 8 A" ); // No POL was formed so the SALT wasn't used
-
-		// Check Step 9. Send SALT and USDS (from steps 8 and 3) to the DAO and have it form SALT/USDS Protocol Owned Liquidity
-		(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves(salt, usds);
-//		assertEq( reserve0, 31000000000000000000, "step 9 A" );
-//		assertEq( reserve1, 31000000000000000000, "step 9 B" );
-		assertEq( reserve0, 1000000000000000000, "step 9 A" );
-		assertEq( reserve1, 1000000000000000000, "step 9 B" );
-
-		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428571, "step 10 A" );
-
-		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
-		uint256 saltBurned = saltSupply - salt.totalSupply();
-//   		assertEq( saltBurned, 7462500000000000000000, "step 14 A" );
-   		assertEq( saltBurned, 0, "step 14 A" ); // no POL means no SALT burned
-		}
+    	assertEq( rewards[0], 5834241524144854519053);
+    	assertEq( rewards[1], 5834241524144854519053);
+    	assertEq( rewards[2], 5834241524144854519053);
+    	assertEq( rewards[3], 5741346201281754864554);
+    	assertEq( rewards[4], expectedLiquidityRewardsFromBootstrapping);
 
 
+    	// Check Step 9. Collect SALT rewards from the DAO's Protocol Owned Liquidity: send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.
+    	// Check Step 10. Sends SALT from the DAO vesting wallet to the DAO (linear distribution over 10 years).
+    	// Check Step 11. Sends SALT from the team vesting wallet to the team (linear distribution over 10 years).
+
+    	// 10% of the POL Rewards for the team wallet
+    	// The teamVestingWallet contains 10 million SALT and vests over a 10 year period.
+    	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days
+    	assertEq( salt.balanceOf(teamWallet), 14135809848438677769560 );
+
+    	// 50% of the remaining rewards are burned
+    	assertEq( salt.totalBurned(), 2583605790576789689049 );
+
+    	// Other 50% should stay in the DAO
+    	// The daoVestingWallet contains 25 million SALT and vests over a 10 year period.
+    	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days
+    	assertEq( salt.balanceOf(address(dao)), 36693273789054719673829 );
+    	}
 
 
 	// A unit test to revert step4 and ensure other steps continue functioning
-	function testRevertStep4() public
-		{
-		_initFlawed(4);
-		finalizeBootstrap();
+    function testRevertStep4() public
+    	{
+    	_initFlawed(4);
+    	_setupLiquidity();
+    	_generateArbitrageProfits(false);
 
-		// Set an initial price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 10000 ether );
-		forcedPriceFeed.setETHPrice( 1000 ether );
-		vm.stopPrank();
+       	// Dummy WBTC and WETH to send to Liquidizer
+       	vm.prank(DEPLOYER);
+       	weth.transfer( address(liquidizer), 50 ether );
 
-		priceAggregator.performUpkeep();
+       	// Indicate that some USDS should be burned
+       	vm.prank( address(collateralAndLiquidity));
+       	liquidizer.shouldBurnMoreUSDS( 40 ether);
 
-		assertEq( priceAggregator.getPriceBTC(), 10000 ether );
-		assertEq( priceAggregator.getPriceETH(), 1000 ether );
+       	// Mimic arbitrage profits deposited as WETH for the DAO
+       	vm.prank(DEPLOYER);
+       	weth.transfer(address(dao), 100 ether);
 
-		// Set a new price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 20000 ether );
-		forcedPriceFeed.setETHPrice( 2000 ether );
-		vm.stopPrank();
+       	vm.startPrank(address(dao));
+       	weth.approve(address(pools), 100 ether);
+       	pools.deposit(weth, 100 ether);
+       	vm.stopPrank();
 
+    	assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
+    	assertEq( salt.balanceOf(address(staking)), 0 );
 
-    	// Dummy WBTC and WETH to send to USDS
-    	vm.startPrank(DEPLOYER);
-    	wbtc.transfer( address(usds), 5 ether );
-    	weth.transfer( address(usds), 50 ether );
-    	vm.stopPrank();
+    	assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049050423279843 );
 
-    	// USDS to usds contract to mimic withdrawn counterswap trades
-    	vm.startPrank( address(collateralAndLiquidity));
-    	usds.mintTo( address(usds), 30 ether );
-    	usds.shouldBurnMoreUSDS( 20 ether );
-    	vm.stopPrank();
+    	uint256 usdsSupply0 = usds.totalSupply();
 
-		assertEq( usds.totalSupply(), 30 ether );
+    	// === Perform upkeep ===
+    	address upkeepCaller = address(0x9999);
 
-
-    	// USDS deposited to counterswap to mimic completed counterswap trades
-    	vm.prank( address(collateralAndLiquidity));
-    	usds.mintTo( address(usds), 30 ether );
-
-    	vm.startPrank(address(usds));
-    	usds.approve( address(pools), type(uint256).max );
-    	pools.depositTokenForCounterswap(Counterswap.WBTC_TO_USDS, usds, 15 ether);
-    	pools.depositTokenForCounterswap(Counterswap.WETH_TO_USDS, usds, 15 ether);
-		vm.stopPrank();
+    	vm.prank(upkeepCaller);
+    	UpkeepFlawed(address(upkeep)).performFlawedUpkeep();
+    	// ==================
 
 
-    	// Arbitrage profits are deposited as WETH for the DAO
-    	vm.prank(DEPLOYER);
-    	weth.transfer(address(dao), 100 ether);
+    	// Check 1. Swap tokens previously sent to the Liquidizer contract for USDS and burn specified amounts of USDS.
+    	assertEq( usds.balanceOf( address(liquidizer) ), 9975012493753123438 ); // 50 WETH converted to about 50 USDS and then 40 burned
 
-    	vm.startPrank(address(dao));
-    	weth.approve(address(pools), 100 ether);
-    	pools.deposit(weth, 100 ether);
-    	vm.stopPrank();
-
-		// Create some initial WBTC/WETH liquidity so that it can receive bootstrapping rewards
-		vm.startPrank(DEPLOYER);
-		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
-		weth.approve(address(collateralAndLiquidity), type(uint256).max);
-		collateralAndLiquidity.depositCollateralAndIncreaseShare(100 * 10**8, 1000 * 10**8, 0, block.timestamp, true);
-		vm.stopPrank();
-
-		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
-		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
-
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
-		assertEq( salt.balanceOf(address(staking)), 0 );
+    	// 40 ether should have been burnt
+    	assertEq( usdsSupply0 - usds.totalSupply(), 40 ether );
 
 
-		// === Perform upkeep ===
-		address upkeepCaller = address(0x9999);
-
-		vm.prank(upkeepCaller);
-		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-		// ==================
+    	// Check Step 2. Withdraw existing WETH arbitrage profits from the Pools contract and reward the caller of performUpkeep() with default 5% of the withdrawn amount.
+    	// From the directly added 100 ether + arbitrage profits
+       	assertEq( weth.balanceOf(upkeepCaller), 5000049050423279843 );
 
 
-		// Check Step 1. Update the prices of BTC and ETH in the PriceAggregator.
-		assertEq( priceAggregator.getPriceBTC(), 20000 ether, "step1 A" );
-		assertEq( priceAggregator.getPriceETH(), 2000 ether, "step1 B" );
+    	// Check Step 3. Convert a default 5% of the remaining WETH to USDS/DAI Protocol Owned Liquidity.
 
-		// Check Step 2. Send WBTC and WETH from the USDS contract to the counterswap addresses (for conversion to USDS) and withdraw USDS from counterswap for burning.
-		assertEq( pools.depositedUserBalance( Counterswap.WBTC_TO_USDS, wbtc ), 5 ether, "step2 A" );
-//		assertEq( pools.depositedUserBalance( Counterswap.WETH_TO_USDS, weth ), 59500000000000000000, "step2 B" );
-		assertEq( pools.depositedUserBalance( Counterswap.WETH_TO_USDS, weth ), 50000000000000000000, "step2 B" );
+    	// Check that 5% of the remaining WETH (5% of 95 ether) has been converted to USDS/DAI
+    	(uint256 reservesA, uint256 reservesB) = pools.getPoolReserves(usds, dai);
+    	assertEq( reservesA, 2372593734239580153 ); // Close to 2.375 ether
+    	assertEq( reservesB, 2374966892934008368 ); // Close to 2.375 ether
 
-		// Check that USDS has been burned
-		assertEq( usds.totalSupply(), 40 ether, "step2 C" );
-
-		// Check Step 3. Withdraw the remaining USDS already counterswapped from WBTC and WETH (for later formation of SALT/USDS liquidity).
-		assertEq( usds.balanceOf(address(upkeep)), 30 ether, "step3 A" );
-
-		// Check Step 4. Have the DAO withdraw the WETH arbitrage profits from the Pools contract and send the withdrawn WETH to this contract.
-//    	assertEq( pools.depositedUserBalance(address(dao), weth), 0 ether, "step4 A" );
-    	assertEq( pools.depositedUserBalance(address(dao), weth), 100 ether, "step4 A" );
-
-		// Check Step 5. Send a default 5% of the withdrawn WETH to the caller of performUpkeep().
-//    	assertEq( weth.balanceOf(upkeepCaller), 5 ether, "step5 A" );
-    	assertEq( weth.balanceOf(upkeepCaller), 0, "step5 A" );
-
-		// Check Step 6. Send a default 10% (20% / 2 ) of the remaining WETH to counterswap for conversion to USDS (for later formation of SALT/USDS liquidity).
-		// Includes deposited WETH from step2 as well
-//    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_USDS, weth), 59500000000000000000, "step6 A" );
-    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_USDS, weth), 50000000000000000000, "step6 A" );
-
-		// Check Step 7. Send all remaining WETH to counterswap for conversion to SALT (for later SALT/USDS POL formation and SaltRewards).
-//    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_SALT, weth), 85500000000000000000, "step7 A" );
-    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_SALT, weth), 0, "step7 A" );
-
-		// Checking steps 8-9 skipped for now as no one has SALT as it hasn't been distributed yet
-
-		// Check Step 11. Send SALT Emissions to the stakingRewardsEmitter
-		// Check Step 12. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter and call clearProfitsForPools.
-		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
-
-		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
-		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
-
-		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(collateralAndLiquidity)), 49999999999999999999995, "step11-13 C" );
-
-		// Checking step 14 can be ignored for now as the DAO hasn't formed POL yet (as it didn't yet have SALT)
-
-		// Check Step 15. Send SALT from the DAO vesting wallet to the DAO (linear distribution of 25 million tokens over 10 years).
-    	assertEq( salt.balanceOf(address(dao)), uint256( 25 * 1000000 ether ) * 24 hours / (60 * 60 * 24 * 365 * 10), "step 15 A" );
-
-		// Check Step 16. Send SALT from the team vesting wallet to the team (linear distribution over 10 years).
-    	assertEq( salt.balanceOf(address(teamWallet)), uint256( 10 * 1000000 ether ) * 24 hours / (60 * 60 * 24 * 365 * 10), "step 16 A" );
+    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(usds, dai));
+    	assertEq( daoLiquidity, 4747560627173588521 ); // Close to 4.75 ether
 
 
-		// Have the team form some initial SALT/USDS liquidity
-		vm.prank(address(collateralAndLiquidity));
-		usds.mintTo(teamWallet, 1 ether);
+    	// [FAILED] Check Step 4. Convert a default 20% of the remaining WETH to SALT/USDS Protocol Owned Liquidity.
 
-		vm.startPrank(teamWallet);
-		salt.approve(address(collateralAndLiquidity), 1 ether);
-		usds.approve(address(collateralAndLiquidity), 1 ether);
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare(salt, usds, 1 ether, 1 ether, 0, block.timestamp, true);
-		vm.stopPrank();
+    	// Check that 20% of the remaining WETH (20% of 90.25 ether) has been converted to SALT/USDS
+    	(reservesA, reservesB) = pools.getPoolReserves(salt, usds);
+    	assertEq( reservesA, 0 ); // Close to 9.025 ether
+    	assertEq( reservesB, 0 ); // Close to 9.025 ether - a little worse because some of the USDS reserve was also used for USDS/DAI POL
 
-		// Send some SALT from the teamWallet to mimic WETH to SALT counterswap
-		vm.prank(teamWallet);
-		salt.transfer(address(upkeep), 1 ether);
-
-		vm.startPrank(address(upkeep));
-		salt.approve(address(pools), type(uint256).max);
-		pools.depositTokenForCounterswap(Counterswap.WETH_TO_SALT, salt, 1 ether);
-		vm.stopPrank();
-
-    	assertEq( salt.balanceOf(address(upkeep)), 0 ether );
-
-		uint256 saltSupply = salt.totalSupply();
-
-		// =====Perform another performUpkeep
-		vm.warp(block.timestamp + 1 days);
-
-		vm.prank(upkeepCaller);
-		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-		// =====
+    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds));
+    	assertEq( daoLiquidity, 0 ); // Close to 18.05 ether
 
 
-		// Check Step 8. Withdraw SALT from previous counterswaps.
-		// This is used to form SALT/USDS POL and is sent to the DAO - so the balance here is zero
-    	assertEq( salt.balanceOf(address(upkeep)), 0, "step 8 A" );
+    	// Check Step 5. Convert remaining WETH to SALT and sends it to SaltRewards.
+    	// Check Step 6. Send SALT Emissions to the SaltRewards contract.
+    	// Check Step 7. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter.
+    	// Check Step 8. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
-		// Check Step 9. Send SALT and USDS (from steps 8 and 3) to the DAO and have it form SALT/USDS Protocol Owned Liquidity
-		(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves(salt, usds);
-		assertEq( reserve0, 31000000000000000000, "step 9 A" );
-		assertEq( reserve1, 31000000000000000000, "step 9 B" );
+    	// Check that about 72.2 ether of WETH has been converted to SALT and sent to SaltRewards.
+    	// Emissions also emit about 185715 SALT as 5 days have gone by since the deployment (delay for the bootstrap ballot to complete).
+    	// This is due to Emissions holding 52 million SALT and emitting at a default rate of .50% / week.
 
-		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428571, "step 10 A" );
+    	// As there were profits, SaltRewards distributed the 185715 ether + 72.2 ether rewards
+    	// 10% to SALT/USDS rewards, 45% to stakingRewardsEmitter and 45% to liquidityRewardsEmitter,
+    	assertEq( salt.balanceOf(address(saltRewards)), 2 ); // should be basically empty now
 
-		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
-		uint256 saltBurned = saltSupply - salt.totalSupply();
+    	// Additionally stakingRewardsEmitter started with 3 million bootstrapping rewards.
+    	// liquidityRewardsEmitter started with 5 millions bootstrapping rewards, divided evenly amongst the 9 initial pools.
 
-   		assertEq( saltBurned, 3592741935483870967741, "step 14 A" );
-		}
+    	// Determine that rewards were sent correctly by the stakingRewardsEmitter and liquidityRewardsEmitter
+    	bytes32[] memory poolIDsA = new bytes32[](1);
+    	poolIDsA[0] = PoolUtils.STAKED_SALT;
+
+    	// Check that the staking rewards were transferred to the staking contract:
+    	// 1% max of (3 million bootstrapping in the stakingRewardsEmitter + 45% of 185786 ether sent from saltRewards)
+    	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
+    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 30836121991093864768028  );
+
+    	bytes32[] memory poolIDs = new bytes32[](5);
+    	poolIDs[0] = PoolUtils._poolIDOnly(salt,weth);
+    	poolIDs[1] = PoolUtils._poolIDOnly(salt,wbtc);
+    	poolIDs[2] = PoolUtils._poolIDOnly(wbtc,weth);
+    	poolIDs[3] = PoolUtils._poolIDOnly(salt,usds);
+    	poolIDs[4] = PoolUtils._poolIDOnly(usds,dai);
+
+    	// Check if the rewards were transferred to the liquidity contract:
+    	// 1% max of ( 5 million / 9 pools + 45% of 185786 ether sent from saltRewards).
+    	// SALT/USDS should received an additional 1% of 10% of 47.185786.
+    	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
+    	uint256[] memory rewards = collateralAndLiquidity.totalRewardsForPools(poolIDs);
+
+    	// Expected for all pools
+    	uint256 expectedLiquidityRewardsFromBootstrapping = uint256(5000000 ether) / 9 / 100;
+
+    	assertEq( rewards[0], 5834262885920177144898);
+    	assertEq( rewards[1], 5834262885920177144898);
+    	assertEq( rewards[2], 5834262885920177144898);
+    	assertEq( rewards[3], 5741360442465303281784);
+    	assertEq( rewards[4], expectedLiquidityRewardsFromBootstrapping);
 
 
+    	// Check Step 9. Collect SALT rewards from the DAO's Protocol Owned Liquidity: send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.
+    	// Check Step 10. Sends SALT from the DAO vesting wallet to the DAO (linear distribution over 10 years).
+    	// Check Step 11. Sends SALT from the team vesting wallet to the team (linear distribution over 10 years).
+
+    	// 10% of the POL Rewards for the team wallet
+    	// The teamVestingWallet contains 10 million SALT and vests over a 10 year period.
+    	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days
+    	assertEq( salt.balanceOf(teamWallet), 14117230783866057838660 );
+
+    	// 50% of the remaining rewards are burned
+    	assertEq( salt.totalBurned(), 2500000000000000000000 );
+
+    	// Other 50% should stay in the DAO
+    	// The daoVestingWallet contains 25 million SALT and vests over a 10 year period.
+    	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days
+    	assertEq( salt.balanceOf(address(dao)), 36609667998477929984779 );
+    	}
 
 
 	// A unit test to revert step5 and ensure other steps continue functioning
-	function testRevertStep5() public
-		{
-		_initFlawed(5);
-		finalizeBootstrap();
+    function testRevertStep5() public
+    	{
+    	_initFlawed(5);
+    	_setupLiquidity();
+    	_generateArbitrageProfits(false);
 
-		// Set an initial price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 10000 ether );
-		forcedPriceFeed.setETHPrice( 1000 ether );
-		vm.stopPrank();
+       	// Dummy WBTC and WETH to send to Liquidizer
+       	vm.prank(DEPLOYER);
+       	weth.transfer( address(liquidizer), 50 ether );
 
-		priceAggregator.performUpkeep();
+       	// Indicate that some USDS should be burned
+       	vm.prank( address(collateralAndLiquidity));
+       	liquidizer.shouldBurnMoreUSDS( 40 ether);
 
-		assertEq( priceAggregator.getPriceBTC(), 10000 ether );
-		assertEq( priceAggregator.getPriceETH(), 1000 ether );
+       	// Mimic arbitrage profits deposited as WETH for the DAO
+       	vm.prank(DEPLOYER);
+       	weth.transfer(address(dao), 100 ether);
 
-		// Set a new price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 20000 ether );
-		forcedPriceFeed.setETHPrice( 2000 ether );
-		vm.stopPrank();
+       	vm.startPrank(address(dao));
+       	weth.approve(address(pools), 100 ether);
+       	pools.deposit(weth, 100 ether);
+       	vm.stopPrank();
 
+    	assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
+    	assertEq( salt.balanceOf(address(staking)), 0 );
 
-    	// Dummy WBTC and WETH to send to USDS
-    	vm.startPrank(DEPLOYER);
-    	wbtc.transfer( address(usds), 5 ether );
-    	weth.transfer( address(usds), 50 ether );
-    	vm.stopPrank();
+    	assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049050423279843 );
 
-    	// USDS to usds contract to mimic withdrawn counterswap trades
-    	vm.startPrank( address(collateralAndLiquidity));
-    	usds.mintTo( address(usds), 30 ether );
-    	usds.shouldBurnMoreUSDS( 20 ether );
-    	vm.stopPrank();
+    	uint256 usdsSupply0 = usds.totalSupply();
 
-		assertEq( usds.totalSupply(), 30 ether );
+    	// === Perform upkeep ===
+    	address upkeepCaller = address(0x9999);
 
-
-    	// USDS deposited to counterswap to mimic completed counterswap trades
-    	vm.prank( address(collateralAndLiquidity));
-    	usds.mintTo( address(usds), 30 ether );
-
-    	vm.startPrank(address(usds));
-    	usds.approve( address(pools), type(uint256).max );
-    	pools.depositTokenForCounterswap(Counterswap.WBTC_TO_USDS, usds, 15 ether);
-    	pools.depositTokenForCounterswap(Counterswap.WETH_TO_USDS, usds, 15 ether);
-		vm.stopPrank();
+    	vm.prank(upkeepCaller);
+    	UpkeepFlawed(address(upkeep)).performFlawedUpkeep();
+    	// ==================
 
 
-    	// Arbitrage profits are deposited as WETH for the DAO
-    	vm.prank(DEPLOYER);
-    	weth.transfer(address(dao), 100 ether);
+    	// Check 1. Swap tokens previously sent to the Liquidizer contract for USDS and burn specified amounts of USDS.
+    	assertEq( usds.balanceOf( address(liquidizer) ), 9975012493753123438 ); // 50 WETH converted to about 50 USDS and then 40 burned
 
-    	vm.startPrank(address(dao));
-    	weth.approve(address(pools), 100 ether);
-    	pools.deposit(weth, 100 ether);
-    	vm.stopPrank();
-
-		// Create some initial WBTC/WETH liquidity so that it can receive bootstrapping rewards
-		vm.startPrank(DEPLOYER);
-		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
-		weth.approve(address(collateralAndLiquidity), type(uint256).max);
-		collateralAndLiquidity.depositCollateralAndIncreaseShare(100 * 10**8, 1000 * 10**8, 0, block.timestamp, true);
-		vm.stopPrank();
-
-		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
-		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
-
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
-		assertEq( salt.balanceOf(address(staking)), 0 );
+    	// 40 ether should have been burnt
+    	assertEq( usdsSupply0 - usds.totalSupply(), 40 ether );
 
 
-		// === Perform upkeep ===
-		address upkeepCaller = address(0x9999);
-
-		vm.prank(upkeepCaller);
-		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-		// ==================
+    	// Check Step 2. Withdraw existing WETH arbitrage profits from the Pools contract and reward the caller of performUpkeep() with default 5% of the withdrawn amount.
+    	// From the directly added 100 ether + arbitrage profits
+       	assertEq( weth.balanceOf(upkeepCaller), 5000049050423279843 );
 
 
-		// Check Step 1. Update the prices of BTC and ETH in the PriceAggregator.
-		assertEq( priceAggregator.getPriceBTC(), 20000 ether, "step1 A" );
-		assertEq( priceAggregator.getPriceETH(), 2000 ether, "step1 B" );
+    	// Check Step 3. Convert a default 5% of the remaining WETH to USDS/DAI Protocol Owned Liquidity.
 
-		// Check Step 2. Send WBTC and WETH from the USDS contract to the counterswap addresses (for conversion to USDS) and withdraw USDS from counterswap for burning.
-		assertEq( pools.depositedUserBalance( Counterswap.WBTC_TO_USDS, wbtc ), 5 ether, "step2 A" );
-//		assertEq( pools.depositedUserBalance( Counterswap.WETH_TO_USDS, weth ), 59500000000000000000, "step2 B" );
-		assertEq( pools.depositedUserBalance( Counterswap.WETH_TO_USDS, weth ), 60000000000000000000, "step2 B" );
+    	// Check that 5% of the remaining WETH (5% of 95 ether) has been converted to USDS/DAI
+    	(uint256 reservesA, uint256 reservesB) = pools.getPoolReserves(usds, dai);
+    	assertEq( reservesA, 2372593734239580153 ); // Close to 2.375 ether
+    	assertEq( reservesB, 2374966892934008368 ); // Close to 2.375 ether
 
-		// Check that USDS has been burned
-		assertEq( usds.totalSupply(), 40 ether, "step2 C" );
-
-		// Check Step 3. Withdraw the remaining USDS already counterswapped from WBTC and WETH (for later formation of SALT/USDS liquidity).
-		assertEq( usds.balanceOf(address(upkeep)), 30 ether, "step3 A" );
-
-		// Check Step 4. Have the DAO withdraw the WETH arbitrage profits from the Pools contract and send the withdrawn WETH to this contract.
-    	assertEq( pools.depositedUserBalance(address(dao), weth), 0 ether, "step4 A" );
-
-		// Check Step 5. Send a default 5% of the withdrawn WETH to the caller of performUpkeep().
-//    	assertEq( weth.balanceOf(upkeepCaller), 5 ether, "step5 A" );
-    	assertEq( weth.balanceOf(upkeepCaller), 0, "step5 A" );
-
-		// Check Step 6. Send a default 10% (20% / 2 ) of the remaining WETH to counterswap for conversion to USDS (for later formation of SALT/USDS liquidity).
-		// Includes deposited WETH from step2 as well
-//    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_USDS, weth), 59500000000000000000, "step6 A" );
-    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_USDS, weth), 60000000000000000000, "step6 A" );
-
-		// Check Step 7. Send all remaining WETH to counterswap for conversion to SALT (for later SALT/USDS POL formation and SaltRewards).
-    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_SALT, weth), 90000000000000000000, "step7 A" );
+    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(usds, dai));
+    	assertEq( daoLiquidity, 4747560627173588521 ); // Close to 4.75 ether
 
 
-		// Checking steps 8-9 skipped for now as no one has SALT as it hasn't been distributed yet
+    	// Check Step 4. Convert a default 20% of the remaining WETH to SALT/USDS Protocol Owned Liquidity.
 
-		// Check Step 11. Send SALT Emissions to the stakingRewardsEmitter
-		// Check Step 12. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter and call clearProfitsForPools.
-		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
+    	// Check that 20% of the remaining WETH (20% of 90.25 ether) has been converted to SALT/USDS
+    	(reservesA, reservesB) = pools.getPoolReserves(salt, usds);
+    	assertEq( reservesA, 9024453775958744234 ); // Close to 9.025 ether
+    	assertEq( reservesB, 9014829003115815807 ); // Close to 9.025 ether - a little worse because some of the USDS reserve was also used for USDS/DAI POL
 
-		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
-		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
-
-		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(collateralAndLiquidity)), 49999999999999999999995, "step11-13 C" );
-
-		// Checking step 14 can be ignored for now as the DAO hasn't formed POL yet (as it didn't yet have SALT)
-
-		// Check Step 15. Send SALT from the DAO vesting wallet to the DAO (linear distribution of 25 million tokens over 10 years).
-    	assertEq( salt.balanceOf(address(dao)), uint256( 25 * 1000000 ether ) * 24 hours / (60 * 60 * 24 * 365 * 10), "step 15 A" );
-
-		// Check Step 16. Send SALT from the team vesting wallet to the team (linear distribution over 10 years).
-    	assertEq( salt.balanceOf(address(teamWallet)), uint256( 10 * 1000000 ether ) * 24 hours / (60 * 60 * 24 * 365 * 10), "step 16 A" );
+    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds));
+    	assertEq( daoLiquidity, 18039282779074560041 ); // Close to 18.05 ether
 
 
-		// Have the team form some initial SALT/USDS liquidity
-		vm.prank(address(collateralAndLiquidity));
-		usds.mintTo(teamWallet, 1 ether);
+    	// Check Step 5. Convert remaining WETH to SALT and sends it to SaltRewards.
+    	// Check Step 6. Send SALT Emissions to the SaltRewards contract.
+    	// Check Step 7. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter.
+    	// Check Step 8. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
-		vm.startPrank(teamWallet);
-		salt.approve(address(collateralAndLiquidity), 1 ether);
-		usds.approve(address(collateralAndLiquidity), 1 ether);
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare(salt, usds, 1 ether, 1 ether, 0, block.timestamp, true);
-		vm.stopPrank();
+    	// Check that about 72.2 ether of WETH has been converted to SALT and sent to SaltRewards.
+    	// Emissions also emit about 185715 SALT as 5 days have gone by since the deployment (delay for the bootstrap ballot to complete).
+    	// This is due to Emissions holding 52 million SALT and emitting at a default rate of .50% / week.
 
-		// Send some SALT from the teamWallet to mimic WETH to SALT counterswap
-		vm.prank(teamWallet);
-		salt.transfer(address(upkeep), 1 ether);
+    	// As there were profits, SaltRewards distributed the 185715 ether + 72.2 ether rewards
+    	// 10% to SALT/USDS rewards, 45% to stakingRewardsEmitter and 45% to liquidityRewardsEmitter,
+    	assertEq( salt.balanceOf(address(saltRewards)), 1 ); // should be basically empty now
 
-		vm.startPrank(address(upkeep));
-		salt.approve(address(pools), type(uint256).max);
-		pools.depositTokenForCounterswap(Counterswap.WETH_TO_SALT, salt, 1 ether);
-		vm.stopPrank();
+    	// Additionally stakingRewardsEmitter started with 3 million bootstrapping rewards.
+    	// liquidityRewardsEmitter started with 5 millions bootstrapping rewards, divided evenly amongst the 9 initial pools.
 
-    	assertEq( salt.balanceOf(address(upkeep)), 0 ether );
+    	// Determine that rewards were sent correctly by the stakingRewardsEmitter and liquidityRewardsEmitter
+    	bytes32[] memory poolIDsA = new bytes32[](1);
+    	poolIDsA[0] = PoolUtils.STAKED_SALT;
 
-		uint256 saltSupply = salt.totalSupply();
+    	// Check that the staking rewards were transferred to the staking contract:
+    	// 1% max of (3 million bootstrapping in the stakingRewardsEmitter + 45% of 185786 ether sent from saltRewards)
+    	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
+    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 30835716220238095238095  );
 
-		// =====Perform another performUpkeep
-		vm.warp(block.timestamp + 1 days);
+    	bytes32[] memory poolIDs = new bytes32[](5);
+    	poolIDs[0] = PoolUtils._poolIDOnly(salt,weth);
+    	poolIDs[1] = PoolUtils._poolIDOnly(salt,wbtc);
+    	poolIDs[2] = PoolUtils._poolIDOnly(wbtc,weth);
+    	poolIDs[3] = PoolUtils._poolIDOnly(salt,usds);
+    	poolIDs[4] = PoolUtils._poolIDOnly(usds,dai);
 
-		vm.prank(upkeepCaller);
-		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-		// =====
+    	// Check if the rewards were transferred to the liquidity contract:
+    	// 1% max of ( 5 million / 9 pools + 45% of 185786 ether sent from saltRewards).
+    	// SALT/USDS should received an additional 1% of 10% of 47.185786.
+    	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
+    	uint256[] memory rewards = collateralAndLiquidity.totalRewardsForPools(poolIDs);
+
+    	// Expected for all pools
+    	uint256 expectedLiquidityRewardsFromBootstrapping = uint256(5000000 ether) / 9 / 100;
+
+    	assertEq( rewards[0], 5834127628968253968253);
+    	assertEq( rewards[1], 5834127628968253968253);
+    	assertEq( rewards[2], 5834127628968253968253);
+    	assertEq( rewards[3], 5741270271164021164021);
+    	assertEq( rewards[4], expectedLiquidityRewardsFromBootstrapping);
 
 
-		// Check Step 8. Withdraw SALT from previous counterswaps.
-		// This is used to form SALT/USDS POL and is sent to the DAO - so the balance here is zero
-    	assertEq( salt.balanceOf(address(upkeep)), 0, "step 8 A" );
+    	// Check Step 9. Collect SALT rewards from the DAO's Protocol Owned Liquidity: send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.
+    	// Check Step 10. Sends SALT from the DAO vesting wallet to the DAO (linear distribution over 10 years).
+    	// Check Step 11. Sends SALT from the team vesting wallet to the team (linear distribution over 10 years).
 
-		// Check Step 9. Send SALT and USDS (from steps 8 and 3) to the DAO and have it form SALT/USDS Protocol Owned Liquidity
-		(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves(salt, usds);
-		assertEq( reserve0, 31000000000000000000, "step 9 A" );
-		assertEq( reserve1, 31000000000000000000, "step 9 B" );
+    	// The DAO currently has all of the SALT/USDS and USDS/DAI liquidity - so it will claim all of the above calculated rewards for those two pools.
+    	uint256 polRewards = rewards[3] + rewards[4];
 
-		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428571, "step 10 A" );
+    	// 10% of the POL Rewards for the team wallet
+    	// The teamVestingWallet contains 10 million SALT and vests over a 10 year period.
+    	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days
+    	assertEq( salt.balanceOf(teamWallet), polRewards / 10 + 13561675228310502283105 );
 
-		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
-		uint256 saltBurned = saltSupply - salt.totalSupply();
+    	// 50% of the remaining rewards are burned
+    	uint256 halfOfRemaining = ( polRewards * 45 ) / 100;
+    	assertEq( salt.totalBurned(), halfOfRemaining );
 
-   		assertEq( saltBurned, 3592741935483870967741, "step 14 A" );
-		}
-
+    	// Other 50% should stay in the DAO
+    	// The daoVestingWallet contains 25 million SALT and vests over a 10 year period.
+    	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days
+    	assertEq( salt.balanceOf(address(dao)), halfOfRemaining + 1 + 34109667998477929984779 );
+    	}
 
 
 	// A unit test to revert step6 and ensure other steps continue functioning
-	function testRevertStep6() public
-		{
-		_initFlawed(6);
-		finalizeBootstrap();
+    function testRevertStep6() public
+    	{
+    	_initFlawed(6);
+    	_setupLiquidity();
+    	_generateArbitrageProfits(false);
 
-		// Set an initial price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 10000 ether );
-		forcedPriceFeed.setETHPrice( 1000 ether );
-		vm.stopPrank();
+       	// Dummy WBTC and WETH to send to Liquidizer
+       	vm.prank(DEPLOYER);
+       	weth.transfer( address(liquidizer), 50 ether );
 
-		priceAggregator.performUpkeep();
+       	// Indicate that some USDS should be burned
+       	vm.prank( address(collateralAndLiquidity));
+       	liquidizer.shouldBurnMoreUSDS( 40 ether);
 
-		assertEq( priceAggregator.getPriceBTC(), 10000 ether );
-		assertEq( priceAggregator.getPriceETH(), 1000 ether );
+       	// Mimic arbitrage profits deposited as WETH for the DAO
+       	vm.prank(DEPLOYER);
+       	weth.transfer(address(dao), 100 ether);
 
-		// Set a new price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 20000 ether );
-		forcedPriceFeed.setETHPrice( 2000 ether );
-		vm.stopPrank();
+       	vm.startPrank(address(dao));
+       	weth.approve(address(pools), 100 ether);
+       	pools.deposit(weth, 100 ether);
+       	vm.stopPrank();
 
+    	assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
+    	assertEq( salt.balanceOf(address(staking)), 0 );
 
-    	// Dummy WBTC and WETH to send to USDS
-    	vm.startPrank(DEPLOYER);
-    	wbtc.transfer( address(usds), 5 ether );
-    	weth.transfer( address(usds), 50 ether );
-    	vm.stopPrank();
+    	assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049050423279843 );
 
-    	// USDS to usds contract to mimic withdrawn counterswap trades
-    	vm.startPrank( address(collateralAndLiquidity));
-    	usds.mintTo( address(usds), 30 ether );
-    	usds.shouldBurnMoreUSDS( 20 ether );
-    	vm.stopPrank();
+    	uint256 usdsSupply0 = usds.totalSupply();
 
-		assertEq( usds.totalSupply(), 30 ether );
+    	// === Perform upkeep ===
+    	address upkeepCaller = address(0x9999);
 
-
-    	// USDS deposited to counterswap to mimic completed counterswap trades
-    	vm.prank( address(collateralAndLiquidity));
-    	usds.mintTo( address(usds), 30 ether );
-
-    	vm.startPrank(address(usds));
-    	usds.approve( address(pools), type(uint256).max );
-    	pools.depositTokenForCounterswap(Counterswap.WBTC_TO_USDS, usds, 15 ether);
-    	pools.depositTokenForCounterswap(Counterswap.WETH_TO_USDS, usds, 15 ether);
-		vm.stopPrank();
+    	vm.prank(upkeepCaller);
+    	UpkeepFlawed(address(upkeep)).performFlawedUpkeep();
+    	// ==================
 
 
-    	// Arbitrage profits are deposited as WETH for the DAO
-    	vm.prank(DEPLOYER);
-    	weth.transfer(address(dao), 100 ether);
+    	// Check 1. Swap tokens previously sent to the Liquidizer contract for USDS and burn specified amounts of USDS.
+    	assertEq( usds.balanceOf( address(liquidizer) ), 9975012493753123438 ); // 50 WETH converted to about 50 USDS and then 40 burned
 
-    	vm.startPrank(address(dao));
-    	weth.approve(address(pools), 100 ether);
-    	pools.deposit(weth, 100 ether);
-    	vm.stopPrank();
-
-		// Create some initial WBTC/WETH liquidity so that it can receive bootstrapping rewards
-		vm.startPrank(DEPLOYER);
-		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
-		weth.approve(address(collateralAndLiquidity), type(uint256).max);
-		collateralAndLiquidity.depositCollateralAndIncreaseShare(100 * 10**8, 1000 * 10**8, 0, block.timestamp, true);
-		vm.stopPrank();
-
-		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
-		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
-
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
-		assertEq( salt.balanceOf(address(staking)), 0 );
+    	// 40 ether should have been burnt
+    	assertEq( usdsSupply0 - usds.totalSupply(), 40 ether );
 
 
-		// === Perform upkeep ===
-		address upkeepCaller = address(0x9999);
-
-		vm.prank(upkeepCaller);
-		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-		// ==================
+    	// Check Step 2. Withdraw existing WETH arbitrage profits from the Pools contract and reward the caller of performUpkeep() with default 5% of the withdrawn amount.
+    	// From the directly added 100 ether + arbitrage profits
+       	assertEq( weth.balanceOf(upkeepCaller), 5000049050423279843 );
 
 
-		// Check Step 1. Update the prices of BTC and ETH in the PriceAggregator.
-		assertEq( priceAggregator.getPriceBTC(), 20000 ether, "step1 A" );
-		assertEq( priceAggregator.getPriceETH(), 2000 ether, "step1 B" );
+    	// Check Step 3. Convert a default 5% of the remaining WETH to USDS/DAI Protocol Owned Liquidity.
 
-		// Check Step 2. Send WBTC and WETH from the USDS contract to the counterswap addresses (for conversion to USDS) and withdraw USDS from counterswap for burning.
-		assertEq( pools.depositedUserBalance( Counterswap.WBTC_TO_USDS, wbtc ), 5 ether, "step2 A" );
-//		assertEq( pools.depositedUserBalance( Counterswap.WETH_TO_USDS, weth ), 59500000000000000000, "step2 B" );
-		assertEq( pools.depositedUserBalance( Counterswap.WETH_TO_USDS, weth ), 50000000000000000000, "step2 B" );
+    	// Check that 5% of the remaining WETH (5% of 95 ether) has been converted to USDS/DAI
+    	(uint256 reservesA, uint256 reservesB) = pools.getPoolReserves(usds, dai);
+    	assertEq( reservesA, 2372593734239580153 ); // Close to 2.375 ether
+    	assertEq( reservesB, 2374966892934008368 ); // Close to 2.375 ether
 
-		// Check that USDS has been burned
-		assertEq( usds.totalSupply(), 40 ether, "step2 C" );
-
-		// Check Step 3. Withdraw the remaining USDS already counterswapped from WBTC and WETH (for later formation of SALT/USDS liquidity).
-		assertEq( usds.balanceOf(address(upkeep)), 30 ether, "step3 A" );
-
-		// Check Step 4. Have the DAO withdraw the WETH arbitrage profits from the Pools contract and send the withdrawn WETH to this contract.
-    	assertEq( pools.depositedUserBalance(address(dao), weth), 0 ether, "step4 A" );
-
-		// Check Step 5. Send a default 5% of the withdrawn WETH to the caller of performUpkeep().
-    	assertEq( weth.balanceOf(upkeepCaller), 5 ether, "step5 A" );
-
-		// Check Step 6. Send a default 10% (20% / 2 ) of the remaining WETH to counterswap for conversion to USDS (for later formation of SALT/USDS liquidity).
-		// Includes deposited WETH from step2 as well
-//    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_USDS, weth), 59500000000000000000, "step6 A" );
-    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_USDS, weth), 50000000000000000000, "step6 A" );
-
-		// Check Step 7. Send all remaining WETH to counterswap for conversion to SALT (for later SALT/USDS POL formation and SaltRewards).
-//    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_SALT, weth), 85500000000000000000, "step7 A" );
-    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_SALT, weth), 95000000000000000000, "step7 A" );
+    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(usds, dai));
+    	assertEq( daoLiquidity, 4747560627173588521 ); // Close to 4.75 ether
 
 
-		// Checking steps 8-9 skipped for now as no one has SALT as it hasn't been distributed yet
+    	// Check Step 4. Convert a default 20% of the remaining WETH to SALT/USDS Protocol Owned Liquidity.
 
-		// Check Step 11. Send SALT Emissions to the stakingRewardsEmitter
-		// Check Step 12. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter and call clearProfitsForPools.
-		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
+    	// Check that 20% of the remaining WETH (20% of 90.25 ether) has been converted to SALT/USDS
+    	(reservesA, reservesB) = pools.getPoolReserves(salt, usds);
+    	assertEq( reservesA, 9024453775958744234 ); // Close to 9.025 ether
+    	assertEq( reservesB, 9014829003115815807 ); // Close to 9.025 ether - a little worse because some of the USDS reserve was also used for USDS/DAI POL
 
-		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
-		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
-
-		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(collateralAndLiquidity)), 49999999999999999999995, "step11-13 C" );
-
-		// Checking step 14 can be ignored for now as the DAO hasn't formed POL yet (as it didn't yet have SALT)
-
-		// Check Step 15. Send SALT from the DAO vesting wallet to the DAO (linear distribution of 25 million tokens over 10 years).
-    	assertEq( salt.balanceOf(address(dao)), uint256( 25 * 1000000 ether ) * 24 hours / (60 * 60 * 24 * 365 * 10), "step 15 A" );
-
-		// Check Step 16. Send SALT from the team vesting wallet to the team (linear distribution over 10 years).
-    	assertEq( salt.balanceOf(address(teamWallet)), uint256( 10 * 1000000 ether ) * 24 hours / (60 * 60 * 24 * 365 * 10), "step 16 A" );
+    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds));
+    	assertEq( daoLiquidity, 18039282779074560041 ); // Close to 18.05 ether
 
 
-		// Have the team form some initial SALT/USDS liquidity
-		vm.prank(address(collateralAndLiquidity));
-		usds.mintTo(teamWallet, 1 ether);
+    	// Check Step 5. Convert remaining WETH to SALT and sends it to SaltRewards.
+    	// Check Step 6. Send SALT Emissions to the SaltRewards contract.
+    	// Check Step 7. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter.
+    	// Check Step 8. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
-		vm.startPrank(teamWallet);
-		salt.approve(address(collateralAndLiquidity), 1 ether);
-		usds.approve(address(collateralAndLiquidity), 1 ether);
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare(salt, usds, 1 ether, 1 ether, 0, block.timestamp, true);
-		vm.stopPrank();
+    	// Check that about 72.2 ether of WETH has been converted to SALT and sent to SaltRewards.
+    	// Emissions also emit about 185715 SALT as 5 days have gone by since the deployment (delay for the bootstrap ballot to complete).
+    	// This is due to Emissions holding 52 million SALT and emitting at a default rate of .50% / week.
 
-		// Send some SALT from the teamWallet to mimic WETH to SALT counterswap
-		vm.prank(teamWallet);
-		salt.transfer(address(upkeep), 1 ether);
+    	// As there were profits, SaltRewards distributed the 185715 ether + 72.2 ether rewards
+    	// 10% to SALT/USDS rewards, 45% to stakingRewardsEmitter and 45% to liquidityRewardsEmitter,
+    	assertEq( salt.balanceOf(address(saltRewards)), 1 ); // should be basically empty now
 
-		vm.startPrank(address(upkeep));
-		salt.approve(address(pools), type(uint256).max);
-		pools.depositTokenForCounterswap(Counterswap.WETH_TO_SALT, salt, 1 ether);
-		vm.stopPrank();
+    	// Additionally stakingRewardsEmitter started with 3 million bootstrapping rewards.
+    	// liquidityRewardsEmitter started with 5 millions bootstrapping rewards, divided evenly amongst the 9 initial pools.
 
-    	assertEq( salt.balanceOf(address(upkeep)), 0 ether );
+    	// Determine that rewards were sent correctly by the stakingRewardsEmitter and liquidityRewardsEmitter
+    	bytes32[] memory poolIDsA = new bytes32[](1);
+    	poolIDsA[0] = PoolUtils.STAKED_SALT;
 
-		uint256 saltSupply = salt.totalSupply();
+    	// Check that the staking rewards were transferred to the staking contract:
+    	// 1% max of (3 million bootstrapping in the stakingRewardsEmitter + 45% of 185786 ether sent from saltRewards)
+    	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
+    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 30000324616660839934269  );
 
-		// =====Perform another performUpkeep
-		vm.warp(block.timestamp + 1 days);
+    	bytes32[] memory poolIDs = new bytes32[](5);
+    	poolIDs[0] = PoolUtils._poolIDOnly(salt,weth);
+    	poolIDs[1] = PoolUtils._poolIDOnly(salt,wbtc);
+    	poolIDs[2] = PoolUtils._poolIDOnly(wbtc,weth);
+    	poolIDs[3] = PoolUtils._poolIDOnly(salt,usds);
+    	poolIDs[4] = PoolUtils._poolIDOnly(usds,dai);
 
-		vm.prank(upkeepCaller);
-		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-		// =====
+    	// Check if the rewards were transferred to the liquidity contract:
+    	// 1% max of ( 5 million / 9 pools + 45% of 185786 ether sent from saltRewards).
+    	// SALT/USDS should received an additional 1% of 10% of 47.185786.
+    	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
+    	uint256[] memory rewards = collateralAndLiquidity.totalRewardsForPools(poolIDs);
 
+    	// Expected for all pools
+    	uint256 expectedLiquidityRewardsFromBootstrapping = uint256(5000000 ether) / 9 / 100;
 
-		// Check Step 8. Withdraw SALT from previous counterswaps.
-		// This is used to form SALT/USDS POL and is sent to the DAO - so the balance here is zero
-    	assertEq( salt.balanceOf(address(upkeep)), 0, "step 8 A" );
-
-		// Check Step 9. Send SALT and USDS (from steps 8 and 3) to the DAO and have it form SALT/USDS Protocol Owned Liquidity
-		(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves(salt, usds);
-		assertEq( reserve0, 31000000000000000000, "step 9 A" );
-		assertEq( reserve1, 31000000000000000000, "step 9 B" );
-
-		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428571, "step 10 A" );
-
-		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
-		uint256 saltBurned = saltSupply - salt.totalSupply();
-
-   		assertEq( saltBurned, 3592741935483870967741, "step 14 A" );
-		}
+    	assertEq( rewards[0], 5555663761109168866978);
+    	assertEq( rewards[1], 5555663761109168866978);
+    	assertEq( rewards[2], 5555663761109168866978);
+    	assertEq( rewards[3], 5555627692591297763171);
+    	assertEq( rewards[4], expectedLiquidityRewardsFromBootstrapping);
 
 
+    	// Check Step 9. Collect SALT rewards from the DAO's Protocol Owned Liquidity: send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.
+    	// Check Step 10. Sends SALT from the DAO vesting wallet to the DAO (linear distribution over 10 years).
+    	// Check Step 11. Sends SALT from the team vesting wallet to the team (linear distribution over 10 years).
+
+    	// The DAO currently has all of the SALT/USDS and USDS/DAI liquidity - so it will claim all of the above calculated rewards for those two pools.
+    	uint256 polRewards = rewards[3] + rewards[4];
+
+    	// 10% of the POL Rewards for the team wallet
+    	// The teamVestingWallet contains 10 million SALT and vests over a 10 year period.
+    	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days
+    	assertEq( salt.balanceOf(teamWallet), polRewards / 10 + 13561675228310502283105 );
+
+    	// 50% of the remaining rewards are burned
+    	uint256 halfOfRemaining = ( polRewards * 45 ) / 100;
+    	assertEq( salt.totalBurned(), halfOfRemaining + 1 );
+
+    	// Other 50% should stay in the DAO
+    	// The daoVestingWallet contains 25 million SALT and vests over a 10 year period.
+    	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days
+    	assertEq( salt.balanceOf(address(dao)), halfOfRemaining + 1 + 34109667998477929984779 );
+    	}
 
 
 	// A unit test to revert step7 and ensure other steps continue functioning
-	function testRevertStep7() public
-		{
-		_initFlawed(7);
-		finalizeBootstrap();
+    function testRevertStep7() public
+    	{
+    	_initFlawed(7);
+    	_setupLiquidity();
+    	_generateArbitrageProfits(false);
 
-		// Set an initial price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 10000 ether );
-		forcedPriceFeed.setETHPrice( 1000 ether );
-		vm.stopPrank();
+       	// Dummy WBTC and WETH to send to Liquidizer
+       	vm.prank(DEPLOYER);
+       	weth.transfer( address(liquidizer), 50 ether );
 
-		priceAggregator.performUpkeep();
+       	// Indicate that some USDS should be burned
+       	vm.prank( address(collateralAndLiquidity));
+       	liquidizer.shouldBurnMoreUSDS( 40 ether);
 
-		assertEq( priceAggregator.getPriceBTC(), 10000 ether );
-		assertEq( priceAggregator.getPriceETH(), 1000 ether );
+       	// Mimic arbitrage profits deposited as WETH for the DAO
+       	vm.prank(DEPLOYER);
+       	weth.transfer(address(dao), 100 ether);
 
-		// Set a new price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 20000 ether );
-		forcedPriceFeed.setETHPrice( 2000 ether );
-		vm.stopPrank();
+       	vm.startPrank(address(dao));
+       	weth.approve(address(pools), 100 ether);
+       	pools.deposit(weth, 100 ether);
+       	vm.stopPrank();
 
+    	assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
+    	assertEq( salt.balanceOf(address(staking)), 0 );
 
-    	// Dummy WBTC and WETH to send to USDS
-    	vm.startPrank(DEPLOYER);
-    	wbtc.transfer( address(usds), 5 ether );
-    	weth.transfer( address(usds), 50 ether );
-    	vm.stopPrank();
+    	assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049050423279843 );
 
-    	// USDS to usds contract to mimic withdrawn counterswap trades
-    	vm.startPrank( address(collateralAndLiquidity));
-    	usds.mintTo( address(usds), 30 ether );
-    	usds.shouldBurnMoreUSDS( 20 ether );
-    	vm.stopPrank();
+    	uint256 usdsSupply0 = usds.totalSupply();
 
-		assertEq( usds.totalSupply(), 30 ether );
+    	// === Perform upkeep ===
+    	address upkeepCaller = address(0x9999);
 
-
-    	// USDS deposited to counterswap to mimic completed counterswap trades
-    	vm.prank( address(collateralAndLiquidity));
-    	usds.mintTo( address(usds), 30 ether );
-
-    	vm.startPrank(address(usds));
-    	usds.approve( address(pools), type(uint256).max );
-    	pools.depositTokenForCounterswap(Counterswap.WBTC_TO_USDS, usds, 15 ether);
-    	pools.depositTokenForCounterswap(Counterswap.WETH_TO_USDS, usds, 15 ether);
-		vm.stopPrank();
+    	vm.prank(upkeepCaller);
+    	UpkeepFlawed(address(upkeep)).performFlawedUpkeep();
+    	// ==================
 
 
-    	// Arbitrage profits are deposited as WETH for the DAO
-    	vm.prank(DEPLOYER);
-    	weth.transfer(address(dao), 100 ether);
+    	// Check 1. Swap tokens previously sent to the Liquidizer contract for USDS and burn specified amounts of USDS.
+    	assertEq( usds.balanceOf( address(liquidizer) ), 9975012493753123438 ); // 50 WETH converted to about 50 USDS and then 40 burned
 
-    	vm.startPrank(address(dao));
-    	weth.approve(address(pools), 100 ether);
-    	pools.deposit(weth, 100 ether);
-    	vm.stopPrank();
-
-		// Create some initial WBTC/WETH liquidity so that it can receive bootstrapping rewards
-		vm.startPrank(DEPLOYER);
-		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
-		weth.approve(address(collateralAndLiquidity), type(uint256).max);
-		collateralAndLiquidity.depositCollateralAndIncreaseShare(100 * 10**8, 1000 * 10**8, 0, block.timestamp, true);
-		vm.stopPrank();
-
-		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
-		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
-
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
-		assertEq( salt.balanceOf(address(staking)), 0 );
+    	// 40 ether should have been burnt
+    	assertEq( usdsSupply0 - usds.totalSupply(), 40 ether );
 
 
-		// === Perform upkeep ===
-		address upkeepCaller = address(0x9999);
-
-		vm.prank(upkeepCaller);
-		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-		// ==================
+    	// Check Step 2. Withdraw existing WETH arbitrage profits from the Pools contract and reward the caller of performUpkeep() with default 5% of the withdrawn amount.
+    	// From the directly added 100 ether + arbitrage profits
+       	assertEq( weth.balanceOf(upkeepCaller), 5000049050423279843 );
 
 
-		// Check Step 1. Update the prices of BTC and ETH in the PriceAggregator.
-		assertEq( priceAggregator.getPriceBTC(), 20000 ether, "step1 A" );
-		assertEq( priceAggregator.getPriceETH(), 2000 ether, "step1 B" );
+    	// Check Step 3. Convert a default 5% of the remaining WETH to USDS/DAI Protocol Owned Liquidity.
 
-		// Check Step 2. Send WBTC and WETH from the USDS contract to the counterswap addresses (for conversion to USDS) and withdraw USDS from counterswap for burning.
-		assertEq( pools.depositedUserBalance( Counterswap.WBTC_TO_USDS, wbtc ), 5 ether, "step2 A" );
-		assertEq( pools.depositedUserBalance( Counterswap.WETH_TO_USDS, weth ), 59500000000000000000, "step2 B" );
+    	// Check that 5% of the remaining WETH (5% of 95 ether) has been converted to USDS/DAI
+    	(uint256 reservesA, uint256 reservesB) = pools.getPoolReserves(usds, dai);
+    	assertEq( reservesA, 2372593734239580153 ); // Close to 2.375 ether
+    	assertEq( reservesB, 2374966892934008368 ); // Close to 2.375 ether
 
-		// Check that USDS has been burned
-		assertEq( usds.totalSupply(), 40 ether, "step2 C" );
-
-		// Check Step 3. Withdraw the remaining USDS already counterswapped from WBTC and WETH (for later formation of SALT/USDS liquidity).
-		assertEq( usds.balanceOf(address(upkeep)), 30 ether, "step3 A" );
-
-		// Check Step 4. Have the DAO withdraw the WETH arbitrage profits from the Pools contract and send the withdrawn WETH to this contract.
-    	assertEq( pools.depositedUserBalance(address(dao), weth), 0 ether, "step4 A" );
-
-		// Check Step 5. Send a default 5% of the withdrawn WETH to the caller of performUpkeep().
-    	assertEq( weth.balanceOf(upkeepCaller), 5 ether, "step5 A" );
-
-		// Check Step 6. Send a default 10% (20% / 2 ) of the remaining WETH to counterswap for conversion to USDS (for later formation of SALT/USDS liquidity).
-		// Includes deposited WETH from step2 as well
-    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_USDS, weth), 59500000000000000000, "step6 A" );
-
-		// Check Step 7. Send all remaining WETH to counterswap for conversion to SALT (for later SALT/USDS POL formation and SaltRewards).
-//    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_SALT, weth), 85500000000000000000, "step7 A" );
-    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_SALT, weth), 0, "step7 A" );
+    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(usds, dai));
+    	assertEq( daoLiquidity, 4747560627173588521 ); // Close to 4.75 ether
 
 
-		// Checking steps 8-9 skipped for now as no one has SALT as it hasn't been distributed yet
+    	// Check Step 4. Convert a default 20% of the remaining WETH to SALT/USDS Protocol Owned Liquidity.
 
-		// Check Step 11. Send SALT Emissions to the stakingRewardsEmitter
-		// Check Step 12. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter and call clearProfitsForPools.
-		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
+    	// Check that 20% of the remaining WETH (20% of 90.25 ether) has been converted to SALT/USDS
+    	(reservesA, reservesB) = pools.getPoolReserves(salt, usds);
+    	assertEq( reservesA, 9024453775958744234 ); // Close to 9.025 ether
+    	assertEq( reservesB, 9014829003115815807 ); // Close to 9.025 ether - a little worse because some of the USDS reserve was also used for USDS/DAI POL
 
-		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
-		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
-
-		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(collateralAndLiquidity)), 49999999999999999999995, "step11-13 C" );
-
-		// Checking step 14 can be ignored for now as the DAO hasn't formed POL yet (as it didn't yet have SALT)
-
-		// Check Step 15. Send SALT from the DAO vesting wallet to the DAO (linear distribution of 25 million tokens over 10 years).
-    	assertEq( salt.balanceOf(address(dao)), uint256( 25 * 1000000 ether ) * 24 hours / (60 * 60 * 24 * 365 * 10), "step 15 A" );
-
-		// Check Step 16. Send SALT from the team vesting wallet to the team (linear distribution over 10 years).
-    	assertEq( salt.balanceOf(address(teamWallet)), uint256( 10 * 1000000 ether ) * 24 hours / (60 * 60 * 24 * 365 * 10), "step 16 A" );
+    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds));
+    	assertEq( daoLiquidity, 18039282779074560041 ); // Close to 18.05 ether
 
 
-		// Have the team form some initial SALT/USDS liquidity
-		vm.prank(address(collateralAndLiquidity));
-		usds.mintTo(teamWallet, 1 ether);
+    	// Check Step 5. Convert remaining WETH to SALT and sends it to SaltRewards.
+    	// Check Step 6. Send SALT Emissions to the SaltRewards contract.
+    	// [FAILED] Check Step 7. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter.
+    	// Check Step 8. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
-		vm.startPrank(teamWallet);
-		salt.approve(address(collateralAndLiquidity), 1 ether);
-		usds.approve(address(collateralAndLiquidity), 1 ether);
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare(salt, usds, 1 ether, 1 ether, 0, block.timestamp, true);
-		vm.stopPrank();
+    	// Check that about 72.2 ether of WETH has been converted to SALT and sent to SaltRewards.
+    	// Emissions also emit about 185715 SALT as 5 days have gone by since the deployment (delay for the bootstrap ballot to complete).
+    	// This is due to Emissions holding 52 million SALT and emitting at a default rate of .50% / week.
 
-		// Send some SALT from the teamWallet to mimic WETH to SALT counterswap
-		vm.prank(teamWallet);
-		salt.transfer(address(upkeep), 1 ether);
+    	// As there were profits, SaltRewards distributed the 185715 ether + 72.2 ether rewards
+    	// 10% to SALT/USDS rewards, 45% to stakingRewardsEmitter and 45% to liquidityRewardsEmitter,
+    	assertEq( salt.balanceOf(address(saltRewards)), 185786852644207816081089 ); // should be basically empty now
 
-		vm.startPrank(address(upkeep));
-		salt.approve(address(pools), type(uint256).max);
-		pools.depositTokenForCounterswap(Counterswap.WETH_TO_SALT, salt, 1 ether);
-		vm.stopPrank();
+    	// Additionally stakingRewardsEmitter started with 3 million bootstrapping rewards.
+    	// liquidityRewardsEmitter started with 5 millions bootstrapping rewards, divided evenly amongst the 9 initial pools.
 
-    	assertEq( salt.balanceOf(address(upkeep)), 0 ether );
+    	// Determine that rewards were sent correctly by the stakingRewardsEmitter and liquidityRewardsEmitter
+    	bytes32[] memory poolIDsA = new bytes32[](1);
+    	poolIDsA[0] = PoolUtils.STAKED_SALT;
 
-		uint256 saltSupply = salt.totalSupply();
+    	// Check that the staking rewards were transferred to the staking contract:
+    	// 1% max of (3 million bootstrapping in the stakingRewardsEmitter + 45% of 185786 ether sent from saltRewards)
+    	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
+    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 30000000000000000000000 );
 
-		// =====Perform another performUpkeep
-		vm.warp(block.timestamp + 1 days);
+    	bytes32[] memory poolIDs = new bytes32[](5);
+    	poolIDs[0] = PoolUtils._poolIDOnly(salt,weth);
+    	poolIDs[1] = PoolUtils._poolIDOnly(salt,wbtc);
+    	poolIDs[2] = PoolUtils._poolIDOnly(wbtc,weth);
+    	poolIDs[3] = PoolUtils._poolIDOnly(salt,usds);
+    	poolIDs[4] = PoolUtils._poolIDOnly(usds,dai);
 
-		vm.prank(upkeepCaller);
-		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-		// =====
+    	// Check if the rewards were transferred to the liquidity contract:
+    	// 1% max of ( 5 million / 9 pools + 45% of 185786 ether sent from saltRewards).
+    	// SALT/USDS should received an additional 1% of 10% of 47.185786.
+    	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
+    	uint256[] memory rewards = collateralAndLiquidity.totalRewardsForPools(poolIDs);
 
+    	// Expected for all pools
+    	uint256 expectedLiquidityRewardsFromBootstrapping = uint256(5000000 ether) / 9 / 100;
 
-		// Check Step 8. Withdraw SALT from previous counterswaps.
-		// This is used to form SALT/USDS POL and is sent to the DAO - so the balance here is zero
-    	assertEq( salt.balanceOf(address(upkeep)), 0, "step 8 A" );
-
-		// Check Step 9. Send SALT and USDS (from steps 8 and 3) to the DAO and have it form SALT/USDS Protocol Owned Liquidity
-		(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves(salt, usds);
-		assertEq( reserve0, 31000000000000000000, "step 9 A" );
-		assertEq( reserve1, 31000000000000000000, "step 9 B" );
-
-		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428571, "step 10 A" );
-
-		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
-		uint256 saltBurned = saltSupply - salt.totalSupply();
-
-   		assertEq( saltBurned, 3592741935483870967741, "step 14 A" );
-		}
+    	assertEq( rewards[0], expectedLiquidityRewardsFromBootstrapping);
+    	assertEq( rewards[1], expectedLiquidityRewardsFromBootstrapping);
+    	assertEq( rewards[2], expectedLiquidityRewardsFromBootstrapping);
+    	assertEq( rewards[3], expectedLiquidityRewardsFromBootstrapping);
+    	assertEq( rewards[4], expectedLiquidityRewardsFromBootstrapping);
 
 
+    	// Check Step 9. Collect SALT rewards from the DAO's Protocol Owned Liquidity: send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.
+    	// Check Step 10. Sends SALT from the DAO vesting wallet to the DAO (linear distribution over 10 years).
+    	// Check Step 11. Sends SALT from the team vesting wallet to the team (linear distribution over 10 years).
+
+    	// The DAO currently has all of the SALT/USDS and USDS/DAI liquidity - so it will claim all of the above calculated rewards for those two pools.
+    	uint256 polRewards = rewards[3] + rewards[4];
+
+    	// 10% of the POL Rewards for the team wallet
+    	// The teamVestingWallet contains 10 million SALT and vests over a 10 year period.
+    	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days
+    	assertEq( salt.balanceOf(teamWallet), polRewards / 10 + 13561675228310502283105 );
+
+    	// 50% of the remaining rewards are burned
+    	uint256 halfOfRemaining = ( polRewards * 45 ) / 100;
+    	assertEq( salt.totalBurned(), halfOfRemaining );
+
+    	// Other 50% should stay in the DAO
+    	// The daoVestingWallet contains 25 million SALT and vests over a 10 year period.
+    	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days
+    	assertEq( salt.balanceOf(address(dao)), halfOfRemaining + 1 + 34109667998477929984779 );
+    	}
 
 
 	// A unit test to revert step8 and ensure other steps continue functioning
-	function testRevertStep8() public
-		{
-		_initFlawed(8);
-		finalizeBootstrap();
+    function testRevertStep8() public
+    	{
+    	_initFlawed(8);
+    	_setupLiquidity();
+    	_generateArbitrageProfits(false);
 
-		// Set an initial price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 10000 ether );
-		forcedPriceFeed.setETHPrice( 1000 ether );
-		vm.stopPrank();
+       	// Dummy WBTC and WETH to send to Liquidizer
+       	vm.prank(DEPLOYER);
+       	weth.transfer( address(liquidizer), 50 ether );
 
-		priceAggregator.performUpkeep();
+       	// Indicate that some USDS should be burned
+       	vm.prank( address(collateralAndLiquidity));
+       	liquidizer.shouldBurnMoreUSDS( 40 ether);
 
-		assertEq( priceAggregator.getPriceBTC(), 10000 ether );
-		assertEq( priceAggregator.getPriceETH(), 1000 ether );
+       	// Mimic arbitrage profits deposited as WETH for the DAO
+       	vm.prank(DEPLOYER);
+       	weth.transfer(address(dao), 100 ether);
 
-		// Set a new price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 20000 ether );
-		forcedPriceFeed.setETHPrice( 2000 ether );
-		vm.stopPrank();
+       	vm.startPrank(address(dao));
+       	weth.approve(address(pools), 100 ether);
+       	pools.deposit(weth, 100 ether);
+       	vm.stopPrank();
 
+    	assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
+    	assertEq( salt.balanceOf(address(staking)), 0 );
 
-    	// Dummy WBTC and WETH to send to USDS
-    	vm.startPrank(DEPLOYER);
-    	wbtc.transfer( address(usds), 5 ether );
-    	weth.transfer( address(usds), 50 ether );
-    	vm.stopPrank();
+    	assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049050423279843 );
 
-    	// USDS to usds contract to mimic withdrawn counterswap trades
-    	vm.startPrank( address(collateralAndLiquidity));
-    	usds.mintTo( address(usds), 30 ether );
-    	usds.shouldBurnMoreUSDS( 20 ether );
-    	vm.stopPrank();
+    	uint256 usdsSupply0 = usds.totalSupply();
 
-		assertEq( usds.totalSupply(), 30 ether );
+    	// === Perform upkeep ===
+    	address upkeepCaller = address(0x9999);
 
-
-    	// USDS deposited to counterswap to mimic completed counterswap trades
-    	vm.prank( address(collateralAndLiquidity));
-    	usds.mintTo( address(usds), 30 ether );
-
-    	vm.startPrank(address(usds));
-    	usds.approve( address(pools), type(uint256).max );
-    	pools.depositTokenForCounterswap(Counterswap.WBTC_TO_USDS, usds, 15 ether);
-    	pools.depositTokenForCounterswap(Counterswap.WETH_TO_USDS, usds, 15 ether);
-		vm.stopPrank();
+    	vm.prank(upkeepCaller);
+    	UpkeepFlawed(address(upkeep)).performFlawedUpkeep();
+    	// ==================
 
 
-    	// Arbitrage profits are deposited as WETH for the DAO
-    	vm.prank(DEPLOYER);
-    	weth.transfer(address(dao), 100 ether);
+    	// Check 1. Swap tokens previously sent to the Liquidizer contract for USDS and burn specified amounts of USDS.
+    	assertEq( usds.balanceOf( address(liquidizer) ), 9975012493753123438 ); // 50 WETH converted to about 50 USDS and then 40 burned
 
-    	vm.startPrank(address(dao));
-    	weth.approve(address(pools), 100 ether);
-    	pools.deposit(weth, 100 ether);
-    	vm.stopPrank();
-
-		// Create some initial WBTC/WETH liquidity so that it can receive bootstrapping rewards
-		vm.startPrank(DEPLOYER);
-		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
-		weth.approve(address(collateralAndLiquidity), type(uint256).max);
-		collateralAndLiquidity.depositCollateralAndIncreaseShare(100 * 10**8, 1000 * 10**8, 0, block.timestamp, true);
-		vm.stopPrank();
-
-		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
-		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
-
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
-		assertEq( salt.balanceOf(address(staking)), 0 );
+    	// 40 ether should have been burnt
+    	assertEq( usdsSupply0 - usds.totalSupply(), 40 ether );
 
 
-		// === Perform upkeep ===
-		address upkeepCaller = address(0x9999);
-
-		vm.prank(upkeepCaller);
-		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-		// ==================
+    	// Check Step 2. Withdraw existing WETH arbitrage profits from the Pools contract and reward the caller of performUpkeep() with default 5% of the withdrawn amount.
+    	// From the directly added 100 ether + arbitrage profits
+       	assertEq( weth.balanceOf(upkeepCaller), 5000049050423279843 );
 
 
-		// Check Step 1. Update the prices of BTC and ETH in the PriceAggregator.
-		assertEq( priceAggregator.getPriceBTC(), 20000 ether, "step1 A" );
-		assertEq( priceAggregator.getPriceETH(), 2000 ether, "step1 B" );
+    	// Check Step 3. Convert a default 5% of the remaining WETH to USDS/DAI Protocol Owned Liquidity.
 
-		// Check Step 2. Send WBTC and WETH from the USDS contract to the counterswap addresses (for conversion to USDS) and withdraw USDS from counterswap for burning.
-		assertEq( pools.depositedUserBalance( Counterswap.WBTC_TO_USDS, wbtc ), 5 ether, "step2 A" );
-		assertEq( pools.depositedUserBalance( Counterswap.WETH_TO_USDS, weth ), 59500000000000000000, "step2 B" );
+    	// Check that 5% of the remaining WETH (5% of 95 ether) has been converted to USDS/DAI
+    	(uint256 reservesA, uint256 reservesB) = pools.getPoolReserves(usds, dai);
+    	assertEq( reservesA, 2372593734239580153 ); // Close to 2.375 ether
+    	assertEq( reservesB, 2374966892934008368 ); // Close to 2.375 ether
 
-		// Check that USDS has been burned
-		assertEq( usds.totalSupply(), 40 ether, "step2 C" );
-
-		// Check Step 3. Withdraw the remaining USDS already counterswapped from WBTC and WETH (for later formation of SALT/USDS liquidity).
-		assertEq( usds.balanceOf(address(upkeep)), 30 ether, "step3 A" );
-
-		// Check Step 4. Have the DAO withdraw the WETH arbitrage profits from the Pools contract and send the withdrawn WETH to this contract.
-    	assertEq( pools.depositedUserBalance(address(dao), weth), 0 ether, "step4 A" );
-
-		// Check Step 5. Send a default 5% of the withdrawn WETH to the caller of performUpkeep().
-    	assertEq( weth.balanceOf(upkeepCaller), 5 ether, "step5 A" );
-
-		// Check Step 6. Send a default 10% (20% / 2 ) of the remaining WETH to counterswap for conversion to USDS (for later formation of SALT/USDS liquidity).
-		// Includes deposited WETH from step2 as well
-    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_USDS, weth), 59500000000000000000, "step6 A" );
-
-		// Check Step 7. Send all remaining WETH to counterswap for conversion to SALT (for later SALT/USDS POL formation and SaltRewards).
-    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_SALT, weth), 85500000000000000000, "step7 A" );
+    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(usds, dai));
+    	assertEq( daoLiquidity, 4747560627173588521 ); // Close to 4.75 ether
 
 
-		// Checking steps 8-9 skipped for now as no one has SALT as it hasn't been distributed yet
+    	// Check Step 4. Convert a default 20% of the remaining WETH to SALT/USDS Protocol Owned Liquidity.
 
-		// Check Step 11. Send SALT Emissions to the stakingRewardsEmitter
-		// Check Step 12. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter and call clearProfitsForPools.
-		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
+    	// Check that 20% of the remaining WETH (20% of 90.25 ether) has been converted to SALT/USDS
+    	(reservesA, reservesB) = pools.getPoolReserves(salt, usds);
+    	assertEq( reservesA, 9024453775958744234 ); // Close to 9.025 ether
+    	assertEq( reservesB, 9014829003115815807 ); // Close to 9.025 ether - a little worse because some of the USDS reserve was also used for USDS/DAI POL
 
-		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
-		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
-
-		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(collateralAndLiquidity)), 49999999999999999999995, "step11-13 C" );
-
-		// Checking step 14 can be ignored for now as the DAO hasn't formed POL yet (as it didn't yet have SALT)
-
-		// Check Step 15. Send SALT from the DAO vesting wallet to the DAO (linear distribution of 25 million tokens over 10 years).
-    	assertEq( salt.balanceOf(address(dao)), uint256( 25 * 1000000 ether ) * 24 hours / (60 * 60 * 24 * 365 * 10), "step 15 A" );
-
-		// Check Step 16. Send SALT from the team vesting wallet to the team (linear distribution over 10 years).
-    	assertEq( salt.balanceOf(address(teamWallet)), uint256( 10 * 1000000 ether ) * 24 hours / (60 * 60 * 24 * 365 * 10), "step 16 A" );
+    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds));
+    	assertEq( daoLiquidity, 18039282779074560041 ); // Close to 18.05 ether
 
 
-		// Have the team form some initial SALT/USDS liquidity
-		vm.prank(address(collateralAndLiquidity));
-		usds.mintTo(teamWallet, 1 ether);
+    	// Check Step 5. Convert remaining WETH to SALT and sends it to SaltRewards.
+    	// Check Step 6. Send SALT Emissions to the SaltRewards contract.
+    	// Check Step 7. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter.
+    	// [FAILED] Check Step 8. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
-		vm.startPrank(teamWallet);
-		salt.approve(address(collateralAndLiquidity), 1 ether);
-		usds.approve(address(collateralAndLiquidity), 1 ether);
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare(salt, usds, 1 ether, 1 ether, 0, block.timestamp, true);
-		vm.stopPrank();
+    	// Check that about 72.2 ether of WETH has been converted to SALT and sent to SaltRewards.
+    	// Emissions also emit about 185715 SALT as 5 days have gone by since the deployment (delay for the bootstrap ballot to complete).
+    	// This is due to Emissions holding 52 million SALT and emitting at a default rate of .50% / week.
 
-		// Send some SALT from the teamWallet to mimic WETH to SALT counterswap
-		vm.prank(teamWallet);
-		salt.transfer(address(upkeep), 1 ether);
+    	// As there were profits, SaltRewards distributed the 185715 ether + 72.2 ether rewards
+    	// 10% to SALT/USDS rewards, 45% to stakingRewardsEmitter and 45% to liquidityRewardsEmitter,
+    	assertEq( salt.balanceOf(address(saltRewards)), 2 ); // should be basically empty now
 
-		vm.startPrank(address(upkeep));
-		salt.approve(address(pools), type(uint256).max);
-		pools.depositTokenForCounterswap(Counterswap.WETH_TO_SALT, salt, 1 ether);
-		vm.stopPrank();
+    	// Additionally stakingRewardsEmitter started with 3 million bootstrapping rewards.
+    	// liquidityRewardsEmitter started with 5 millions bootstrapping rewards, divided evenly amongst the 9 initial pools.
 
-    	assertEq( salt.balanceOf(address(upkeep)), 0 ether );
+    	// Determine that rewards were sent correctly by the stakingRewardsEmitter and liquidityRewardsEmitter
+    	bytes32[] memory poolIDsA = new bytes32[](1);
+    	poolIDsA[0] = PoolUtils.STAKED_SALT;
 
-		uint256 saltSupply = salt.totalSupply();
+    	// Check that the staking rewards were transferred to the staking contract:
+    	// 1% max of (3 million bootstrapping in the stakingRewardsEmitter + 45% of 185786 ether sent from saltRewards)
+    	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
+    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 0 );
 
-		// =====Perform another performUpkeep
-		vm.warp(block.timestamp + 1 days);
+    	bytes32[] memory poolIDs = new bytes32[](5);
+    	poolIDs[0] = PoolUtils._poolIDOnly(salt,weth);
+    	poolIDs[1] = PoolUtils._poolIDOnly(salt,wbtc);
+    	poolIDs[2] = PoolUtils._poolIDOnly(wbtc,weth);
+    	poolIDs[3] = PoolUtils._poolIDOnly(salt,usds);
+    	poolIDs[4] = PoolUtils._poolIDOnly(usds,dai);
 
-		vm.prank(upkeepCaller);
-		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-		// =====
+    	// Check if the rewards were transferred to the liquidity contract:
+    	// 1% max of ( 5 million / 9 pools + 45% of 185786 ether sent from saltRewards).
+    	// SALT/USDS should received an additional 1% of 10% of 47.185786.
+    	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
+    	uint256[] memory rewards = collateralAndLiquidity.totalRewardsForPools(poolIDs);
 
-
-		// Check Step 8. Withdraw SALT from previous counterswaps.
-		// This is used to form SALT/USDS POL and is sent to the DAO - so the balance here is zero
-		// Reverting this doesn't affect POL formation as USDS is the limiting factor in creating the POL
-		// Balance still zero after step8 reversion
-    	assertEq( salt.balanceOf(address(upkeep)), 0, "step 8 A" );
-
-		// Check Step 9. Send SALT and USDS (from steps 8 and 3) to the DAO and have it form SALT/USDS Protocol Owned Liquidity
-		(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves(salt, usds);
-		assertEq( reserve0, 31000000000000000000, "step 9 A" );
-		assertEq( reserve1, 31000000000000000000, "step 9 B" );
-
-		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428571, "step 10 A" );
-
-		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
-		uint256 saltBurned = saltSupply - salt.totalSupply();
-
-   		assertEq( saltBurned, 3592741935483870967741, "step 14 A" );
-		}
+    	assertEq( rewards[0], 0);
+    	assertEq( rewards[1], 0);
+    	assertEq( rewards[2], 0);
+    	assertEq( rewards[3], 0);
+    	assertEq( rewards[4], 0);
 
 
+    	// Check Step 9. Collect SALT rewards from the DAO's Protocol Owned Liquidity: send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.
+    	// Check Step 10. Sends SALT from the DAO vesting wallet to the DAO (linear distribution over 10 years).
+    	// Check Step 11. Sends SALT from the team vesting wallet to the team (linear distribution over 10 years).
+
+    	// The DAO currently has all of the SALT/USDS and USDS/DAI liquidity - so it will claim all of the above calculated rewards for those two pools.
+    	uint256 polRewards = rewards[3] + rewards[4];
+
+    	// 10% of the POL Rewards for the team wallet
+    	// The teamVestingWallet contains 10 million SALT and vests over a 10 year period.
+    	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days
+    	assertEq( salt.balanceOf(teamWallet), polRewards / 10 + 13561675228310502283105 );
+
+    	// 50% of the remaining rewards are burned
+    	assertEq( salt.totalBurned(), 0 );
+
+    	// Other 50% should stay in the DAO
+    	// The daoVestingWallet contains 25 million SALT and vests over a 10 year period.
+    	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days
+    	assertEq( salt.balanceOf(address(dao)), 34109667998477929984779 );
+    	}
 
 
 	// A unit test to revert step9 and ensure other steps continue functioning
-	function testRevertStep9() public
-		{
-		_initFlawed(9);
-		finalizeBootstrap();
+    function testRevertStep9() public
+    	{
+    	_initFlawed(9);
+    	_setupLiquidity();
+    	_generateArbitrageProfits(false);
 
-		// Set an initial price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 10000 ether );
-		forcedPriceFeed.setETHPrice( 1000 ether );
-		vm.stopPrank();
+       	// Dummy WBTC and WETH to send to Liquidizer
+       	vm.prank(DEPLOYER);
+       	weth.transfer( address(liquidizer), 50 ether );
 
-		priceAggregator.performUpkeep();
+       	// Indicate that some USDS should be burned
+       	vm.prank( address(collateralAndLiquidity));
+       	liquidizer.shouldBurnMoreUSDS( 40 ether);
 
-		assertEq( priceAggregator.getPriceBTC(), 10000 ether );
-		assertEq( priceAggregator.getPriceETH(), 1000 ether );
+       	// Mimic arbitrage profits deposited as WETH for the DAO
+       	vm.prank(DEPLOYER);
+       	weth.transfer(address(dao), 100 ether);
 
-		// Set a new price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 20000 ether );
-		forcedPriceFeed.setETHPrice( 2000 ether );
-		vm.stopPrank();
+       	vm.startPrank(address(dao));
+       	weth.approve(address(pools), 100 ether);
+       	pools.deposit(weth, 100 ether);
+       	vm.stopPrank();
 
+    	assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
+    	assertEq( salt.balanceOf(address(staking)), 0 );
 
-    	// Dummy WBTC and WETH to send to USDS
-    	vm.startPrank(DEPLOYER);
-    	wbtc.transfer( address(usds), 5 ether );
-    	weth.transfer( address(usds), 50 ether );
-    	vm.stopPrank();
+    	assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049050423279843 );
 
-    	// USDS to usds contract to mimic withdrawn counterswap trades
-    	vm.startPrank( address(collateralAndLiquidity));
-    	usds.mintTo( address(usds), 30 ether );
-    	usds.shouldBurnMoreUSDS( 20 ether );
-    	vm.stopPrank();
+    	uint256 usdsSupply0 = usds.totalSupply();
 
-		assertEq( usds.totalSupply(), 30 ether );
+    	// === Perform upkeep ===
+    	address upkeepCaller = address(0x9999);
 
-
-    	// USDS deposited to counterswap to mimic completed counterswap trades
-    	vm.prank( address(collateralAndLiquidity));
-    	usds.mintTo( address(usds), 30 ether );
-
-    	vm.startPrank(address(usds));
-    	usds.approve( address(pools), type(uint256).max );
-    	pools.depositTokenForCounterswap(Counterswap.WBTC_TO_USDS, usds, 15 ether);
-    	pools.depositTokenForCounterswap(Counterswap.WETH_TO_USDS, usds, 15 ether);
-		vm.stopPrank();
+    	vm.prank(upkeepCaller);
+    	UpkeepFlawed(address(upkeep)).performFlawedUpkeep();
+    	// ==================
 
 
-    	// Arbitrage profits are deposited as WETH for the DAO
-    	vm.prank(DEPLOYER);
-    	weth.transfer(address(dao), 100 ether);
+    	// Check 1. Swap tokens previously sent to the Liquidizer contract for USDS and burn specified amounts of USDS.
+    	assertEq( usds.balanceOf( address(liquidizer) ), 9975012493753123438 ); // 50 WETH converted to about 50 USDS and then 40 burned
 
-    	vm.startPrank(address(dao));
-    	weth.approve(address(pools), 100 ether);
-    	pools.deposit(weth, 100 ether);
-    	vm.stopPrank();
-
-		// Create some initial WBTC/WETH liquidity so that it can receive bootstrapping rewards
-		vm.startPrank(DEPLOYER);
-		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
-		weth.approve(address(collateralAndLiquidity), type(uint256).max);
-		collateralAndLiquidity.depositCollateralAndIncreaseShare(100 * 10**8, 1000 * 10**8, 0, block.timestamp, true);
-		vm.stopPrank();
-
-		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
-		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
-
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
-		assertEq( salt.balanceOf(address(staking)), 0 );
+    	// 40 ether should have been burnt
+    	assertEq( usdsSupply0 - usds.totalSupply(), 40 ether );
 
 
-		// === Perform upkeep ===
-		address upkeepCaller = address(0x9999);
-
-		vm.prank(upkeepCaller);
-		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-		// ==================
+    	// Check Step 2. Withdraw existing WETH arbitrage profits from the Pools contract and reward the caller of performUpkeep() with default 5% of the withdrawn amount.
+    	// From the directly added 100 ether + arbitrage profits
+       	assertEq( weth.balanceOf(upkeepCaller), 5000049050423279843 );
 
 
-		// Check Step 1. Update the prices of BTC and ETH in the PriceAggregator.
-		assertEq( priceAggregator.getPriceBTC(), 20000 ether, "step1 A" );
-		assertEq( priceAggregator.getPriceETH(), 2000 ether, "step1 B" );
+    	// Check Step 3. Convert a default 5% of the remaining WETH to USDS/DAI Protocol Owned Liquidity.
 
-		// Check Step 2. Send WBTC and WETH from the USDS contract to the counterswap addresses (for conversion to USDS) and withdraw USDS from counterswap for burning.
-		assertEq( pools.depositedUserBalance( Counterswap.WBTC_TO_USDS, wbtc ), 5 ether, "step2 A" );
-		assertEq( pools.depositedUserBalance( Counterswap.WETH_TO_USDS, weth ), 59500000000000000000, "step2 B" );
+    	// Check that 5% of the remaining WETH (5% of 95 ether) has been converted to USDS/DAI
+    	(uint256 reservesA, uint256 reservesB) = pools.getPoolReserves(usds, dai);
+    	assertEq( reservesA, 2372593734239580153 ); // Close to 2.375 ether
+    	assertEq( reservesB, 2374966892934008368 ); // Close to 2.375 ether
 
-		// Check that USDS has been burned
-		assertEq( usds.totalSupply(), 40 ether, "step2 C" );
-
-		// Check Step 3. Withdraw the remaining USDS already counterswapped from WBTC and WETH (for later formation of SALT/USDS liquidity).
-		assertEq( usds.balanceOf(address(upkeep)), 30 ether, "step3 A" );
-
-		// Check Step 4. Have the DAO withdraw the WETH arbitrage profits from the Pools contract and send the withdrawn WETH to this contract.
-    	assertEq( pools.depositedUserBalance(address(dao), weth), 0 ether, "step4 A" );
-
-		// Check Step 5. Send a default 5% of the withdrawn WETH to the caller of performUpkeep().
-    	assertEq( weth.balanceOf(upkeepCaller), 5 ether, "step5 A" );
-
-		// Check Step 6. Send a default 10% (20% / 2 ) of the remaining WETH to counterswap for conversion to USDS (for later formation of SALT/USDS liquidity).
-		// Includes deposited WETH from step2 as well
-    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_USDS, weth), 59500000000000000000, "step6 A" );
-
-		// Check Step 7. Send all remaining WETH to counterswap for conversion to SALT (for later SALT/USDS POL formation and SaltRewards).
-    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_SALT, weth), 85500000000000000000, "step7 A" );
+    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(usds, dai));
+    	assertEq( daoLiquidity, 4747560627173588521 ); // Close to 4.75 ether
 
 
-		// Checking steps 8-9 skipped for now as no one has SALT as it hasn't been distributed yet
+    	// Check Step 4. Convert a default 20% of the remaining WETH to SALT/USDS Protocol Owned Liquidity.
 
-		// Check Step 11. Send SALT Emissions to the stakingRewardsEmitter
-		// Check Step 12. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter and call clearProfitsForPools.
-		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
+    	// Check that 20% of the remaining WETH (20% of 90.25 ether) has been converted to SALT/USDS
+    	(reservesA, reservesB) = pools.getPoolReserves(salt, usds);
+    	assertEq( reservesA, 9024453775958744234 ); // Close to 9.025 ether
+    	assertEq( reservesB, 9014829003115815807 ); // Close to 9.025 ether - a little worse because some of the USDS reserve was also used for USDS/DAI POL
 
-		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
-		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
-
-		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(collateralAndLiquidity)), 49999999999999999999995, "step11-13 C" );
-
-		// Checking step 14 can be ignored for now as the DAO hasn't formed POL yet (as it didn't yet have SALT)
-
-		// Check Step 15. Send SALT from the DAO vesting wallet to the DAO (linear distribution of 25 million tokens over 10 years).
-    	assertEq( salt.balanceOf(address(dao)), uint256( 25 * 1000000 ether ) * 24 hours / (60 * 60 * 24 * 365 * 10), "step 15 A" );
-
-		// Check Step 16. Send SALT from the team vesting wallet to the team (linear distribution over 10 years).
-    	assertEq( salt.balanceOf(address(teamWallet)), uint256( 10 * 1000000 ether ) * 24 hours / (60 * 60 * 24 * 365 * 10), "step 16 A" );
+    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds));
+    	assertEq( daoLiquidity, 18039282779074560041 ); // Close to 18.05 ether
 
 
-		// Have the team form some initial SALT/USDS liquidity
-		vm.prank(address(collateralAndLiquidity));
-		usds.mintTo(teamWallet, 1 ether);
+    	// Check Step 5. Convert remaining WETH to SALT and sends it to SaltRewards.
+    	// Check Step 6. Send SALT Emissions to the SaltRewards contract.
+    	// Check Step 7. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter.
+    	// Check Step 8. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
-		vm.startPrank(teamWallet);
-		salt.approve(address(collateralAndLiquidity), 1 ether);
-		usds.approve(address(collateralAndLiquidity), 1 ether);
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare(salt, usds, 1 ether, 1 ether, 0, block.timestamp, true);
-		vm.stopPrank();
+    	// Check that about 72.2 ether of WETH has been converted to SALT and sent to SaltRewards.
+    	// Emissions also emit about 185715 SALT as 5 days have gone by since the deployment (delay for the bootstrap ballot to complete).
+    	// This is due to Emissions holding 52 million SALT and emitting at a default rate of .50% / week.
 
-		// Send some SALT from the teamWallet to mimic WETH to SALT counterswap
-		vm.prank(teamWallet);
-		salt.transfer(address(upkeep), 1 ether);
+    	// As there were profits, SaltRewards distributed the 185715 ether + 72.2 ether rewards
+    	// 10% to SALT/USDS rewards, 45% to stakingRewardsEmitter and 45% to liquidityRewardsEmitter,
+    	assertEq( salt.balanceOf(address(saltRewards)), 2 ); // should be basically empty now
 
-		vm.startPrank(address(upkeep));
-		salt.approve(address(pools), type(uint256).max);
-		pools.depositTokenForCounterswap(Counterswap.WETH_TO_SALT, salt, 1 ether);
-		vm.stopPrank();
+    	// Additionally stakingRewardsEmitter started with 3 million bootstrapping rewards.
+    	// liquidityRewardsEmitter started with 5 millions bootstrapping rewards, divided evenly amongst the 9 initial pools.
 
-    	assertEq( salt.balanceOf(address(upkeep)), 0 ether );
+    	// Determine that rewards were sent correctly by the stakingRewardsEmitter and liquidityRewardsEmitter
+    	bytes32[] memory poolIDsA = new bytes32[](1);
+    	poolIDsA[0] = PoolUtils.STAKED_SALT;
 
-		uint256 saltSupply = salt.totalSupply();
+    	// Check that the staking rewards were transferred to the staking contract:
+    	// 1% max of (3 million bootstrapping in the stakingRewardsEmitter + 45% of 185786 ether sent from saltRewards)
+    	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
+    	uint256 expectedStakingRewardsFromBootstrapping = uint256(3000000 ether) / 100;
+       	uint256 expectedStakingRewardsFromArbitrageProfits = uint( 185786 ether * 45 ) / 100 / 100;
+    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], expectedStakingRewardsFromBootstrapping + expectedStakingRewardsFromArbitrageProfits + 3836898935172364  );
 
-		// =====Perform another performUpkeep
-		vm.warp(block.timestamp + 1 days);
+    	bytes32[] memory poolIDs = new bytes32[](5);
+    	poolIDs[0] = PoolUtils._poolIDOnly(salt,weth);
+    	poolIDs[1] = PoolUtils._poolIDOnly(salt,wbtc);
+    	poolIDs[2] = PoolUtils._poolIDOnly(wbtc,weth);
+    	poolIDs[3] = PoolUtils._poolIDOnly(salt,usds);
+    	poolIDs[4] = PoolUtils._poolIDOnly(usds,dai);
 
-		vm.prank(upkeepCaller);
-		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-		// =====
+    	// Check if the rewards were transferred to the liquidity contract:
+    	// 1% max of ( 5 million / 9 pools + 45% of 185786 ether sent from saltRewards).
+    	// SALT/USDS should received an additional 1% of 10% of 47.185786.
+    	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
+    	uint256[] memory rewards = collateralAndLiquidity.totalRewardsForPools(poolIDs);
+
+    	// Expected for all pools
+    	uint256 expectedLiquidityRewardsFromBootstrapping = uint256(5000000 ether) / 9 / 100;
+
+    	// Expected for WBTC/WETH, SALT/WETH and SALT/WTBC
+          	uint256 expectedLiquidityRewardsFromArbitrageProfits = uint( 185786 ether * 45 ) / 100 / 100 / 3;
+
+    	// Expected for SALT/USDS
+          	uint256 expectedAdditionalForSaltUSDS = ( 185786 ether * 10 ) / 100 / 100;
+
+    	assertEq( rewards[0], expectedLiquidityRewardsFromBootstrapping + expectedLiquidityRewardsFromArbitrageProfits + 1278966311724122);
+    	assertEq( rewards[1], expectedLiquidityRewardsFromBootstrapping + expectedLiquidityRewardsFromArbitrageProfits + 1278966311724122);
+    	assertEq( rewards[2], expectedLiquidityRewardsFromBootstrapping + expectedLiquidityRewardsFromArbitrageProfits + 1278966311724122);
+    	assertEq( rewards[3], expectedLiquidityRewardsFromBootstrapping + expectedAdditionalForSaltUSDS + 852644207816081);
+    	assertEq( rewards[4], expectedLiquidityRewardsFromBootstrapping);
 
 
-		// Check Step 8. Withdraw SALT from previous counterswaps.
-		// This is used to form SALT/USDS POL and is sent to the DAO - so the balance here is zero
-//    	assertEq( salt.balanceOf(address(upkeep)), 0, "step 8 A" );
-    	assertEq( salt.balanceOf(address(upkeep)), 1000000000000000000, "step 8 A" );
+    	// [FAILED] Check Step 9. Collect SALT rewards from the DAO's Protocol Owned Liquidity: send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.
+    	// Check Step 10. Sends SALT from the DAO vesting wallet to the DAO (linear distribution over 10 years).
+    	// Check Step 11. Sends SALT from the team vesting wallet to the team (linear distribution over 10 years).
 
-		// Check Step 9. Send SALT and USDS (from steps 8 and 3) to the DAO and have it form SALT/USDS Protocol Owned Liquidity
-		(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves(salt, usds);
-//		assertEq( reserve0, 31000000000000000000, "step 9 A" );
-//		assertEq( reserve1, 31000000000000000000, "step 9 B" );
-		assertEq( reserve0, 1000000000000000000, "step 9 A" );
-		assertEq( reserve1, 1000000000000000000, "step 9 B" );
+    	// 10% of the POL Rewards for the team wallet
+    	// The teamVestingWallet contains 10 million SALT and vests over a 10 year period.
+    	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days
+    	assertEq( salt.balanceOf(teamWallet), 13561675228310502283105 );
 
-		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428571, "step 10 A" );
+    	// 50% of the remaining rewards are burned
+    	assertEq( salt.totalBurned(), 0 );
 
-		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
-		uint256 saltBurned = saltSupply - salt.totalSupply();
-
-//   		assertEq( saltBurned, 7462500000000000000000, "step 14 A" );
-   		assertEq( saltBurned, 0, "step 14 A" );
-		}
-
+    	// Other 50% should stay in the DAO
+    	// The daoVestingWallet contains 25 million SALT and vests over a 10 year period.
+    	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days
+    	assertEq( salt.balanceOf(address(dao)), 34109667998477929984779 );
+    	}
 
 
 	// A unit test to revert step10 and ensure other steps continue functioning
-	function testRevertStep10() public
-		{
-		_initFlawed(10);
-		finalizeBootstrap();
+    function testRevertStep10() public
+    	{
+    	_initFlawed(10);
+    	_setupLiquidity();
+    	_generateArbitrageProfits(false);
 
-		// Set an initial price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 10000 ether );
-		forcedPriceFeed.setETHPrice( 1000 ether );
-		vm.stopPrank();
+       	// Dummy WBTC and WETH to send to Liquidizer
+       	vm.prank(DEPLOYER);
+       	weth.transfer( address(liquidizer), 50 ether );
 
-		priceAggregator.performUpkeep();
+       	// Indicate that some USDS should be burned
+       	vm.prank( address(collateralAndLiquidity));
+       	liquidizer.shouldBurnMoreUSDS( 40 ether);
 
-		assertEq( priceAggregator.getPriceBTC(), 10000 ether );
-		assertEq( priceAggregator.getPriceETH(), 1000 ether );
+       	// Mimic arbitrage profits deposited as WETH for the DAO
+       	vm.prank(DEPLOYER);
+       	weth.transfer(address(dao), 100 ether);
 
-		// Set a new price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 20000 ether );
-		forcedPriceFeed.setETHPrice( 2000 ether );
-		vm.stopPrank();
+       	vm.startPrank(address(dao));
+       	weth.approve(address(pools), 100 ether);
+       	pools.deposit(weth, 100 ether);
+       	vm.stopPrank();
 
+    	assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
+    	assertEq( salt.balanceOf(address(staking)), 0 );
 
-    	// Dummy WBTC and WETH to send to USDS
-    	vm.startPrank(DEPLOYER);
-    	wbtc.transfer( address(usds), 5 ether );
-    	weth.transfer( address(usds), 50 ether );
-    	vm.stopPrank();
+    	assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049050423279843 );
 
-    	// USDS to usds contract to mimic withdrawn counterswap trades
-    	vm.startPrank( address(collateralAndLiquidity));
-    	usds.mintTo( address(usds), 30 ether );
-    	usds.shouldBurnMoreUSDS( 20 ether );
-    	vm.stopPrank();
+    	uint256 usdsSupply0 = usds.totalSupply();
 
-		assertEq( usds.totalSupply(), 30 ether );
+    	// === Perform upkeep ===
+    	address upkeepCaller = address(0x9999);
 
-
-    	// USDS deposited to counterswap to mimic completed counterswap trades
-    	vm.prank( address(collateralAndLiquidity));
-    	usds.mintTo( address(usds), 300 ether );
-
-    	vm.startPrank(address(usds));
-    	usds.approve( address(pools), type(uint256).max );
-    	pools.depositTokenForCounterswap(Counterswap.WBTC_TO_USDS, usds, 150 ether);
-    	pools.depositTokenForCounterswap(Counterswap.WETH_TO_USDS, usds, 150 ether);
-		vm.stopPrank();
+    	vm.prank(upkeepCaller);
+    	UpkeepFlawed(address(upkeep)).performFlawedUpkeep();
+    	// ==================
 
 
-    	// Arbitrage profits are deposited as WETH for the DAO
-    	vm.prank(DEPLOYER);
-    	weth.transfer(address(dao), 100 ether);
+    	// Check 1. Swap tokens previously sent to the Liquidizer contract for USDS and burn specified amounts of USDS.
+    	assertEq( usds.balanceOf( address(liquidizer) ), 9975012493753123438 ); // 50 WETH converted to about 50 USDS and then 40 burned
 
-    	vm.startPrank(address(dao));
-    	weth.approve(address(pools), 100 ether);
-    	pools.deposit(weth, 100 ether);
-    	vm.stopPrank();
-
-		// Create some initial WBTC/WETH liquidity so that it can receive bootstrapping rewards
-		vm.startPrank(DEPLOYER);
-		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
-		weth.approve(address(collateralAndLiquidity), type(uint256).max);
-		collateralAndLiquidity.depositCollateralAndIncreaseShare(100 * 10**8, 1000 * 10**8, 0, block.timestamp, true);
-		vm.stopPrank();
-
-		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
-		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
-
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
-		assertEq( salt.balanceOf(address(staking)), 0 );
+    	// 40 ether should have been burnt
+    	assertEq( usdsSupply0 - usds.totalSupply(), 40 ether );
 
 
-		// === Perform upkeep ===
-		address upkeepCaller = address(0x9999);
-
-		vm.prank(upkeepCaller);
-		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-		// ==================
+    	// Check Step 2. Withdraw existing WETH arbitrage profits from the Pools contract and reward the caller of performUpkeep() with default 5% of the withdrawn amount.
+    	// From the directly added 100 ether + arbitrage profits
+       	assertEq( weth.balanceOf(upkeepCaller), 5000049050423279843 );
 
 
-		// Check Step 1. Update the prices of BTC and ETH in the PriceAggregator.
-		assertEq( priceAggregator.getPriceBTC(), 20000 ether, "step1 A" );
-		assertEq( priceAggregator.getPriceETH(), 2000 ether, "step1 B" );
+    	// Check Step 3. Convert a default 5% of the remaining WETH to USDS/DAI Protocol Owned Liquidity.
 
-		// Check Step 2. Send WBTC and WETH from the USDS contract to the counterswap addresses (for conversion to USDS) and withdraw USDS from counterswap for burning.
-		assertEq( pools.depositedUserBalance( Counterswap.WBTC_TO_USDS, wbtc ), 5 ether, "step2 A" );
-		assertEq( pools.depositedUserBalance( Counterswap.WETH_TO_USDS, weth ), 59500000000000000000, "step2 B" );
+    	// Check that 5% of the remaining WETH (5% of 95 ether) has been converted to USDS/DAI
+    	(uint256 reservesA, uint256 reservesB) = pools.getPoolReserves(usds, dai);
+    	assertEq( reservesA, 2372593734239580153 ); // Close to 2.375 ether
+    	assertEq( reservesB, 2374966892934008368 ); // Close to 2.375 ether
 
-		// Check that USDS has been burned
-		assertEq( usds.totalSupply(), 310 ether, "step2 C" );
-
-		// Check Step 3. Withdraw the remaining USDS already counterswapped from WBTC and WETH (for later formation of SALT/USDS liquidity).
-		assertEq( usds.balanceOf(address(upkeep)), 300 ether, "step3 A" );
-
-		// Check Step 4. Have the DAO withdraw the WETH arbitrage profits from the Pools contract and send the withdrawn WETH to this contract.
-    	assertEq( pools.depositedUserBalance(address(dao), weth), 0 ether, "step4 A" );
-
-		// Check Step 5. Send a default 5% of the withdrawn WETH to the caller of performUpkeep().
-    	assertEq( weth.balanceOf(upkeepCaller), 5 ether, "step5 A" );
-
-		// Check Step 6. Send a default 10% (20% / 2 ) of the remaining WETH to counterswap for conversion to USDS (for later formation of SALT/USDS liquidity).
-		// Includes deposited WETH from step2 as well
-    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_USDS, weth), 59500000000000000000, "step6 A" );
-
-		// Check Step 7. Send all remaining WETH to counterswap for conversion to SALT (for later SALT/USDS POL formation and SaltRewards).
-    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_SALT, weth), 85500000000000000000, "step7 A" );
+    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(usds, dai));
+    	assertEq( daoLiquidity, 4747560627173588521 ); // Close to 4.75 ether
 
 
-		// Checking steps 8-9 skipped for now as no one has SALT as it hasn't been distributed yet
+    	// Check Step 4. Convert a default 20% of the remaining WETH to SALT/USDS Protocol Owned Liquidity.
 
-		// Check Step 11. Send SALT Emissions to the stakingRewardsEmitter
-		// Check Step 12. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter and call clearProfitsForPools.
-		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
+    	// Check that 20% of the remaining WETH (20% of 90.25 ether) has been converted to SALT/USDS
+    	(reservesA, reservesB) = pools.getPoolReserves(salt, usds);
+    	assertEq( reservesA, 9024453775958744234 ); // Close to 9.025 ether
+    	assertEq( reservesB, 9014829003115815807 ); // Close to 9.025 ether - a little worse because some of the USDS reserve was also used for USDS/DAI POL
 
-		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
-		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
-
-		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(collateralAndLiquidity)), 49999999999999999999995, "step11-13 C" );
-
-		// Checking step 14 can be ignored for now as the DAO hasn't formed POL yet (as it didn't yet have SALT)
-
-		// Check Step 15. Send SALT from the DAO vesting wallet to the DAO (linear distribution of 25 million tokens over 10 years).
-    	assertEq( salt.balanceOf(address(dao)), uint256( 25 * 1000000 ether ) * 1 days / (60 * 60 * 24 * 365 * 10), "step 15 A" );
-
-		// Check Step 16. Send SALT from the team vesting wallet to the team (linear distribution over 10 years).
-    	assertEq( salt.balanceOf(address(teamWallet)), uint256( 10 * 1000000 ether ) * 1 days / (60 * 60 * 24 * 365 * 10), "step 16 A" );
+    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds));
+    	assertEq( daoLiquidity, 18039282779074560041 ); // Close to 18.05 ether
 
 
-//		console.log( "TEAM SALT: ", salt.balanceOf(teamWallet) );
+    	// Check Step 5. Convert remaining WETH to SALT and sends it to SaltRewards.
+    	// Check Step 6. Send SALT Emissions to the SaltRewards contract.
+    	// Check Step 7. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter.
+    	// Check Step 8. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
-		// Have the team form some initial SALT/USDS liquidity
-		vm.prank(address(collateralAndLiquidity));
-		usds.mintTo(teamWallet, 1 ether);
+    	// Check that about 72.2 ether of WETH has been converted to SALT and sent to SaltRewards.
+    	// Emissions also emit about 185715 SALT as 5 days have gone by since the deployment (delay for the bootstrap ballot to complete).
+    	// This is due to Emissions holding 52 million SALT and emitting at a default rate of .50% / week.
 
-		vm.startPrank(teamWallet);
-		salt.approve(address(collateralAndLiquidity), 1 ether);
-		usds.approve(address(collateralAndLiquidity), 1 ether);
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare(salt, usds, 1 ether, 1 ether, 0, block.timestamp, true);
-		vm.stopPrank();
+    	// As there were profits, SaltRewards distributed the 185715 ether + 72.2 ether rewards
+    	// 10% to SALT/USDS rewards, 45% to stakingRewardsEmitter and 45% to liquidityRewardsEmitter,
+    	assertEq( salt.balanceOf(address(saltRewards)), 2 ); // should be basically empty now
 
-		// Send some SALT from the teamWallet to mimic WETH to SALT counterswap
-		// More is sent than usual so that some will exist to send to saltRewards after forming POL
-		vm.prank(teamWallet);
-		salt.transfer(address(upkeep), 500 ether);
+    	// Additionally stakingRewardsEmitter started with 3 million bootstrapping rewards.
+    	// liquidityRewardsEmitter started with 5 millions bootstrapping rewards, divided evenly amongst the 9 initial pools.
 
-		vm.startPrank(address(upkeep));
-		salt.approve(address(pools), type(uint256).max);
-		pools.depositTokenForCounterswap(Counterswap.WETH_TO_SALT, salt, 500 ether);
-		vm.stopPrank();
+    	// Determine that rewards were sent correctly by the stakingRewardsEmitter and liquidityRewardsEmitter
+    	bytes32[] memory poolIDsA = new bytes32[](1);
+    	poolIDsA[0] = PoolUtils.STAKED_SALT;
 
-    	assertEq( salt.balanceOf(address(upkeep)), 0 ether );
+    	// Check that the staking rewards were transferred to the staking contract:
+    	// 1% max of (3 million bootstrapping in the stakingRewardsEmitter + 45% of 185786 ether sent from saltRewards)
+    	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
+    	uint256 expectedStakingRewardsFromBootstrapping = uint256(3000000 ether) / 100;
+       	uint256 expectedStakingRewardsFromArbitrageProfits = uint( 185786 ether * 45 ) / 100 / 100;
+    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], expectedStakingRewardsFromBootstrapping + expectedStakingRewardsFromArbitrageProfits + 3836898935172364  );
 
-		uint256 saltSupply = salt.totalSupply();
+    	bytes32[] memory poolIDs = new bytes32[](5);
+    	poolIDs[0] = PoolUtils._poolIDOnly(salt,weth);
+    	poolIDs[1] = PoolUtils._poolIDOnly(salt,wbtc);
+    	poolIDs[2] = PoolUtils._poolIDOnly(wbtc,weth);
+    	poolIDs[3] = PoolUtils._poolIDOnly(salt,usds);
+    	poolIDs[4] = PoolUtils._poolIDOnly(usds,dai);
 
-		// =====Perform another performUpkeep
-		vm.warp(block.timestamp + 1 days);
+    	// Check if the rewards were transferred to the liquidity contract:
+    	// 1% max of ( 5 million / 9 pools + 45% of 185786 ether sent from saltRewards).
+    	// SALT/USDS should received an additional 1% of 10% of 47.185786.
+    	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
+    	uint256[] memory rewards = collateralAndLiquidity.totalRewardsForPools(poolIDs);
 
-		vm.prank(upkeepCaller);
-		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-		// =====
+    	// Expected for all pools
+    	uint256 expectedLiquidityRewardsFromBootstrapping = uint256(5000000 ether) / 9 / 100;
+
+    	// Expected for WBTC/WETH, SALT/WETH and SALT/WTBC
+          	uint256 expectedLiquidityRewardsFromArbitrageProfits = uint( 185786 ether * 45 ) / 100 / 100 / 3;
+
+    	// Expected for SALT/USDS
+          	uint256 expectedAdditionalForSaltUSDS = ( 185786 ether * 10 ) / 100 / 100;
+
+    	assertEq( rewards[0], expectedLiquidityRewardsFromBootstrapping + expectedLiquidityRewardsFromArbitrageProfits + 1278966311724122);
+    	assertEq( rewards[1], expectedLiquidityRewardsFromBootstrapping + expectedLiquidityRewardsFromArbitrageProfits + 1278966311724122);
+    	assertEq( rewards[2], expectedLiquidityRewardsFromBootstrapping + expectedLiquidityRewardsFromArbitrageProfits + 1278966311724122);
+    	assertEq( rewards[3], expectedLiquidityRewardsFromBootstrapping + expectedAdditionalForSaltUSDS + 852644207816081);
+    	assertEq( rewards[4], expectedLiquidityRewardsFromBootstrapping);
 
 
-		// Check Step 8. Withdraw SALT from previous counterswaps.
-		// This is used to form SALT/USDS POL and is sent to the DAO - so the balance here is zero
-    	assertEq( salt.balanceOf(address(upkeep)), 0, "step 8 A" );
+    	// Check Step 9. Collect SALT rewards from the DAO's Protocol Owned Liquidity: send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.
+    	// [FAILED] Check Step 10. Sends SALT from the DAO vesting wallet to the DAO (linear distribution over 10 years).
+    	// Check Step 11. Sends SALT from the team vesting wallet to the team (linear distribution over 10 years).
 
-		// Check Step 9. Send SALT and USDS (from steps 8 and 3) to the DAO and have it form SALT/USDS Protocol Owned Liquidity
-		(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves(salt, usds);
-		assertEq( reserve0, 301000000000000000000, "step 9 A" );
-		assertEq( reserve1, 301000000000000000000, "step 9 B" );
+    	// The DAO currently has all of the SALT/USDS and USDS/DAI liquidity - so it will claim all of the above calculated rewards for those two pools.
+    	uint256 polRewards = rewards[3] + rewards[4];
 
-		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-//		assertEq( salt.balanceOf(address(saltRewards)), 163436428571428571428571, "step 10 A" );
-		assertEq( salt.balanceOf(address(saltRewards)), 163326428571428571428571, "step 10 A" );
+    	// 10% of the POL Rewards for the team wallet
+    	// The teamVestingWallet contains 10 million SALT and vests over a 10 year period.
+    	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days
+    	assertEq( salt.balanceOf(teamWallet), polRewards / 10 + 13561675228310502283105 );
 
-		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
-		uint256 saltBurned = saltSupply - salt.totalSupply();
+    	// 50% of the remaining rewards are burned
+    	uint256 halfOfRemaining = ( polRewards * 45 ) / 100;
+    	assertEq( salt.totalBurned(), halfOfRemaining + 1 );
 
-   		assertEq( saltBurned, 3700166112956810631229, "step 14 A" );
-		}
+    	// Other 50% should stay in the DAO
+    	// The daoVestingWallet contains 25 million SALT and vests over a 10 year period.
+    	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days
+    	assertEq( salt.balanceOf(address(dao)), 5083604083689893517236 );
+    	}
 
 
 	// A unit test to revert step11 and ensure other steps continue functioning
-	function testRevertStep11() public
-		{
-		_initFlawed(11);
-		finalizeBootstrap();
+    function testRevertStep11() public
+    	{
+    	_initFlawed(11);
+    	_setupLiquidity();
+    	_generateArbitrageProfits(false);
 
-		// Set an initial price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 10000 ether );
-		forcedPriceFeed.setETHPrice( 1000 ether );
-		vm.stopPrank();
+       	// Dummy WBTC and WETH to send to Liquidizer
+       	vm.prank(DEPLOYER);
+       	weth.transfer( address(liquidizer), 50 ether );
 
-		priceAggregator.performUpkeep();
+       	// Indicate that some USDS should be burned
+       	vm.prank( address(collateralAndLiquidity));
+       	liquidizer.shouldBurnMoreUSDS( 40 ether);
 
-		assertEq( priceAggregator.getPriceBTC(), 10000 ether );
-		assertEq( priceAggregator.getPriceETH(), 1000 ether );
+       	// Mimic arbitrage profits deposited as WETH for the DAO
+       	vm.prank(DEPLOYER);
+       	weth.transfer(address(dao), 100 ether);
 
-		// Set a new price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 20000 ether );
-		forcedPriceFeed.setETHPrice( 2000 ether );
-		vm.stopPrank();
+       	vm.startPrank(address(dao));
+       	weth.approve(address(pools), 100 ether);
+       	pools.deposit(weth, 100 ether);
+       	vm.stopPrank();
 
+    	assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
+    	assertEq( salt.balanceOf(address(staking)), 0 );
 
-    	// Dummy WBTC and WETH to send to USDS
-    	vm.startPrank(DEPLOYER);
-    	wbtc.transfer( address(usds), 5 ether );
-    	weth.transfer( address(usds), 50 ether );
-    	vm.stopPrank();
+    	assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049050423279843 );
 
-    	// USDS to usds contract to mimic withdrawn counterswap trades
-    	vm.startPrank( address(collateralAndLiquidity));
-    	usds.mintTo( address(usds), 30 ether );
-    	usds.shouldBurnMoreUSDS( 20 ether );
-    	vm.stopPrank();
+    	uint256 usdsSupply0 = usds.totalSupply();
 
-		assertEq( usds.totalSupply(), 30 ether );
+    	// === Perform upkeep ===
+    	address upkeepCaller = address(0x9999);
 
+    	vm.prank(upkeepCaller);
+    	UpkeepFlawed(address(upkeep)).performFlawedUpkeep();
+    	// ==================
 
-    	// USDS deposited to counterswap to mimic completed counterswap trades
-    	vm.prank( address(collateralAndLiquidity));
-    	usds.mintTo( address(usds), 300 ether );
 
-    	vm.startPrank(address(usds));
-    	usds.approve( address(pools), type(uint256).max );
-    	pools.depositTokenForCounterswap(Counterswap.WBTC_TO_USDS, usds, 150 ether);
-    	pools.depositTokenForCounterswap(Counterswap.WETH_TO_USDS, usds, 150 ether);
-		vm.stopPrank();
+    	// Check 1. Swap tokens previously sent to the Liquidizer contract for USDS and burn specified amounts of USDS.
+    	assertEq( usds.balanceOf( address(liquidizer) ), 9975012493753123438 ); // 50 WETH converted to about 50 USDS and then 40 burned
 
+    	// 40 ether should have been burnt
+    	assertEq( usdsSupply0 - usds.totalSupply(), 40 ether );
 
-    	// Arbitrage profits are deposited as WETH for the DAO
-    	vm.prank(DEPLOYER);
-    	weth.transfer(address(dao), 100 ether);
 
-    	vm.startPrank(address(dao));
-    	weth.approve(address(pools), 100 ether);
-    	pools.deposit(weth, 100 ether);
-    	vm.stopPrank();
+    	// Check Step 2. Withdraw existing WETH arbitrage profits from the Pools contract and reward the caller of performUpkeep() with default 5% of the withdrawn amount.
+    	// From the directly added 100 ether + arbitrage profits
+       	assertEq( weth.balanceOf(upkeepCaller), 5000049050423279843 );
 
-		// Create some initial WBTC/WETH liquidity so that it can receive bootstrapping rewards
-		vm.startPrank(DEPLOYER);
-		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
-		weth.approve(address(collateralAndLiquidity), type(uint256).max);
-		collateralAndLiquidity.depositCollateralAndIncreaseShare(100 * 10**8, 1000 * 10**8, 0, block.timestamp, true);
-		vm.stopPrank();
 
-		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
-		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
+    	// Check Step 3. Convert a default 5% of the remaining WETH to USDS/DAI Protocol Owned Liquidity.
 
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
-		assertEq( salt.balanceOf(address(staking)), 0 );
+    	// Check that 5% of the remaining WETH (5% of 95 ether) has been converted to USDS/DAI
+    	(uint256 reservesA, uint256 reservesB) = pools.getPoolReserves(usds, dai);
+    	assertEq( reservesA, 2372593734239580153 ); // Close to 2.375 ether
+    	assertEq( reservesB, 2374966892934008368 ); // Close to 2.375 ether
 
+    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(usds, dai));
+    	assertEq( daoLiquidity, 4747560627173588521 ); // Close to 4.75 ether
 
-		// === Perform upkeep ===
-		address upkeepCaller = address(0x9999);
 
-		vm.prank(upkeepCaller);
-		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-		// ==================
+    	// Check Step 4. Convert a default 20% of the remaining WETH to SALT/USDS Protocol Owned Liquidity.
 
+    	// Check that 20% of the remaining WETH (20% of 90.25 ether) has been converted to SALT/USDS
+    	(reservesA, reservesB) = pools.getPoolReserves(salt, usds);
+    	assertEq( reservesA, 9024453775958744234 ); // Close to 9.025 ether
+    	assertEq( reservesB, 9014829003115815807 ); // Close to 9.025 ether - a little worse because some of the USDS reserve was also used for USDS/DAI POL
 
-		// Check Step 1. Update the prices of BTC and ETH in the PriceAggregator.
-		assertEq( priceAggregator.getPriceBTC(), 20000 ether, "step1 A" );
-		assertEq( priceAggregator.getPriceETH(), 2000 ether, "step1 B" );
+    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds));
+    	assertEq( daoLiquidity, 18039282779074560041 ); // Close to 18.05 ether
 
-		// Check Step 2. Send WBTC and WETH from the USDS contract to the counterswap addresses (for conversion to USDS) and withdraw USDS from counterswap for burning.
-		assertEq( pools.depositedUserBalance( Counterswap.WBTC_TO_USDS, wbtc ), 5 ether, "step2 A" );
-		assertEq( pools.depositedUserBalance( Counterswap.WETH_TO_USDS, weth ), 59500000000000000000, "step2 B" );
 
-		// Check that USDS has been burned
-		assertEq( usds.totalSupply(), 310 ether, "step2 C" );
+    	// Check Step 5. Convert remaining WETH to SALT and sends it to SaltRewards.
+    	// Check Step 6. Send SALT Emissions to the SaltRewards contract.
+    	// Check Step 7. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter.
+    	// Check Step 8. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
-		// Check Step 3. Withdraw the remaining USDS already counterswapped from WBTC and WETH (for later formation of SALT/USDS liquidity).
-		assertEq( usds.balanceOf(address(upkeep)), 300 ether, "step3 A" );
+    	// Check that about 72.2 ether of WETH has been converted to SALT and sent to SaltRewards.
+    	// Emissions also emit about 185715 SALT as 5 days have gone by since the deployment (delay for the bootstrap ballot to complete).
+    	// This is due to Emissions holding 52 million SALT and emitting at a default rate of .50% / week.
 
-		// Check Step 4. Have the DAO withdraw the WETH arbitrage profits from the Pools contract and send the withdrawn WETH to this contract.
-    	assertEq( pools.depositedUserBalance(address(dao), weth), 0 ether, "step4 A" );
+    	// As there were profits, SaltRewards distributed the 185715 ether + 72.2 ether rewards
+    	// 10% to SALT/USDS rewards, 45% to stakingRewardsEmitter and 45% to liquidityRewardsEmitter,
+    	assertEq( salt.balanceOf(address(saltRewards)), 2 ); // should be basically empty now
 
-		// Check Step 5. Send a default 5% of the withdrawn WETH to the caller of performUpkeep().
-    	assertEq( weth.balanceOf(upkeepCaller), 5 ether, "step5 A" );
+    	// Additionally stakingRewardsEmitter started with 3 million bootstrapping rewards.
+    	// liquidityRewardsEmitter started with 5 millions bootstrapping rewards, divided evenly amongst the 9 initial pools.
 
-		// Check Step 6. Send a default 10% (20% / 2 ) of the remaining WETH to counterswap for conversion to USDS (for later formation of SALT/USDS liquidity).
-		// Includes deposited WETH from step2 as well
-    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_USDS, weth), 59500000000000000000, "step6 A" );
+    	// Determine that rewards were sent correctly by the stakingRewardsEmitter and liquidityRewardsEmitter
+    	bytes32[] memory poolIDsA = new bytes32[](1);
+    	poolIDsA[0] = PoolUtils.STAKED_SALT;
 
-		// Check Step 7. Send all remaining WETH to counterswap for conversion to SALT (for later SALT/USDS POL formation and SaltRewards).
-    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_SALT, weth), 85500000000000000000, "step7 A" );
+    	// Check that the staking rewards were transferred to the staking contract:
+    	// 1% max of (3 million bootstrapping in the stakingRewardsEmitter + 45% of 185786 ether sent from saltRewards)
+    	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
+    	uint256 expectedStakingRewardsFromBootstrapping = uint256(3000000 ether) / 100;
+       	uint256 expectedStakingRewardsFromArbitrageProfits = uint( 185786 ether * 45 ) / 100 / 100;
+    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], expectedStakingRewardsFromBootstrapping + expectedStakingRewardsFromArbitrageProfits + 3836898935172364  );
 
+    	bytes32[] memory poolIDs = new bytes32[](5);
+    	poolIDs[0] = PoolUtils._poolIDOnly(salt,weth);
+    	poolIDs[1] = PoolUtils._poolIDOnly(salt,wbtc);
+    	poolIDs[2] = PoolUtils._poolIDOnly(wbtc,weth);
+    	poolIDs[3] = PoolUtils._poolIDOnly(salt,usds);
+    	poolIDs[4] = PoolUtils._poolIDOnly(usds,dai);
+
+    	// Check if the rewards were transferred to the liquidity contract:
+    	// 1% max of ( 5 million / 9 pools + 45% of 185786 ether sent from saltRewards).
+    	// SALT/USDS should received an additional 1% of 10% of 47.185786.
+    	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
+    	uint256[] memory rewards = collateralAndLiquidity.totalRewardsForPools(poolIDs);
+
+    	// Expected for all pools
+    	uint256 expectedLiquidityRewardsFromBootstrapping = uint256(5000000 ether) / 9 / 100;
+
+    	// Expected for WBTC/WETH, SALT/WETH and SALT/WTBC
+          	uint256 expectedLiquidityRewardsFromArbitrageProfits = uint( 185786 ether * 45 ) / 100 / 100 / 3;
+
+    	// Expected for SALT/USDS
+          	uint256 expectedAdditionalForSaltUSDS = ( 185786 ether * 10 ) / 100 / 100;
+
+    	assertEq( rewards[0], expectedLiquidityRewardsFromBootstrapping + expectedLiquidityRewardsFromArbitrageProfits + 1278966311724122);
+    	assertEq( rewards[1], expectedLiquidityRewardsFromBootstrapping + expectedLiquidityRewardsFromArbitrageProfits + 1278966311724122);
+    	assertEq( rewards[2], expectedLiquidityRewardsFromBootstrapping + expectedLiquidityRewardsFromArbitrageProfits + 1278966311724122);
+    	assertEq( rewards[3], expectedLiquidityRewardsFromBootstrapping + expectedAdditionalForSaltUSDS + 852644207816081);
+    	assertEq( rewards[4], expectedLiquidityRewardsFromBootstrapping);
+
+
+    	// Check Step 9. Collect SALT rewards from the DAO's Protocol Owned Liquidity: send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.
+    	// Check Step 10. Sends SALT from the DAO vesting wallet to the DAO (linear distribution over 10 years).
+    	// Check Step 11. Sends SALT from the team vesting wallet to the team (linear distribution over 10 years).
+
+    	// The DAO currently has all of the SALT/USDS and USDS/DAI liquidity - so it will claim all of the above calculated rewards for those two pools.
+    	uint256 polRewards = rewards[3] + rewards[4];
+
+    	// 10% of the POL Rewards for the team wallet
+    	// The teamVestingWallet contains 10 million SALT and vests over a 10 year period.
+    	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days
+    	assertEq( salt.balanceOf(teamWallet), 1129689796375531892719 );
+
+    	// 50% of the remaining rewards are burned
+    	uint256 halfOfRemaining = ( polRewards * 45 ) / 100;
+    	assertEq( salt.totalBurned(), halfOfRemaining + 1 );
+
+    	// Other 50% should stay in the DAO
+    	// The daoVestingWallet contains 25 million SALT and vests over a 10 year period.
+    	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days
+    	assertEq( salt.balanceOf(address(dao)), halfOfRemaining + 1 + 34109667998477929984779 );
+    	}
 
-		// Checking steps 8-9 skipped for now as no one has SALT as it hasn't been distributed yet
-
-		// Check Step 11. Send SALT Emissions to the stakingRewardsEmitter
-		// Check Step 12. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter and call clearProfitsForPools.
-		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
-
-		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-//		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
-//		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 2970000000000000000000005, "step11-13 A" );
-		assertEq( salt.balanceOf(address(staking)), 30000000000000000000000, "step11-13 B" );
-
-		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(collateralAndLiquidity)), 49999999999999999999995, "step11-13 C" );
-
-		// Checking step 14 can be ignored for now as the DAO hasn't formed POL yet (as it didn't yet have SALT)
-
-		// Check Step 15. Send SALT from the DAO vesting wallet to the DAO (linear distribution of 25 million tokens over 10 years).
-    	assertEq( salt.balanceOf(address(dao)), uint256( 25 * 1000000 ether ) * 1 days / (60 * 60 * 24 * 365 * 10), "step 15 A" );
-
-		// Check Step 16. Send SALT from the team vesting wallet to the team (linear distribution over 10 years).
-    	assertEq( salt.balanceOf(address(teamWallet)), uint256( 10 * 1000000 ether ) * 1 days / (60 * 60 * 24 * 365 * 10), "step 16 A" );
-
-
-//		console.log( "TEAM SALT: ", salt.balanceOf(teamWallet) );
-
-		// Have the team form some initial SALT/USDS liquidity
-		vm.prank(address(collateralAndLiquidity));
-		usds.mintTo(teamWallet, 1 ether);
-
-		vm.startPrank(teamWallet);
-		salt.approve(address(collateralAndLiquidity), 1 ether);
-		usds.approve(address(collateralAndLiquidity), 1 ether);
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare(salt, usds, 1 ether, 1 ether, 0, block.timestamp, true);
-		vm.stopPrank();
-
-		// Send some SALT from the teamWallet to mimic WETH to SALT counterswap
-		// More is sent than usual so that some will exist to send to saltRewards after forming POL
-		vm.prank(teamWallet);
-		salt.transfer(address(upkeep), 500 ether);
-
-		vm.startPrank(address(upkeep));
-		salt.approve(address(pools), type(uint256).max);
-		pools.depositTokenForCounterswap(Counterswap.WETH_TO_SALT, salt, 500 ether);
-		vm.stopPrank();
-
-    	assertEq( salt.balanceOf(address(upkeep)), 0 ether );
-
-		uint256 saltSupply = salt.totalSupply();
-
-		// =====Perform another performUpkeep
-		vm.warp(block.timestamp + 1 days);
-
-		vm.prank(upkeepCaller);
-		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-		// =====
-
-
-		// Check Step 8. Withdraw SALT from previous counterswaps.
-		// This is used to form SALT/USDS POL and is sent to the DAO - so the balance here is zero
-    	assertEq( salt.balanceOf(address(upkeep)), 0, "step 8 A" );
-
-		// Check Step 9. Send SALT and USDS (from steps 8 and 3) to the DAO and have it form SALT/USDS Protocol Owned Liquidity
-		(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves(salt, usds);
-		assertEq( reserve0, 301000000000000000000, "step 9 A" );
-		assertEq( reserve1, 301000000000000000000, "step 9 B" );
-
-		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-//		assertEq( salt.balanceOf(address(saltRewards)), 163436428571428571428571, "step 10 A" );
-		assertEq( salt.balanceOf(address(saltRewards)), 110000000000000000000, "step 10 A" );
-
-		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
-		uint256 saltBurned = saltSupply - salt.totalSupply();
-
-   		assertEq( saltBurned, 3700166112956810631229, "step 14 A" );
-		}
-
-
-	// A unit test to revert step12 and ensure other steps continue functioning
-	function testRevertStep12() public
-		{
-		_initFlawed(12);
-		finalizeBootstrap();
-
-		// Set an initial price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 10000 ether );
-		forcedPriceFeed.setETHPrice( 1000 ether );
-		vm.stopPrank();
-
-		priceAggregator.performUpkeep();
-
-		assertEq( priceAggregator.getPriceBTC(), 10000 ether );
-		assertEq( priceAggregator.getPriceETH(), 1000 ether );
-
-		// Set a new price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 20000 ether );
-		forcedPriceFeed.setETHPrice( 2000 ether );
-		vm.stopPrank();
-
-
-		// Dummy WBTC and WETH to send to USDS
-		vm.startPrank(DEPLOYER);
-		wbtc.transfer( address(usds), 5 ether );
-		weth.transfer( address(usds), 50 ether );
-		vm.stopPrank();
-
-		// USDS to usds contract to mimic withdrawn counterswap trades
-		vm.startPrank( address(collateralAndLiquidity));
-		usds.mintTo( address(usds), 30 ether );
-		usds.shouldBurnMoreUSDS( 20 ether );
-		vm.stopPrank();
-
-		assertEq( usds.totalSupply(), 30 ether );
-
-
-		// USDS deposited to counterswap to mimic completed counterswap trades
-		vm.prank( address(collateralAndLiquidity));
-		usds.mintTo( address(usds), 300 ether );
-
-		vm.startPrank(address(usds));
-		usds.approve( address(pools), type(uint256).max );
-		pools.depositTokenForCounterswap(Counterswap.WBTC_TO_USDS, usds, 150 ether);
-		pools.depositTokenForCounterswap(Counterswap.WETH_TO_USDS, usds, 150 ether);
-		vm.stopPrank();
-
-
-		// Arbitrage profits are deposited as WETH for the DAO
-		vm.prank(DEPLOYER);
-		weth.transfer(address(dao), 100 ether);
-
-		vm.startPrank(address(dao));
-		weth.approve(address(pools), 100 ether);
-		pools.deposit(weth, 100 ether);
-		vm.stopPrank();
-
-		// Create some initial WBTC/WETH liquidity so that it can receive bootstrapping rewards
-		vm.startPrank(DEPLOYER);
-		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
-		weth.approve(address(collateralAndLiquidity), type(uint256).max);
-		collateralAndLiquidity.depositCollateralAndIncreaseShare(100 * 10**8, 1000 * 10**8, 0, block.timestamp, true);
-		vm.stopPrank();
-
-		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
-		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
-
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
-		assertEq( salt.balanceOf(address(staking)), 0 );
-
-
-		// === Perform upkeep ===
-		address upkeepCaller = address(0x9999);
-
-		vm.prank(upkeepCaller);
-		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-		// ==================
-
-
-		// Check Step 1. Update the prices of BTC and ETH in the PriceAggregator.
-		assertEq( priceAggregator.getPriceBTC(), 20000 ether, "step1 A" );
-		assertEq( priceAggregator.getPriceETH(), 2000 ether, "step1 B" );
-
-		// Check Step 2. Send WBTC and WETH from the USDS contract to the counterswap addresses (for conversion to USDS) and withdraw USDS from counterswap for burning.
-		assertEq( pools.depositedUserBalance( Counterswap.WBTC_TO_USDS, wbtc ), 5 ether, "step2 A" );
-		assertEq( pools.depositedUserBalance( Counterswap.WETH_TO_USDS, weth ), 59500000000000000000, "step2 B" );
-
-		// Check that USDS has been burned
-		assertEq( usds.totalSupply(), 310 ether, "step2 C" );
-
-		// Check Step 3. Withdraw the remaining USDS already counterswapped from WBTC and WETH (for later formation of SALT/USDS liquidity).
-		assertEq( usds.balanceOf(address(upkeep)), 300 ether, "step3 A" );
-
-		// Check Step 4. Have the DAO withdraw the WETH arbitrage profits from the Pools contract and send the withdrawn WETH to this contract.
-		assertEq( pools.depositedUserBalance(address(dao), weth), 0 ether, "step4 A" );
-
-		// Check Step 5. Send a default 5% of the withdrawn WETH to the caller of performUpkeep().
-		assertEq( weth.balanceOf(upkeepCaller), 5 ether, "step5 A" );
-
-		// Check Step 6. Send a default 10% (20% / 2 ) of the remaining WETH to counterswap for conversion to USDS (for later formation of SALT/USDS liquidity).
-		// Includes deposited WETH from step2 as well
-		assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_USDS, weth), 59500000000000000000, "step6 A" );
-
-		// Check Step 7. Send all remaining WETH to counterswap for conversion to SALT (for later SALT/USDS POL formation and SaltRewards).
-		assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_SALT, weth), 85500000000000000000, "step7 A" );
-
-
-		// Checking steps 8-9 skipped for now as no one has SALT as it hasn't been distributed yet
-
-		// Check Step 11. Send SALT Emissions to the stakingRewardsEmitter
-		// Check Step 12. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter and call clearProfitsForPools.
-		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
-
-		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-//		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
-//		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 2970000000000000000000005, "step11-13 A" );
-		assertEq( salt.balanceOf(address(staking)), 30000000000000000000000, "step11-13 B" );
-
-		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(collateralAndLiquidity)), 49999999999999999999995, "step11-13 C" );
-
-		// Checking step 14 can be ignored for now as the DAO hasn't formed POL yet (as it didn't yet have SALT)
-
-		// Check Step 15. Send SALT from the DAO vesting wallet to the DAO (linear distribution of 25 million tokens over 10 years).
-		assertEq( salt.balanceOf(address(dao)), uint256( 25 * 1000000 ether ) * 1 days / (60 * 60 * 24 * 365 * 10), "step 15 A" );
-
-		// Check Step 16. Send SALT from the team vesting wallet to the team (linear distribution over 10 years).
-		assertEq( salt.balanceOf(address(teamWallet)), uint256( 10 * 1000000 ether ) * 1 days / (60 * 60 * 24 * 365 * 10), "step 16 A" );
-
-
-//		console.log( "TEAM SALT: ", salt.balanceOf(teamWallet) );
-
-		// Have the team form some initial SALT/USDS liquidity
-		vm.prank(address(collateralAndLiquidity));
-		usds.mintTo(teamWallet, 1 ether);
-
-		vm.startPrank(teamWallet);
-		salt.approve(address(collateralAndLiquidity), 1 ether);
-		usds.approve(address(collateralAndLiquidity), 1 ether);
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare(salt, usds, 1 ether, 1 ether, 0, block.timestamp, true);
-		vm.stopPrank();
-
-		// Send some SALT from the teamWallet to mimic WETH to SALT counterswap
-		// More is sent than usual so that some will exist to send to saltRewards after forming POL
-		vm.prank(teamWallet);
-		salt.transfer(address(upkeep), 500 ether);
-
-		vm.startPrank(address(upkeep));
-		salt.approve(address(pools), type(uint256).max);
-		pools.depositTokenForCounterswap(Counterswap.WETH_TO_SALT, salt, 500 ether);
-		vm.stopPrank();
-
-		assertEq( salt.balanceOf(address(upkeep)), 0 ether );
-
-		uint256 saltSupply = salt.totalSupply();
-
-		// =====Perform another performUpkeep
-		vm.warp(block.timestamp + 1 days);
-
-		vm.prank(upkeepCaller);
-		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-		// =====
-
-
-		// Check Step 8. Withdraw SALT from previous counterswaps.
-		// This is used to form SALT/USDS POL and is sent to the DAO - so the balance here is zero
-		assertEq( salt.balanceOf(address(upkeep)), 0, "step 8 A" );
-
-		// Check Step 9. Send SALT and USDS (from steps 8 and 3) to the DAO and have it form SALT/USDS Protocol Owned Liquidity
-		(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves(salt, usds);
-		assertEq( reserve0, 301000000000000000000, "step 9 A" );
-		assertEq( reserve1, 301000000000000000000, "step 9 B" );
-
-		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-//		assertEq( salt.balanceOf(address(saltRewards)), 163436428571428571428571, "step 10 A" );
-		assertEq( salt.balanceOf(address(saltRewards)), 297157142857142857142857, "step 10 A" );
-
-		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
-		uint256 saltBurned = saltSupply - salt.totalSupply();
-
-		assertEq( saltBurned, 3700166112956810631229, "step 14 A" );
-		}
-
-
-		// A unit test to revert step13 and ensure other steps continue functioning
-    	function testRevertStep13() public
-    		{
-    		_initFlawed(13);
-			finalizeBootstrap();
-
-    		// Set an initial price
-    		vm.startPrank(DEPLOYER);
-    		forcedPriceFeed.setBTCPrice( 10000 ether );
-    		forcedPriceFeed.setETHPrice( 1000 ether );
-    		vm.stopPrank();
-
-    		priceAggregator.performUpkeep();
-
-    		assertEq( priceAggregator.getPriceBTC(), 10000 ether );
-    		assertEq( priceAggregator.getPriceETH(), 1000 ether );
-
-    		// Set a new price
-    		vm.startPrank(DEPLOYER);
-    		forcedPriceFeed.setBTCPrice( 20000 ether );
-    		forcedPriceFeed.setETHPrice( 2000 ether );
-    		vm.stopPrank();
-
-
-        	// Dummy WBTC and WETH to send to USDS
-        	vm.startPrank(DEPLOYER);
-        	wbtc.transfer( address(usds), 5 ether );
-        	weth.transfer( address(usds), 50 ether );
-        	vm.stopPrank();
-
-        	// USDS to usds contract to mimic withdrawn counterswap trades
-        	vm.startPrank( address(collateralAndLiquidity));
-        	usds.mintTo( address(usds), 30 ether );
-        	usds.shouldBurnMoreUSDS( 20 ether );
-        	vm.stopPrank();
-
-    		assertEq( usds.totalSupply(), 30 ether );
-
-
-        	// USDS deposited to counterswap to mimic completed counterswap trades
-        	vm.prank( address(collateralAndLiquidity));
-        	usds.mintTo( address(usds), 300 ether );
-
-        	vm.startPrank(address(usds));
-        	usds.approve( address(pools), type(uint256).max );
-        	pools.depositTokenForCounterswap(Counterswap.WBTC_TO_USDS, usds, 150 ether);
-        	pools.depositTokenForCounterswap(Counterswap.WETH_TO_USDS, usds, 150 ether);
-    		vm.stopPrank();
-
-
-        	// Arbitrage profits are deposited as WETH for the DAO
-        	vm.prank(DEPLOYER);
-        	weth.transfer(address(dao), 100 ether);
-
-        	vm.startPrank(address(dao));
-        	weth.approve(address(pools), 100 ether);
-        	pools.deposit(weth, 100 ether);
-        	vm.stopPrank();
-
-    		// Create some initial WBTC/WETH liquidity so that it can receive bootstrapping rewards
-    		vm.startPrank(DEPLOYER);
-    		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
-    		weth.approve(address(collateralAndLiquidity), type(uint256).max);
-    		collateralAndLiquidity.depositCollateralAndIncreaseShare(100 * 10**8, 1000 * 10**8, 0, block.timestamp, true);
-    		vm.stopPrank();
-
-    		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
-    		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
-
-    		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
-    		assertEq( salt.balanceOf(address(staking)), 0 );
-
-
-    		// === Perform upkeep ===
-    		address upkeepCaller = address(0x9999);
-
-    		vm.prank(upkeepCaller);
-    		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-    		// ==================
-
-
-    		// Check Step 1. Update the prices of BTC and ETH in the PriceAggregator.
-    		assertEq( priceAggregator.getPriceBTC(), 20000 ether, "step1 A" );
-    		assertEq( priceAggregator.getPriceETH(), 2000 ether, "step1 B" );
-
-    		// Check Step 2. Send WBTC and WETH from the USDS contract to the counterswap addresses (for conversion to USDS) and withdraw USDS from counterswap for burning.
-    		assertEq( pools.depositedUserBalance( Counterswap.WBTC_TO_USDS, wbtc ), 5 ether, "step2 A" );
-    		assertEq( pools.depositedUserBalance( Counterswap.WETH_TO_USDS, weth ), 59500000000000000000, "step2 B" );
-
-    		// Check that USDS has been burned
-    		assertEq( usds.totalSupply(), 310 ether, "step2 C" );
-
-    		// Check Step 3. Withdraw the remaining USDS already counterswapped from WBTC and WETH (for later formation of SALT/USDS liquidity).
-    		assertEq( usds.balanceOf(address(upkeep)), 300 ether, "step3 A" );
-
-    		// Check Step 4. Have the DAO withdraw the WETH arbitrage profits from the Pools contract and send the withdrawn WETH to this contract.
-        	assertEq( pools.depositedUserBalance(address(dao), weth), 0 ether, "step4 A" );
-
-    		// Check Step 5. Send a default 5% of the withdrawn WETH to the caller of performUpkeep().
-        	assertEq( weth.balanceOf(upkeepCaller), 5 ether, "step5 A" );
-
-    		// Check Step 6. Send a default 10% (20% / 2 ) of the remaining WETH to counterswap for conversion to USDS (for later formation of SALT/USDS liquidity).
-    		// Includes deposited WETH from step2 as well
-        	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_USDS, weth), 59500000000000000000, "step6 A" );
-
-    		// Check Step 7. Send all remaining WETH to counterswap for conversion to SALT (for later SALT/USDS POL formation and SaltRewards).
-        	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_SALT, weth), 85500000000000000000, "step7 A" );
-
-
-    		// Checking steps 8-9 skipped for now as no one has SALT as it hasn't been distributed yet
-
-    		// Check Step 11. Send SALT Emissions to the stakingRewardsEmitter
-    		// Check Step 12. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter and call clearProfitsForPools.
-    		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
-
-    		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-//    		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
-//    		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
-    		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3117000000000000000000005, "step11-13 A" );
-    		assertEq( salt.balanceOf(address(staking)), 0, "step11-13 B" );
-
-    		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
-//    		assertEq( salt.balanceOf(address(collateralAndLiquidity)), 49999999999999999999995, "step11-13 C" );
-    		assertEq( salt.balanceOf(address(collateralAndLiquidity)), 0, "step11-13 C" );
-
-    		// Checking step 14 can be ignored for now as the DAO hasn't formed POL yet (as it didn't yet have SALT)
-
-    		// Check Step 15. Send SALT from the DAO vesting wallet to the DAO (linear distribution of 25 million tokens over 10 years).
-        	assertEq( salt.balanceOf(address(dao)), uint256( 25 * 1000000 ether ) * 1 days / (60 * 60 * 24 * 365 * 10), "step 15 A" );
-
-    		// Check Step 16. Send SALT from the team vesting wallet to the team (linear distribution over 10 years).
-        	assertEq( salt.balanceOf(address(teamWallet)), uint256( 10 * 1000000 ether ) * 1 days / (60 * 60 * 24 * 365 * 10), "step 16 A" );
-
-
-    //		console.log( "TEAM SALT: ", salt.balanceOf(teamWallet) );
-
-    		// Have the team form some initial SALT/USDS liquidity
-    		vm.prank(address(collateralAndLiquidity));
-    		usds.mintTo(teamWallet, 1 ether);
-
-    		vm.startPrank(teamWallet);
-    		salt.approve(address(collateralAndLiquidity), 1 ether);
-    		usds.approve(address(collateralAndLiquidity), 1 ether);
-    		collateralAndLiquidity.depositLiquidityAndIncreaseShare(salt, usds, 1 ether, 1 ether, 0, block.timestamp, true);
-    		vm.stopPrank();
-
-    		// Send some SALT from the teamWallet to mimic WETH to SALT counterswap
-    		// More is sent than usual so that some will exist to send to saltRewards after forming POL
-    		vm.prank(teamWallet);
-    		salt.transfer(address(upkeep), 500 ether);
-
-    		vm.startPrank(address(upkeep));
-    		salt.approve(address(pools), type(uint256).max);
-    		pools.depositTokenForCounterswap(Counterswap.WETH_TO_SALT, salt, 500 ether);
-    		vm.stopPrank();
-
-        	assertEq( salt.balanceOf(address(upkeep)), 0 ether );
-
-    		uint256 saltSupply = salt.totalSupply();
-
-    		// =====Perform another performUpkeep
-    		vm.warp(block.timestamp + 1 days);
-
-    		vm.prank(upkeepCaller);
-    		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-    		// =====
-
-
-    		// Check Step 8. Withdraw SALT from previous counterswaps.
-    		// This is used to form SALT/USDS POL and is sent to the DAO - so the balance here is zero
-        	assertEq( salt.balanceOf(address(upkeep)), 0, "step 8 A" );
-
-    		// Check Step 9. Send SALT and USDS (from steps 8 and 3) to the DAO and have it form SALT/USDS Protocol Owned Liquidity
-    		(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves(salt, usds);
-    		assertEq( reserve0, 301000000000000000000, "step 9 A" );
-    		assertEq( reserve1, 301000000000000000000, "step 9 B" );
-
-    		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-    		assertEq( salt.balanceOf(address(saltRewards)), 163436428571428571428571, "step 10 A" );
-
-    		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
-    		uint256 saltBurned = saltSupply - salt.totalSupply();
-
-//       		assertEq( saltBurned, 7462500000000000000000, "step 14 A" );
-       		assertEq( saltBurned, 0, "step 14 A" );
-    		}
-
-
-	// A unit test to revert step14 and ensure other steps continue functioning
-	function testRevertStep14() public
-		{
-		_initFlawed(14);
-		finalizeBootstrap();
-
-		// Set an initial price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 10000 ether );
-		forcedPriceFeed.setETHPrice( 1000 ether );
-		vm.stopPrank();
-
-		priceAggregator.performUpkeep();
-
-		assertEq( priceAggregator.getPriceBTC(), 10000 ether );
-		assertEq( priceAggregator.getPriceETH(), 1000 ether );
-
-		// Set a new price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 20000 ether );
-		forcedPriceFeed.setETHPrice( 2000 ether );
-		vm.stopPrank();
-
-
-    	// Dummy WBTC and WETH to send to USDS
-    	vm.startPrank(DEPLOYER);
-    	wbtc.transfer( address(usds), 5 ether );
-    	weth.transfer( address(usds), 50 ether );
-    	vm.stopPrank();
-
-    	// USDS to usds contract to mimic withdrawn counterswap trades
-    	vm.startPrank( address(collateralAndLiquidity));
-    	usds.mintTo( address(usds), 30 ether );
-    	usds.shouldBurnMoreUSDS( 20 ether );
-    	vm.stopPrank();
-
-		assertEq( usds.totalSupply(), 30 ether );
-
-
-    	// USDS deposited to counterswap to mimic completed counterswap trades
-    	vm.prank( address(collateralAndLiquidity));
-    	usds.mintTo( address(usds), 300 ether );
-
-    	vm.startPrank(address(usds));
-    	usds.approve( address(pools), type(uint256).max );
-    	pools.depositTokenForCounterswap(Counterswap.WBTC_TO_USDS, usds, 150 ether);
-    	pools.depositTokenForCounterswap(Counterswap.WETH_TO_USDS, usds, 150 ether);
-		vm.stopPrank();
-
-
-    	// Arbitrage profits are deposited as WETH for the DAO
-    	vm.prank(DEPLOYER);
-    	weth.transfer(address(dao), 100 ether);
-
-    	vm.startPrank(address(dao));
-    	weth.approve(address(pools), 100 ether);
-    	pools.deposit(weth, 100 ether);
-    	vm.stopPrank();
-
-		// Create some initial WBTC/WETH liquidity so that it can receive bootstrapping rewards
-		vm.startPrank(DEPLOYER);
-		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
-		weth.approve(address(collateralAndLiquidity), type(uint256).max);
-		collateralAndLiquidity.depositCollateralAndIncreaseShare(100 * 10**8, 1000 * 10**8, 0, block.timestamp, true);
-		vm.stopPrank();
-
-		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
-		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
-
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
-		assertEq( salt.balanceOf(address(staking)), 0 );
-
-
-		// === Perform upkeep ===
-		address upkeepCaller = address(0x9999);
-
-		vm.prank(upkeepCaller);
-		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-		// ==================
-
-
-		// Check Step 1. Update the prices of BTC and ETH in the PriceAggregator.
-		assertEq( priceAggregator.getPriceBTC(), 20000 ether, "step1 A" );
-		assertEq( priceAggregator.getPriceETH(), 2000 ether, "step1 B" );
-
-		// Check Step 2. Send WBTC and WETH from the USDS contract to the counterswap addresses (for conversion to USDS) and withdraw USDS from counterswap for burning.
-		assertEq( pools.depositedUserBalance( Counterswap.WBTC_TO_USDS, wbtc ), 5 ether, "step2 A" );
-		assertEq( pools.depositedUserBalance( Counterswap.WETH_TO_USDS, weth ), 59500000000000000000, "step2 B" );
-
-		// Check that USDS has been burned
-		assertEq( usds.totalSupply(), 310 ether, "step2 C" );
-
-		// Check Step 3. Withdraw the remaining USDS already counterswapped from WBTC and WETH (for later formation of SALT/USDS liquidity).
-		assertEq( usds.balanceOf(address(upkeep)), 300 ether, "step3 A" );
-
-		// Check Step 4. Have the DAO withdraw the WETH arbitrage profits from the Pools contract and send the withdrawn WETH to this contract.
-    	assertEq( pools.depositedUserBalance(address(dao), weth), 0 ether, "step4 A" );
-
-		// Check Step 5. Send a default 5% of the withdrawn WETH to the caller of performUpkeep().
-    	assertEq( weth.balanceOf(upkeepCaller), 5 ether, "step5 A" );
-
-		// Check Step 6. Send a default 10% (20% / 2 ) of the remaining WETH to counterswap for conversion to USDS (for later formation of SALT/USDS liquidity).
-		// Includes deposited WETH from step2 as well
-    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_USDS, weth), 59500000000000000000, "step6 A" );
-
-		// Check Step 7. Send all remaining WETH to counterswap for conversion to SALT (for later SALT/USDS POL formation and SaltRewards).
-    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_SALT, weth), 85500000000000000000, "step7 A" );
-
-
-		// Checking steps 8-9 skipped for now as no one has SALT as it hasn't been distributed yet
-
-		// Check Step 11. Send SALT Emissions to the stakingRewardsEmitter
-		// Check Step 12. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter and call clearProfitsForPools.
-		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
-
-		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
-		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
-
-		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(collateralAndLiquidity)), 49999999999999999999995, "step11-13 C" );
-
-		// Checking step 14 can be ignored for now as the DAO hasn't formed POL yet (as it didn't yet have SALT)
-
-		// Check Step 15. Send SALT from the DAO vesting wallet to the DAO (linear distribution of 25 million tokens over 10 years).
-    	assertEq( salt.balanceOf(address(dao)), uint256( 25 * 1000000 ether ) * 1 days / (60 * 60 * 24 * 365 * 10), "step 15 A" );
-
-		// Check Step 16. Send SALT from the team vesting wallet to the team (linear distribution over 10 years).
-    	assertEq( salt.balanceOf(address(teamWallet)), uint256( 10 * 1000000 ether ) * 1 days / (60 * 60 * 24 * 365 * 10), "step 16 A" );
-
-
-//		console.log( "TEAM SALT: ", salt.balanceOf(teamWallet) );
-
-		// Have the team form some initial SALT/USDS liquidity
-		vm.prank(address(collateralAndLiquidity));
-		usds.mintTo(teamWallet, 1 ether);
-
-		vm.startPrank(teamWallet);
-		salt.approve(address(collateralAndLiquidity), 1 ether);
-		usds.approve(address(collateralAndLiquidity), 1 ether);
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare(salt, usds, 1 ether, 1 ether, 0, block.timestamp, true);
-		vm.stopPrank();
-
-		// Send some SALT from the teamWallet to mimic WETH to SALT counterswap
-		// More is sent than usual so that some will exist to send to saltRewards after forming POL
-		vm.prank(teamWallet);
-		salt.transfer(address(upkeep), 500 ether);
-
-		vm.startPrank(address(upkeep));
-		salt.approve(address(pools), type(uint256).max);
-		pools.depositTokenForCounterswap(Counterswap.WETH_TO_SALT, salt, 500 ether);
-		vm.stopPrank();
-
-    	assertEq( salt.balanceOf(address(upkeep)), 0 ether );
-
-		uint256 saltSupply = salt.totalSupply();
-
-		// =====Perform another performUpkeep
-		vm.warp(block.timestamp + 1 days);
-
-		vm.prank(upkeepCaller);
-		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-		// =====
-
-
-		// Check Step 8. Withdraw SALT from previous counterswaps.
-		// This is used to form SALT/USDS POL and is sent to the DAO - so the balance here is zero
-    	assertEq( salt.balanceOf(address(upkeep)), 0, "step 8 A" );
-
-		// Check Step 9. Send SALT and USDS (from steps 8 and 3) to the DAO and have it form SALT/USDS Protocol Owned Liquidity
-		(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves(salt, usds);
-		assertEq( reserve0, 301000000000000000000, "step 9 A" );
-		assertEq( reserve1, 301000000000000000000, "step 9 B" );
-
-		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-		assertEq( salt.balanceOf(address(saltRewards)), 163436428571428571428571, "step 10 A" );
-
-		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
-		uint256 saltBurned = saltSupply - salt.totalSupply();
-
-//   		assertEq( saltBurned, 7462500000000000000000, "step 14 A" );
-   		assertEq( saltBurned, 0, "step 14 A" );
-		}
-
-
-		// A unit test to revert step15 and ensure other steps continue functioning
-    	function testRevertStep15() public
-    		{
-    		_initFlawed(15);
-			finalizeBootstrap();
-
-    		// Set an initial price
-    		vm.startPrank(DEPLOYER);
-    		forcedPriceFeed.setBTCPrice( 10000 ether );
-    		forcedPriceFeed.setETHPrice( 1000 ether );
-    		vm.stopPrank();
-
-    		priceAggregator.performUpkeep();
-
-    		assertEq( priceAggregator.getPriceBTC(), 10000 ether );
-    		assertEq( priceAggregator.getPriceETH(), 1000 ether );
-
-    		// Set a new price
-    		vm.startPrank(DEPLOYER);
-    		forcedPriceFeed.setBTCPrice( 20000 ether );
-    		forcedPriceFeed.setETHPrice( 2000 ether );
-    		vm.stopPrank();
-
-
-        	// Dummy WBTC and WETH to send to USDS
-        	vm.startPrank(DEPLOYER);
-        	wbtc.transfer( address(usds), 5 ether );
-        	weth.transfer( address(usds), 50 ether );
-        	vm.stopPrank();
-
-        	// USDS to usds contract to mimic withdrawn counterswap trades
-        	vm.startPrank( address(collateralAndLiquidity));
-        	usds.mintTo( address(usds), 30 ether );
-        	usds.shouldBurnMoreUSDS( 20 ether );
-        	vm.stopPrank();
-
-    		assertEq( usds.totalSupply(), 30 ether );
-
-
-        	// USDS deposited to counterswap to mimic completed counterswap trades
-        	vm.prank( address(collateralAndLiquidity));
-        	usds.mintTo( address(usds), 300 ether );
-
-        	vm.startPrank(address(usds));
-        	usds.approve( address(pools), type(uint256).max );
-        	pools.depositTokenForCounterswap(Counterswap.WBTC_TO_USDS, usds, 150 ether);
-        	pools.depositTokenForCounterswap(Counterswap.WETH_TO_USDS, usds, 150 ether);
-    		vm.stopPrank();
-
-
-        	// Arbitrage profits are deposited as WETH for the DAO
-        	vm.prank(DEPLOYER);
-        	weth.transfer(address(dao), 100 ether);
-
-        	vm.startPrank(address(dao));
-        	weth.approve(address(pools), 100 ether);
-        	pools.deposit(weth, 100 ether);
-        	vm.stopPrank();
-
-    		// Create some initial WBTC/WETH liquidity so that it can receive bootstrapping rewards
-    		vm.startPrank(DEPLOYER);
-    		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
-    		weth.approve(address(collateralAndLiquidity), type(uint256).max);
-    		collateralAndLiquidity.depositCollateralAndIncreaseShare(100 * 10**8, 1000 * 10**8, 0, block.timestamp, true);
-    		vm.stopPrank();
-
-    		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
-    		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
-
-    		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
-    		assertEq( salt.balanceOf(address(staking)), 0 );
-
-
-    		// === Perform upkeep ===
-    		address upkeepCaller = address(0x9999);
-
-    		vm.prank(upkeepCaller);
-    		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-    		// ==================
-
-
-    		// Check Step 1. Update the prices of BTC and ETH in the PriceAggregator.
-    		assertEq( priceAggregator.getPriceBTC(), 20000 ether, "step1 A" );
-    		assertEq( priceAggregator.getPriceETH(), 2000 ether, "step1 B" );
-
-    		// Check Step 2. Send WBTC and WETH from the USDS contract to the counterswap addresses (for conversion to USDS) and withdraw USDS from counterswap for burning.
-    		assertEq( pools.depositedUserBalance( Counterswap.WBTC_TO_USDS, wbtc ), 5 ether, "step2 A" );
-    		assertEq( pools.depositedUserBalance( Counterswap.WETH_TO_USDS, weth ), 59500000000000000000, "step2 B" );
-
-    		// Check that USDS has been burned
-    		assertEq( usds.totalSupply(), 310 ether, "step2 C" );
-
-    		// Check Step 3. Withdraw the remaining USDS already counterswapped from WBTC and WETH (for later formation of SALT/USDS liquidity).
-    		assertEq( usds.balanceOf(address(upkeep)), 300 ether, "step3 A" );
-
-    		// Check Step 4. Have the DAO withdraw the WETH arbitrage profits from the Pools contract and send the withdrawn WETH to this contract.
-        	assertEq( pools.depositedUserBalance(address(dao), weth), 0 ether, "step4 A" );
-
-    		// Check Step 5. Send a default 5% of the withdrawn WETH to the caller of performUpkeep().
-        	assertEq( weth.balanceOf(upkeepCaller), 5 ether, "step5 A" );
-
-    		// Check Step 6. Send a default 10% (20% / 2 ) of the remaining WETH to counterswap for conversion to USDS (for later formation of SALT/USDS liquidity).
-    		// Includes deposited WETH from step2 as well
-        	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_USDS, weth), 59500000000000000000, "step6 A" );
-
-    		// Check Step 7. Send all remaining WETH to counterswap for conversion to SALT (for later SALT/USDS POL formation and SaltRewards).
-        	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_SALT, weth), 85500000000000000000, "step7 A" );
-
-
-    		// Checking steps 8-9 skipped for now as no one has SALT as it hasn't been distributed yet
-
-    		// Check Step 11. Send SALT Emissions to the stakingRewardsEmitter
-    		// Check Step 12. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter and call clearProfitsForPools.
-    		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
-
-    		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-    		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
-    		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
-
-    		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
-    		assertEq( salt.balanceOf(address(collateralAndLiquidity)), 49999999999999999999995, "step11-13 C" );
-
-    		// Checking step 14 can be ignored for now as the DAO hasn't formed POL yet (as it didn't yet have SALT)
-
-    		// Check Step 15. Send SALT from the DAO vesting wallet to the DAO (linear distribution of 25 million tokens over 10 years).
-//        	assertEq( salt.balanceOf(address(dao)), uint256( 25 * 1000000 ether ) * 1 days / (60 * 60 * 24 * 365 * 10), "step 15 A" );
-        	assertEq( salt.balanceOf(address(dao)), 0, "step 15 A" );
-
-    		// Check Step 16. Send SALT from the team vesting wallet to the team (linear distribution over 10 years).
-        	assertEq( salt.balanceOf(address(teamWallet)), uint256( 10 * 1000000 ether ) * 1 days / (60 * 60 * 24 * 365 * 10), "step 16 A" );
-
-
-    //		console.log( "TEAM SALT: ", salt.balanceOf(teamWallet) );
-
-    		// Have the team form some initial SALT/USDS liquidity
-    		vm.prank(address(collateralAndLiquidity));
-    		usds.mintTo(teamWallet, 1 ether);
-
-    		vm.startPrank(teamWallet);
-    		salt.approve(address(collateralAndLiquidity), 1 ether);
-    		usds.approve(address(collateralAndLiquidity), 1 ether);
-    		collateralAndLiquidity.depositLiquidityAndIncreaseShare(salt, usds, 1 ether, 1 ether, 0, block.timestamp, true);
-    		vm.stopPrank();
-
-    		// Send some SALT from the teamWallet to mimic WETH to SALT counterswap
-    		// More is sent than usual so that some will exist to send to saltRewards after forming POL
-    		vm.prank(teamWallet);
-    		salt.transfer(address(upkeep), 500 ether);
-
-    		vm.startPrank(address(upkeep));
-    		salt.approve(address(pools), type(uint256).max);
-    		pools.depositTokenForCounterswap(Counterswap.WETH_TO_SALT, salt, 500 ether);
-    		vm.stopPrank();
-
-        	assertEq( salt.balanceOf(address(upkeep)), 0 ether );
-
-    		uint256 saltSupply = salt.totalSupply();
-
-    		// =====Perform another performUpkeep
-    		vm.warp(block.timestamp + 1 days);
-
-    		vm.prank(upkeepCaller);
-    		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-    		// =====
-
-
-    		// Check Step 8. Withdraw SALT from previous counterswaps.
-    		// This is used to form SALT/USDS POL and is sent to the DAO - so the balance here is zero
-        	assertEq( salt.balanceOf(address(upkeep)), 0, "step 8 A" );
-
-    		// Check Step 9. Send SALT and USDS (from steps 8 and 3) to the DAO and have it form SALT/USDS Protocol Owned Liquidity
-    		(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves(salt, usds);
-    		assertEq( reserve0, 301000000000000000000, "step 9 A" );
-    		assertEq( reserve1, 301000000000000000000, "step 9 B" );
-
-    		// Check Step 10. Send the remaining SALT in the DAO that was withdrawn from counterswap to SaltRewards.
-    		assertEq( salt.balanceOf(address(saltRewards)), 163436428571428571428571, "step 10 A" );
-
-    		// Check Step Step 14. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL): send 10% to the team and burn a default 75% of the remaining.
-    		uint256 saltBurned = saltSupply - salt.totalSupply();
-
-       		assertEq( saltBurned, 3700166112956810631229, "step 14 A" );
-    		}
-
-
-	// A unit test to revert step16 and ensure other steps continue functioning
-	function testRevertStep16() public
-		{
-		_initFlawed(16);
-		finalizeBootstrap();
-
-		// Set an initial price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 10000 ether );
-		forcedPriceFeed.setETHPrice( 1000 ether );
-		vm.stopPrank();
-
-		priceAggregator.performUpkeep();
-
-		assertEq( priceAggregator.getPriceBTC(), 10000 ether );
-		assertEq( priceAggregator.getPriceETH(), 1000 ether );
-
-		// Set a new price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 20000 ether );
-		forcedPriceFeed.setETHPrice( 2000 ether );
-		vm.stopPrank();
-
-
-    	// Dummy WBTC and WETH to send to USDS
-    	vm.startPrank(DEPLOYER);
-    	wbtc.transfer( address(usds), 5 ether );
-    	weth.transfer( address(usds), 50 ether );
-    	vm.stopPrank();
-
-    	// USDS to usds contract to mimic withdrawn counterswap trades
-    	vm.startPrank( address(collateralAndLiquidity));
-    	usds.mintTo( address(usds), 30 ether );
-    	usds.shouldBurnMoreUSDS( 20 ether );
-    	vm.stopPrank();
-
-		assertEq( usds.totalSupply(), 30 ether );
-
-
-    	// USDS deposited to counterswap to mimic completed counterswap trades
-    	vm.prank( address(collateralAndLiquidity));
-    	usds.mintTo( address(usds), 300 ether );
-
-    	vm.startPrank(address(usds));
-    	usds.approve( address(pools), type(uint256).max );
-    	pools.depositTokenForCounterswap(Counterswap.WBTC_TO_USDS, usds, 150 ether);
-    	pools.depositTokenForCounterswap(Counterswap.WETH_TO_USDS, usds, 150 ether);
-		vm.stopPrank();
-
-
-    	// Arbitrage profits are deposited as WETH for the DAO
-    	vm.prank(DEPLOYER);
-    	weth.transfer(address(dao), 100 ether);
-
-    	vm.startPrank(address(dao));
-    	weth.approve(address(pools), 100 ether);
-    	pools.deposit(weth, 100 ether);
-    	vm.stopPrank();
-
-		// Create some initial WBTC/WETH liquidity so that it can receive bootstrapping rewards
-		vm.startPrank(DEPLOYER);
-		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
-		weth.approve(address(collateralAndLiquidity), type(uint256).max);
-		collateralAndLiquidity.depositCollateralAndIncreaseShare(100 * 10**8, 1000 * 10**8, 0, block.timestamp, true);
-		vm.stopPrank();
-
-		// Need to warp so that there can be some SALT emissions (with there being a week before the rewardsEmitters start emitting)
-		vm.warp(upkeep.lastUpkeepTime() + 1 weeks + 1 days);
-
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
-		assertEq( salt.balanceOf(address(staking)), 0 );
-
-
-		// === Perform upkeep ===
-		address upkeepCaller = address(0x9999);
-
-		vm.prank(upkeepCaller);
-		IUpkeepFlawed(address(upkeep)).performFlawedUpkeep();
-		// ==================
-
-
-		// Check Step 1. Update the prices of BTC and ETH in the PriceAggregator.
-		assertEq( priceAggregator.getPriceBTC(), 20000 ether, "step1 A" );
-		assertEq( priceAggregator.getPriceETH(), 2000 ether, "step1 B" );
-
-		// Check Step 2. Send WBTC and WETH from the USDS contract to the counterswap addresses (for conversion to USDS) and withdraw USDS from counterswap for burning.
-		assertEq( pools.depositedUserBalance( Counterswap.WBTC_TO_USDS, wbtc ), 5 ether, "step2 A" );
-		assertEq( pools.depositedUserBalance( Counterswap.WETH_TO_USDS, weth ), 59500000000000000000, "step2 B" );
-
-		// Check that USDS has been burned
-		assertEq( usds.totalSupply(), 310 ether, "step2 C" );
-
-		// Check Step 3. Withdraw the remaining USDS already counterswapped from WBTC and WETH (for later formation of SALT/USDS liquidity).
-		assertEq( usds.balanceOf(address(upkeep)), 300 ether, "step3 A" );
-
-		// Check Step 4. Have the DAO withdraw the WETH arbitrage profits from the Pools contract and send the withdrawn WETH to this contract.
-    	assertEq( pools.depositedUserBalance(address(dao), weth), 0 ether, "step4 A" );
-
-		// Check Step 5. Send a default 5% of the withdrawn WETH to the caller of performUpkeep().
-    	assertEq( weth.balanceOf(upkeepCaller), 5 ether, "step5 A" );
-
-		// Check Step 6. Send a default 10% (20% / 2 ) of the remaining WETH to counterswap for conversion to USDS (for later formation of SALT/USDS liquidity).
-		// Includes deposited WETH from step2 as well
-    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_USDS, weth), 59500000000000000000, "step6 A" );
-
-		// Check Step 7. Send all remaining WETH to counterswap for conversion to SALT (for later SALT/USDS POL formation and SaltRewards).
-    	assertEq( pools.depositedUserBalance(Counterswap.WETH_TO_SALT, weth), 85500000000000000000, "step7 A" );
-
-
-		// Checking steps 8-9 skipped for now as no one has SALT as it hasn't been distributed yet
-
-		// Check Step 11. Send SALT Emissions to the stakingRewardsEmitter
-		// Check Step 12. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter and call clearProfitsForPools.
-		// Check Step 13. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
-
-		// stakingRewardsEmitter starts at 3 million, receives SALT emissions from Step 11 and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3085830000000000000000005, "step11-13 A" );
-		assertEq( salt.balanceOf(address(staking)), 31170000000000000000000, "step11-13 B" );
-
-		// liquidityRewardsEmitter starts at 5 million, but doesn't receive SALT emissions yet from Step 11 as there is no arbitrage yet as SALT hasn't been distributed and can't created the needed pools for the arbitrage cycles - and then distributes 1% to the staking contract
-		assertEq( salt.balanceOf(address(collateralAndLiquidity)), 49999999999999999999995, "step11-13 C" );
-
-		// Checking step 14 can be ignored for now as the DAO hasn't formed POL yet (as it didn't yet have SALT)
-
-		// Check Step 15. Send SALT from the DAO vesting wallet to the DAO (linear distribution of 25 million tokens over 10 years).
-    	assertEq( salt.balanceOf(address(dao)), uint256( 25 * 1000000 ether ) * 1 days / (60 * 60 * 24 * 365 * 10), "step 15 A" );
-
-		// Check Step 16. Send SALT from the team vesting wallet to the team (linear distribution over 10 years).
-//    	assertEq( salt.balanceOf(address(teamWallet)), uint256( 10 * 1000000 ether ) * 1 days / (60 * 60 * 24 * 365 * 10), "step 16 A" );
-    	assertEq( salt.balanceOf(address(teamWallet)), 0, "step 16 A" );
-		}
 
 	}
