@@ -150,7 +150,7 @@ function testCoreUniswapFeedConstructor( address _wbtc, address _weth, address _
         vm.expectRevert("_UNISWAP_V3_WBTC_WETH cannot be address(0)");
         new TestUniswapFeed(_testBTC, _testETH, _testUSDC, zeroAddress, UNISWAP_V3_USDC_ETH);
 
-        vm.expectRevert("_UNISWAP_V3_USDC_WETH cannot be address(0)");
+        vm.expectRevert("_UNISWAP_V3_WETH_USDC cannot be address(0)");
         new TestUniswapFeed(_testBTC, _testETH, _testUSDC, UNISWAP_V3_BTC_ETH, zeroAddress);
     }
 	}

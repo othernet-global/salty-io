@@ -35,7 +35,7 @@ contract TestEthFeeds is Test
 		}
 
 
-	function testFeeds() public
+	function testLiveFeeds() public
 		{
 		if ( keccak256(bytes(vm.envString("NETWORK" ))) != keccak256(bytes("eth" )))
 			return;

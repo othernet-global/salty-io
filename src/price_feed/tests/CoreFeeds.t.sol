@@ -18,6 +18,7 @@ contract TestCoreFeeds is Deployment
 
 	constructor()
 		{
+		initializeContracts();
 
 		grantAccessAlice();
 		grantAccessBob();
@@ -30,6 +31,19 @@ contract TestCoreFeeds is Deployment
 		vm.prank(address(daoVestingWallet));
 		salt.transfer(DEPLOYER, 1000000 ether);
 
+		if ( keccak256(bytes(vm.envString("NETWORK" ))) == keccak256(bytes("eth" )))
+			{
+			// Live addresses on Ethereum
+			CHAINLINK_BTC_USD = 0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c;
+			CHAINLINK_ETH_USD = 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;
+			UNISWAP_V3_BTC_ETH = 0xCBCdF9626bC03E24f779434178A73a0B4bad62eD;
+			UNISWAP_V3_USDC_ETH = 0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640;
+
+			// Live token addresses
+			_testBTC = IERC20(address(0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599));
+			_testETH = IERC20(address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2));
+			_testUSDC = IERC20(address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48));
+			}
 
 
 		chainlinkFeed = new CoreChainlinkFeed( CHAINLINK_BTC_USD, CHAINLINK_ETH_USD );
@@ -38,14 +52,8 @@ contract TestCoreFeeds is Deployment
 		}
 
 
-	function testFeeds() public
+	function testSaltyFeed() public
 		{
-		console.log( "chainlink btc: ", chainlinkFeed.getPriceBTC() / 10**18 );
-		console.log( "chainlink eth: ", chainlinkFeed.getPriceETH() / 10**18 );
-
-		console.log( "uniswap btc: ", uniswapFeed.getPriceBTC() / 10**18 );
-		console.log( "uniswap eth: ", uniswapFeed.getPriceETH() / 10**18 );
-
 		vm.prank(address(collateralAndLiquidity));
 		usds.mintTo(DEPLOYER, 100000000 ether );
 
@@ -61,5 +69,19 @@ contract TestCoreFeeds is Deployment
 
 		console.log( "salty btc: ", saltyFeed.getPriceBTC() / 10**18 );
 		console.log( "salty eth: ", saltyFeed.getPriceETH() / 10**18 );
+		}
+
+
+	function testChainlink() public view
+		{
+		console.log( "chainlink btc: ", chainlinkFeed.getPriceBTC() / 10**18 );
+		console.log( "chainlink eth: ", chainlinkFeed.getPriceETH() / 10**18 );
+		}
+
+
+	function testUniswap() public view
+		{
+		console.log( "uniswap btc: ", uniswapFeed.getPriceBTC() / 10**18 );
+		console.log( "uniswap eth: ", uniswapFeed.getPriceETH() / 10**18 );
 		}
 	}

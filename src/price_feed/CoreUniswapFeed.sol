@@ -3,9 +3,9 @@ pragma solidity =0.8.22;
 
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import "v3-core/interfaces/IUniswapV3Pool.sol";
+import "v3-core/libraries/FixedPoint96.sol";
 import "v3-core/libraries/TickMath.sol";
 import "v3-core/libraries/FullMath.sol";
-import "v3-core/libraries/FixedPoint96.sol";
 import "./interfaces/IPriceFeed.sol";
 
 
@@ -35,7 +35,7 @@ contract CoreUniswapFeed is IPriceFeed
 		require( address(_weth) != address(0), "_weth cannot be address(0)" );
 		require( address(_usdc) != address(0), "_usdc cannot be address(0)" );
 		require( _UNISWAP_V3_WBTC_WETH != address(0), "_UNISWAP_V3_WBTC_WETH cannot be address(0)" );
-		require( _UNISWAP_V3_WETH_USDC != address(0), "_UNISWAP_V3_USDC_WETH cannot be address(0)" );
+		require( _UNISWAP_V3_WETH_USDC != address(0), "_UNISWAP_V3_WETH_USDC cannot be address(0)" );
 
 		UNISWAP_V3_WBTC_WETH = _UNISWAP_V3_WBTC_WETH;
 		UNISWAP_V3_WETH_USDC = _UNISWAP_V3_WETH_USDC;
@@ -138,7 +138,7 @@ contract CoreUniswapFeed is IPriceFeed
 
 
 	// Returned price is the 30 minutes TWAP by default
-	function getPriceBTC() public view returns (uint256)
+	function getPriceBTC() external view returns (uint256)
 		{
 		return getTwapWBTC( TWAP_PERIOD );
 		}
@@ -146,7 +146,7 @@ contract CoreUniswapFeed is IPriceFeed
 
 	// Returned price is the 30 minutes TWAP by default.
 	// For this to be changed the DAO needs to use a new CoreUniswapFeed contract (or other contract that implements IPriceFeed.sol)
-	function getPriceETH() public view returns (uint256)
+	function getPriceETH() external view returns (uint256)
 		{
 		return getTwapWETH( TWAP_PERIOD );
 		}

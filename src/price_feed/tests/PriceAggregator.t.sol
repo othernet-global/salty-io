@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.22;
 
+import "./TestPriceAggregator.sol";
 import "../../dev/Deployment.sol";
 import "./ForcedPriceFeed.sol";
-import "./TestPriceAggregator.sol";
 
 
 contract TestPriceAggreagator is Deployment
@@ -43,17 +43,6 @@ contract TestPriceAggreagator is Deployment
         // Test revert when function is called more than once
         vm.expectRevert("setInitialFeeds() can only be called once");
         newPriceAggregator.setInitialFeeds(newPriceFeed1, newPriceFeed2, newPriceFeed3);
-
-        // Test revert when any of the price feed addresses are zero
-        newPriceAggregator = new PriceAggregator();
-        vm.expectRevert("_priceFeed1 cannot be address(0)");
-        newPriceAggregator.setInitialFeeds(IPriceFeed(address(0)), newPriceFeed2, newPriceFeed3);
-
-        vm.expectRevert("_priceFeed2 cannot be address(0)");
-        newPriceAggregator.setInitialFeeds(newPriceFeed1, IPriceFeed(address(0)), newPriceFeed3);
-
-        vm.expectRevert("_priceFeed3 cannot be address(0)");
-        newPriceAggregator.setInitialFeeds(newPriceFeed1, newPriceFeed2, IPriceFeed(address(0)));
     }
 
 
@@ -66,48 +55,41 @@ contract TestPriceAggreagator is Deployment
         priceFeed3.setBTCPrice(51000 ether);  // Setting a price close to priceFeed2 to priceFeed3
 
         // Test aggregating the prices correctly from the price feeds when only two of the price feeds return non-zero prices
-        priceAggregator.performUpkeep();  // This will internally call _aggregatePrices
         assertEq(priceAggregator.getPriceBTC(), 50500 ether);  // The average of priceFeed2 and priceFeed3
 
         // Test reverts if there are not at least two non-zero prices
         priceFeed2.setBTCPrice(0 ether);  // Setting 0 price to priceFeed2 as well
-        priceAggregator.performUpkeep();  // This will internally call _aggregatePrices
 
-        vm.expectRevert( "Invalid WBTC price" );
+        vm.expectRevert( "Invalid BTC price" );
         priceAggregator.getPriceBTC();
 
         // Test reverts if the closest two prices are more than the maximum allowed difference apart
         priceFeed2.setBTCPrice(50000 ether);  // Resetting priceFeed2's price
         priceFeed3.setBTCPrice(52600 ether);  // Setting a price more than 5% different from priceFeed2 to priceFeed3
-        priceAggregator.performUpkeep();  // This will internally call _aggregatePrices
 
-        vm.expectRevert( "Invalid WBTC price" );
+        vm.expectRevert( "Invalid BTC price" );
         priceAggregator.getPriceBTC();
 
         // Test correctly calculates the average of the two non-zero prices
         priceFeed3.setBTCPrice(51000 ether);  // Resetting priceFeed3's price
-        priceAggregator.performUpkeep();  // This will internally call _aggregatePrices
         assertEq(priceAggregator.getPriceBTC(), 50500 ether);  // The average of priceFeed2 and priceFeed3
 
 		// Test price1 and price2 the closest and within range
         priceFeed1.setBTCPrice(50100 ether);
         priceFeed2.setBTCPrice(50000 ether);
         priceFeed3.setBTCPrice(50200 ether);
-        priceAggregator.performUpkeep();  // This will internally call _aggregatePrices
         assertEq(priceAggregator.getPriceBTC(), 50050 ether);  // The average of priceFeed1 and priceFeed2
 
 		// Test price2 and price3 the closest and within range
         priceFeed1.setBTCPrice(49000 ether);
         priceFeed2.setBTCPrice(50100 ether);
         priceFeed3.setBTCPrice(50200 ether);
-        priceAggregator.performUpkeep();  // This will internally call _aggregatePrices
         assertEq(priceAggregator.getPriceBTC(), 50150 ether);  // The average of priceFeed2 and priceFeed3
 
 		// Test price1 and price3 the closest and within range
         priceFeed1.setBTCPrice(49000 ether);
         priceFeed2.setBTCPrice(52100 ether);
         priceFeed3.setBTCPrice(50000 ether);
-        priceAggregator.performUpkeep();  // This will internally call _aggregatePrices
         assertEq(priceAggregator.getPriceBTC(), 49500 ether);  // The average of priceFeed1 and priceFeed3
 
 
@@ -117,27 +99,24 @@ contract TestPriceAggreagator is Deployment
         priceFeed1.setBTCPrice(52600 ether);
         priceFeed2.setBTCPrice(50000 ether);
         priceFeed3.setBTCPrice(0 ether);
-        priceAggregator.performUpkeep();  // This will internally call _aggregatePrices
 
-        vm.expectRevert( "Invalid WBTC price" );
+        vm.expectRevert( "Invalid BTC price" );
         priceAggregator.getPriceBTC();
 
 		// Test price2 and price3 the closest and out of range
         priceFeed1.setBTCPrice(0 ether);
         priceFeed2.setBTCPrice(50000 ether);
         priceFeed3.setBTCPrice(52600 ether);
-        priceAggregator.performUpkeep();  // This will internally call _aggregatePrices
 
-        vm.expectRevert( "Invalid WBTC price" );
+        vm.expectRevert( "Invalid BTC price" );
         priceAggregator.getPriceBTC();
 
 		// Test price1 and price3 the closest and out of range
         priceFeed1.setBTCPrice(52600 ether);
         priceFeed2.setBTCPrice(0 ether);
         priceFeed3.setBTCPrice(50000 ether);
-        priceAggregator.performUpkeep();  // This will internally call _aggregatePrices
 
-        vm.expectRevert( "Invalid WBTC price" );
+        vm.expectRevert( "Invalid BTC price" );
         priceAggregator.getPriceBTC();
     }
 
@@ -199,7 +178,6 @@ contract TestPriceAggreagator is Deployment
     // A unit test that checks the _getPriceBTC and _getPriceETH functions. It should confirm whether the functions catch an error when the price is not retrievable and emits the appropriate event (PriceFeedError).
     function testPriceRetrieval() public {
 
-    	priceAggregator.performUpkeep();
 
         // Check initial prices
         assertEq(priceAggregator.getPriceBTC(), 30050 ether);
@@ -208,77 +186,14 @@ contract TestPriceAggreagator is Deployment
         ForcedPriceFeed(address(priceFeed2)).setRevertNext(); // Make priceFeed2 fail
         ForcedPriceFeed(address(priceFeed3)).setRevertNext(); // Make priceFeed3 fail
 
-        // performUpkeep internally calls _getPriceBTC and _getPriceETH
-        priceAggregator.performUpkeep();
-
 		// getPriceBTC() and getPriceETH() should now fail
-		vm.expectRevert( "Invalid WBTC price" );
+		vm.expectRevert( "Invalid BTC price" );
         priceAggregator.getPriceBTC();
 
-		vm.expectRevert( "Invalid WETH price" );
+		vm.expectRevert( "Invalid ETH price" );
         priceAggregator.getPriceETH();
     }
 
-
-    // A unit test that checks the performUpkeep function, confirming whether it updates the BTC and ETH prices correctly.
-    function testPerformUpkeep() public {
-    	TestPriceAggregator tpa = new TestPriceAggregator();
-
-        // Check BTC price updates
-        uint256 feed1BTCPrice = priceFeed1.getPriceBTC();
-        uint256 feed2BTCPrice = priceFeed2.getPriceBTC();
-        uint256 feed3BTCPrice = priceFeed3.getPriceBTC();
-        uint256 aggregatedBTCPrice = tpa.aggregatePrices(feed1BTCPrice, feed2BTCPrice, feed3BTCPrice);
-
-        // Check ETH price updates
-        uint256 feed1ETHPrice = priceFeed1.getPriceETH();
-        uint256 feed2ETHPrice = priceFeed2.getPriceETH();
-        uint256 feed3ETHPrice = priceFeed3.getPriceETH();
-        uint256 aggregatedETHPrice = tpa.aggregatePrices(feed1ETHPrice, feed2ETHPrice, feed3ETHPrice);
-
-		// Cached prices are zero and invalid before performUpkeep
-		vm.expectRevert( "Invalid WBTC price" );
-        priceAggregator.getPriceBTC();
-
-		vm.expectRevert( "Invalid WETH price" );
-        priceAggregator.getPriceETH();
-
-        // Call performUpkeep
-        priceAggregator.performUpkeep();
-
-		assertEq( priceAggregator.getPriceBTC(), aggregatedBTCPrice );
-		assertEq( priceAggregator.getPriceETH(), aggregatedETHPrice );
-    }
-
-
-    // A unit test that verifies the _aggregatePrices function could update the priceFeedInclusionAverage correctly by exponential average.
-    function testAverageNumberValidFeeds() public {
-
-        ForcedPriceFeed(address(priceFeed2)).setRevertNext(); // Make priceFeed2 fail
-
-    	priceAggregator.performUpkeep();
-
-		// Average should start out at 2
-		assertEq( priceAggregator.averageNumberValidFeeds(), 2000000000000000000 );
-
-        ForcedPriceFeed(address(priceFeed3)).setRevertNext(); // Make priceFeed3 fail
-
-		for( uint256 i = 0; i < 400; i++ )
-			{
-	    	priceAggregator.performUpkeep();
-			}
-		assertEq( priceAggregator.averageNumberValidFeeds(), 1201573311186041581 );
-
-
-		// Trend towards 3
-        ForcedPriceFeed(address(priceFeed2)).clearRevertNext();
-        ForcedPriceFeed(address(priceFeed3)).clearRevertNext();
-		for( uint256 i = 0; i < 500; i++ )
-			{
-	    	priceAggregator.performUpkeep();
-			}
-		assertEq( priceAggregator.averageNumberValidFeeds(), 2757096358119972024 );
-    }
 
 
     // A unit test to verify the _aggregatePrices function should return zero when the number of valid prices is one or less
@@ -287,46 +202,17 @@ contract TestPriceAggreagator is Deployment
         ForcedPriceFeed(address(priceFeed2)).setRevertNext();
         ForcedPriceFeed(address(priceFeed3)).setRevertNext();
 
-        // Execute _aggregatePrices with external call
-        priceAggregator.performUpkeep();
-
         // Expected revert when getting BTC Price
-        vm.expectRevert( "Invalid WBTC price" );
+        vm.expectRevert( "Invalid BTC price" );
         priceAggregator.getPriceBTC();
 
         // Test a case where no feed has valid price
         ForcedPriceFeed(address(priceFeed1)).setRevertNext();
 
-        // Execute _aggregatePrices with external call
-        priceAggregator.performUpkeep();
-
         // Expected revert when getting BTC Price
-        vm.expectRevert( "Invalid WBTC price" );
+        vm.expectRevert( "Invalid BTC price" );
         priceAggregator.getPriceBTC();
     }
-
-
-    // A unit test that verifies the performUpkeep function works even if the price feeds return zero.
-    function testPerformUpKeep() public
-    {
-        ForcedPriceFeed(address(priceFeed1)).setRevertNext();
-        ForcedPriceFeed(address(priceFeed2)).setRevertNext();
-        ForcedPriceFeed(address(priceFeed3)).setRevertNext();
-
-        // Test performUpkeep when all price feeds return zero
-        priceAggregator.performUpkeep();
-
-        // Asserting that it returns zero.
-        vm.expectRevert("Invalid WBTC price");
-        priceAggregator.getPriceBTC();
-
-        vm.expectRevert("Invalid WETH price");
-        priceAggregator.getPriceETH();
-
-        // Asserting inclusion average (should be 0 as no feed returned non-zero price)
-        assertEq(priceAggregator.averageNumberValidFeeds(), 0);
-    }
-
 	}
 
 

@@ -13,7 +13,7 @@ contract TestPriceAggregator is PriceAggregator
 		}
 
 
-	function aggregatePrices( uint256 price1, uint256 price2, uint256 price3 ) public returns (uint256)
+	function aggregatePrices( uint256 price1, uint256 price2, uint256 price3 ) public view returns (uint256)
 		{
 		return _aggregatePrices(price1, price2, price3);
 		}

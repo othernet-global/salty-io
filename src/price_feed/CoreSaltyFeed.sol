@@ -2,9 +2,9 @@
 pragma solidity =0.8.22;
 
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import "./interfaces/IPriceFeed.sol";
-import "../pools/interfaces/IPools.sol";
 import "../interfaces/IExchangeConfig.sol";
+import "../pools/interfaces/IPools.sol";
+import "./interfaces/IPriceFeed.sol";
 import "../pools/PoolUtils.sol";
 
 
@@ -32,7 +32,7 @@ contract CoreSaltyFeed is IPriceFeed
 
 
 	// Returns zero for an invalid price
-	function getPriceBTC() public view returns (uint256)
+	function getPriceBTC() external view returns (uint256)
 		{
         (uint256 reservesWBTC, uint256 reservesUSDS) = pools.getPoolReserves(wbtc, usds);
 
@@ -45,7 +45,7 @@ contract CoreSaltyFeed is IPriceFeed
 
 
 	// Returns zero for an invalid price
-	function getPriceETH() public view returns (uint256)
+	function getPriceETH() external view returns (uint256)
 		{
         (uint256 reservesWETH, uint256 reservesUSDS) = pools.getPoolReserves(weth, usds);
 
