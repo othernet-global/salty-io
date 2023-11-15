@@ -2,23 +2,21 @@
 pragma solidity =0.8.22;
 
 import "../../rewards/interfaces/ISaltRewards.sol";
-import "../../interfaces/ISalt.sol";
 import "../../stable/interfaces/IUSDS.sol";
-import "../../staking/interfaces/ILiquidity.sol";
-
+import "../../pools/interfaces/IPools.sol";
+import "../../interfaces/ISalt.sol";
 
 interface IDAO
 	{
 	function finalizeBallot( uint256 ballotID ) external;
-	function sufficientBootstrappingRewardsExistForWhitelisting() external view returns (bool);
 	function countryIsExcluded( string calldata country ) external view returns (bool);
 
-	function withdrawArbitrageProfits( IERC20 weth ) external;
-	function formPOL( ICollateralAndLiquidity collateralAndLiquidity, ISalt salt, IUSDS usds ) external;
-	function sendSaltToSaltRewards( ISalt salt, ISaltRewards saltRewards, uint256 amountToSend) external;
-	function processRewardsFromPOL(ICollateralAndLiquidity collateralAndLiquidity, ISalt salt, IUSDS usds) external;
+	function withdrawArbitrageProfits( IERC20 weth ) external returns (uint256 withdrawnAmount);
+	function formPOL( IERC20 tokenA, IERC20 tokenB, uint256 amountA, uint256 amountB ) external;
+	function processRewardsFromPOL() external;
+	function withdrawPOL( IERC20 tokenA, IERC20 tokenB, uint256 percentToLiquidate ) external;
 
-	function initialGeoExclusion(uint256[] memory geoExclusionYes, uint256[] memory geoExclusionNo) external;
+	function initialGeoExclusion(uint256[] calldata geoExclusionYes, uint256[] calldata geoExclusionNo) external;
 
 	// Views
 	function pools() external returns (IPools);

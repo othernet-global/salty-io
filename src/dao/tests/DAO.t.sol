@@ -65,6 +65,8 @@ contract TestDAO is Deployment
 		{
 		if ( parameter == Parameters.ParameterTypes.maximumWhitelistedPools )
 			return poolsConfig.maximumWhitelistedPools();
+		if ( parameter == Parameters.ParameterTypes.maximumInternalSwapPercentTimes1000 )
+			return poolsConfig.maximumInternalSwapPercentTimes1000();
 
 		else if ( parameter == Parameters.ParameterTypes.minUnstakeWeeks )
 			return stakingConfig.minUnstakeWeeks();
@@ -94,6 +96,8 @@ contract TestDAO is Deployment
 			return stableConfig.initialCollateralRatioPercent();
 		else if ( parameter == Parameters.ParameterTypes.minimumCollateralRatioPercent )
 			return stableConfig.minimumCollateralRatioPercent();
+		else if ( parameter == Parameters.ParameterTypes.percentArbitrageProfitsForStablePOL )
+			return stableConfig.percentArbitrageProfitsForStablePOL();
 
 		else if ( parameter == Parameters.ParameterTypes.bootstrappingRewards )
 			return daoConfig.bootstrappingRewards();
@@ -141,7 +145,8 @@ contract TestDAO is Deployment
 
 		uint256 newValue = _parameterValue( Parameters.ParameterTypes( parameterNum ) );
 
-		if ( parameterNum != 9 )
+		if ( parameterNum != 10 )
+		if ( parameterNum != 14 )
 			assert( newValue > originalValue );
     }
 
@@ -171,14 +176,18 @@ contract TestDAO is Deployment
 
 	function _checkFinalizeDecreaseParameterBallot( uint256 parameterNum  ) internal {
 
+//		console.log( "PARAM: ", parameterNum );
 		uint256 ballotID = parameterNum + 1;
 		uint256 originalValue = _parameterValue( Parameters.ParameterTypes( parameterNum ) );
 
+//		console.log( "\ta" );
         proposals.proposeParameterBallot(parameterNum, "description" );
         assertEq(proposals.ballotForID(ballotID).ballotIsLive, true, "Parameter Ballot not correctly created");
 
+//		console.log( "\tb" );
         proposals.castVote(ballotID, Vote.DECREASE);
 
+//		console.log( "\tc" );
         // Increase block time to finalize the ballot
         vm.warp(block.timestamp + 11 days );
 
@@ -186,11 +195,11 @@ contract TestDAO is Deployment
         dao.finalizeBallot(ballotID);
         assertEq(proposals.ballotForID(ballotID).ballotIsLive, false, "Parameter Ballot not correctly finalized");
 
+//		console.log( "\td" );
 		uint256 newValue = _parameterValue( Parameters.ParameterTypes( parameterNum ) );
 
-		if ( parameterNum != 1 )
-		if ( parameterNum != 9 )
-		if ( parameterNum != 13 )
+		if ( parameterNum != 10 )
+		if ( parameterNum != 14 )
 			assert( newValue < originalValue );
     }
 
@@ -201,7 +210,7 @@ contract TestDAO is Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 5000000 ether );
 
-    	for( uint256 i = 0; i < 24; i++ )
+    	for( uint256 i = 0; i < 26; i++ )
 	 		_checkFinalizeIncreaseParameterBallot( i );
     	}
 
@@ -212,7 +221,7 @@ contract TestDAO is Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 5000000 ether );
 
-    	for( uint256 i = 0; i < 24; i++ )
+    	for( uint256 i = 0; i < 26; i++ )
 	 		_checkFinalizeDecreaseParameterBallot( i );
     	}
 
@@ -223,7 +232,7 @@ contract TestDAO is Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 5000000 ether );
 
-    	for( uint256 i = 0; i < 24; i++ )
+    	for( uint256 i = 0; i < 26; i++ )
 	 		_checkFinalizeNoChangeParameterBallot( i );
     	}
 
@@ -415,23 +424,23 @@ contract TestDAO is Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 1000000 ether );
 
-        proposals.proposeCountryExclusion( "US", "description" );
+        proposals.proposeCountryExclusion( "USA", "description" );
 		_voteForAndFinalizeBallot(1, Vote.YES);
 
-		assertTrue( dao.countryIsExcluded( "US" ), "US should be excluded" );
+		assertTrue( dao.countryIsExcluded( "USA" ), "US should be excluded" );
 		vm.stopPrank();
 
 		// GeoVersion is now 1 and effectively has cleared access
-		bytes memory sig = abi.encodePacked(hex"8b213e0ebbb653419203488db6b2ea3dcd35067906b813aee2e2ae20db4218233a72959b5aa61d2e1673aac95a75ac46cb80d93630f7b2d98de5e7344e6f14821c");
+		bytes memory sig = abi.encodePacked(aliceAccessSignature1);
 		vm.prank( alice );
 		accessManager.grantAccess(sig);
 
 
         vm.startPrank(alice);
-        proposals.proposeCountryInclusion( "US", "description" );
+        proposals.proposeCountryInclusion( "USA", "description" );
 		_voteForAndFinalizeBallot(2, Vote.YES);
 
-		assertFalse( dao.countryIsExcluded( "US" ), "US shouldn't be excluded" );
+		assertFalse( dao.countryIsExcluded( "USA" ), "US shouldn't be excluded" );
     	}
 
 
@@ -441,23 +450,23 @@ contract TestDAO is Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 1000000 ether );
 
-        proposals.proposeCountryExclusion( "US", "description" );
+        proposals.proposeCountryExclusion( "USA", "description" );
 		_voteForAndFinalizeBallot(1, Vote.YES);
 
-		assertTrue( dao.countryIsExcluded( "US" ), "US should be excluded" );
+		assertTrue( dao.countryIsExcluded( "USA" ), "US should be excluded" );
 		vm.stopPrank();
 
 		// GeoVersion is now 1 and effectively has cleared access
-		bytes memory sig = abi.encodePacked(hex"8b213e0ebbb653419203488db6b2ea3dcd35067906b813aee2e2ae20db4218233a72959b5aa61d2e1673aac95a75ac46cb80d93630f7b2d98de5e7344e6f14821c");
+		bytes memory sig = abi.encodePacked(aliceAccessSignature1);
 		vm.prank( alice );
 		accessManager.grantAccess(sig);
 
 
         vm.startPrank(alice);
-        proposals.proposeCountryInclusion( "US", "description" );
+        proposals.proposeCountryInclusion( "USA", "description" );
 		_voteForAndFinalizeBallot(2, Vote.NO);
 
-		assertTrue( dao.countryIsExcluded( "US" ), "US should be excluded" );
+		assertTrue( dao.countryIsExcluded( "USA" ), "US should be excluded" );
     	}
 
 
@@ -467,10 +476,10 @@ contract TestDAO is Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 1000000 ether );
 
-        proposals.proposeCountryExclusion( "US", "description" );
+        proposals.proposeCountryExclusion( "USA", "description" );
 		_voteForAndFinalizeBallot(1, Vote.YES);
 
-		assertTrue( dao.countryIsExcluded( "US" ), "US should be excluded" );
+		assertTrue( dao.countryIsExcluded( "USA" ), "USA should be excluded" );
     	}
 
 
@@ -480,10 +489,11 @@ contract TestDAO is Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 1000000 ether );
 
-        proposals.proposeCountryExclusion( "US", "description" );
+        proposals.proposeCountryExclusion( "USA", "description" );
 		_voteForAndFinalizeBallot(1, Vote.NO);
 
-		assertFalse( dao.countryIsExcluded( "US" ), "US shouldn't be excluded" );
+		assertFalse( dao.countryIsExcluded( "USA" ), "USA shouldn't be excluded" );
+		assertFalse( dao.countryIsExcluded( "USA" ), "USA shouldn't be excluded" );
     	}
 
 
@@ -493,10 +503,6 @@ contract TestDAO is Deployment
 
 		if ( nameHash == keccak256(bytes("accessManager" )))
 			return address(exchangeConfig.accessManager());
-		if ( nameHash == keccak256(bytes("stakingRewardsEmitter" )))
-			return address(exchangeConfig.stakingRewardsEmitter());
-		if ( nameHash == keccak256(bytes("liquidityRewardsEmitter" )))
-			return address(exchangeConfig.liquidityRewardsEmitter());
 		if ( nameHash == keccak256(bytes("priceFeed1" )))
 			return address(priceAggregator.priceFeed1());
 		if ( nameHash == keccak256(bytes("priceFeed2" )))
@@ -527,16 +533,14 @@ contract TestDAO is Deployment
 	// A unit test to test that finalizing an approved setContract ballot works with all possible contract options
 	function testSetContractApproved() public
 		{
-		_checkSetContractApproved( 1, "stakingRewardsEmitter", address(0x1231233 ) );
-		_checkSetContractApproved( 3, "liquidityRewardsEmitter", address(0x1231234 ) );
-		_checkSetContractApproved( 5, "priceFeed1", address(0x1231236 ) );
+		_checkSetContractApproved( 1, "priceFeed1", address(0x1231236 ) );
 		vm.warp(block.timestamp + 60 days);
-		_checkSetContractApproved( 7, "priceFeed2", address(0x1231237 ) );
+		_checkSetContractApproved( 3, "priceFeed2", address(0x1231237 ) );
 		vm.warp(block.timestamp + 60 days);
-		_checkSetContractApproved( 9, "priceFeed3", address(0x1231238 ) );
+		_checkSetContractApproved( 5, "priceFeed3", address(0x1231238 ) );
 
 		// Done last to prevent access issues
-		_checkSetContractApproved( 11, "accessManager", address( new AccessManager(dao) ) );
+		_checkSetContractApproved( 7, "accessManager", address( new AccessManager(dao) ) );
 		}
 
 
@@ -646,7 +650,7 @@ contract TestDAO is Deployment
 	function testDAOConstructor() public {
 
         vm.startPrank(DEPLOYER);
-        DAO testDAO = new DAO(pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidityRewardsEmitter );
+        DAO testDAO = new DAO(pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidityRewardsEmitter, collateralAndLiquidity );
 
         assertEq(address(testDAO.pools()), address(pools), "Pools contract address mismatch");
         assertEq(address(testDAO.proposals()), address(proposals), "Proposals contract address mismatch");
@@ -658,6 +662,7 @@ contract TestDAO is Deployment
         assertEq(address(testDAO.daoConfig()), address(daoConfig), "DAOConfig contract address mismatch");
         assertEq(address(testDAO.priceAggregator()), address(priceAggregator), "PriceAggregator contract address mismatch");
         assertEq(address(testDAO.liquidityRewardsEmitter()), address(liquidityRewardsEmitter), "LiquidityRewardsEmitter contract address mismatch");
+        assertEq(address(testDAO.collateralAndLiquidity()), address(collateralAndLiquidity), "CollateralAndLiquidity contract address mismatch");
 
         vm.stopPrank();
     }
@@ -771,16 +776,17 @@ contract TestDAO is Deployment
         vm.stopPrank();
 
         vm.expectRevert( "DAO.formPOL is only callable from the Upkeep contract" );
-        dao.formPOL(collateralAndLiquidity, salt, usds);
+        dao.formPOL(salt, usds, saltAmount, usdsAmount);
 
         vm.prank(address(upkeep));
-        dao.formPOL(collateralAndLiquidity, salt, usds);
+        dao.formPOL(salt, usds, saltAmount, usdsAmount);
 
         assertEq(salt.balanceOf(address(dao)), 0, "DAO SALT balance incorrect after formPOL");
         assertEq(usds.balanceOf(address(dao)), 0, "DAO USDS balance incorrect after formPOL");
 
 		bytes32 poolID = PoolUtils._poolIDOnly(salt,usds);
 		assertTrue( collateralAndLiquidity.userShareForPool(address(dao), poolID) > 0 );
+		assertEq( collateralAndLiquidity.userShareForPool(address(dao), poolID), collateralAndLiquidity.totalShares(poolID) );
     }
 
 
@@ -793,13 +799,13 @@ contract TestDAO is Deployment
     	dao.withdrawArbitrageProfits( weth );
 
     	vm.expectRevert("DAO.formPOL is only callable from the Upkeep contract");
-    	dao.formPOL(collateralAndLiquidity, salt, usds);
-
-    	vm.expectRevert("DAO.sendSaltToSaltRewards is only callable from the Upkeep contract");
-    	dao.sendSaltToSaltRewards( salt, saltRewards, 1000 ether );
+    	dao.formPOL(salt, usds, 0, 0);
 
     	vm.expectRevert("DAO.processRewardsFromPOL is only callable from the Upkeep contract");
-    	dao.processRewardsFromPOL( collateralAndLiquidity, salt, usds );
+    	dao.processRewardsFromPOL();
+
+    	vm.expectRevert("DAO.withdrawProtocolOwnedLiquidity is only callable from the Liquidizer contract");
+    	dao.withdrawPOL(salt, usds, 1);
 
     	vm.stopPrank();
     	}
@@ -822,7 +828,56 @@ contract TestDAO is Deployment
 
 		vm.warp( block.timestamp - 45 days );
 
-		// DAO needs to form some SALT/USDS liquidity to receive some rewards
+		// DAO needs to form some SALT/USDS and USDS/DAI liquidity to receive some rewards
+		vm.prank(address(daoVestingWallet));
+		salt.transfer(address(dao), 1000 ether);
+
+		vm.prank(address(collateralAndLiquidity));
+		usds.mintTo(address(dao), 2000 ether);
+
+		vm.prank(DEPLOYER);
+		dai.transfer(address(dao), 1000 ether);
+
+		assertEq( salt.balanceOf(address(dao)), 1000 ether );
+		assertEq( usds.balanceOf(address(dao)), 2000 ether );
+		assertEq( dai.balanceOf(address(dao)), 1000 ether );
+
+		// Have the DAO form SALT/USDS and USDS/DAI liquidity
+		vm.startPrank(address(upkeep));
+		dao.formPOL(salt, usds, 1000 ether, 1000 ether);
+		dao.formPOL(usds, dai, 1000 ether, 1000 ether);
+		vm.stopPrank();
+
+		// Pass time to allow the liquidityRewardsEmitter to emit rewards
+    	vm.warp( block.timestamp + 1 days );
+
+		bytes32[] memory poolIDs = new bytes32[](2);
+		poolIDs[0] = PoolUtils._poolIDOnly(salt, usds);
+		poolIDs[1] = PoolUtils._poolIDOnly(usds, dai);
+
+		// Check balances before performUpkeep()
+		assertEq( salt.balanceOf( address(teamWallet)), 0 );
+
+   		upkeep.performUpkeep();
+
+		uint256 expectedPOLRewards = 5555555555555555555555 * 2;
+
+		// Team receives 10% of the POL + 16439 from the teamVestingWallet after 6 days
+		assertEq( salt.balanceOf(teamWallet), expectedPOLRewards / 10 + 16438387874175545408422 );
+
+		// Burn 50% of the remaining
+		assertEq( salt.totalBurned(), expectedPOLRewards * 45 / 100 );
+
+		// DAO balance should be the remaining + 41096 from the daoVestingWallet after 6 days
+		// but 15 million SALT were transferred from it for testing so it only emits 16437
+		assertEq( salt.balanceOf(address(dao)), expectedPOLRewards * 45 / 100 + 16436744035388127853882 );
+   		}
+
+
+	// A unit test to check that the withdrawPOL function works correctly
+	function testWithdrawPOLProperlyWithdrawsLiquidity() public {
+
+		// Have the DAO form some SALT/USDS liquidity for testing
 		vm.prank(address(daoVestingWallet));
 		salt.transfer(address(dao), 1000 ether);
 
@@ -832,71 +887,28 @@ contract TestDAO is Deployment
 		assertEq( salt.balanceOf(address(dao)), 1000 ether );
 		assertEq( usds.balanceOf(address(dao)), 1000 ether );
 
-		// Have the DAO form SALT/USDS liquidity with the SALT and USDS that it has
+		// Have the DAO form SALT/USDS and USDS/DAI liquidity
 		vm.prank(address(upkeep));
-		dao.formPOL(collateralAndLiquidity, salt, usds);
+		dao.formPOL(salt, usds, 1000 ether, 1000 ether);
 
-		// Pass time to allow the liquidityRewardsEmitter to emit rewards
-    	vm.warp( block.timestamp + 1 days );
+		uint256 daoShare = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds) );
 
-		bytes32[] memory poolIDs = new bytes32[](1);
-		poolIDs[0] = PoolUtils._poolIDOnly(salt, weth);
+		// Starting liquidator balances
+		assertEq( salt.balanceOf(address(liquidizer)), 0);
+		assertEq( usds.balanceOf(address(liquidizer)), 0);
 
-		uint256[] memory pendingRewards = liquidityRewardsEmitter.pendingRewardsForPools(poolIDs);
-   		upkeep.performUpkeep();
-		uint256[] memory pendingRewards2 = liquidityRewardsEmitter.pendingRewardsForPools(poolIDs);
+        // Assign Liquidizer role to some address (mocking the real Liquidizer contract calling the DAO's withdrawPOL)
+		// Check that the DAO doesn't have to obey the liquidity cooldown
+        vm.prank(address(liquidizer));
+        dao.withdrawPOL(salt, usds, 10);
 
-		uint256 distributedRewards = pendingRewards[0] - pendingRewards2[0];
+		// Check that 10% of the share has been removed
+		uint256 daoShare2 = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds) );
+		assertEq( daoShare2, daoShare * 90 / 100);
 
-//		console.log( "distributedRewards: ", distributedRewards );
-//		console.log( "totalSupply: ", salt.totalSupply() );
-//		console.log( "burned: ", salt.totalBurned() );
-//		console.log( "collateralAndLiquidity: ", address(collateralAndLiquidity) );
-//		console.log( "team: ", salt.balanceOf(teamWallet) );
-
-		assertEq( distributedRewards, 5555555555555555555555 );
-		assertEq( salt.balanceOf(teamWallet), 555555555555555555555 );
-		assertEq( salt.totalBurned(), 3750000000000000000000 );
-   		}
-
-
-	// A unit test to test that sending SALT to SaltRewards works as expected
-	function testSendSALTSaltRewards() public {
-        vm.prank(DEPLOYER);
-
-        salt.transfer(address(saltRewards), 10 ether);
-        assertEq(salt.balanceOf(address(saltRewards)), 10 ether, "Sending SALT to SaltRewards did not adequately adjust the SaltReward's SALT balance.");
-
-        vm.prank(alice);
-        salt.transfer(address(dao), 10 ether);
-
-		vm.prank(address(upkeep));
-        dao.sendSaltToSaltRewards(salt, saltRewards, 5 ether);
-        assertEq(salt.balanceOf(address(saltRewards)), 15 ether, "DAO sending SALT to SaltRewards did not adequately adjust the SaltRewards's SALT balance.");
-    }
-
-
-    // A unit test to validate the functionality of sufficientBootstrappingRewardsExistForWhitelisting
-	function testSufficientBootstrappingRewardsExistForWhitelisting() public {
-
-        // Initial SALT balance of DAO is 0 ether
-
-        // Test when SALT balance in DAO contract is insufficient for whitelisting
-        assertEq(dao.sufficientBootstrappingRewardsExistForWhitelisting(), false, "DAO should have insufficient bootstrapping rewards");
-
-		uint256 bootstrappingRewards = daoConfig.bootstrappingRewards();
-
-        vm.prank(DEPLOYER);
-        salt.transfer(address(dao), bootstrappingRewards * 2 - 1);
-
-		// Still insufficient
-        assertEq(dao.sufficientBootstrappingRewardsExistForWhitelisting(), false, "DAO should still have insufficient bootstrapping rewards");
-
-        vm.prank(DEPLOYER);
-        salt.transfer(address(dao), 2);
-
-		// Sufficient
-        assertEq(dao.sufficientBootstrappingRewardsExistForWhitelisting(), true, "DAO should have sufficient bootstrapping rewards");
+        // Verify tokens are sent to the Liquidizer
+		assertEq( salt.balanceOf(address(liquidizer)), 100 ether);
+		assertEq( usds.balanceOf(address(liquidizer)), 100 ether);
     }
 
 
