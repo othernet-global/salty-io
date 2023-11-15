@@ -116,6 +116,18 @@ contract TestCoreChainlinkFeed is Test
         assertEq(returnedBtcPrice, knownBtcPrice * 10**10 * 5 );
         assertEq(returnedEthPrice, knownEthPrice * 10**10 / 5);
     }
+
+
+	// A unit test that verifies the latestChainlinkPrice function fails if the time elapsed since the last price update is too long
+	function testLatestChainlinkPriceWithTimeoutFailure() public
+    {
+        btcAggregator.setShouldTimeout();
+
+        // Call latestChainlinkPrice with the btcAggregator address and check that it returns 0
+        uint256 resultPrice = chainlinkFeed.getPriceBTC();
+        assertEq(resultPrice, 0);
+    }
+
 	}
 
 
