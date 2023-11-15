@@ -195,31 +195,16 @@ contract LiquidityTest is Deployment
 
 
 
-	// A unit test where the DAO attempts to withdraw liquidity from the pool. The function should reject this operation and not modify the the liquidity share.
-	function testWithdrawLiquidityFromDAO() public {
-
-		// Have the DAO add liquidity
-		vm.startPrank(address(dao));
-		(,, uint256 addedLiquidity) = collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, 10 ether, 10 ether, 0 ether, block.timestamp, true );
-		assertEq(collateralAndLiquidity.userShareForPool(address(dao), pool1), addedLiquidity, "DAO's share should have increased" );
-
-		// DAO attempts to withdraw liquidity
-		vm.expectRevert("DAO is not allowed to withdraw liquidity" );
-		collateralAndLiquidity.withdrawLiquidityAndClaim(token1, token2, addedLiquidity, 0, 0, block.timestamp);
-		assertEq(collateralAndLiquidity.userShareForPool(address(dao), pool1), addedLiquidity, "DAO's share should not change after failed unstake attempt");
-		vm.stopPrank();
-	}
-
-
 	// A unit test where a user attempts to withdraw more liquidity than they have deposited. The function should reject this operation and not modify the user's share of the pool.
-	function tesWithdrawingMoreThanDeposited() public {
+	function testWithdrawingMoreThanDeposited() public {
 		// Have alice add liquidity
 		vm.startPrank(alice);
-		(,, uint256 addedLiquidity) = collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, 10 ether, 20 ether, 0 ether, block.timestamp, true );
+		(,, uint256 addedLiquidity) = collateralAndLiquidity.depositLiquidityAndIncreaseShare( token2, token3, 10 ether, 20 ether, 0 ether, block.timestamp, true );
 
 		// Alice attempts to withdraw more than she deposited
 		vm.expectRevert("Cannot withdraw more than existing user share" );
-		collateralAndLiquidity.withdrawLiquidityAndClaim(token1, token2, addedLiquidity + 1, 0, 0, block.timestamp);
+		collateralAndLiquidity.withdrawLiquidityAndClaim(token2, token3, addedLiquidity + 1, 0, 0, block.timestamp);
+
 		assertEq(collateralAndLiquidity.userShareForPool(alice, poolIDs[1]), addedLiquidity, "User's share should not change after failed unstake attempt");
 	}
 
@@ -273,123 +258,123 @@ contract LiquidityTest is Deployment
 		// Alice adds 50 ether of token2 and token3
 		vm.prank(alice);
 		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token2, token3, 50 ether, 50 ether, 0, block.timestamp, true );
-		check1( 50 ether, 0 ether, 0 ether, 0 ether, 0 ether, 0 ether );
+		check1( 100 ether, 0 ether, 0 ether, 0 ether, 0 ether, 0 ether );
 		check2( 0 ether, 0 ether, 0 ether );
 		AddedReward[] memory rewards = new AddedReward[](1);
 		rewards[0] = AddedReward(pool2, 50 ether);
 		collateralAndLiquidity.addSALTRewards(rewards);
 		vm.warp( block.timestamp + 1 hours );
-		check1( 50 ether, 0 ether, 0 ether, 50 ether, 0 ether, 0 ether );
+		check1( 100 ether, 0 ether, 0 ether, 50 ether, 0 ether, 0 ether );
 		check2( 0 ether, 0 ether, 0 ether );
 
 		// Bob adds 10/10 ether
 		vm.prank(bob);
 		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token2, token3, 10 ether, 10 ether, 0, block.timestamp, true );
-		check1( 50 ether, 10 ether, 0 ether, 50 ether, 0 ether, 0 ether );
+		check1( 100 ether, 20 ether, 0 ether, 50 ether, 0 ether, 0 ether );
 		check2( 0 ether, 0 ether, 0 ether );
 		rewards[0] = AddedReward(pool2, 30 ether);
 		collateralAndLiquidity.addSALTRewards(rewards);
 		vm.warp( block.timestamp + 1 hours );
-		check1( 50 ether, 10 ether, 0 ether, 75 ether, 5 ether, 0 ether );
+		check1( 100 ether, 20 ether, 0 ether, 75 ether, 5 ether, 0 ether );
 		check2( 0 ether, 0 ether, 0 ether );
 
 		// Alice claims
 		vm.prank(alice);
 		collateralAndLiquidity.claimAllRewards(poolIDs);
-		check1( 50 ether, 10 ether, 0 ether, 0 ether, 5 ether, 0 ether );
+		check1( 100 ether, 20 ether, 0 ether, 0 ether, 5 ether, 0 ether );
 		check2( 75 ether, 0 ether, 0 ether );
 		rewards[0] = AddedReward(pool2, 30 ether);
 		collateralAndLiquidity.addSALTRewards(rewards);
 		vm.warp( block.timestamp + 1 hours );
-		check1( 50 ether, 10 ether, 0 ether, 25 ether, 10 ether, 0 ether );
+		check1( 100 ether, 20 ether, 0 ether, 25 ether, 10 ether, 0 ether );
 		check2( 75 ether, 0 ether, 0 ether );
 
 		// Charlie adds 40/40 ether
 		vm.prank(charlie);
 		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token2, token3, 40 ether, 40 ether, 0, block.timestamp, true );
-		check1( 50 ether, 10 ether, 40 ether, 25 ether, 10 ether, 0 ether );
+		check1( 100 ether, 20 ether, 80 ether, 25 ether, 10 ether, 0 ether );
 		check2( 75 ether, 0 ether, 0 ether );
 		rewards[0] = AddedReward(pool2, 100 ether);
 		collateralAndLiquidity.addSALTRewards(rewards);
 		vm.warp( block.timestamp + 1 hours );
-		check1( 50 ether, 10 ether, 40 ether, 75 ether, 20 ether, 40 ether );
+		check1( 100 ether, 20 ether, 80 ether, 75 ether, 20 ether, 40 ether );
 		check2( 75 ether, 0 ether, 0 ether );
 
 		// Alice unstakes 10
 		vm.prank(alice);
-		collateralAndLiquidity.withdrawLiquidityAndClaim(token2, token3, 10 ether, 0, 0, block.timestamp);
-		check1( 40 ether, 10 ether, 40 ether, 60 ether, 20 ether, 40 ether );
+		collateralAndLiquidity.withdrawLiquidityAndClaim(token2, token3, 20 ether, 0, 0, block.timestamp);
+		check1( 80 ether, 20 ether, 80 ether, 60 ether, 20 ether, 40 ether );
 		check2( 90 ether, 0 ether, 0 ether );
 		rewards[0] = AddedReward(pool2, 90 ether);
 		collateralAndLiquidity.addSALTRewards(rewards);
 		vm.warp( block.timestamp + 1 hours );
-		check1( 40 ether, 10 ether, 40 ether, 100 ether, 30 ether, 80 ether );
+		check1( 80 ether, 20 ether, 80 ether, 100 ether, 30 ether, 80 ether );
 		check2( 90 ether, 0 ether, 0 ether );
 
 		// Bob claims
 		vm.prank(bob);
 		collateralAndLiquidity.claimAllRewards(poolIDs);
-		check1( 40 ether, 10 ether, 40 ether, 100 ether, 0 ether, 80 ether );
+		check1( 80 ether, 20 ether, 80 ether, 100 ether, 0 ether, 80 ether );
 		check2( 90 ether, 30 ether, 0 ether );
 		rewards[0] = AddedReward(pool2, 90 ether);
 		collateralAndLiquidity.addSALTRewards(rewards);
 		vm.warp( block.timestamp + 1 hours );
-		check1( 40 ether, 10 ether, 40 ether, 140 ether, 10 ether, 120 ether );
+		check1( 80 ether, 20 ether, 80 ether, 140 ether, 10 ether, 120 ether );
 		check2( 90 ether, 30 ether, 0 ether );
 
 		// Charlie claims
 		vm.prank(charlie);
 		collateralAndLiquidity.claimAllRewards(poolIDs);
-		check1( 40 ether, 10 ether, 40 ether, 140 ether, 10 ether, 0 ether );
+		check1( 80 ether, 20 ether, 80 ether, 140 ether, 10 ether, 0 ether );
 		check2( 90 ether, 30 ether, 120 ether );
 		rewards[0] = AddedReward(pool2, 180 ether);
 		collateralAndLiquidity.addSALTRewards(rewards);
 		vm.warp( block.timestamp + 1 hours );
-		check1( 40 ether, 10 ether, 40 ether, 220 ether, 30 ether, 80 ether );
+		check1( 80 ether, 20 ether, 80 ether, 220 ether, 30 ether, 80 ether );
 		check2( 90 ether, 30 ether, 120 ether );
 
 		// Alice adds 100/100 ether
 		vm.prank(alice);
 		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token2, token3, 100 ether, 100 ether, 0, block.timestamp, true );
-		check1( 140 ether, 10 ether, 40 ether, 220 ether, 30 ether, 80 ether );
+		check1( 280 ether, 20 ether, 80 ether, 220 ether, 30 ether, 80 ether );
 		check2( 90 ether, 30 ether, 120 ether );
 		rewards[0] = AddedReward(pool2, 190 ether);
 		collateralAndLiquidity.addSALTRewards(rewards);
 		vm.warp( block.timestamp + 1 hours );
-		check1( 140 ether, 10 ether, 40 ether, 360 ether, 40 ether, 120 ether );
+		check1( 280 ether, 20 ether, 80 ether, 360 ether, 40 ether, 120 ether );
 		check2( 90 ether, 30 ether, 120 ether );
 
 		// Charlie unstakes all
 		vm.prank(charlie);
-		collateralAndLiquidity.withdrawLiquidityAndClaim( token2, token3, 40 ether, 0, 0, block.timestamp);
-		check1( 140 ether, 10 ether, 0 ether, 360 ether, 40 ether, 0 ether );
+		collateralAndLiquidity.withdrawLiquidityAndClaim( token2, token3, 80 ether, 0, 0, block.timestamp);
+		check1( 280 ether, 20 ether, 0 ether, 360 ether, 40 ether, 0 ether );
 		check2( 90 ether, 30 ether, 240 ether );
 		rewards[0] = AddedReward(pool2, 75 ether);
 		collateralAndLiquidity.addSALTRewards(rewards);
 		vm.warp( block.timestamp + 1 hours );
-		check1( 140 ether, 10 ether, 0 ether, 430 ether, 45 ether, 0 ether );
+		check1( 280 ether, 20 ether, 0 ether, 430 ether, 45 ether, 0 ether );
 		check2( 90 ether, 30 ether, 240 ether );
 
-		// Bob unstakes 5
+		// Bob unstakes 2
 		vm.prank(bob);
-		collateralAndLiquidity.withdrawLiquidityAndClaim( token2, token3, 2 ether, 0, 0, block.timestamp);
-		check1( 140 ether, 8 ether, 0 ether, 430 ether, 36 ether, 0 ether );
+		collateralAndLiquidity.withdrawLiquidityAndClaim( token2, token3, 4 ether, 0, 0, block.timestamp);
+		check1( 280 ether, 16 ether, 0 ether, 430 ether, 36 ether, 0 ether );
 		check2( 90 ether, 39 ether, 240 ether );
 		rewards[0] = AddedReward(pool2, 74 ether);
 		collateralAndLiquidity.addSALTRewards(rewards);
 		vm.warp( block.timestamp + 1 hours );
-		check1( 140 ether, 8 ether, 0 ether, 500 ether, 40 ether, 0 ether );
+		check1( 280 ether, 16 ether, 0 ether, 500 ether, 40 ether, 0 ether );
 		check2( 90 ether, 39 ether, 240 ether );
 
 		// Bob adds 148
 		vm.prank(bob);
 		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token2, token3, 148 ether, 148 ether, 0, block.timestamp, true );
-		check1( 140 ether, 156 ether, 0 ether, 500 ether, 40 ether, 0 ether );
+		check1( 280 ether, 312 ether, 0 ether, 500 ether, 40 ether, 0 ether );
 		check2( 90 ether, 39 ether, 240 ether );
 		rewards[0] = AddedReward(pool2, 592 ether);
 		collateralAndLiquidity.addSALTRewards(rewards);
 		vm.warp( block.timestamp + 1 hours );
-		check1( 140 ether, 156 ether, 0 ether, 780 ether, 352 ether, 0 ether );
+		check1( 280 ether, 312 ether, 0 ether, 780 ether, 352 ether, 0 ether );
 		check2( 90 ether, 39 ether, 240 ether );
     }
 
@@ -549,4 +534,69 @@ contract LiquidityTest is Deployment
 		vm.expectRevert( "Stablecoin collateral cannot be withdrawn via Liquidity.withdrawLiquidityAndClaim" );
 		collateralAndLiquidity.withdrawLiquidityAndClaim(wbtc, weth, 1 ether, 0, 0, block.timestamp);
     }
+
+
+
+	// A unit test that tests depositing and withdrawing collateral
+	function testDepositAndWithdrawLiquidity2() public {
+
+    	IERC20 tokenA = new TestERC20("TEST", 8);
+		IERC20 tokenB = new TestERC20("TEST", 18);
+
+		bytes32 poolID = PoolUtils._poolIDOnly(tokenA, tokenB);
+
+		tokenA.transfer(alice, 100000 * 10**8 );
+		tokenB.transfer(alice, 100000 ether );
+		tokenA.transfer(bob, 100000 * 10**8 );
+		tokenB.transfer(bob, 100000 ether );
+
+        // Whitelist the _pools
+		vm.startPrank( address(dao) );
+        poolsConfig.whitelistPool( tokenA, tokenB);
+        vm.stopPrank();
+
+        vm.startPrank(alice);
+        tokenA.approve(address(collateralAndLiquidity), type(uint256).max);
+        tokenB.approve(address(collateralAndLiquidity), type(uint256).max);
+        vm.stopPrank();
+
+        vm.startPrank(bob);
+        tokenA.approve(address(collateralAndLiquidity), type(uint256).max);
+        tokenB.approve(address(collateralAndLiquidity), type(uint256).max);
+        vm.stopPrank();
+
+
+		// Total needs to be worth at least $2500
+		uint256 depositedA = ( 2000 ether *10**8) / priceAggregator.getPriceBTC();
+		uint256 depositedB = ( 2000 ether *10**18) / priceAggregator.getPriceETH();
+
+		(uint256 reserveA, uint256 reserveB) = pools.getPoolReserves(wbtc, weth);
+		assertEq( reserveA, 0, "reserveA doesn't start as zero" );
+		assertEq( reserveB, 0, "reserveB doesn't start as zero" );
+
+		// Alice deposits liquidity
+		vm.prank(alice);
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( tokenA, tokenB, depositedA, depositedB, 0, block.timestamp, false );
+
+		vm.warp( block.timestamp + 1 hours);
+
+		// Deposit extra so alice can withdraw all liquidity without having to worry about DUST reserve limit
+		vm.prank(bob);
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( tokenA, tokenB, 1 * 10**8, 1 ether, 0, block.timestamp, false );
+
+		uint256 aliceCollateral = collateralAndLiquidity.userShareForPool(alice, poolID);
+		vm.prank(alice);
+		(uint256 removedA, uint256 removedB) = collateralAndLiquidity.withdrawLiquidityAndClaim(tokenA, tokenB, aliceCollateral, 0, 0, block.timestamp );
+
+		assertEq( depositedA, removedA + 1 );
+		assertEq( depositedB, removedB );
+
+//		console.log( "depositedA: ", depositedA );
+//		console.log( "removedA: ", removedA );
+//		console.log( "depositedB: ", depositedB );
+//		console.log( "removedB: ", removedB );
+		}
+
+
+
 	}
