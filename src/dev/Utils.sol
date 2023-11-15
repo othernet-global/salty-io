@@ -29,12 +29,11 @@ contract Utils
 		{
 		uint256[] memory decimals = new uint256[]( tokens.length );
 
-		uint256 index;
 		for( uint256 i = 0; i < tokens.length; i++ )
 			{
 			ERC20 token = ERC20( tokens[i] );
 
-			decimals[ index++ ] = token.decimals();
+			decimals[i] = token.decimals();
 			}
 
 		return decimals;
@@ -45,12 +44,11 @@ contract Utils
 		{
 		uint256[] memory supplies = new uint256[]( tokens.length );
 
-		uint256 index;
 		for( uint256 i = 0; i < tokens.length; i++ )
 			{
 			IERC20 pair = IERC20( tokens[i] );
 
-			supplies[ index++ ] = pair.totalSupply();
+			supplies[i] = pair.totalSupply();
 			}
 
 		return supplies;
