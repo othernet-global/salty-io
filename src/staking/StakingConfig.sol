@@ -8,7 +8,12 @@ import "./interfaces/IStakingConfig.sol";
 // Contract owned by the DAO with parameters modifiable only by the DAO
 contract StakingConfig is IStakingConfig, Ownable
     {
-	// The minimum number of weeks for an unstake request at which point minUnstakePercent of the original staked SALT is reclaimable.
+    event MinUnstakeWeeksChanged(uint256 newMinUnstakeWeeks);
+    event MaxUnstakeWeeksChanged(uint256 newMaxUnstakeWeeks);
+    event MinUnstakePercentChanged(uint256 newMinUnstakePercent);
+    event ModificationCooldownChanged(uint256 newModificationCooldown);
+
+    // The minimum number of weeks for an unstake request at which point minUnstakePercent of the original staked SALT is reclaimable.
 	// Range: 1 to 12 with an adjustment of 1
 	uint256 public minUnstakeWeeks = 2;  // minUnstakePercent returned for unstaking this number of weeks
 
@@ -26,7 +31,7 @@ contract StakingConfig is IStakingConfig, Ownable
 	uint256 public modificationCooldown = 1 hours;
 
 
-	function changeMinUnstakeWeeks(bool increase) public onlyOwner
+	function changeMinUnstakeWeeks(bool increase) external onlyOwner
         {
         if (increase)
             {
@@ -38,10 +43,12 @@ contract StakingConfig is IStakingConfig, Ownable
             if (minUnstakeWeeks > 1)
                 minUnstakeWeeks -= 1;
             }
+
+		emit MinUnstakeWeeksChanged(minUnstakeWeeks);
         }
 
 
-	function changeMaxUnstakeWeeks(bool increase) public onlyOwner
+	function changeMaxUnstakeWeeks(bool increase) external onlyOwner
         {
         if (increase)
             {
@@ -53,10 +60,12 @@ contract StakingConfig is IStakingConfig, Ownable
             if (maxUnstakeWeeks > 20)
                 maxUnstakeWeeks -= 8;
             }
+
+		emit MaxUnstakeWeeksChanged(maxUnstakeWeeks);
         }
 
 
-	function changeMinUnstakePercent(bool increase) public onlyOwner
+	function changeMinUnstakePercent(bool increase) external onlyOwner
         {
         if (increase)
             {
@@ -68,10 +77,12 @@ contract StakingConfig is IStakingConfig, Ownable
             if (minUnstakePercent > 10)
                 minUnstakePercent -= 5;
             }
+
+		emit MinUnstakePercentChanged(minUnstakePercent);
         }
 
 
-	function changeModificationCooldown(bool increase) public onlyOwner
+	function changeModificationCooldown(bool increase) external onlyOwner
         {
         if (increase)
             {
@@ -83,5 +94,7 @@ contract StakingConfig is IStakingConfig, Ownable
             if (modificationCooldown > 15 minutes)
                 modificationCooldown -= 15 minutes;
             }
+
+		emit ModificationCooldownChanged(modificationCooldown);
         }
     }
