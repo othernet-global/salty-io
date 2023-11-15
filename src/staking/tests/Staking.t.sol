@@ -537,12 +537,12 @@ contract StakingTest is Deployment
 
         // Bob tries to cancel Alice's unstake request, should revert
         vm.prank(bob);
-        vm.expectRevert("Not the original staker");
+        vm.expectRevert("Sender is not the original staker");
         staking.cancelUnstake(aliceUnstakeID);
 
         // Charlie tries to cancel Alice's unstake request, should revert
         vm.prank(charlie);
-        vm.expectRevert("Not the original staker");
+        vm.expectRevert("Sender is not the original staker");
         staking.cancelUnstake(aliceUnstakeID);
 
         // Alice cancels her unstake request
@@ -584,23 +584,23 @@ contract StakingTest is Deployment
 
             // They try to recover each other's SALT
             vm.startPrank(alice);
-            vm.expectRevert("Not the original staker");
+            vm.expectRevert("Sender is not the original staker");
             staking.recoverSALT(bobUnstakeID);
-            vm.expectRevert("Not the original staker");
+            vm.expectRevert("Sender is not the original staker");
             staking.recoverSALT(charlieUnstakeID);
             vm.stopPrank();
 
             vm.startPrank(bob);
-            vm.expectRevert("Not the original staker");
+            vm.expectRevert("Sender is not the original staker");
             staking.recoverSALT(aliceUnstakeID);
-            vm.expectRevert("Not the original staker");
+            vm.expectRevert("Sender is not the original staker");
             staking.recoverSALT(charlieUnstakeID);
             vm.stopPrank();
 
             vm.startPrank(charlie);
-            vm.expectRevert("Not the original staker");
+            vm.expectRevert("Sender is not the original staker");
             staking.recoverSALT(aliceUnstakeID);
-            vm.expectRevert("Not the original staker");
+            vm.expectRevert("Sender is not the original staker");
             staking.recoverSALT(bobUnstakeID);
             vm.stopPrank();
 
@@ -719,7 +719,7 @@ contract StakingTest is Deployment
         vm.warp(block.timestamp + 52 weeks);
 
         // Bob tries to recover SALT again from Alice's unstake after it completed
-        vm.expectRevert("Not the original staker");
+        vm.expectRevert("Sender is not the original staker");
         staking.recoverSALT(unstakeID);
 		vm.stopPrank();
 
@@ -916,8 +916,8 @@ contract StakingTest is Deployment
     }
 
 
-    // A unit test to check that the transferXSaltFromAirdrop functino can only be called by the Airdrop contract and that the function performs correctly
-	function testTransferXSaltFromAirdrop() public
+    // A unit test to check that the transferStakedSaltFromAirdropToUser functino can only be called by the Airdrop contract and that the function performs correctly
+	function testtransferStakedSaltFromAirdropToUser() public
 		{
 		address airdrop = address(exchangeConfig.airdrop());
 
@@ -934,12 +934,12 @@ contract StakingTest is Deployment
 		vm.stopPrank();
 
 		// Attempt to transfer xSALT from non-Airdrop contract should fail
-		vm.expectRevert("Staking.transferXSaltFromAirdrop is only callable from the Airdrop contract");
-		staking.transferXSaltFromAirdrop(alice, 1 ether);
+		vm.expectRevert("Staking.transferStakedSaltFromAirdropToUser is only callable from the Airdrop contract");
+		staking.transferStakedSaltFromAirdropToUser(alice, 1 ether);
 
 		// transfer 2 of those xSALT to Alice
 		vm.prank(airdrop);
-		staking.transferXSaltFromAirdrop(alice, 2 ether);
+		staking.transferStakedSaltFromAirdropToUser(alice, 2 ether);
 
 		// Alice's balance should update and Airdrop's balance should decrease
 		assertEq(staking.userXSalt(airdrop), 8 ether);
