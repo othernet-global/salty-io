@@ -43,16 +43,18 @@ contract TestAirdrop is Deployment
 			vm.startPrank(DEPLOYER);
 
 			poolsConfig = new PoolsConfig();
-			usds = new USDS(wbtc, weth);
+			usds = new USDS();
 
-			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, dai, usds, teamWallet );
+			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, dai, usds, managedTeamWallet );
 
 			priceAggregator = new PriceAggregator();
 			priceAggregator.setInitialFeeds( IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)) );
 
-			pools = new Pools(exchangeConfig, poolsConfig);
-			staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
-			collateralAndLiquidity = new CollateralAndLiquidity(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator);
+		liquidizer = new Liquidizer(exchangeConfig, poolsConfig);
+		pools = new Pools(exchangeConfig, poolsConfig);
+		staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
+		collateralAndLiquidity = new CollateralAndLiquidity(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator, liquidizer);
+		liquidizer.setContracts(collateralAndLiquidity, pools, dao);
 
 			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig, false );
 			liquidityRewardsEmitter = new RewardsEmitter( collateralAndLiquidity, exchangeConfig, poolsConfig, rewardsConfig, true );
@@ -72,30 +74,24 @@ contract TestAirdrop is Deployment
 			proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 
 			address oldDAO = address(dao);
-			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidityRewardsEmitter);
+			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidityRewardsEmitter, collateralAndLiquidity);
 
 			airdrop = new Airdrop(exchangeConfig, staking);
 
 			accessManager = new AccessManager(dao);
 
-			exchangeConfig.setAccessManager( accessManager );
-			exchangeConfig.setStakingRewardsEmitter( stakingRewardsEmitter);
-			exchangeConfig.setLiquidityRewardsEmitter( liquidityRewardsEmitter);
-			exchangeConfig.setDAO( dao );
-			exchangeConfig.setAirdrop(airdrop);
+			saltRewards = new SaltRewards(stakingRewardsEmitter, liquidityRewardsEmitter, exchangeConfig, rewardsConfig);
 
-			saltRewards = new SaltRewards(exchangeConfig, rewardsConfig);
-
-			upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, priceAggregator, saltRewards, collateralAndLiquidity, emissions);
-			exchangeConfig.setUpkeep(upkeep);
+			upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, stableConfig, priceAggregator, saltRewards, collateralAndLiquidity, emissions, dao);
 
 			initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, collateralAndLiquidity);
-			exchangeConfig.setInitialDistribution(initialDistribution);
 
-			pools.setContracts(dao, collateralAndLiquidity
-);
+			pools.setContracts(dao, collateralAndLiquidity);
 
-			usds.setContracts(collateralAndLiquidity, pools, exchangeConfig );
+			usds.setCollateralAndLiquidity(collateralAndLiquidity);
+
+			exchangeConfig.setContracts(dao, upkeep, initialDistribution, airdrop, teamVestingWallet, daoVestingWallet );
+			exchangeConfig.setAccessManager(accessManager);
 
 			// Transfer ownership of the newly created config files to the DAO
 			Ownable(address(exchangeConfig)).transferOwnership( address(dao) );
