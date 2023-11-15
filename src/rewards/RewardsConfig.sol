@@ -8,6 +8,11 @@ import "./interfaces/IRewardsConfig.sol";
 // Contract owned by the DAO with parameters modifiable only by the DAO
 contract RewardsConfig is IRewardsConfig, Ownable
     {
+    event RewardsEmitterDailyPercentChanged(uint256 newRewardsEmitterDailyPercent);
+    event EmissionsWeeklyPercentChanged(uint256 newEmissionsWeeklyPercent);
+    event StakingRewardsPercentChanged(uint256 newStakingRewardsPercent);
+    event PercentRewardsSaltUSDSChanged(uint256 newPercentRewardsSaltUSDS);
+
 	// The target daily percent rewards emitter distribution (from the SALT balance in each emitter contract).
 	// Rewards Emitters distribute SALT rewards over time to the SharedRewards contracts where the rewards can be claimed by users.
 	// Range: .25% to 2.5% with an adjustment of 0.25%
@@ -28,7 +33,7 @@ contract RewardsConfig is IRewardsConfig, Ownable
     uint256 public percentRewardsSaltUSDS = 10;
 
 
-	function changeRewardsEmitterDailyPercent(bool increase) public onlyOwner
+	function changeRewardsEmitterDailyPercent(bool increase) external onlyOwner
         {
         if (increase)
             {
@@ -40,9 +45,11 @@ contract RewardsConfig is IRewardsConfig, Ownable
             if (rewardsEmitterDailyPercentTimes1000 > 250)
                 rewardsEmitterDailyPercentTimes1000 = rewardsEmitterDailyPercentTimes1000 - 250;
             }
+
+		emit RewardsEmitterDailyPercentChanged(rewardsEmitterDailyPercentTimes1000);
         }
 
-	function changeEmissionsWeeklyPercent(bool increase) public onlyOwner
+	function changeEmissionsWeeklyPercent(bool increase) external onlyOwner
         {
         if (increase)
             {
@@ -54,10 +61,12 @@ contract RewardsConfig is IRewardsConfig, Ownable
             if (emissionsWeeklyPercentTimes1000 > 250)
                 emissionsWeeklyPercentTimes1000 = emissionsWeeklyPercentTimes1000 - 250;
             }
+
+		emit EmissionsWeeklyPercentChanged(emissionsWeeklyPercentTimes1000);
         }
 
 
-	function changeStakingRewardsPercent(bool increase) public onlyOwner
+	function changeStakingRewardsPercent(bool increase) external onlyOwner
         {
         if (increase)
             {
@@ -69,10 +78,12 @@ contract RewardsConfig is IRewardsConfig, Ownable
             if (stakingRewardsPercent > 25)
                 stakingRewardsPercent = stakingRewardsPercent - 5;
             }
+
+		emit StakingRewardsPercentChanged(stakingRewardsPercent);
         }
 
 
-	function changePercentRewardsSaltUSDS(bool increase) public onlyOwner
+	function changePercentRewardsSaltUSDS(bool increase) external onlyOwner
         {
         if (increase)
             {
@@ -84,5 +95,7 @@ contract RewardsConfig is IRewardsConfig, Ownable
             if (percentRewardsSaltUSDS > 5)
                 percentRewardsSaltUSDS = percentRewardsSaltUSDS - 5;
             }
+
+		emit PercentRewardsSaltUSDSChanged(percentRewardsSaltUSDS);
         }
     }

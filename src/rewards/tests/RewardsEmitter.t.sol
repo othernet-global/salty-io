@@ -550,7 +550,7 @@ contract TestRewardsEmitter is Deployment
 
         // Whitelist is withdrawn for pool1
         vm.prank(address(dao));
-        poolsConfig.unwhitelistPool(  token1, token2);
+        poolsConfig.unwhitelistPool( pools, token1, token2);
 
         // Alice tries to add rewards to pool1 that has been withdrawn from whitelisting
         // Expect it to revert

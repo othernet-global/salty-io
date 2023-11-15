@@ -6,41 +6,28 @@ import "../SaltRewards.sol";
 
 contract TestSaltRewards is SaltRewards
     {
-    constructor( IExchangeConfig _exchangeConfig, IRewardsConfig _rewardsConfig )
-    SaltRewards( _exchangeConfig, _rewardsConfig )
+    constructor( IRewardsEmitter _stakingRewardsEmitter, IRewardsEmitter _liquidityRewardsEmitter, IExchangeConfig _exchangeConfig, IRewardsConfig _rewardsConfig )
+    SaltRewards( _stakingRewardsEmitter, _liquidityRewardsEmitter, _exchangeConfig, _rewardsConfig )
 		{
 		}
 
-
-	function setPendingRewardsSaltUSDS(uint256 amount) public
-		{
-		pendingRewardsSaltUSDS = amount;
-		}
-
-
-	function setPendingStakingRewards(uint256 amount) public
-		{
-		pendingStakingRewards = amount;
-		}
-
-
-	function setPendingLiquidityRewards(uint256 amount) public
-		{
-		pendingLiquidityRewards = amount;
-		}
 
 
 	// Send the pending SALT rewards to the stakingRewardsEmitter
-	function sendStakingRewards() public
+	function sendStakingRewards(uint256 stakingRewardsAmount) public
 		{
-		_sendStakingRewards();
+		_sendStakingRewards(stakingRewardsAmount);
 		}
 
 
 	// Transfer SALT rewards to the liquidityRewardsEmitter proportional to pool shares in generating recent arb profits.
-	function sendLiquidityRewards( bytes32[] memory poolIDs, uint256[] memory profitsForPools ) public
+	function sendLiquidityRewards( uint256 liquidityRewardsAmount, uint256 directSaltUSDSRewardsAmount, bytes32[] memory poolIDs, uint256[] memory profitsForPools ) public
 		{
-		_sendLiquidityRewards( poolIDs, profitsForPools );
+		uint256 totalProfits = 0;
+		for( uint256 i = 0; i < poolIDs.length; i++ )
+			totalProfits += profitsForPools[i];
+
+		_sendLiquidityRewards( liquidityRewardsAmount, directSaltUSDSRewardsAmount, poolIDs, profitsForPools, totalProfits );
 		}
 
 

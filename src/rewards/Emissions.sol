@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.22;
 
-import "../interfaces/ISalt.sol";
+import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import "../rewards/interfaces/IRewardsConfig.sol";
 import "../interfaces/IExchangeConfig.sol";
 import "./interfaces/IEmissions.sol";
-import "../rewards/interfaces/IRewardsConfig.sol";
+import "../interfaces/ISalt.sol";
 
 
 // Responsible for storing the SALT emissions at launch and then distributing them over time.
@@ -13,6 +14,8 @@ import "../rewards/interfaces/IRewardsConfig.sol";
 
 contract Emissions is IEmissions
     {
+	using SafeERC20 for ISalt;
+
     uint256 constant public MAX_TIME_SINCE_LAST_UPKEEP = 1 weeks;
 
     ISaltRewards immutable public saltRewards;
@@ -38,7 +41,7 @@ contract Emissions is IEmissions
 
 	// Transfer a percent (default 0.50% per week) of the currently held SALT to the stakingRewardsEmitter and liquidityRewardsEmitter (via SaltRewards).
 	// The percentage to transfer is interpolated from how long it's been since the last performUpkeep() call.
-	function performUpkeep(uint256 timeSinceLastUpkeep) public
+	function performUpkeep(uint256 timeSinceLastUpkeep) external
 		{
 		require( msg.sender == address(exchangeConfig.upkeep()), "Emissions.performUpkeep is only callable from the Upkeep contract" );
 
@@ -57,7 +60,7 @@ contract Emissions is IEmissions
 		if ( saltToSend == 0 )
 			return;
 
-		salt.approve( address(saltRewards), saltToSend );
-		saltRewards.addSALTRewards(saltToSend);
+		// Send the emissions to saltRewards
+		salt.safeTransfer(address(saltRewards), saltToSend);
 		}
 	}

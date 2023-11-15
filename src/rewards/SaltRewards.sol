@@ -4,139 +4,93 @@ pragma solidity =0.8.22;
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../rewards/interfaces/IRewardsEmitter.sol";
 import "../rewards/interfaces/IRewardsConfig.sol";
-import "../interfaces/ISalt.sol";
 import "../interfaces/IExchangeConfig.sol";
 import "./interfaces/ISaltRewards.sol";
+import "../interfaces/ISalt.sol";
 import "../pools/PoolUtils.sol";
-import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 
 
-// Temporarily holds SALT rewards from emissions and arbitrage profits during performUpkeep().
-// Sends them to the stakingRewardsEmitter and liquidityRewardsEmitter (with proportions for the latter based on a pool's share in generating the recent arbitrage profits).
-contract SaltRewards is ISaltRewards, ReentrancyGuard
+// A utility contract that temporarily holds SALT rewards from emissions and arbitrage profits during performUpkeep().
+// Sends SALT rewards to the stakingRewardsEmitter and liquidityRewardsEmitter (with proportions for the latter based on each pool's share in generating recent arbitrage profits).
+contract SaltRewards is ISaltRewards
     {
-	using SafeERC20 for ISalt;
+    using SafeERC20 for ISalt;
 
+	IRewardsEmitter immutable public stakingRewardsEmitter;
+	IRewardsEmitter immutable public liquidityRewardsEmitter;
 	IExchangeConfig immutable public exchangeConfig;
 	IRewardsConfig immutable public rewardsConfig;
-
 	ISalt immutable public salt;
-	IUSDS immutable public usds;
 
-    uint256 public pendingRewardsSaltUSDS;
-    uint256 public pendingStakingRewards;
-	uint256 public pendingLiquidityRewards;
+	bytes32 immutable saltUSDSPoolID;
 
 
-    constructor( IExchangeConfig _exchangeConfig, IRewardsConfig _rewardsConfig )
+    constructor( IRewardsEmitter _stakingRewardsEmitter, IRewardsEmitter _liquidityRewardsEmitter, IExchangeConfig _exchangeConfig, IRewardsConfig _rewardsConfig )
 		{
+		require( address(_stakingRewardsEmitter) != address(0), "_stakingRewardsEmitter cannot be address(0)" );
+		require( address(_liquidityRewardsEmitter) != address(0), "_liquidityRewardsEmitter cannot be address(0)" );
 		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
 		require( address(_rewardsConfig) != address(0), "_rewardsConfig cannot be address(0)" );
 
+		stakingRewardsEmitter = _stakingRewardsEmitter;
+		liquidityRewardsEmitter = _liquidityRewardsEmitter;
 		exchangeConfig = _exchangeConfig;
 		rewardsConfig = _rewardsConfig;
 
 		// Cached for efficiency
 		salt = _exchangeConfig.salt();
-		usds = _exchangeConfig.usds();
-		}
+		saltUSDSPoolID = PoolUtils._poolIDOnly(salt, _exchangeConfig.usds());
 
-
-	// Add SALT rewards and keep track of the amount pending for each pool based on RewardsConfig.stakingRewardsPercent
-	function addSALTRewards(uint256 amount) public nonReentrant
-		{
-		if ( amount == 0 )
-			return;
-
-		// Determine how much of the SALT rewards will be directly sent to the liquidityRewardsEmitter for SALT/USDS.
-		// This is because SALT/USDS is important, but not included in other arbitrage trades - which would yield additional rewards for the pool by being part of arbitrage.
-		uint256 amountSaltUSDS = ( amount * rewardsConfig.percentRewardsSaltUSDS() ) / 100;
-		pendingRewardsSaltUSDS += amountSaltUSDS;
-
-		uint256 remainingAmount = amount - amountSaltUSDS;
-
-		// Divide up the remaining rewards between SALT stakers and liquidity providers
-		uint256 stakingAmount = ( remainingAmount * rewardsConfig.stakingRewardsPercent() ) / 100;
-		uint256 liquidityAmount = remainingAmount - stakingAmount;
-
-		pendingStakingRewards += stakingAmount;
-		pendingLiquidityRewards += liquidityAmount;
-
-		salt.safeTransferFrom( msg.sender, address(this), amount );
+		// Gas saving approval for rewards distribution on performUpkeep().
+		// This contract only has a temporary SALT balance during the performUpkeep transaction.
+		salt.approve( address(stakingRewardsEmitter), type(uint256).max );
+		salt.approve( address(liquidityRewardsEmitter), type(uint256).max );
 		}
 
 
 	// Send the pending SALT rewards to the stakingRewardsEmitter
-	function _sendStakingRewards() internal
+	function _sendStakingRewards(uint256 stakingRewardsAmount) internal
 		{
 		AddedReward[] memory addedRewards = new AddedReward[](1);
-		addedRewards[0] = AddedReward( PoolUtils.STAKED_SALT, pendingStakingRewards );
+		addedRewards[0] = AddedReward( PoolUtils.STAKED_SALT, stakingRewardsAmount );
 
-		IRewardsEmitter stakingRewardsEmitter = exchangeConfig.stakingRewardsEmitter();
-		salt.approve( address(stakingRewardsEmitter), pendingStakingRewards );
-		stakingRewardsEmitter.addSALTRewards( addedRewards );
-
-		// Mark the pendingStakingRewards as sent
-		pendingStakingRewards = 0;
+		stakingRewardsEmitter.addSALTRewards(addedRewards);
 		}
 
 
-	// Transfer SALT rewards to the liquidityRewardsEmitter proportional to pool shares in generating recent arb profits.
-	// Also sends the direct rewards specified by the DAO to the SALT/USDS pool.
-	function _sendLiquidityRewards( bytes32[] memory poolIDs, uint256[] memory profitsForPools ) internal
+	// Transfer SALT rewards to pools in the liquidityRewardsEmitter proportional to each pool's share in generating recent arbitrage profits.
+	// Also send the direct rewards specified by the DAO to the SALT/USDS pool.
+	function _sendLiquidityRewards( uint256 liquidityRewardsAmount, uint256 directRewardsForSaltUSDS, bytes32[] memory poolIDs, uint256[] memory profitsForPools, uint256 totalProfits ) internal
 		{
-		// Determine the total profits so we can calculate proportional share
-		uint256 totalProfits = 0;
-		for( uint256 i = 0; i < poolIDs.length; i++ )
-			totalProfits += profitsForPools[i];
-
-		// Don't send rewards if no profits
-		if ( totalProfits == 0 )
-			return;
-
-		bytes32 saltUSDS = PoolUtils._poolIDOnly(salt, usds);
-
 		// Send SALT rewards (with an amount of pendingLiquidityRewards) proportional to the profits generated by each pool
 		AddedReward[] memory addedRewards = new AddedReward[]( poolIDs.length );
 		for( uint256 i = 0; i < addedRewards.length; i++ )
 			{
 			bytes32 poolID = poolIDs[i];
-			uint256 rewardsForPool = ( pendingLiquidityRewards * profitsForPools[i] ) / totalProfits;
+			uint256 rewardsForPool = ( liquidityRewardsAmount * profitsForPools[i] ) / totalProfits;
 
-			// The SALT/USDS is entitled to additional rewards - as specified by RewardsConfig.percentRewardsSaltUSDS
-			if ( poolID == saltUSDS )
-				rewardsForPool += pendingRewardsSaltUSDS;
+			// The SALT/USDS pool is entitled to additional rewards - as specified by RewardsConfig.percentRewardsSaltUSDS
+			if ( poolID == saltUSDSPoolID )
+				rewardsForPool += directRewardsForSaltUSDS;
 
 			addedRewards[i] = AddedReward( poolID, rewardsForPool );
 			}
 
 		// Send the SALT rewards to the LiquidityRewardsEmitter
-		IRewardsEmitter liquidityRewardsEmitter = exchangeConfig.liquidityRewardsEmitter();
-		salt.approve( address(liquidityRewardsEmitter), pendingLiquidityRewards + pendingRewardsSaltUSDS );
-
 		liquidityRewardsEmitter.addSALTRewards( addedRewards );
-
-		// Update pending rewards
-		pendingLiquidityRewards = 0;
-
-		// Sweep up any dust
-		pendingRewardsSaltUSDS = salt.balanceOf(address(this));
 		}
 
 
 	function _sendInitialLiquidityRewards( uint256 liquidityBootstrapAmount, bytes32[] memory poolIDs ) internal
 		{
 		// Divide the liquidityBootstrapAmount evenly across all the initial pools
-		uint256 amountPerPool = liquidityBootstrapAmount / poolIDs.length;
+		uint256 amountPerPool = liquidityBootstrapAmount / poolIDs.length; // poolIDs.length is guaranteed to not be zero
 
 		AddedReward[] memory addedRewards = new AddedReward[]( poolIDs.length );
 		for( uint256 i = 0; i < addedRewards.length; i++ )
 			addedRewards[i] = AddedReward( poolIDs[i], amountPerPool );
 
 		// Send the liquidity bootstrap rewards to the liquidityRewardsEmitter
-		IRewardsEmitter liquidityRewardsEmitter = exchangeConfig.liquidityRewardsEmitter();
-
-		salt.approve( address(liquidityRewardsEmitter), liquidityBootstrapAmount );
 		liquidityRewardsEmitter.addSALTRewards( addedRewards );
 		}
 
@@ -147,34 +101,51 @@ contract SaltRewards is ISaltRewards, ReentrancyGuard
 		AddedReward[] memory addedRewards = new AddedReward[](1);
 		addedRewards[0] = AddedReward( PoolUtils.STAKED_SALT, stakingBootstrapAmount );
 
-		IRewardsEmitter stakingRewardsEmitter = exchangeConfig.stakingRewardsEmitter();
-
-		salt.approve( address(stakingRewardsEmitter), stakingBootstrapAmount );
 		stakingRewardsEmitter.addSALTRewards( addedRewards );
 		}
 
 
     // Sends an expected 5 million SALT to the liquidityRewardsEmitter (evenly divided amongst the pools) and 3 million SALT to the stakingRewardsEmitter.
-	function sendInitialSaltRewards( uint256 liquidityBootstrapAmount, bytes32[] memory poolIDs ) public
+	function sendInitialSaltRewards( uint256 liquidityBootstrapAmount, bytes32[] calldata poolIDs ) external
 		{
 		require( msg.sender == address(exchangeConfig.initialDistribution()), "SaltRewards.sendInitialRewards is only callable from the InitialDistribution contract" );
 
 		_sendInitialLiquidityRewards(liquidityBootstrapAmount, poolIDs);
 
-		// Remaining tokens go to stakingRewardsEmitter
-		uint256 stakingBootstrapAmount = salt.balanceOf(address(this));
-		_sendInitialStakingRewards(stakingBootstrapAmount);
+		// Remaining SALT balance goes to stakingRewardsEmitter
+		_sendInitialStakingRewards( salt.balanceOf(address(this)) );
 		}
 
 
-	function performUpkeep( bytes32[] memory poolIDs, uint256[] memory profitsForPools ) public
+	function performUpkeep( bytes32[] calldata poolIDs, uint256[] calldata profitsForPools ) external
 		{
 		require( msg.sender == address(exchangeConfig.upkeep()), "SaltRewards.performUpkeep is only callable from the Upkeep contract" );
 
-		if ( (pendingStakingRewards == 0) || (pendingLiquidityRewards == 0) )
+		// Distribute all SALT currently in the contract.
+		uint256 saltRewardsToDistribute = salt.balanceOf(address(this));
+		if ( saltRewardsToDistribute == 0 )
 			return;
 
-		_sendStakingRewards();
-		_sendLiquidityRewards(poolIDs, profitsForPools);
+		// Determine the total profits so we can calculate proportional share for the liquidity rewards
+		uint256 totalProfits = 0;
+		for( uint256 i = 0; i < poolIDs.length; i++ )
+			totalProfits += profitsForPools[i];
+
+		// Make sure that there are some profits to determine the proportional liquidity rewards.
+		// Otherwise just ahdnle the SALT balance later so it can be divided between stakingRewardsEmitter and liquidityRewardsEmitter without further accounting.
+		if ( totalProfits == 0 )
+			return;
+
+		// Determine how much of the SALT rewards will be directly awarded to the SALT/USDS pool.
+		// This is because SALT/USDS is important, but not included in other arbitrage trades - which would normally yield additional rewards for the pool by being part of arbitrage swaps.
+		uint256 directRewardsForSaltUSDS = ( saltRewardsToDistribute * rewardsConfig.percentRewardsSaltUSDS() ) / 100;
+		uint256 remainingRewards = saltRewardsToDistribute - directRewardsForSaltUSDS;
+
+		// Divide up the remaining rewards between SALT stakers and liquidity providers
+		uint256 stakingRewardsAmount = ( remainingRewards * rewardsConfig.stakingRewardsPercent() ) / 100;
+		uint256 liquidityRewardsAmount = remainingRewards - stakingRewardsAmount;
+
+		_sendStakingRewards(stakingRewardsAmount);
+		_sendLiquidityRewards(liquidityRewardsAmount, directRewardsForSaltUSDS, poolIDs, profitsForPools, totalProfits);
 		}
 	}
