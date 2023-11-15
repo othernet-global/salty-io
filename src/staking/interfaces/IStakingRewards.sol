@@ -10,8 +10,8 @@ struct AddedReward
 
 struct UserShareInfo
 	{
-	uint256 userShare;						// A users share for a given poolID
-	uint256 virtualRewards;				// The amount of rewards that were added to maintain proper rewards/share ratio - and will be deducted from a user's pending rewards.
+	uint128 userShare;					// A user's share for a given poolID
+	uint128 virtualRewards;				// The amount of rewards that were added to maintain proper rewards/share ratio - and will be deducted from a user's pending rewards.
 	uint256 cooldownExpiration;		// The timestamp when the user can modify their share
 	}
 
@@ -22,7 +22,7 @@ interface IStakingRewards
 	function addSALTRewards( AddedReward[] calldata addedRewards ) external;
 
 	// Views
-	function totalShareForPool( bytes32 poolID ) external view returns (uint256);
+	function totalShares(bytes32 poolID) external view returns (uint256);
 	function totalSharesForPools( bytes32[] calldata poolIDs ) external view returns (uint256[] calldata shares);
 	function totalRewardsForPools( bytes32[] calldata poolIDs ) external view returns (uint256[] calldata rewards);
 

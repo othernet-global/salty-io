@@ -1,26 +1,30 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.22;
 
-import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import "openzeppelin-contracts/contracts/utils/math/Math.sol";
-import "./interfaces/IStakingConfig.sol";
-import "./interfaces/IStakingRewards.sol";
-import "../interfaces/ISalt.sol";
-import "../interfaces/IExchangeConfig.sol";
 import "../pools/interfaces/IPoolsConfig.sol";
+import "../interfaces/IExchangeConfig.sol";
+import "./interfaces/IStakingRewards.sol";
+import "./interfaces/IStakingConfig.sol";
+import "../interfaces/ISalt.sol";
 
 // This contract allows users to receive rewards (as SALT tokens) for staking SALT or liquidity shares.
 // A user's reward is proportional to their share of the stake and is based on their share at the time that rewards are added.
 //
 // What staked shares represent is specific to the contracts that derive from StakingRewards.
 //
-// Some examples of what a user's share represents:
-// 1. Staking.sol: the amount of SALT staked (staked to the STAKED_SALT pool)
-// 2. Liquidity.sol: the amount of liquidity deposited and staked to specific pools
+// 1. Staking.sol: shares represent the amount of SALT staked (staked to the STAKED_SALT pool)
+// 2. Liquidity.sol: shares represent the amount of liquidity deposited and staked to specific pools
 
-contract StakingRewards is IStakingRewards, ReentrancyGuard
+abstract contract StakingRewards is IStakingRewards, ReentrancyGuard
     {
+	event UserShareIncreased(address indexed wallet, bytes32 indexed poolID, uint256 amountIncreased);
+	event UserShareDecreased(address indexed wallet, bytes32 indexed poolID, uint256 amountDecreased, uint256 claimedRewards);
+	event RewardsClaimed(address indexed wallet, uint256 claimedRewards);
+	event SaltRewardsAdded(bytes32 indexed poolID, uint256 amountAdded);
+
 	using SafeERC20 for ISalt;
 
 	ISalt immutable public salt;
@@ -31,7 +35,7 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 	// A nested mapping that stores the UserShareInfo data for each user and each poolID.
 	mapping(address=>mapping(bytes32=>UserShareInfo)) private _userShareInfo;
 
-    // A mapping that stores the total SALT rewards for each poolID.
+    // A mapping that stores the total pending SALT rewards for each poolID.
     mapping(bytes32=>uint256) public totalRewards;
 
     // A mapping that stores the total shares for each poolID.
@@ -54,124 +58,128 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 
 
 	// Increase a user's share for the given whitelisted pool.
-	function _increaseUserShare( address wallet, bytes32 poolID, uint256 amountToIncrease, bool useCooldown ) internal
+	function _increaseUserShare( address wallet, bytes32 poolID, uint256 increaseShareAmount, bool useCooldown ) internal
 		{
 		require( poolsConfig.isWhitelisted( poolID ), "Invalid pool" );
-		require( amountToIncrease != 0, "Cannot increase zero share" );
+		require( increaseShareAmount != 0, "Cannot increase zero share" );
 
 		UserShareInfo storage user = _userShareInfo[wallet][poolID];
 
 		if ( useCooldown )
+		if ( msg.sender != address(exchangeConfig.dao()) ) // DAO doesn't use the cooldown
+			{
 			require( block.timestamp >= user.cooldownExpiration, "Must wait for the cooldown to expire" );
+
+			// Update the cooldown expiration for future transactions
+			user.cooldownExpiration = block.timestamp + stakingConfig.modificationCooldown();
+			}
 
 		uint256 existingTotalShares = totalShares[poolID];
 
-		// Determine the virtualRewards added based on the current ratio of rewards/shares.
-		// This allows shares to be added and the ratio of rewards/shares to remain unchanged (with proportional virtual rewards being added).
+		// Determine the amount of virtualRewards to add based on the current ratio of rewards/shares.
+		// The ratio of virtualRewards/increaseShareAmount is the same as totalRewards/totalShares for the pool.
 		// The virtual rewards will be deducted later when calculating the user's owed rewards.
         if ( existingTotalShares != 0 ) // prevent / 0
         	{
 			// Round up in favor of the protocol.
-			uint256 virtualRewardsToAdd = Math.ceilDiv( totalRewards[poolID] * amountToIncrease, existingTotalShares );
+			uint256 virtualRewardsToAdd = Math.ceilDiv( totalRewards[poolID] * increaseShareAmount, existingTotalShares );
 
-			user.virtualRewards += virtualRewardsToAdd;
-	        totalRewards[poolID] += virtualRewardsToAdd;
+			user.virtualRewards += uint128(virtualRewardsToAdd);
+	        totalRewards[poolID] += uint128(virtualRewardsToAdd);
 	        }
 
 		// Update the deposit balances
-		user.userShare += amountToIncrease;
-		totalShares[poolID] = existingTotalShares + amountToIncrease;
+		user.userShare += uint128(increaseShareAmount);
+		totalShares[poolID] = existingTotalShares + increaseShareAmount;
 
-		// Update the cooldown expiration
-		if ( useCooldown )
-			user.cooldownExpiration = block.timestamp + stakingConfig.modificationCooldown();
+		emit UserShareIncreased(wallet, poolID, increaseShareAmount);
 		}
 
 
 	// Decrease a user's share for the pool and have any pending rewards sent to them.
-	// Does not require the pool to be valid (in case the pool was recently unwhitelisted)
-	function _decreaseUserShare( address wallet, bytes32 poolID, uint256 amountToDecrease, bool useCooldown ) internal
+	// Does not require the pool to be valid (in case the pool was recently unwhitelisted).
+	function _decreaseUserShare( address wallet, bytes32 poolID, uint256 decreaseShareAmount, bool useCooldown ) internal
 		{
-		require( amountToDecrease != 0, "Cannot decrease zero share" );
+		require( decreaseShareAmount != 0, "Cannot decrease zero share" );
 
 		UserShareInfo storage user = _userShareInfo[wallet][poolID];
-		require( amountToDecrease <= user.userShare, "Cannot decrease more than existing user share" );
+		require( decreaseShareAmount <= user.userShare, "Cannot decrease more than existing user share" );
 
 		if ( useCooldown )
+		if ( msg.sender != address(exchangeConfig.dao()) ) // DAO doesn't use the cooldown
+			{
 			require( block.timestamp >= user.cooldownExpiration, "Must wait for the cooldown to expire" );
 
+			// Update the cooldown expiration for future transactions
+			user.cooldownExpiration = block.timestamp + stakingConfig.modificationCooldown();
+			}
+
 		// Determine the share of the rewards for the amountToDecrease (will include previously added virtual rewards)
-		uint256 rewardsForAmount = ( totalRewards[poolID] * amountToDecrease ) / totalShares[poolID];
+		uint256 rewardsForAmount = ( totalRewards[poolID] * decreaseShareAmount ) / totalShares[poolID];
 
 		// For the amountToDecrease determine the proportion of virtualRewards (proportional to all virtualRewards for the user)
-		// Round up in favor of the protocol
-		uint256 virtualRewardsToRemove = Math.ceilDiv( user.virtualRewards * amountToDecrease, user.userShare );
+		// Round virtualRewards down in favor of the protocol
+		uint256 virtualRewardsToRemove = (user.virtualRewards * decreaseShareAmount) / user.userShare;
 
 		// Update totals
 		totalRewards[poolID] -= rewardsForAmount;
-		totalShares[poolID] -= amountToDecrease;
+		totalShares[poolID] -= decreaseShareAmount;
 
 		// Update the user's share and virtual rewards
-		user.userShare -= amountToDecrease;
-		user.virtualRewards -= virtualRewardsToRemove;
+		user.userShare -= uint128(decreaseShareAmount);
+		user.virtualRewards -= uint128(virtualRewardsToRemove);
 
-		// Reduce the rewards by the amount of virtualRewards for the given amountRemoved
-		uint256 actualRewards = rewardsForAmount - virtualRewardsToRemove;
+		// Some of the rewardsForAmount are actually virtualRewards and can't be claimed
+		uint256 claimableRewards = rewardsForAmount - virtualRewardsToRemove;
 
-		// Send the actual rewards corresponding to the removal
-		if ( actualRewards != 0 )
-			{
-			// This error should never happen
-			require( salt.balanceOf(address(this)) >= actualRewards, "Insufficient SALT balance to send pending rewards" );
+		// Send the claimable rewards
+		if ( claimableRewards != 0 )
+			salt.safeTransfer( wallet, claimableRewards );
 
-			salt.safeTransfer( wallet, actualRewards );
-			}
-
-		// Update the cooldown expiration
-		if ( useCooldown )
-			user.cooldownExpiration = block.timestamp + stakingConfig.modificationCooldown();
+		emit UserShareDecreased(wallet, poolID, decreaseShareAmount, claimableRewards);
 		}
 
 
 	// ===== PUBLIC FUNCTIONS =====
 
-	// Claims all available SALT rewards from multiple pools for the user.
+	// Claim all available SALT rewards from multiple pools for the user.
 	// The claimed rewards are added to the user's virtual rewards balance - so that they can't be claimed again later.
-     function claimAllRewards( bytes32[] memory poolIDs ) public nonReentrant returns (uint256 rewardsAmount)
+     function claimAllRewards( bytes32[] calldata poolIDs ) external nonReentrant returns (uint256 claimableRewards)
     	{
 		mapping(bytes32=>UserShareInfo) storage userInfo = _userShareInfo[msg.sender];
 
-		rewardsAmount = 0;
+		claimableRewards = 0;
 		for( uint256 i = 0; i < poolIDs.length; i++ )
 			{
 			bytes32 poolID = poolIDs[i];
 
 			uint256 pendingRewards = userRewardForPool( msg.sender, poolID );
 
-			// Increase the virtualRewards balance for the user to account for them receiving the rewards
-			userInfo[poolID].virtualRewards += pendingRewards;
+			// Increase the virtualRewards balance for the user to account for them receiving the rewards without withdrawing
+			userInfo[poolID].virtualRewards += uint128(pendingRewards);
 
-			rewardsAmount = rewardsAmount + pendingRewards;
+			claimableRewards += pendingRewards;
 			}
 
-		// This error should never happen
-		require( salt.balanceOf(address(this)) >= rewardsAmount, "Insufficient SALT balance to send claimed rewards" );
+		if ( claimableRewards > 0 )
+			{
+			// Send the actual rewards
+			salt.safeTransfer( msg.sender, claimableRewards );
 
-		// Send the actual rewards
-		salt.safeTransfer( msg.sender, rewardsAmount );
+			emit RewardsClaimed(msg.sender, claimableRewards);
+			}
     	}
 
 
 	// Adds SALT rewards for specific whitelisted pools.
-	// There is some risk of addSALTRewards being front run, but there are multiple mechanisms in place to prevent this from being effective.
-	// 1. There is a cooldown period of default one hour before shares can be modified once deposited.
+	// There is some risk of addSALTRewards being frontrun to hunt rewards, but there are multiple mechanisms in place to prevent this from being effective.
+	// 1. There is a cooldown period of default one hour before shares can be withdrawn once deposited.
 	// 2. Staked SALT has a default unstake period of 52 weeks.
 	// 3. Rewards are first placed into a RewardsEmitter which deposits rewards via addSALTRewards at the default rate of 1% per day.
-	// 4. Rewards are deposited fairly quickly, with outstanding rewards being transferred within the global performUpkeep function,
-	//      which will be called at least every 15 minutes - but likely more often.
-	// Example: if $100k rewards were being deposited in a bulk transaction, it would only equate
-	// to $1000 (1%) the first day, or $10 in claimable rewards during a 15 minute upkeep period.
- 	function addSALTRewards( AddedReward[] memory addedRewards ) public nonReentrant
+	// 4. Rewards are deposited fairly often, with outstanding rewards being transferred with a frequency proportional to the activity of the exchange.
+	// Example: if $100k rewards were being deposited in a bulk transaction, it would only equate to $1000 (1%) the first day,
+	// or $10 in claimable rewards during a 15 minute upkeep period.
+ 	function addSALTRewards( AddedReward[] calldata addedRewards ) external nonReentrant
 		{
 		uint256 sum = 0;
 		for( uint256 i = 0; i < addedRewards.length; i++ )
@@ -185,6 +193,8 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 
 			totalRewards[ poolID ] += amountToAdd;
 			sum = sum + amountToAdd;
+
+			emit SaltRewardsAdded(poolID, amountToAdd);
 			}
 
 		// Transfer in the SALT for all the specified rewards
@@ -198,25 +208,18 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 
 	// === VIEWS ===
 
-	// The total share for a specific pool
-	function totalShareForPool( bytes32 poolID ) public view returns (uint256)
-		{
-		return totalShares[poolID];
-		}
-
-
 	// Returns the total shares for specified pools.
-	function totalSharesForPools( bytes32[] memory poolIDs ) public view returns (uint256[] memory shares)
+	function totalSharesForPools( bytes32[] calldata poolIDs ) external view returns (uint256[] memory shares)
 		{
 		shares = new uint256[]( poolIDs.length );
 
 		for( uint256 i = 0; i < shares.length; i++ )
-			shares[i] = totalShareForPool( poolIDs[i] );
+			shares[i] = totalShares[ poolIDs[i] ];
 		}
 
 
 	// Returns the total rewards for specified pools.
-	function totalRewardsForPools( bytes32[] memory poolIDs ) public view returns (uint256[] memory rewards)
+	function totalRewardsForPools( bytes32[] calldata poolIDs ) external view returns (uint256[] memory rewards)
 		{
 		rewards = new uint256[]( poolIDs.length );
 
@@ -245,7 +248,7 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 
 
 	// Returns the user's pending rewards for specified pools.
-	function userRewardsForPools( address wallet, bytes32[] memory poolIDs ) public view returns (uint256[] memory rewards)
+	function userRewardsForPools( address wallet, bytes32[] calldata poolIDs ) external view returns (uint256[] memory rewards)
 		{
 		rewards = new uint256[]( poolIDs.length );
 
@@ -262,17 +265,17 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard
 
 
 	// Get the user's shares for specified pools.
-	function userShareForPools( address wallet, bytes32[] memory poolIDs ) public view returns (uint256[] memory shares)
+	function userShareForPools( address wallet, bytes32[] calldata poolIDs ) external view returns (uint256[] memory shares)
 		{
 		shares = new uint256[]( poolIDs.length );
 
 		for( uint256 i = 0; i < shares.length; i++ )
-			shares[i] = userShareForPool(wallet, poolIDs[i]);
+			shares[i] = _userShareInfo[wallet][ poolIDs[i] ].userShare;
 		}
 
 
 	// Get the cooldown time remaining for the user for specified pools.
-	function userCooldowns( address wallet, bytes32[] memory poolIDs ) public view returns (uint256[] memory cooldowns)
+	function userCooldowns( address wallet, bytes32[] calldata poolIDs ) external view returns (uint256[] memory cooldowns)
 		{
 		cooldowns = new uint256[]( poolIDs.length );
 
