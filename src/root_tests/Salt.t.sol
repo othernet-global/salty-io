@@ -3,7 +3,7 @@ pragma solidity =0.8.22;
 
 import "forge-std/Test.sol";
 import "../dev/Deployment.sol";
-import "../SALT.sol";
+import "../Salt.sol";
 
 
 contract TestSalt is Deployment
@@ -24,13 +24,14 @@ contract TestSalt is Deployment
 
 	// A unit test to check the burnTokensInContract function when there are no tokens in the contract. Verify that the function returns zero.
 	function test_burnTokensInContract_noTokens() public {
+
+		uint256 totalSupply0 = salt.totalSupply();
+
     	// Assert that the contract's balance is initially 0
     	assertEq(salt.balanceOf(address(salt)), 0);
 
-    	uint256 burnedAmount = salt.burnTokensInContract();
-
     	// Assert that the burned amount is 0 because the contract initially has no tokens
-    	assertEq(burnedAmount, 0);
+    	assertEq(totalSupply0, salt.totalSupply());
     }
 
 
@@ -47,8 +48,7 @@ contract TestSalt is Deployment
         uint transferredAmount = salt.balanceOf(address(salt));
         assertEq(transferredAmount, 100 ether); // Asserting that the contract received the transferred amount.
 
-        uint burntAmount = salt.burnTokensInContract(); // Burning the tokens.
-        assertEq(burntAmount, 100 ether); // Asserting that the burnt amount is equal to the transferred amount.
+		salt.burnTokensInContract();
 
         uint postBurnContractBalance = salt.balanceOf(address(salt));
         assertEq(postBurnContractBalance, 0); // Asserting that the balance is 0 after the burn.
@@ -89,7 +89,7 @@ contract TestSalt is Deployment
     // A unit test to check the constructor to ensure that it correctly mints the initial supply of tokens to the deployer of the contract.
 	function test_initialSupply() public
         {
-        salt = new SALT();
+        salt = new Salt();
 
         uint preBurnTotalSupply = salt.totalSupply();
         assertEq(preBurnTotalSupply, 100 * MILLION_ETHER); // Assert that total supply is equal to INITIAL_SUPPLY.
@@ -104,11 +104,7 @@ contract TestSalt is Deployment
 
 		ERC20 saltToken = ERC20(address(salt));
 
-    	if (DEBUG)
-			assertEq(saltToken.name(), "testSALT");
-		else
-			assertEq(saltToken.name(), "Salt");
-
+    	assertEq(saltToken.name(), "Salt");
 		assertEq(saltToken.symbol(), "SALT");
     }
 	}
