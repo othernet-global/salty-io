@@ -159,6 +159,7 @@ contract TestDeployment is Deployment
         assertEq( getContract(address(saltRewards), "stakingRewardsEmitter()"), address(stakingRewardsEmitter), "Incorrect saltRewards.stakingRewardsEmitter" );
         assertEq( getContract(address(saltRewards), "liquidityRewardsEmitter()"), address(liquidityRewardsEmitter), "Incorrect saltRewards.liquidityRewardsEmitter" );
 
+		// Check ownership has been transferred to the DAO
 		assertEq( getContract( address(exchangeConfig), "owner()" ), address(dao), "exchangeConfig owner is not dao" );
 		assertEq( getContract( address(poolsConfig), "owner()" ), address(dao), "poolsConfig owner is not dao" );
 		assertEq( getContract( address(stakingConfig), "owner()" ), address(dao), "stakingConfig owner is not dao" );

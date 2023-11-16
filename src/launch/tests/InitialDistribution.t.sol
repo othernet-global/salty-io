@@ -172,12 +172,12 @@ contract TestInitialDistribution is Deployment
 		vm.prank(address(bootstrapBallot));
 		initialDistribution.distributionApproved();
 
-    	// Emissions							52 million
+    	// Emissions								52 million
 	    // DAO Reserve Vesting Wallet	25 million
-	    // Initial Team Vesting Wallet	10 million
+	    // Initial Team Vesting Wallet		10 million
 	    // Airdrop Participants				5 million
-	    // Liquidity Bootstrapping		5 million
-	    // Staking Bootstrapping			3 million
+	    // Liquidity Bootstrapping			5 million
+	    // Staking Bootstrapping				3 million
 
 		assertEq(salt.balanceOf(address(emissions)), 52 * MILLION_ETHER);
 		assertEq(salt.balanceOf(address(daoVestingWallet)), 25 * MILLION_ETHER);

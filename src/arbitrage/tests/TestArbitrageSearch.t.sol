@@ -193,13 +193,6 @@ contract TestArbitrageSearch2 is Deployment
         assertEq(address(arbToken2), address(swapTokenOut));
         assertEq(address(arbToken3), address(swapTokenIn));
     }
-
-
-	// A unit test that verifies `_binarySearch` returns zero when the arbitrage opportunity is not profitable (e.g., when arbitrage results in a loss or a profit below `PoolUtils.DUST` after considering precision errors).
-	// A unit test that examines `_binarySearch` behavior when a pool has extremely high or low reserves, testing the uint112 assumptions for reserve sizes.
-	// A unit test that checks the result of `_binarySearch` in a situation where the unimodal profit function assumption does not hold true due to market conditions or an unexpected pool configuration.
-	// A unit test that validates constructor parameters properly initialize the smart contract state variables, such as `wbtc`, `weth`, and `salt` token contracts.
-	// A unit test that explores the behavior of `_arbitragePath` and `_binarySearch` when swapping ERC20 tokens with different decimal places than the typical 18-decimal token standards.
 	}
 
 

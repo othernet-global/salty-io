@@ -1600,6 +1600,155 @@ staking.stakeSALT(1000 ether);
 	   	vm.expectRevert( "Token supply cannot exceed uint112.max" );
         proposals.proposeTokenWhitelisting(token, "https://tokenIconURL", "This is a test token");
    		}
+
+
+   	// A unit test that sets an invalid parameterType value while calling proposeParameterBallot
+	function testProposeParameterBallotWithInvalidParameterType() public {
+        uint256 invalidParameterType = type(uint256).max; // Using maximum value for uint256 which should be invalid
+        string memory description = "Invalid parameter proposal should fail";
+
+        vm.startPrank(DEPLOYER);
+        staking.stakeSALT(1000 ether);
+
+        // Won't revert, but will have no effect
+        proposals.proposeParameterBallot(invalidParameterType, description);
+        vm.stopPrank();
+    }
+
+
+    // A unit test that checks the user's ability to vote is removed if they unstake all their SALT
+	function testUsersVotingPowerRemovedOnFullUnstake() public {
+		vm.startPrank(alice);
+		staking.stakeSALT( 1000 ether);
+		IERC20 testToken = new TestERC20("TEST", 18);
+		proposals.proposeTokenWhitelisting(testToken, "https://tokenIconURL", "This is a test token");
+		vm.stopPrank();
+
+        // Act: Alice unstakes all her SALT.
+        vm.startPrank(alice);
+        uint256 aliceStakedAmount = staking.userShareForPool(alice, PoolUtils.STAKED_SALT);
+        staking.unstake(aliceStakedAmount, 2);
+        vm.stopPrank();
+
+        // Assert: Alice's voting power should now be 0.
+        uint256 aliceVotingPowerAfter = staking.userShareForPool(alice, PoolUtils.STAKED_SALT);
+        assertEq(aliceVotingPowerAfter, 0);
+
+        // Expecting a revert as Alice has no voting power after unstaking.
+        vm.expectRevert("Staked SALT required to vote");
+        proposals.castVote(1, Vote.YES);
+    }
+
+
+    // A unit test that ensures markBallotAsFinalized removes the ballot from _allOpenBallots
+    function testMarkBallotAsFinalizedRemovesFromOpenBallots() public
+    	{
+		vm.startPrank(alice);
+		staking.stakeSALT( 1000 ether);
+ 	      proposals.proposeParameterBallot(1, "description" );
+		vm.stopPrank();
+
+		uint256 ballotID = proposals.openBallotsByName("parameter:1");
+		assertEq(ballotID, 1); // Ensuring ballotID exists before finalization
+
+		vm.prank(address(dao));
+		proposals.markBallotAsFinalized(ballotID);
+
+		uint256 removedBallotID = proposals.openBallotsByName("parameter:1");
+		assertEq(removedBallotID, 0); // Ensuring ballotID is removed from openBallotsByName
+        }
+
+
+    // A unit test that confirms vote tallies reset when a user changes their vote to a different type
+	function testVoteTallyResetUponChangingVote() public {
+        // Prepare a ParameterBallot proposal
+        string memory ballotName = "parameter:2";
+        vm.startPrank(DEPLOYER);
+        staking.stakeSALT(1000 ether);
+        proposals.proposeParameterBallot(2, "description" );
+        uint256 ballotID = proposals.openBallotsByName(ballotName);
+        vm.stopPrank();
+
+        // Cast a vote on the ballot as Alice
+        vm.startPrank(alice);
+        staking.stakeSALT(100 ether);
+        proposals.castVote(ballotID, Vote.INCREASE);
+        UserVote memory lastVoteAlice = proposals.lastUserVoteForBallot(ballotID, alice);
+        assertEq(uint256(lastVoteAlice.vote), uint256(Vote.INCREASE), "Alice's vote should initially be INCREASE");
+        assertEq(lastVoteAlice.votingPower, 100 ether, "Alice's initial voting power should be 100 ether");
+        vm.stopPrank();
+
+        // Change Alice's vote to DECREASE and check tallies
+        vm.startPrank(alice);
+        proposals.castVote(ballotID, Vote.DECREASE);
+        assertEq(proposals.votesCastForBallot(ballotID, Vote.INCREASE), 0, "The INCREASE vote tally should reset to 0 after Alice changes her vote");
+        assertEq(proposals.votesCastForBallot(ballotID, Vote.DECREASE), 100 ether, "The DECREASE vote tally should reflect Alice's 100 ether voting power");
+        UserVote memory updatedLastVoteAlice = proposals.lastUserVoteForBallot(ballotID, alice);
+        assertEq(uint256(updatedLastVoteAlice.vote), uint256(Vote.DECREASE), "Alice's vote should be updated to DECREASE");
+        assertEq(updatedLastVoteAlice.votingPower, 100 ether, "Alice's updated voting power should still be 100 ether");
+        vm.stopPrank();
+    }
+
+
+    // A unit test that checks the user's _userHasActiveProposal flag is reset after their ballot is finalized
+	function testUserHasActiveProposalFlagResetAfterBallotFinalized() public {
+        // Prepare a ParameterBallot proposal
+        string memory ballotName = "parameter:2";
+        vm.startPrank(alice);
+        staking.stakeSALT(1000 ether);
+        proposals.proposeParameterBallot(2, "description" );
+        uint256 ballotID = proposals.openBallotsByName(ballotName);
+        vm.stopPrank();
+
+        // Verify that Alice has an active proposal.
+        assertTrue(proposals.userHasActiveProposal(alice));
+
+        // Warp to the future past the ballot duration to finalize the vote.
+        vm.warp(block.timestamp + daoConfig.ballotDuration());
+
+        // Finalize the ballot using the DAO.
+        vm.prank(address(exchangeConfig.dao()));
+        proposals.markBallotAsFinalized(ballotID);
+
+        // Verify that Alice's active proposal flag is reset.
+        assertFalse(proposals.userHasActiveProposal(alice));
+    }
+
+
+    // A unit test that ensures the proposeTokenUnwhitelisting function changes state only if the token is currently whitelisted
+    function testProposeTokenUnwhitelistingChangesStateOnlyIfWhitelisted() public {
+        IERC20 testToken = new TestERC20("TEST", 18);
+
+        // Expect revert because the token is not whitelisted
+        vm.startPrank(alice);
+        staking.stakeSALT(1000 ether);
+        vm.expectRevert("Can only unwhitelist a whitelisted token");
+        proposals.proposeTokenUnwhitelisting(testToken, "test", "test");
+        uint256 ballotID = 1;
+        vm.stopPrank();
+
+
+        // Whitelist the token
+        vm.startPrank(address(dao));
+        poolsConfig.whitelistPool(testToken, wbtc);
+        poolsConfig.whitelistPool(testToken, weth);
+        vm.stopPrank();
+
+        // Check that the token is now whitelisted
+        assertTrue(poolsConfig.tokenHasBeenWhitelisted(testToken, exchangeConfig.wbtc(), exchangeConfig.weth()));
+
+        vm.startPrank(alice);
+
+        // Propose unwhitelisting the token
+        proposals.proposeTokenUnwhitelisting(testToken, "test", "test");
+
+        // Assert that the ballot is indeed for unwhitelisting
+        Ballot memory ballot = proposals.ballotForID(ballotID);
+        assertEq(uint256(ballot.ballotType), uint256(BallotType.UNWHITELIST_TOKEN));
+
+        // Assert that the ballot is for the correct token
+        assertEq(ballot.address1, address(testToken));
+    }
    }
 
 

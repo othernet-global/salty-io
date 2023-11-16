@@ -40,7 +40,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	ICollateralAndLiquidity public collateralAndLiquidity;
 
 	// Set to true when starting the exchange is approved by the bootstrapBallot
-	bool private _startExchangeApproved;
+	bool public exchangeStarted;
 
 	// Keeps track of the pool reserves by poolID
 	mapping(bytes32=>PoolReserves) private _poolReserves;
@@ -77,7 +77,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		// Make sure that the arbitrage indicies for the whitelisted pools are updated before starting the exchange
 		updateArbitrageIndicies();
 
-		_startExchangeApproved = true;
+		exchangeStarted = true;
 		}
 
 
@@ -143,7 +143,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	function addLiquidity( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 totalLiquidity ) external nonReentrant returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
 		{
 		require( msg.sender == address(collateralAndLiquidity), "Pools.addLiquidity is only callable from the CollateralAndLiquidity contract" );
-		require( _startExchangeApproved, "The exchange is not yet live" );
+		require( exchangeStarted, "The exchange is not yet live" );
 		require( address(tokenA) != address(tokenB), "Cannot add liquidity for duplicate tokens" );
 
 		require( maxAmountA > PoolUtils.DUST, "The amount of tokenA to add is too small" );

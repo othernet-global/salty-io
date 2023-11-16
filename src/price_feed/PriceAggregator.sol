@@ -20,6 +20,9 @@ contract PriceAggregator is IPriceAggregator, Ownable
 	IPriceFeed public priceFeed2; // CoreChainlinkFeed by default
 	IPriceFeed public priceFeed3; // CoreSaltyFeed by default
 
+	// The next time at which setPriceFeed can be called
+	uint256 public setPriceFeedCooldownExpiration;
+
 	// The maximum percent difference between two non-zero PriceFeed prices when determining price.
 	// When the two closest PriceFeeds (out of the three) have prices further apart than this the aggregated price is considered invalid.
 	// Range: 1% to 7% with an adjustment of .50%
@@ -29,9 +32,6 @@ contract PriceAggregator is IPriceAggregator, Ownable
 	// Allows time to evaluate the performance of the recently updatef PriceFeed before further updates are made.
 	// Range: 30 to 45 days with an adjustment of 5 days
 	uint256 public setPriceFeedCooldown = 35 days;
-
-	// The next time at which setPriceFeed can be called
-	uint256 public setPriceFeedCooldownExpiration;
 
 
 	function setInitialFeeds( IPriceFeed _priceFeed1, IPriceFeed _priceFeed2, IPriceFeed _priceFeed3 ) public onlyOwner

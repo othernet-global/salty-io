@@ -1142,6 +1142,206 @@ contract TestDAO is Deployment
     	}
 
 
+	// A unit test that validates that a ballot ID is correctly incremented after each proposal to ensure unique references to different ballots.
+	function testIncrementingBallotID() public {
+
+		vm.startPrank(DEPLOYER);
+		salt.approve(address(staking), type(uint256).max);
+		staking.stakeSALT(1000 ether);
+		vm.stopPrank();
+
+		vm.startPrank(alice);
+		salt.approve(address(staking), type(uint256).max);
+		staking.stakeSALT(1000 ether);
+		vm.stopPrank();
+
+        // Alice proposes a parameter change
+        vm.startPrank(alice);
+        proposals.proposeParameterBallot(0, "test");
+        vm.stopPrank();
+
+        // Retrieve the initial ballot ID
+        uint256 initialBallotID = proposals.openBallotsByName("parameter:0");
+        assertEq(initialBallotID, 1, "Initial ballot ID should be 1");
+
+        // Warp time to allow for another proposal
+        vm.warp(block.timestamp + 1 days);
+
+        // Deployer proposes another parameter change
+        vm.startPrank(DEPLOYER);
+        proposals.proposeParameterBallot(2, "test");
+        vm.stopPrank();
+
+        // Retrieve the second ballot ID
+        uint256 secondBallotID = proposals.openBallotsByName("parameter:2");
+        assertEq(secondBallotID, initialBallotID + 1, "Second ballot ID should increment by 1");
+    }
+
+
+	// A unit test that verifies the quorum is reached when the required amount of voting power is achieved and not before.
+	function testQuorumReachedNotBeforeVotingPower() public {
+        // Set up the parameters for the proposal
+        uint256 proposalNum = 0; // Assuming an enumeration starting at 0 for parameter proposals
+        address proposer = alice;
+
+        // Alice stakes her SALT to get voting power
+        vm.prank(address(daoVestingWallet));
+        salt.transfer(proposer, 1000000 ether);
+
+        vm.startPrank(proposer);
+        staking.stakeSALT(499999 ether);
+
+        // Propose a parameter ballot
+        proposals.proposeParameterBallot(proposalNum, "Increase max pools count");
+		vm.stopPrank();
+
+        uint256 ballotID = 1;
+
+        // Expect revert because quorum has not yet been reached and do a premature finalization attempt
+        vm.expectRevert("The ballot is not yet able to be finalized");
+        dao.finalizeBallot(ballotID);
+
+        // Cast a vote, but not enough for quorum
+        vm.startPrank(proposer);
+        proposals.castVote(ballotID, Vote.NO_CHANGE);
+        vm.stopPrank();
+
+        // Increase block time to finalize the ballot
+        vm.warp(block.timestamp + daoConfig.ballotDuration());
+
+        // Expect revert because quorum is still not reached
+        vm.expectRevert("The ballot is not yet able to be finalized");
+        dao.finalizeBallot(ballotID);
+
+        // Now, increase votes to reach quorum
+        vm.startPrank(proposer);
+        staking.stakeSALT(2 ether);
+        vm.stopPrank();
+
+//		console.log( "REQUIRED QUORUM: ", proposals.requiredQuorumForBallotType(BallotType.PARAMETER) );
+//		console.log( "SALT STAKED: ", staking.totalShares(PoolUtils.STAKED_SALT) );
+//
+        vm.expectRevert("The ballot is not yet able to be finalized");
+        dao.finalizeBallot(ballotID);
+
+
+        // Recast with increased votes
+        vm.startPrank(proposer);
+        proposals.castVote(ballotID, Vote.NO_CHANGE);
+        vm.stopPrank();
+
+        // Now it should be possible to finalize the ballot without reverting
+        dao.finalizeBallot(ballotID);
+
+        // Check that the ballot is finalized
+        bool isBallotFinalized = proposals.ballotForID(ballotID).ballotIsLive;
+        assertEq(isBallotFinalized, false, "Ballot should be finalized");
+    }
+
+
+	// A unit test that a successful reward sending operation after whitelisting a token balances bootstrap rewards correctly and does not distribute funds when the balance is insufficient.
+	function testSuccessfulRewardDistributionAfterWhitelisting() public
+		{
+		// Alice stakes her SALT to get voting power
+		vm.startPrank(address(daoVestingWallet));
+		salt.transfer(alice, 1000000 ether);				// for staking and voting
+		salt.transfer(address(dao), 1000000 ether); // bootstrapping rewards
+		vm.stopPrank();
+
+		vm.startPrank(alice);
+		staking.stakeSALT(500000 ether);
+
+		IERC20 test = new TestERC20( "TEST", 18 );
+
+		// Propose a whitelisting ballot
+		proposals.proposeTokenWhitelisting(test, "url", "description");
+		vm.stopPrank();
+
+		uint256 ballotID = 1;
+
+		vm.startPrank(alice);
+		proposals.castVote(ballotID, Vote.YES);
+
+		// Increase block time to finalize the ballot
+		vm.warp(block.timestamp + daoConfig.ballotDuration());
+
+		uint256 bootstrapRewards = daoConfig.bootstrappingRewards();
+        uint256 initialDaoBalance = salt.balanceOf(address(dao));
+        require(initialDaoBalance > bootstrapRewards * 2, "Insufficient SALT in DAO for rewards bootstrapping");
+
+        dao.finalizeBallot(ballotID);
+
+
+        // Assert that the token has been whitelisted
+        assertTrue(poolsConfig.tokenHasBeenWhitelisted(test, wbtc, weth), "Token was not whitelisted");
+
+        // Assert the correct amount of bootstrapping rewards have been deducted
+        uint256 finalDaoBalance = salt.balanceOf(address(dao));
+        assertEq(finalDaoBalance, initialDaoBalance - (bootstrapRewards * 2), "Bootstrapping rewards were not correctly deducted");
+
+        vm.stopPrank();
+    }
+
+
+	// A unit test that verifies the correct calculation and distribution of POL formation when forming POL via the `formPOL` function.
+	function testCorrectPOLFormationAndDistribution() public {
+
+        // Forming POL amounts
+        uint256 saltAmount = 500 ether;
+        uint256 usdsAmount = 500 ether;
+
+        // Transferring tokens to DAO before POL formation
+        vm.prank(address(daoVestingWallet));
+        salt.transfer(address(dao), saltAmount);
+
+        vm.prank(address(collateralAndLiquidity));
+        usds.mintTo(address(dao), usdsAmount);
+
+        // Capture the initial POL state
+        bytes32 saltUsdsPoolID = PoolUtils._poolIDOnly(salt, usds);
+        uint256 initialSaltBalanceDAO = salt.balanceOf(address(dao));
+        uint256 initialUsdsBalanceDAO = usds.balanceOf(address(dao));
+
+        // Forming POL
+        vm.prank(address(upkeep));
+        dao.formPOL(salt, usds, saltAmount, usdsAmount);
+
+        // Capture the post-POL state
+        uint256 finalSaltBalanceDAO = salt.balanceOf(address(dao));
+        uint256 finalUsdsBalanceDAO = usds.balanceOf(address(dao));
+        uint256 finalPoolShareDAO = collateralAndLiquidity.userShareForPool(address(dao), saltUsdsPoolID);
+
+        // Assert POL formation and distribution correctness
+        assertEq(finalSaltBalanceDAO, initialSaltBalanceDAO - saltAmount, "Incorrect final SALT balance in DAO");
+        assertEq(finalUsdsBalanceDAO, initialUsdsBalanceDAO - usdsAmount, "Incorrect final USDS balance in DAO");
+        assertEq(finalPoolShareDAO, 1000 ether, "DAO did not receive pool share tokens");
+    }
+
+
+	// A unit test that ensures DAO can withdraw the correct expected amount of liquidity via `withdrawPOL`, and that the withdrawn amount is correctly routed to the specified beneficiary address.
+	function testDAOWithdrawPOL() public {
+
+		// Form 500/500 SALT/USDS POL
+		testCorrectPOLFormationAndDistribution();
+
+        // Act
+        vm.startPrank(address(liquidizer));
+        dao.withdrawPOL(salt, usds, 10);
+        vm.stopPrank();
+
+        // Assert
+        uint256 finalBalanceA = salt.balanceOf(address(liquidizer));
+        uint256 finalBalanceB = usds.balanceOf(address(liquidizer));
+
+        assertEq( finalBalanceA, 50 ether);
+        assertEq( finalBalanceB, 50 ether);
+
+		(uint256 reservesA, uint256 reservesB) = pools.getPoolReserves(salt, usds);
+
+        // Beneficiary should have received the correct amounts of tokenA and tokenB
+        assertEq(reservesA, 450 ether);
+        assertEq(reservesB, 450 ether);
+    }
 
     }
 

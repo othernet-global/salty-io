@@ -302,4 +302,78 @@ contract TestAirdrop is Deployment
 	function testNotYetClaimed() public {
         assertFalse(airdrop.claimed(alice), "Alice should not have claimed the airdrop yet");
     }
+
+
+    // A unit test that checks if authorizeWallet properly reverts when called by any address other than the BootstrapBallot
+    function testAuthorizeWalletReverts() external {
+        address unprivilegedUser = address(0xdead);
+
+        vm.expectRevert("Only the BootstrapBallot can call Airdrop.authorizeWallet");
+        airdrop.authorizeWallet(unprivilegedUser);
+    }
+
+
+    // A unit test that verifies claimed mapping is set correctly after an authorized user has claimed their airdrop
+    function testClaimedMappingAfterAirdropClaim() external {
+        // Mock that Alice hasn't claimed yet
+        assertFalse(airdrop.claimed(alice), "Alice should not have claimed yet");
+
+        // Whitelist Alice for claiming
+        whitelistAlice();
+
+    	vm.prank(address(bootstrapBallot));
+    	initialDistribution.distributionApproved();
+
+        // Claim Airdrop
+        vm.prank(alice);
+        airdrop.claimAirdrop();
+
+        // Verify claimed mapping is set to true for Alice after claiming
+        assertTrue(airdrop.claimed(alice), "Alice should have claimed status set");
+
+        // Trying to claim again should fail because claimed mapping is true now
+        vm.prank(alice);
+        vm.expectRevert("Wallet already claimed the airdrop");
+        airdrop.claimAirdrop();
+    }
+
+
+    // A unit test that checks claiming reverts if non-authorized user tries to claim
+    function testClaimingNonAuthorized() external {
+        // Mock that Alice hasn't claimed yet
+        assertFalse(airdrop.claimed(alice), "Alice should not have claimed yet");
+
+        // Whitelist Alice for claiming
+        whitelistAlice();
+
+    	vm.prank(address(bootstrapBallot));
+    	initialDistribution.distributionApproved();
+
+        // Claim Airdrop
+        vm.expectRevert( "Wallet is not authorized for airdrop" );
+        vm.prank(bob);
+        airdrop.claimAirdrop();
+    }
+
+
+    // A unit test that ensures the contract's salt approval to the staking contract matches the expected salt balance after calling allowClaiming
+    function testSaltApprovalMatchesSaltBalanceAfterAllowClaiming() external
+    	{
+        // Assuming test setup ensures there is at least one authorized user before allowClaiming is called
+        uint256 numberOfAuthorizedUsers = airdrop.numberAuthorized();
+        assertTrue(numberOfAuthorizedUsers > 0, "Setup should have at least one authorized user");
+
+        // Approve the distribution to allow claiming
+        vm.prank(address(bootstrapBallot));
+        initialDistribution.distributionApproved();
+
+        // Check claimingAllowed is true
+        assertTrue(airdrop.claimingAllowed(), "Claiming should have been allowed");
+
+        // Check if staking contract allowance matches calcualated saltAmountForEachUser after calling allowClaiming
+        uint256 stakeContractAllowance = salt.allowance(address(airdrop), address(staking));
+        uint256 expectedSaltAmountForEachUser = 5000000 ether;
+        assertEq(stakeContractAllowance, expectedSaltAmountForEachUser, "Staking contract allowance does not match expected salt balance");
+    }
+
 	}
