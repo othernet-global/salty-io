@@ -9,8 +9,7 @@ contract TestManagedWallet is Deployment
 	{
     address public constant alice = address(0x1111);
 
-    uint256 constant public MAIN_WALLET = 0;
-    uint256 constant public CONFIRMATION_WALLET = 1;
+    uint256 constant public TIMELOCK_DURATION = 30 days;
 
 
 	constructor()
@@ -48,390 +47,253 @@ contract TestManagedWallet is Deployment
     }
 
 
-    // A unit test to check the changeWallet function when called by an address other than the main or confirmation wallet. Expect to fail with "Invalid sender".
-	function testChangeWalletNotMainOrConfirmationShouldFail() external {
+    // A unit test to check the proposeWallets function when called by the current mainWallet with valid non-zero addresses. Ensure that the proposedMainWallet and proposedConfirmationWallet state variables are set to these addresses.
+	function testProposeWalletsByMainWalletWithValidAddresses() public {
+        ManagedWallet managedWallet = new ManagedWallet(alice, address(0x2222));
+        address proposedMainWallet = address(0x3333);
+        address proposedConfirmationWallet = address(0x4444);
+
+        vm.startPrank(alice);
+        managedWallet.proposeWallets(proposedMainWallet, proposedConfirmationWallet);
+        vm.stopPrank();
+
+        assertEq(managedWallet.proposedMainWallet(), proposedMainWallet, "proposedMainWallet not set correctly");
+        assertEq(managedWallet.proposedConfirmationWallet(), proposedConfirmationWallet, "proposedConfirmationWallet not set correctly");
+    }
+
+
+    // A unit test to check the proposeWallets function when called by an address other than the current mainWallet. Expect the transaction to revert with the "Only the current mainWallet can propose changes" error.
+	function testProposeWalletsRevertNotMainWallet() public {
+        address notMainWallet = address(0x1234);
         ManagedWallet managedWallet = new ManagedWallet(alice, address(this));
 
-        address randomAddress = address(0x1234);
-        vm.prank(randomAddress);
+        vm.prank(notMainWallet);
+        vm.expectRevert("Only the current mainWallet can propose changes");
+        managedWallet.proposeWallets(address(0xdead), address(0xbeef));
+    }
+
+
+    // A unit test to check the proposeWallets function when _proposedMainWallet is the zero address. Expect the transaction to revert with the "_proposedMainWallet cannot be the zero address" error.
+	function testProposeWalletsRevertsWhenZeroAddressIsProposed() public {
+        ManagedWallet managedWallet = new ManagedWallet(alice, address(this));
+
+        vm.expectRevert("_proposedMainWallet cannot be the zero address");
+    	vm.prank(alice);
+    	managedWallet.proposeWallets(address(0), address(this));
+    }
+
+
+    // A unit test to check the proposeWallets function when _proposedConfirmationWallet is the zero address. Expect the transaction to revert with the "_proposedConfirmationWallet cannot be the zero address" error.
+	function testProposeWalletsRevertsWhenZeroConfirmationAddressIsProposed() public {
+        ManagedWallet managedWallet = new ManagedWallet(alice, address(this));
+
+        vm.expectRevert("_proposedConfirmationWallet cannot be the zero address");
+    	vm.prank(alice);
+    	managedWallet.proposeWallets(address(this), address(0));
+    }
+
+
+    // A unit test to check the proposeWallets function when there is already a non-zero proposedMainWallet. Expect the transaction to revert with the "Cannot overwrite non-zero proposed mainWallet." error.
+	function testProposeWalletsRevertsIfProposedMainWalletIsNonZero() public {
+        address nonZeroProposedMainWallet = address(0x5555);
+        address nonZeroProposedConfirmationWallet = address(0x6666);
+        ManagedWallet managedWallet = new ManagedWallet(alice, address(0x2222));
+
+        // Simulate that the mainWallet has already proposed wallets
+        vm.prank(alice);
+        managedWallet.proposeWallets(nonZeroProposedMainWallet, nonZeroProposedConfirmationWallet);
+
+        // Try proposing new wallets again, which should not be allowed
+        address newProposedMainWallet = address(0x7777);
+        address newProposedConfirmationWallet = address(0x8888);
+        vm.prank(alice);
+        vm.expectRevert("Cannot overwrite non-zero proposed mainWallet.");
+        managedWallet.proposeWallets(newProposedMainWallet, newProposedConfirmationWallet);
+    }
+
+
+    // A unit test to check the receive function when sent by the current confirmationWallet with more than .05 ether. Ensure that the activeTimelock is set to the current block timestamp plus TIMELOCK_DURATION.
+	function testReceiveFunctionWithCurrentConfirmationWalletAndSufficientEther() public {
+        ManagedWallet managedWallet = new ManagedWallet(alice, address(this));
+
+        // Assume confirmationWallet is the address running this test, therefore we use `address(this)`
+        uint256 sentValue = 0.06 ether;
+        uint256 expectedTimelock = block.timestamp + 30 days;
+
+        // Send more than .05 ether to trigger the activeTimelock update
+        vm.prank(address(this));
+        vm.deal(address(this), sentValue);
+
+        // Call the receive function by sending ether
+        (bool success,) = address(managedWallet).call{value: sentValue}("");
+
+        assertTrue(success, "Receive function failed");
+        assertEq(managedWallet.activeTimelock(), expectedTimelock, "activeTimelock not set correctly");
+    }
+
+
+    // A unit test to check the receive function when sent by the current confirmationWallet with exactly .05 ether. Ensure that the activeTimelock is set to the current block timestamp plus TIMELOCK_DURATION.
+	function testReceiveFunctionWithExactly05EtherFromConfirmationWallet() public {
+        ManagedWallet managedWallet = new ManagedWallet(alice, address(this));
+
+        // Assume confirmationWallet is the address running this test, therefore we use `address(this)`
+        uint256 sentValue = 0.05 ether;
+        uint256 expectedTimelock = block.timestamp + 30 days;
+
+        // Send .05 or more ether to trigger the activeTimelock update
+        vm.prank(address(this));
+        vm.deal(address(this), sentValue);
+
+        // Call the receive function by sending ether
+        (bool success,) = address(managedWallet).call{value: sentValue}("");
+
+        assertTrue(success, "Receive function failed");
+        assertEq(managedWallet.activeTimelock(), expectedTimelock, "activeTimelock not set correctly");
+    }
+
+
+    // A unit test to check the receive function when sent by the current confirmationWallet with less than .05 ether. Ensure that the activeTimelock is set to type(uint256).max.
+	function testReceiveFunctionFromConfirmationWalletWithLessThanMinimumEther() public {
+        ManagedWallet managedWallet = new ManagedWallet(alice, address(this));
+
+        // amount less than required (.05 ether) to be sent by the confirmationWallet
+        uint256 amountToSend = 0.04 ether;
+
+        // Prank the confirmationWallet
+        vm.prank(address(this));
+
+        // Fund confirmationWallet with the specified amount
+        vm.deal(address(this), amountToSend);
+
+        // Expect that when a transaction is received with less than .05 ether, it will revert
         vm.expectRevert("Invalid sender");
-        managedWallet.changeWallet(MAIN_WALLET, randomAddress);
+        (bool success, ) = address(managedWallet).call{value: amountToSend}("");
+
+        // Check that the activeTimelock remains unchanged
+        uint256 expectedTimelock = type(uint256).max;
+        assertEq(managedWallet.activeTimelock(), expectedTimelock, "activeTimelock should remain unchanged");
+        assertTrue(!success, "Transaction should not be successful");
     }
 
 
-    // A unit test to check the changeWallet function for the main wallet when the new address is zero. Verify that a WalletChangeRequested event is not emitted and the internal state remains unchanged.
-	function testChangeWalletWithZeroAddressShouldNotEmitEventNorChangeState() public {
+    // A unit test to check the receive function when sent by an address other than the current confirmationWallet. Expect the transaction to revert with the "Invalid sender" error.
+	function testReceiveFunctionRevertsInvalidSender() public {
         ManagedWallet managedWallet = new ManagedWallet(alice, address(this));
 
-        // Initial state check before changeWallet call
-        address initialMainWallet = managedWallet.mainWallet();
-        address initialConfirmationWallet = managedWallet.confirmationWallet();
-
-        // Expect revert with zero new address
-        vm.prank(alice);
-        vm.expectRevert("newAddress cannot be zero.");
-        managedWallet.changeWallet(MAIN_WALLET, address(0));
-
-        // State check after changeWallet call
-        address mainWalletAfter = managedWallet.mainWallet();
-        address confirmationWalletAfter = managedWallet.confirmationWallet();
-
-        // Asserting no state changes occurred
-        assertEq(mainWalletAfter, initialMainWallet, "Main wallet address should remain unchanged.");
-        assertEq(confirmationWalletAfter, initialConfirmationWallet, "Confirmation wallet address should remain unchanged.");
+        address invalidSender = address(0x5555);
+        vm.prank(invalidSender);
+        vm.expectRevert("Invalid sender");
+        (bool success,) = address(managedWallet).call{value: 1 ether}("");
+        assertTrue(!success, "Transaction should not be successful");
     }
 
 
-    // A unit test to check the changeWallet function for the main wallet when the new address is valid and the confirmation wallet has not made a corresponding request. Verify the changeRequest mapping is updated correctly, and a WalletChangeRequested event is emitted without any ActiveTimelockUpdated event.
-	function testChangeWalletValidNewAddressNoCorrespondingRequest() public {
-        // Initialize the ManagedWallet contract with alice as the main wallet and this test contract as the confirmation wallet
-        ManagedWallet mw = new ManagedWallet(alice, address(this));
+    // A unit test to check the changeWallets function when called by the proposedMainWallet after the activeTimelock has expired. Ensure that the mainWallet and confirmationWallet state variables are set to the previously proposed addresses. Also ensure that proposedMainWallet and proposedConfirmationWallet are reset to address(0), and activeTimelock is reset to type(uint256).max.
+	function testChangeWalletsByProposedMainWalletAfterActiveTimelock() public {
+        // Set up the initial state with main and confirmation wallets
+        address initialMainWallet = alice;
+        address initialConfirmationWallet = address(0x2222);
+        ManagedWallet managedWallet = new ManagedWallet(initialMainWallet, initialConfirmationWallet);
 
-        address validNewAddress = address(0x3333);
+        // Set up the proposed main and confirmation wallets
+        address newMainWallet = address(0x3333);
+        address newConfirmationWallet = address(0x4444);
 
-        // Prank as alice (the main wallet) and request a change to a new valid address for the MAIN_WALLET
-        // This should not set an active timelock because the confirmation wallet has not requested the change yet
-        vm.prank(alice);
-        mw.changeWallet(MAIN_WALLET, validNewAddress);
+        // Prank as the initial main wallet to propose the new wallets
+        vm.startPrank(initialMainWallet);
+        managedWallet.proposeWallets(newMainWallet, newConfirmationWallet);
+        vm.stopPrank();
 
-        // Check that the changeRequest for alice (the main wallet) and MAIN_WALLET is updated correctly
-        assertEq(mw.changeRequests(alice, MAIN_WALLET), validNewAddress, "changeRequest should be updated to the new address");
+        // Prank as the current confirmation wallet and send ether to confirm the proposal
+        uint256 sentValue = 0.06 ether;
+        vm.prank(initialConfirmationWallet);
+        vm.deal(initialConfirmationWallet, sentValue);
+        (bool success,) = address(managedWallet).call{value: sentValue}("");
+        assertTrue(success, "Confirmation of wallet proposal failed");
 
-        // Check that there is no active timelock for MAIN_WALLET and the new address yet
-        assertEq(mw.activeTimelocks(MAIN_WALLET, validNewAddress), 0, "No activeTimelock should be set");
+        // Warp the blockchain time to the future beyond the active timelock period
+        uint256 currentTime = block.timestamp;
+        vm.warp(currentTime + TIMELOCK_DURATION);
+
+        // Expect revert for other than the proposedMainWallet calling the function before the timelock duration has completed
+        vm.expectRevert("Invalid sender");
+        managedWallet.changeWallets();
+
+        // Prank as the new proposed main wallet which should now be allowed to call changeWallets
+        vm.prank(newMainWallet);
+        managedWallet.changeWallets();
+
+        // Check that the mainWallet and confirmationWallet state variables are updated
+        assertEq(managedWallet.mainWallet(), newMainWallet, "mainWallet was not updated correctly");
+        assertEq(managedWallet.confirmationWallet(), newConfirmationWallet, "confirmationWallet was not updated correctly");
+
+        // Check that the proposed wallets and activeTimelock have been reset
+        assertEq(managedWallet.proposedMainWallet(), address(0), "proposedMainWallet was not reset");
+        assertEq(managedWallet.proposedConfirmationWallet(), address(0), "proposedConfirmationWallet was not reset");
+        assertEq(managedWallet.activeTimelock(), type(uint256).max, "activeTimelock was not reset to max uint256");
     }
 
 
-    // A unit test to check the changeWallet function for the confirmation wallet when the new address is valid and the main wallet has not made a corresponding request. Verify the changeRequest mapping is updated correctly, and a WalletChangeRequested event is emitted without any ActiveTimelockUpdated event.
-	function testChangeWalletConfirmationValidAddressNoMainRequest() public {
-        ManagedWallet mw = new ManagedWallet(alice, address(this));
-        address newValidAddress = address(0x4444);
+    // A unit test to check the changeWallets function when called by an address other than the proposedMainWallet. Expect the transaction to revert with the "Invalid sender" error.
+	function testChangeWalletsShouldRevertForNonProposedMainWallet() public {
+        ManagedWallet managedWallet = new ManagedWallet(alice, address(0x2222));
 
-        // Grant rights to the confirmation wallet to call `changeWallet`.
-        vm.startPrank(address(this));
+        // Expect the changeWallets function to revert when not called by the proposedMainWallet
+        address invalidCaller = address(0x5555);
+        vm.prank(invalidCaller);
+        vm.expectRevert("Invalid sender");
+        managedWallet.changeWallets();
+    }
 
-        // Call `changeWallet` to request a wallet change.
-        mw.changeWallet(CONFIRMATION_WALLET, newValidAddress);
 
-        // Confirm that there's no active timelock update since the main wallet hasn't requested a change.
-        assertEq(mw.changeRequests(address(this), CONFIRMATION_WALLET), newValidAddress, "Confirmation wallet change request not recorded correctly.");
-        assertEq(mw.activeTimelocks(CONFIRMATION_WALLET, newValidAddress), 0, "There shouldn't be any active timelock.");
+    // A unit test to check the changeWallets function when called by the proposedMainWallet before the activeTimelock has expired. Expect the transaction to revert with the "Timelock not yet completed" error.
+	function testChangeWalletsRevertsWhenTimelockNotExpired() public {
+        ManagedWallet managedWallet = new ManagedWallet(alice, address(this));
+        address proposedMainWallet = address(0x3333);
+        address proposedConfirmationWallet = address(0x4444);
 
-        // Stop impersonation of the confirmation wallet.
+        // Simulate the proposal of new wallets
+        vm.prank(alice);
+        managedWallet.proposeWallets(proposedMainWallet, proposedConfirmationWallet);
+
+        // Send more than .05 ether to confirmation wallet to establish the active timelock
+        vm.prank(address(this));
+       (bool success,) =  address(managedWallet).call{value: 0.06 ether}("");
+
+        // Move forward in time but not past the timelock
+        uint256 timeBeforeTimelockExpires = managedWallet.activeTimelock() - 1 hours;
+        vm.warp(timeBeforeTimelockExpires);
+
+        // Attempt to change wallets prior to timelock expiry
+        vm.startPrank(proposedMainWallet);
+        vm.expectRevert("Timelock not yet completed");
+        managedWallet.changeWallets();
         vm.stopPrank();
     }
 
 
-    // A unit test to check the changeWallet function when both the main and confirmation wallets request a change to the same new address. Verify that the activeTimelocks mapping is updated correctly.
-	function testChangeWalletBothWalletsRequestSameNewAddress() public {
-        ManagedWallet managedWallet = new ManagedWallet(alice, address(this));
-        address newWalletAddress = address(0x3344);
+    // A unit test to check the changeWallets function when no proposed wallets are set (proposedMainWallet and proposedConfirmationWallet are zero addresses). Expect the transaction to revert with the "Invalid sender" error or because the timelock check would fail due to the default value of activeTimelock.
+	 function testChangeWalletsWithNoProposedWallets() public {
+            ManagedWallet managedWallet = new ManagedWallet(alice, address(this));
 
-        // Main wallet requests change
-        vm.prank(alice);
-        managedWallet.changeWallet(MAIN_WALLET, newWalletAddress);
-
-        // Confirmation wallet requests change to the same address
-        vm.prank(address(this));
-        managedWallet.changeWallet(MAIN_WALLET, newWalletAddress);
-
-        // Check the activeTimelocks mapping is updated correctly for the MAIN_WALLET and the newWalletAddress
-        uint256 expectedTimelock = block.timestamp + 30 days;
-        assertEq(managedWallet.activeTimelocks(MAIN_WALLET, newWalletAddress), expectedTimelock, "ActiveTimelock not updated correctly");
-}
-
-    // A unit test to check the cancelChangeRequest function when called by an address that is not the confirmation wallet. Expect to fail with "Invalid sender".
-	function testCancelChangeRequestByNonConfirmationWalletShouldFail() public {
-        ManagedWallet mw = new ManagedWallet(alice, address(this));
-        address nonConfirmationWallet = address(0xBEEF);
-
-        // Non-confirmation wallet attempts to cancel a change request
-        vm.prank(nonConfirmationWallet);
-        vm.expectRevert("Invalid sender");
-        mw.cancelChangeRequest(MAIN_WALLET);
-    }
-
-
-    // A unit test to check the cancelChangeRequest function for the confirmation wallet when there is no active change request. Verify that no internal state is altered, and a CancelChangeRequest event is emitted.
-	function testCancelChangeRequestWhenNoActiveChange() public {
-        ManagedWallet managedWallet = new ManagedWallet(alice, address(this));
-        address confirmationWalletAddress = managedWallet.confirmationWallet();
-
-        // Store state before calling cancelChangeRequest
-        address initialMainWallet = managedWallet.mainWallet();
-        address initialConfirmationWallet = managedWallet.confirmationWallet();
-        managedWallet.changeRequests(confirmationWalletAddress, MAIN_WALLET);
-        managedWallet.changeRequests(confirmationWalletAddress, CONFIRMATION_WALLET);
-
-        // Prank as the confirmation wallet and call cancelChangeRequest
-        vm.prank(confirmationWalletAddress);
-        managedWallet.cancelChangeRequest(MAIN_WALLET);
-
-        vm.prank(confirmationWalletAddress);
-        managedWallet.cancelChangeRequest(CONFIRMATION_WALLET);
-
-        // Ensure that the change requests are reset to address(0) after the cancel
-        assertEq(managedWallet.changeRequests(confirmationWalletAddress, MAIN_WALLET), address(0), "Main wallet change request was not cancelled.");
-        assertEq(managedWallet.changeRequests(confirmationWalletAddress, CONFIRMATION_WALLET), address(0), "Confirmation wallet change request was not cancelled.");
-
-        // Ensure no other state variables were altered
-        assertEq(managedWallet.mainWallet(), initialMainWallet, "Main wallet address should remain the same after cancellation.");
-        assertEq(managedWallet.confirmationWallet(), initialConfirmationWallet, "Confirmation wallet address should remain the same after cancellation.");
-
-        // Check that there are no active timelocks
-        assertEq(managedWallet.activeTimelocks(MAIN_WALLET, initialMainWallet), 0, "No active timelock should exist for main wallet.");
-        assertEq(managedWallet.activeTimelocks(CONFIRMATION_WALLET, initialConfirmationWallet), 0, "No active timelock should exist for confirmation wallet.");
-
-        // Emitting an event is not checked here as per the instructions given
-    }
-
-
-    // A unit test to check the becomeWallet function when the active timelock is 0 (not set). Expect to fail with "No active timelock".
-	function testBecomeWalletNoActiveTimelockShouldFail() public {
-        ManagedWallet managedWallet = new ManagedWallet(alice, address(this));
-        address randomAddress = address(0x3333);
-
-        vm.prank(randomAddress);
-        vm.expectRevert("No active timelock");
-        managedWallet.becomeWallet(MAIN_WALLET);
-    }
-
-
-    // A unit test to check the becomeWallet function when the active timelock is not yet completed (current timestamp is before the timelock). Expect to fail with "Timelock not yet completed".
-	function testBecomeWalletWithUncompletedTimelockShouldFail() public {
-        ManagedWallet managedWallet = new ManagedWallet(alice, address(this));
-
-        // Prank as alice to make a change wallet request
-        vm.prank(alice);
-        managedWallet.changeWallet(MAIN_WALLET, alice);
-        // Prank as this to simulate confirmation for the change wallet request
-        vm.prank(address(this));
-        managedWallet.changeWallet(MAIN_WALLET, alice);
-
-        // Retrieve the active timelock for MAIN_WALLET change to `alice` address
-        uint256 activeTimelock = managedWallet.activeTimelocks(MAIN_WALLET, alice);
-
-        // Skip to just before the timelock completes
-        vm.warp(activeTimelock - 1);
-
-        // Expect the "Timelock not yet completed" error when trying to becomeWallet before timelock period is over
-        vm.prank(alice);
-        vm.expectRevert("Timelock not yet completed");
-        managedWallet.becomeWallet(MAIN_WALLET);
-    }
-
-
-    // A unit test to check the becomeWallet function when the active timelock is completed but the confirmation wallet cancelled the request and the change request is no longer valid. Expect to fail with "Change no longer valid".
-	function testBecomeWalletWithCancelledChangeRequestShouldFail() public {
-        ManagedWallet mw = new ManagedWallet(alice, address(this));
-        address newWallet = address(0x3333);
-
-        // Prepare the test scenario: Alice proposes a change and the confirmation wallet agrees
-        vm.prank(alice);
-        mw.changeWallet(MAIN_WALLET, newWallet); // Alice requests a change to the new wallet
-        vm.prank(address(this));
-        mw.changeWallet(MAIN_WALLET, newWallet); // Confirmation wallet agrees to the change
-
-        // Warp to the future, after the timelock, but before anyone becomes the wallet.
-        vm.warp(block.timestamp + 30 days + 1);
-
-        // Cancel the change request by the confirmation wallet
-        vm.prank(address(this));
-        mw.cancelChangeRequest(MAIN_WALLET);
-
-        // Now try to become the main wallet, but expect it to fail because the change request has been cancelled
-        vm.expectRevert("Change no longer valid");
-        vm.prank(newWallet); // New wallet tries to become the main wallet
-        mw.becomeWallet(MAIN_WALLET);
-    }
-
-
-    // A unit test to check the becomeWallet function for the main wallet when the active timelock is completed and the change request is still valid. Verify that the main wallet address is updated correctly and both changeRequests and activeTimelocks are reset, and a WalletChanged event is emitted.
-	function testBecomeWalletWithCancelledChangeRequestShouldFail2() public {
-        ManagedWallet mw = new ManagedWallet(alice, address(this));
-        address newWallet = address(0x3333);
-
-        // Prepare the test scenario: Alice proposes a change and the confirmation wallet agrees
-        vm.prank(alice);
-        mw.changeWallet(MAIN_WALLET, newWallet); // Alice requests a change to the new wallet
-        vm.prank(address(this));
-        mw.changeWallet(MAIN_WALLET, newWallet); // Confirmation wallet agrees to the change
-
-        // Warp to the future, after the timelock, but before anyone becomes the wallet.
-        vm.warp(block.timestamp + 30 days + 1);
-
-        // Cancel the change request by the confirmation wallet
-        vm.prank(address(this));
-        mw.cancelChangeRequest(MAIN_WALLET);
-
-        // Now try to become the main wallet, but expect it to fail because the change request has been cancelled
-        vm.expectRevert("Change no longer valid");
-        vm.prank(newWallet); // New wallet tries to become the main wallet
-        mw.becomeWallet(MAIN_WALLET);
-    }
-
-
-    // A unit test to check the becomeWallet function for the confirmation wallet when the active timelock is completed and the change request is still valid. Verify that the confirmation wallet address is updated correctly and both changeRequests and activeTimelocks are reset.
-	  function testBecomeWalletWhenTimeLockCompletedAndChangeRequestValid() public {
-            ManagedWallet mw = new ManagedWallet(alice, address(this));
-            address newMainWallet = address(0x3333);
-
-            // Alice (main wallet) requests the change to the new address
-            vm.prank(alice);
-            mw.changeWallet(MAIN_WALLET, newMainWallet);
-
-            // Confirmation wallet (this contract) agrees to the change to the new address
-            vm.prank(address(this));
-            mw.changeWallet(MAIN_WALLET, newMainWallet);
-
-            // Warp to the future after the active timelock expires
-            uint256 timelockDuration = mw.CHANGE_WALLET_TIMELOCK();
-            vm.warp(block.timestamp + timelockDuration + 1);
-
-            // The new main wallet tries to become the wallet
-            vm.prank(newMainWallet);
-            mw.becomeWallet(MAIN_WALLET);
-
-            // Check that the main wallet address has been updated
-            assertEq(mw.mainWallet(), newMainWallet, "Main wallet address not updated correctly");
-
-            // Check that the changeRequests and activeTimelocks have been reset
-            assertEq(mw.changeRequests(alice, MAIN_WALLET), address(0), "Change request for old wallet should be reset");
-            assertEq(mw.changeRequests(newMainWallet, MAIN_WALLET), address(0), "Change request for new wallet should be reset");
-            assertEq(mw.activeTimelocks(MAIN_WALLET, newMainWallet), 0, "Active timelock should be reset");
-            // WalletChanged event check is omitted as instructed
+            // Check for revert due to "Invalid sender" when no proposed addresses are setup
+            vm.expectRevert("Invalid sender");
+            managedWallet.changeWallets();
         }
 
 
-    // A unit test to check the changeWallet function when a subsequent request for change is made by the same wallet with a different new address. Verify that the changeRequest mapping is updated with the new address and previous timelocks are invalidated.
-	function testChangeWalletWithSubsequentRequestUpdatesChangeRequestAndInvalidatesOldTimelocks() public {
-        ManagedWallet managedWallet = new ManagedWallet(alice, address(this));
-        address firstNewAddress = address(0x5555);
-        address secondNewAddress = address(0x6666);
+    // A unit test to check the functionality when the proposedMainWallet or proposedConfirmationWallet is the same as the current mainWallet or confirmationWallet respectively. Ensure that the function can still complete successfully if all other conditions are met.
+    function testProposeWalletsWithSameCurrentAddresses() public {
+        ManagedWallet managedWallet = new ManagedWallet(alice, alice);
 
-        // Alice requests a change to the first new address for MAIN_WALLET
-        vm.startPrank(alice);
-        managedWallet.changeWallet(MAIN_WALLET, firstNewAddress);
+        address newMainWalletAddress = alice; // Same as the current mainWallet
+        address newConfirmationWalletAddress = alice; // Same as the current confirmationWallet
 
-        // Check that the changeRequest for Alice and MAIN_WALLET is updated to firstNewAddress
-        assertEq(managedWallet.changeRequests(alice, MAIN_WALLET), firstNewAddress, "First changeRequest should be set to firstNewAddress");
-
-        // Alice requests a change to the second new address for MAIN_WALLET
-        managedWallet.changeWallet(MAIN_WALLET, secondNewAddress);
-        vm.stopPrank();
-
-        // Check that the changeRequest for Alice and MAIN_WALLET is updated to secondNewAddress
-        assertEq(managedWallet.changeRequests(alice, MAIN_WALLET), secondNewAddress, "ChangeRequest should be updated to secondNewAddress");
-    }
-
-
-    // A unit test to check the cancelChangeRequest function for the confirmation wallet when there is an active change request with a timelock. Verify that the changeRequest is set to address(0) and the active timelock remains unchanged.
-	function testCancelChangeRequestWithActiveTimelock() public {
-        // Arrange
-        ManagedWallet managedWallet = new ManagedWallet(alice, address(this));
-        address newMainWalletRequest = address(0xAAA);
-
-        // Initiate change wallet request by both wallets
+        // Ensure that no revert is expected even when the proposed wallets are the same as the current ones.
         vm.prank(alice);
-        managedWallet.changeWallet(MAIN_WALLET, newMainWalletRequest);
+        managedWallet.proposeWallets(newMainWalletAddress, newConfirmationWalletAddress);
 
-        vm.startPrank(address(this));
-        managedWallet.changeWallet(MAIN_WALLET, newMainWalletRequest);
-        address currentConfirmationWallet = managedWallet.confirmationWallet();
-        managedWallet.changeRequests(currentConfirmationWallet, MAIN_WALLET);
-        uint256 activeTimelockBeforeCancellation = managedWallet.activeTimelocks(MAIN_WALLET, newMainWalletRequest);
-
-        // Act
-        managedWallet.cancelChangeRequest(MAIN_WALLET);
-
-        // Assert
-        address changeRequestAfterCancellation = managedWallet.changeRequests(currentConfirmationWallet, MAIN_WALLET);
-        uint256 activeTimelockAfterCancellation = managedWallet.activeTimelocks(MAIN_WALLET, newMainWalletRequest);
-
-        assertEq(changeRequestAfterCancellation, address(0), "changeRequest should be reset to address(0)");
-        assertEq(activeTimelockAfterCancellation, activeTimelockBeforeCancellation, "Active timelock should remain unchanged");
-
-        // Clean up
-        vm.stopPrank();
-    }
-
-
-    // A unit test to check the becomeWallet function when the active timelock is completed, the change request is valid, but the sender provides an incorrect walletIndex. Expect to fail due to mismatch with the sender's address.
-	function testBecomeWalletWithCompletedTimelockAndValidRequestButIncorrectWalletIndexShouldFail() public {
-        ManagedWallet managedWallet = new ManagedWallet(alice, address(this));
-        address newWallet = address(0x3333);
-
-        // Setup: alice requests a wallet change and the confirmation wallet confirms
-        vm.prank(alice);
-        managedWallet.changeWallet(MAIN_WALLET, newWallet);
-        vm.prank(address(this));
-        managedWallet.changeWallet(MAIN_WALLET, newWallet);
-
-        // Warp to the future when the timelock has completed
-        vm.warp(block.timestamp + 30 days + 1);
-
-        // Using an incorrect wallet index, should fail as the sender address does not match the requested change.
-        // The incorrect walletIndex simulates a non-existent request or wrong wallet type.
-        vm.prank(newWallet);
-        vm.expectRevert("No active timelock");
-        managedWallet.becomeWallet(500);
-    }
-
-
-    // A unit test to check the becomeWallet function for an address that was a valid, completed timelocked change request which got overridden by a newer change request by the wallets. Ensure the older request can no longer be used to become the wallet.
-	function testBecomeWalletWithOverriddenChangeRequestShouldFail() public {
-		ManagedWallet mw = new ManagedWallet(alice, address(this));
-		address firstNewWallet = address(0x3333);
-		address secondNewWallet = address(0x4444);
-
-		// Set up initial change request by both wallets
-		vm.prank(alice);
-		mw.changeWallet(MAIN_WALLET, firstNewWallet);
-		vm.prank(address(this));
-		mw.changeWallet(MAIN_WALLET, firstNewWallet);
-
-		// Warp 30 days into the future to allow the timelock to complete
-		vm.warp(block.timestamp + 30 days);
-
-		// Overwrite with newer request change by both wallets before the firstNewWallet becomes the wallet
-		vm.prank(alice);
-		mw.changeWallet(MAIN_WALLET, secondNewWallet);
-		vm.prank(address(this));
-		mw.changeWallet(MAIN_WALLET, secondNewWallet);
-
-		// Attempt to become the main wallet using the older, timelocked request
-		vm.expectRevert("Change no longer valid");
-		vm.prank(firstNewWallet);
-		mw.becomeWallet(MAIN_WALLET);
-
-		// State check to confirm that the wallet has not been changed
-		assertEq(mw.mainWallet(), alice, "The main wallet should not have changed to the first new wallet");
-	}
-
-
-    // A unit test to check that after a successful becomeWallet call, attempting to call becomeWallet again with the same address and walletIndex fails due to the active timelock being reset to 0.
-	function testBecomeWalletThenAttemptAgainFails() public {
-        ManagedWallet managedWallet = new ManagedWallet(alice, address(this));
-        address newWalletAddress = address(0x3333);
-
-        // Alice requests change to new wallet address for MAIN_WALLET
-        vm.prank(alice);
-        managedWallet.changeWallet(MAIN_WALLET, newWalletAddress);
-
-        // Confirmation wallet confirms the change to the new wallet address for MAIN_WALLET
-        vm.prank(address(this));
-        managedWallet.changeWallet(MAIN_WALLET, newWalletAddress);
-
-        // Warp to after the timelock
-        vm.warp(block.timestamp + 30 days + 1);
-
-        // Become the new main wallet
-        vm.prank(newWalletAddress);
-        managedWallet.becomeWallet(MAIN_WALLET);
-
-        // Attempt to call becomeWallet again, it should fail due to the active timelock being reset to 0
-        vm.expectRevert("No active timelock");
-        vm.prank(newWalletAddress);
-        managedWallet.becomeWallet(MAIN_WALLET);
+        assertEq(managedWallet.proposedMainWallet(), newMainWalletAddress, "Proposed main wallet should be set correctly even if it's the same as current mainWallet");
+        assertEq(managedWallet.proposedConfirmationWallet(), newConfirmationWalletAddress, "Proposed confirmation wallet should be set correctly even if it's the same as current confirmationWallet");
     }
 	}

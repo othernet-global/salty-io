@@ -4,118 +4,88 @@ pragma solidity =0.8.22;
 import "./interfaces/IManagedWallet.sol";
 
 
-// A smart contract which provides two wallet addresses (a main and confirmation wallet) which can each be changed using the following mechanism:
-// 1. Both current wallets must approve any change.
-// 2. There is a timelock of 30 days before a proposed wallet can confirm the change.
-// 3. The confirmation wallet can cancel any pending change before it is finalized - by calling changeWallet with another address.
+// A smart contract which provides two wallet addresses (a main and confirmation wallet) which can be changed using the following mechanism:
+// 1. Main wallet can propose a new main wallet and confirmation wallet.
+// 2. Confirmation wallet confirms or rejects.
+// 3. There is a timelock of 30 days before the proposed mainWallet can confirm the change.
 
 contract ManagedWallet is IManagedWallet
     {
-    event WalletChangeRequested(uint256 indexed walletIndex, address requestedBy, address newWalletAddress);
-    event ActiveTimelockUpdated(uint256 indexed walletIndex, address newWalletAddress, uint256 timestamp);
-    event CancelChangeRequest(uint256 indexed walletIndex);
-    event WalletChanged(uint256 indexed walletIndex, address newWalletAddress);
+    event WalletProposal(address proposedMainWallet, address proposedConfirmationWallet);
+    event WalletChange(address mainWallet, address confirmationWallet);
 
-    uint256 constant public MAIN_WALLET = 0;
-    uint256 constant public CONFIRMATION_WALLET = 1;
+    uint256 constant public TIMELOCK_DURATION = 30 days;
 
-    uint256 constant public CHANGE_WALLET_TIMELOCK = 30 days;
+    // The active main and confirmation wallets
+    address public mainWallet;
+    address public confirmationWallet;
 
-    // The addresses of the main and confirmation wallets;
-    address[] public wallets;
+	// Proposed wallets
+    address public proposedMainWallet;
+    address public proposedConfirmationWallet;
 
-	// Change requests [caller][walletIndex]
-	mapping(address=>mapping(uint256=>address)) private _changeRequests;
-
-	// Active timelocks [walletIndex][newAddress]
-	mapping(uint256=>mapping(address=>uint256)) private _activeTimelocks;
+	// Active timelock
+    uint256 public activeTimelock;
 
 
 	constructor( address _mainWallet, address _confirmationWallet)
 		{
-		wallets = new address[](2);
+		mainWallet = _mainWallet;
+		confirmationWallet = _confirmationWallet;
 
-		wallets[MAIN_WALLET] = _mainWallet;
-		wallets[CONFIRMATION_WALLET] = _confirmationWallet;
+		// Write a value so subsequent writes take less gas
+		activeTimelock = type(uint256).max;
         }
 
 
 	// Make a request to change the main or confirmation wallet.
-	// If the change has been confirmed by both the main and confirmation wallets, then an activeTimelock for the change is created.
-	function changeWallet( uint256 walletIndex, address newAddress ) public
+	function proposeWallets( address _proposedMainWallet, address _proposedConfirmationWallet ) external
 		{
-		require( (msg.sender == mainWallet()) || ( msg.sender == confirmationWallet()), "Invalid sender" );
-		require( newAddress != address(0), "newAddress cannot be zero." );
+		require( msg.sender == mainWallet, "Only the current mainWallet can propose changes" );
+		require( _proposedMainWallet != address(0), "_proposedMainWallet cannot be the zero address" );
+		require( _proposedConfirmationWallet != address(0), "_proposedConfirmationWallet cannot be the zero address" );
 
-		// Record that the sender wants the specified wallet to be the new address
-		_changeRequests[msg.sender][walletIndex] = newAddress;
+		// Make sure we're not overwriting a previous proposal (only the confirmationWallet can reject)
+		require( proposedMainWallet == address(0), "Cannot overwrite non-zero proposed mainWallet." );
+		require( proposedConfirmationWallet == address(0), "Cannot overwrite non-zero proposed confirmationWallet." );
 
-		emit WalletChangeRequested(walletIndex, msg.sender, newAddress);
+		proposedMainWallet = _proposedMainWallet;
+		proposedConfirmationWallet = _proposedConfirmationWallet;
 
-		// If both the main and confirmation wallets have the same changeRequest then update activeTimelocks to allow final confirmation in 30 days.
-		if ( _changeRequests[ mainWallet() ][walletIndex] == newAddress )
-		if ( _changeRequests[ confirmationWallet() ][walletIndex] == newAddress )
-			{
-			_activeTimelocks[walletIndex][newAddress] = block.timestamp + CHANGE_WALLET_TIMELOCK;
-
-			emit ActiveTimelockUpdated(walletIndex, newAddress, _activeTimelocks[walletIndex][newAddress]);
-			}
+		emit WalletProposal(proposedMainWallet, proposedConfirmationWallet);
 		}
 
 
-	// Allow the confirmation wallet to cancel a change - as it will cause a require in the becomeWallet function to fail.
-	function cancelChangeRequest(uint256 walletIndex) public
+	// The confirmation wallet confirms or rejects wallet proposals by sending a specific amount of ETH to the contract
+    receive() external payable
+    	{
+    	require( msg.sender == confirmationWallet, "Invalid sender" );
+
+		// Confirm if .05 or more ether is sent and otherwise reject.
+		// Done this way in case custodial wallets are used as the confirmationWallet - which sometimes won't allow for specific smart contract calls.
+    	if ( msg.value >= .05 ether )
+    		activeTimelock = block.timestamp + TIMELOCK_DURATION; // establish the timelock
+    	else
+			activeTimelock = type(uint256).max; // effectively never
+        }
+
+
+	// Confirm the wallet proposals - assuming that the active timelock has already expired.
+	function changeWallets() external
 		{
-		require( msg.sender == confirmationWallet(), "Invalid sender" );
+		// proposedMainWallet calls the function - to make sure it is a valid address.
+		require( msg.sender == proposedMainWallet, "Invalid sender" );
+		require( block.timestamp >= activeTimelock, "Timelock not yet completed" );
 
-		_changeRequests[msg.sender][walletIndex] = address(0);
+		// Set the wallets
+		mainWallet = proposedMainWallet;
+		confirmationWallet = proposedConfirmationWallet;
 
-		emit CancelChangeRequest(walletIndex);
-		}
-
-
-	// Become the main or confirmation wallet - assuming that the active timelock from dual approval is already in place.
-	function becomeWallet( uint256 walletIndex ) public
-		{
-		require( _activeTimelocks[walletIndex][msg.sender] != 0, "No active timelock" );
-		require( block.timestamp >= _activeTimelocks[walletIndex][msg.sender], "Timelock not yet completed" );
-
-		// Make sure the confirmation wallet still considers the request valid - as a mechanism to cancel the change request.
-		require( _changeRequests[ confirmationWallet() ][walletIndex] == msg.sender, "Change no longer valid" );
+		emit WalletChange(mainWallet, confirmationWallet);
 
 		// Reset
-		_activeTimelocks[walletIndex][msg.sender] = 0;
-		_changeRequests[ mainWallet() ][walletIndex] = address(0);
-		_changeRequests[ confirmationWallet() ][walletIndex] = address(0);
-
-		// Make the change
-		wallets[walletIndex] = msg.sender;
-
-		emit WalletChanged(walletIndex, msg.sender);
+		activeTimelock = type(uint256).max;
+		proposedMainWallet = address(0);
+		proposedConfirmationWallet = address(0);
 		}
-
-
-    // === VIEWS ===
-    function mainWallet() public view returns (address wallet)
-    	{
-    	return wallets[MAIN_WALLET];
-    	}
-
-
-    function confirmationWallet() public view returns (address wallet)
-    	{
-    	return wallets[CONFIRMATION_WALLET];
-    	}
-
-
-   	function changeRequests( address caller, uint256 walletIndex ) external view returns (address newAddress)
-   		{
-   		return _changeRequests[caller][walletIndex];
-   		}
-
-
-   	function activeTimelocks( uint256 walletIndex, address newAddress ) external view returns (uint256 timelock)
-   		{
-   		return _activeTimelocks[walletIndex][newAddress];
-   		}
 	}
