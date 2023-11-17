@@ -1734,56 +1734,6 @@ function testMinLiquidityAndReclaimedAmounts() public {
     	}
 
 
-    // A unit test to test _placeInternalSwap limits swapAmountIn based on the reserves
-    function testPlaceInternalSwap() public
-    	{
-       	IERC20 token0 = new TestERC20("TEST", 18);
-       	IERC20 token1 = new TestERC20("TEST", 18);
-
-		vm.prank(address(dao));
-		poolsConfig.whitelistPool( pools,   token0, token1);
-
-		// Approvals for adding liquidity
-		token0.approve(address(collateralAndLiquidity),type(uint256).max);
-		token1.approve(address(collateralAndLiquidity),type(uint256).max);
-		token0.approve(address(pools),type(uint256).max);
-
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token0, token1, 1000 ether, 1000 ether, 0, block.timestamp, false );
-
-		(uint256 swapAmountIn, uint256 swapAmountOut) = PoolUtils._placeInternalSwap( pools, token0, token1, 100 ether, 1000 );
-
-//		console.log( "swapAmountIn: ", swapAmountIn );
-//		console.log( "swapAmountOut: ", swapAmountOut );
-		assertEq(swapAmountIn, 10000000000000000000 );
-		assertEq(swapAmountOut, 9900990099009900990 );
-    	}
-
-
-    // A unit test to test _placeInternalSwap that is small enough to not be limited by the reserves
-    function testPlaceSmallInternalSwap() public
-    	{
-       	IERC20 token0 = new TestERC20("TEST", 18);
-       	IERC20 token1 = new TestERC20("TEST", 18);
-
-		vm.prank(address(dao));
-		poolsConfig.whitelistPool( pools,   token0, token1);
-
-		// Approvals for adding liquidity
-		token0.approve(address(collateralAndLiquidity),type(uint256).max);
-		token1.approve(address(collateralAndLiquidity),type(uint256).max);
-		token0.approve(address(pools),type(uint256).max);
-
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token0, token1, 1000 ether, 1000 ether, 0, block.timestamp, false );
-
-		(uint256 swapAmountIn, uint256 swapAmountOut) = PoolUtils._placeInternalSwap( pools, token0, token1, 1 ether, 1000 );
-
-//		console.log( "swapAmountIn: ", swapAmountIn );
-//		console.log( "swapAmountOut: ", swapAmountOut );
-		assertEq(swapAmountIn, 1000000000000000000 );
-		assertEq(swapAmountOut, 999000999000999000 );
-    	}
-
-
 	// A unit test to check that depositDoubleSwapWithdraw functions correctly
 	function testDepositDoubleSwapWithdraw() public
 		{

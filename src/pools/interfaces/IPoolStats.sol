@@ -12,11 +12,11 @@ interface IPoolStats
 		uint64 index3;
 		}
 
-	function clearProfitsForPools( bytes32[] calldata poolIDs ) external;
+	function clearProfitsForPools() external;
 	function updateArbitrageIndicies() external;
 
 	// Views
-	function profitsForPools( bytes32[] memory poolIDs ) external view returns (uint256[] memory _profits);
+	function profitsForWhitelistedPools() external view returns (uint256[] memory _calculatedProfits);
 	function arbitrageIndicies(bytes32 poolID) external view returns (ArbitrageIndicies memory);
 	}
 

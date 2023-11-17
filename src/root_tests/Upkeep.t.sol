@@ -432,7 +432,7 @@ contract TestUpkeep2 is Deployment
 
 		// Check that the rewards were reset
 		vm.prank(address(upkeep));
-		uint256[] memory profitsForPools = IPoolStats(address(pools)).profitsForPools(poolIDs);
+		uint256[] memory profitsForPools = IPoolStats(address(pools)).profitsForWhitelistedPools();
 		for( uint256 i = 0; i < profitsForPools.length; i++ )
 			assertEq( profitsForPools[i], 0 );
 	  	}
