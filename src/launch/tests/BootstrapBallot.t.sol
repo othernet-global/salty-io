@@ -63,15 +63,15 @@ contract TestBootstrapBallot is Deployment
 
 			emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
-			poolsConfig.whitelistPool(  salt, wbtc);
-			poolsConfig.whitelistPool(  salt, weth);
-			poolsConfig.whitelistPool(  salt, usds);
-			poolsConfig.whitelistPool(  wbtc, usds);
-			poolsConfig.whitelistPool(  weth, usds);
-			poolsConfig.whitelistPool(  wbtc, dai);
-			poolsConfig.whitelistPool(  weth, dai);
-			poolsConfig.whitelistPool(  usds, dai);
-			poolsConfig.whitelistPool(  wbtc, weth);
+			poolsConfig.whitelistPool( pools,   salt, wbtc);
+			poolsConfig.whitelistPool( pools,   salt, weth);
+			poolsConfig.whitelistPool( pools,   salt, usds);
+			poolsConfig.whitelistPool( pools,   wbtc, usds);
+			poolsConfig.whitelistPool( pools,   weth, usds);
+			poolsConfig.whitelistPool( pools,   wbtc, dai);
+			poolsConfig.whitelistPool( pools,   weth, dai);
+			poolsConfig.whitelistPool( pools,   usds, dai);
+			poolsConfig.whitelistPool( pools,   wbtc, weth);
 
 			proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 
@@ -611,14 +611,14 @@ contract TestBootstrapBallot is Deployment
         vm.stopPrank();
 
         // Assert: Ensure `startExchangeApproved` is false initially
-        assertEq(pools.exchangeStarted(), false);
+        assertEq(pools.exchangeIsLive(), false);
 
         // Act: Warp to a future time when the ballot completion is due and finalize the ballot
         vm.warp(bootstrapBallot.completionTimestamp() + 1); // assuming completionTimestamp is provided
         bootstrapBallot.finalizeBallot();
 
         // Assert: Check if `startExchangeApproved` becomes true
-        assertEq(pools.exchangeStarted(), true, "startExchangeApproved should be true after ballot finalization with majority YES votes");
+        assertEq(pools.exchangeIsLive(), true, "startExchangeApproved should be true after ballot finalization with majority YES votes");
     }
 
 
@@ -651,7 +651,7 @@ contract TestBootstrapBallot is Deployment
 
         // Ensure that ballotFinalized = true and startExchangeApproved = true
         assertTrue(bootstrapBallot.ballotFinalized());
-        assertTrue(pools.exchangeStarted());
+        assertTrue(pools.exchangeIsLive());
 
         // Prepare to finalize the ballot again, expecting revert due to already being finalized
         vm.expectRevert("Ballot has already been finalized");
@@ -701,7 +701,7 @@ contract TestBootstrapBallot is Deployment
 
         // Ensure that ballotFinalized = true and startExchangeApproved = true
         assertTrue(bootstrapBallot.ballotFinalized());
-        assertTrue(! pools.exchangeStarted());
+        assertTrue(! pools.exchangeIsLive());
 
         // Prepare to finalize the ballot again, expecting revert due to already being finalized
         vm.expectRevert("Ballot has already been finalized");

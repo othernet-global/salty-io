@@ -42,7 +42,7 @@ contract PoolsConfig is IPoolsConfig, Ownable
 
 
 	// Whitelist a given pair of tokens
-	function whitelistPool( IERC20 tokenA, IERC20 tokenB ) external onlyOwner
+	function whitelistPool( IPools pools, IERC20 tokenA, IERC20 tokenB ) external onlyOwner
 		{
 		require( _whitelist.length() < maximumWhitelistedPools, "Maximum number of whitelisted pools already reached" );
 		require(tokenA != tokenB, "tokenA and tokenB cannot be the same token");
@@ -52,6 +52,9 @@ contract PoolsConfig is IPoolsConfig, Ownable
 		// Add to the whitelist and remember the underlying tokens for the pool
 		_whitelist.add(poolID);
 		underlyingPoolTokens[poolID] = TokenPair(tokenA, tokenB);
+
+		// Make sure that the cached arbitrage indicies in PoolStats are updated
+		pools.updateArbitrageIndicies();
 
  		emit PoolWhitelisted(address(tokenA), address(tokenB));
 		}
@@ -64,7 +67,7 @@ contract PoolsConfig is IPoolsConfig, Ownable
 		_whitelist.remove(poolID);
 		delete underlyingPoolTokens[poolID];
 
-		// Make sure that the cached arbitrage indicies are updated as EnumerableSet.remove alters the order of the whitelist
+		// Make sure that the cached arbitrage indicies in PoolStats are updated
 		pools.updateArbitrageIndicies();
 
 		emit PoolUnwhitelisted(address(tokenA), address(tokenB));

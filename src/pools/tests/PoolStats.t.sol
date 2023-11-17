@@ -153,9 +153,9 @@ contract TestPoolStats is Test, PoolStats
 		IERC20 weth = exchangeConfig.weth();
 
 		vm.startPrank(address(deployment.dao()));
-		deployment.poolsConfig().whitelistPool( tokenA,weth ); // whitelisted index #9
-		deployment.poolsConfig().whitelistPool( tokenB,weth ); // whitelisted index #10
-		deployment.poolsConfig().whitelistPool( tokenA,tokenB ); // whitelisted index #11
+		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenA,weth ); // whitelisted index #9
+		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenB,weth ); // whitelisted index #10
+		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenA,tokenB ); // whitelisted index #11
 		vm.stopPrank();
 
 		this.updateArbitrageIndicies();
@@ -190,11 +190,11 @@ contract TestPoolStats is Test, PoolStats
 		IERC20 weth = exchangeConfig.weth();
 
 		vm.startPrank(address(deployment.dao()));
-		deployment.poolsConfig().whitelistPool( tokenA,weth ); // whitelisted index #9
-		deployment.poolsConfig().whitelistPool( tokenA,tokenB ); // whitelisted index #10
-		deployment.poolsConfig().whitelistPool( tokenB,weth ); // whitelisted index #11
-		deployment.poolsConfig().whitelistPool( tokenB,tokenC ); // whitelisted index #12
-		deployment.poolsConfig().whitelistPool( tokenC,weth ); // whitelisted index #13
+		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenA,weth ); // whitelisted index #9
+		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenA,tokenB ); // whitelisted index #10
+		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenB,weth ); // whitelisted index #11
+		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenB,tokenC ); // whitelisted index #12
+		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenC,weth ); // whitelisted index #13
 		vm.stopPrank();
 
 		this.updateArbitrageIndicies();
@@ -234,9 +234,9 @@ contract TestPoolStats is Test, PoolStats
 		IERC20 weth = exchangeConfig.weth();
 
 		vm.startPrank(address(deployment.dao()));
-		deployment.poolsConfig().whitelistPool( tokenA,weth ); // whitelisted index #9
-		deployment.poolsConfig().whitelistPool( tokenA,tokenB ); // whitelisted index #10
-		deployment.poolsConfig().whitelistPool( tokenB,weth ); // whitelisted index #11
+		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenA,weth ); // whitelisted index #9
+		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenA,tokenB ); // whitelisted index #10
+		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenB,weth ); // whitelisted index #11
 		vm.stopPrank();
 
 		this.updateArbitrageIndicies();
@@ -263,11 +263,11 @@ contract TestPoolStats is Test, PoolStats
 		IERC20 weth = exchangeConfig.weth();
 
 		vm.startPrank(address(deployment.dao()));
-		deployment.poolsConfig().whitelistPool( tokenA,weth ); // whitelisted index #9
-		deployment.poolsConfig().whitelistPool( tokenA,tokenB ); // whitelisted index #10
-		deployment.poolsConfig().whitelistPool( tokenB,weth ); // whitelisted index #11
-		deployment.poolsConfig().whitelistPool( tokenC,weth ); // whitelisted index #12
-		deployment.poolsConfig().whitelistPool( tokenB,tokenC ); // whitelisted index #13 (will become #9 after unwhitelisting tokenA/weth)
+		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenA,weth ); // whitelisted index #9
+		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenA,tokenB ); // whitelisted index #10
+		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenB,weth ); // whitelisted index #11
+		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenC,weth ); // whitelisted index #12
+		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenB,tokenC ); // whitelisted index #13 (will become #9 after unwhitelisting tokenA/weth)
 		vm.stopPrank();
 
 		this.updateArbitrageIndicies();

@@ -41,8 +41,8 @@ contract TestMaxUpkeep is Deployment
     		IERC20 token = new TestERC20( "TEST", 18 );
 
     		vm.startPrank(address(dao));
-    		poolsConfig.whitelistPool( token, weth);
-    		poolsConfig.whitelistPool( token, wbtc);
+    		poolsConfig.whitelistPool( pools,  token, weth);
+    		poolsConfig.whitelistPool( pools,  token, wbtc);
 			vm.stopPrank();
 	    	}
 

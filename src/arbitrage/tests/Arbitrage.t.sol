@@ -34,8 +34,8 @@ contract TestArbitrage is Deployment
 		{
 		// Whitelist the tokens with WBTC and WETH
         vm.startPrank(address(dao));
-        poolsConfig.whitelistPool(  token, wbtc);
-        poolsConfig.whitelistPool(  token, weth);
+        poolsConfig.whitelistPool( pools,   token, wbtc);
+        poolsConfig.whitelistPool( pools,   token, weth);
         vm.stopPrank();
 
 		vm.startPrank(DEPLOYER);
@@ -70,8 +70,8 @@ contract TestArbitrage is Deployment
 		{
 		// Whitelist the tokens with WBTC and WETH
         vm.startPrank(address(dao));
-        poolsConfig.whitelistPool(  token, wbtc);
-        poolsConfig.whitelistPool(  token, weth);
+        poolsConfig.whitelistPool( pools,   token, wbtc);
+        poolsConfig.whitelistPool( pools,   token, weth);
         vm.stopPrank();
 
 		vm.startPrank(alice);
@@ -89,8 +89,8 @@ contract TestArbitrage is Deployment
 		{
 		// Whitelist the tokens with WBTC and WETH
         vm.startPrank(address(dao));
-        poolsConfig.whitelistPool(  token, wbtc);
-        poolsConfig.whitelistPool(  token, weth);
+        poolsConfig.whitelistPool( pools,   token, wbtc);
+        poolsConfig.whitelistPool( pools,   token, weth);
         vm.stopPrank();
 
 		vm.startPrank(DEPLOYER);
@@ -284,7 +284,7 @@ contract TestArbitrage is Deployment
 		_setupTokenForTesting(token2);
 
         vm.prank(address(dao));
-        poolsConfig.whitelistPool(  token1, token2);
+        poolsConfig.whitelistPool( pools,   token1, token2);
 
 		vm.startPrank(alice);
 		token1.approve( address(pools), type(uint256).max );
@@ -371,8 +371,8 @@ contract TestArbitrage is Deployment
 		{
 		// Whitelist the tokens with WBTC and WETH
         vm.startPrank(address(dao));
-        poolsConfig.whitelistPool(  token, wbtc);
-        poolsConfig.whitelistPool(  token, weth);
+        poolsConfig.whitelistPool( pools,   token, wbtc);
+        poolsConfig.whitelistPool( pools,   token, weth);
         vm.stopPrank();
 
 		vm.startPrank(DEPLOYER);

@@ -51,8 +51,8 @@ contract LiquidityTest is Deployment
 
         // Whitelist the _pools
 		vm.startPrank( address(dao) );
-        poolsConfig.whitelistPool(  token1, token2);
-        poolsConfig.whitelistPool(  token2, token3);
+        poolsConfig.whitelistPool( pools,   token1, token2);
+        poolsConfig.whitelistPool( pools,   token2, token3);
         vm.stopPrank();
 
 		vm.prank(DEPLOYER);
@@ -552,7 +552,7 @@ contract LiquidityTest is Deployment
 
         // Whitelist the _pools
 		vm.startPrank( address(dao) );
-        poolsConfig.whitelistPool( tokenA, tokenB);
+        poolsConfig.whitelistPool( pools,  tokenA, tokenB);
         vm.stopPrank();
 
         vm.startPrank(alice);

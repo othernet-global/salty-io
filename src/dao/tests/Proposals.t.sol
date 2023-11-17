@@ -552,7 +552,7 @@ staking.stakeSALT(1000 ether);
 //		console.log( "tokenHasBeenWhitelisted(): ", proposals.tokenHasBeenWhitelisted(wbtc) );
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool(   wbtc, weth );
+		poolsConfig.whitelistPool( pools,    wbtc, weth );
 
         vm.startPrank(alice);
         vm.expectRevert( "The token has already been whitelisted" );
@@ -710,10 +710,10 @@ staking.stakeSALT(1000 ether);
 		IERC20 dai = exchangeConfig.dai();
 
 		vm.startPrank(address(dao));
-		poolsConfig.whitelistPool(   wbtc, weth );
-		poolsConfig.whitelistPool(   wbtc, dai );
-		poolsConfig.whitelistPool(   wbtc, salt );
-		poolsConfig.whitelistPool(   wbtc, usds );
+		poolsConfig.whitelistPool( pools,    wbtc, weth );
+		poolsConfig.whitelistPool( pools,    wbtc, dai );
+		poolsConfig.whitelistPool( pools,    wbtc, salt );
+		poolsConfig.whitelistPool( pools,    wbtc, usds );
 		vm.stopPrank();
 
 		vm.startPrank(DEPLOYER);
@@ -752,9 +752,9 @@ staking.stakeSALT(1000 ether);
 
         // Whitelist the token (which will be paired with WBTC and WETH)
         vm.prank(address(dao));
-		poolsConfig.whitelistPool(   newToken, wbtc );
+		poolsConfig.whitelistPool( pools,    newToken, wbtc );
         vm.prank(address(dao));
-		poolsConfig.whitelistPool(   newToken, weth );
+		poolsConfig.whitelistPool( pools,    newToken, weth );
 
         // Unwhitelist the token and expect no revert
 		vm.prank( DEPLOYER );
@@ -1006,7 +1006,7 @@ staking.stakeSALT(1000 ether);
 		IERC20 weth = exchangeConfig.weth();
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool(   wbtc, weth );
+		poolsConfig.whitelistPool( pools,    wbtc, weth );
 
 		vm.startPrank(DEPLOYER);
         staking.stakeSALT( 2000000 ether );
@@ -1730,8 +1730,8 @@ staking.stakeSALT(1000 ether);
 
         // Whitelist the token
         vm.startPrank(address(dao));
-        poolsConfig.whitelistPool(testToken, wbtc);
-        poolsConfig.whitelistPool(testToken, weth);
+        poolsConfig.whitelistPool( pools, testToken, wbtc);
+        poolsConfig.whitelistPool( pools, testToken, weth);
         vm.stopPrank();
 
         // Check that the token is now whitelisted

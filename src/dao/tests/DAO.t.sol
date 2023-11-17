@@ -826,6 +826,10 @@ contract TestDAO is Deployment
     // A unit test to validate that SALT tokens are burned as expected by the processRewardsFromPOL function
     function testProcessRewardsFromPOL() public {
 
+		// Don't proceed with the test if using the live contracts
+		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("no" )))
+			return;
+
 		vm.warp( block.timestamp - 45 days );
 
 		// DAO needs to form some SALT/USDS and USDS/DAI liquidity to receive some rewards

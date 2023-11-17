@@ -40,7 +40,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	ICollateralAndLiquidity public collateralAndLiquidity;
 
 	// Set to true when starting the exchange is approved by the bootstrapBallot
-	bool public exchangeStarted;
+	bool public exchangeIsLive;
 
 	// Keeps track of the pool reserves by poolID
 	mapping(bytes32=>PoolReserves) private _poolReserves;
@@ -77,7 +77,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		// Make sure that the arbitrage indicies for the whitelisted pools are updated before starting the exchange
 		updateArbitrageIndicies();
 
-		exchangeStarted = true;
+		exchangeIsLive = true;
 		}
 
 
@@ -143,7 +143,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	function addLiquidity( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 totalLiquidity ) external nonReentrant returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
 		{
 		require( msg.sender == address(collateralAndLiquidity), "Pools.addLiquidity is only callable from the CollateralAndLiquidity contract" );
-		require( exchangeStarted, "The exchange is not yet live" );
+		require( exchangeIsLive, "The exchange is not yet live" );
 		require( address(tokenA) != address(tokenB), "Cannot add liquidity for duplicate tokens" );
 
 		require( maxAmountA > PoolUtils.DUST, "The amount of tokenA to add is too small" );
@@ -183,10 +183,10 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		reclaimedB = ( reserves.reserve1 * liquidityToRemove ) / totalLiquidity;
 
 		// Make sure that removing liquidity doesn't drive the reserves below DUST
-		if ( ( reserves.reserve0 - reclaimedA ) < PoolUtils.DUST )
+		if ( reserves.reserve0 < (reclaimedA + PoolUtils.DUST) )
 			reclaimedA = reserves.reserve0 - PoolUtils.DUST;
 
-		if ( ( reserves.reserve1 - reclaimedB ) < PoolUtils.DUST )
+		if ( reserves.reserve1 < (reclaimedB + PoolUtils.DUST) )
 			reclaimedB = reserves.reserve1 - PoolUtils.DUST;
 
 		reserves.reserve0 -= uint128(reclaimedA);

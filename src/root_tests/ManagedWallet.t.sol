@@ -259,6 +259,7 @@ contract TestManagedWallet is Deployment
         // Send more than .05 ether to confirmation wallet to establish the active timelock
         vm.prank(address(this));
        (bool success,) =  address(managedWallet).call{value: 0.06 ether}("");
+		assertTrue(success);
 
         // Move forward in time but not past the timelock
         uint256 timeBeforeTimelockExpires = managedWallet.activeTimelock() - 1 hours;

@@ -7,7 +7,7 @@ import "./IPools.sol";
 
 interface IPoolsConfig
 	{
-	function whitelistPool( IERC20 tokenA, IERC20 tokenB ) external; // onlyOwner
+	function whitelistPool(  IPools pools, IERC20 tokenA, IERC20 tokenB ) external; // onlyOwner
 	function unwhitelistPool( IPools pools, IERC20 tokenA, IERC20 tokenB ) external; // onlyOwner
 	function changeMaximumWhitelistedPools(bool increase) external; // onlyOwner
 	function changeMaximumInternalSwapPercentTimes1000(bool increase) external; // onlyOwner

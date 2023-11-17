@@ -50,16 +50,16 @@ contract TestPools2 is Deployment
 		for( uint256 i = 0; i < 9; i++ )
 			{
 			vm.prank(address(dao));
-			poolsConfig.whitelistPool(   tokens[i], tokens[i + 1] );
+			poolsConfig.whitelistPool( pools,    tokens[i], tokens[i + 1] );
 
 			vm.prank(DEPLOYER);
 			collateralAndLiquidity.depositLiquidityAndIncreaseShare( tokens[i], tokens[i + 1], 500 ether, 500 ether, 0, block.timestamp, false );
 			}
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool(   tokens[5], tokens[7] );
+		poolsConfig.whitelistPool( pools,    tokens[5], tokens[7] );
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool(   tokens[0], tokens[9] );
+		poolsConfig.whitelistPool( pools,    tokens[0], tokens[9] );
 
 		vm.startPrank( DEPLOYER );
 		collateralAndLiquidity.depositLiquidityAndIncreaseShare( tokens[5], tokens[7], 1000 ether, 1000 ether, 0, block.timestamp, false );
@@ -228,7 +228,7 @@ contract TestPools2 is Deployment
 
     	// Scenario: Add liquidity and update pool reserves
     	vm.prank( address(dao));
-    	poolsConfig.whitelistPool(  tokens[5], tokens[7] );
+    	poolsConfig.whitelistPool( pools,   tokens[5], tokens[7] );
 
 		vm.startPrank(address(collateralAndLiquidity));
     	pools.addLiquidity(tokens[5], tokens[7], 1 ether, 1 ether, 0, collateralAndLiquidity.totalShares( PoolUtils._poolIDOnly(tokens[5], tokens[7])));
@@ -269,8 +269,8 @@ contract TestPools2 is Deployment
 			vm.stopPrank();
 
 			vm.startPrank(address(dao));
-			poolsConfig.whitelistPool(  token0, token1);
-			poolsConfig.whitelistPool(  token1, token2);
+			poolsConfig.whitelistPool( pools,   token0, token1);
+			poolsConfig.whitelistPool( pools,   token1, token2);
 			vm.stopPrank();
 
 			vm.startPrank(address(collateralAndLiquidity));
@@ -354,7 +354,7 @@ contract TestPools2 is Deployment
 
 
   		vm.startPrank(address(dao));
-        poolsConfig.whitelistPool(  tokenIn, tokenOut);
+        poolsConfig.whitelistPool( pools,   tokenIn, tokenOut);
 		vm.stopPrank();
 
   		vm.startPrank(address(collateralAndLiquidity));
@@ -441,7 +441,7 @@ contract TestPools2 is Deployment
         vm.stopPrank();
 
         vm.prank(address(dao));
-        poolsConfig.whitelistPool(  tokens[0], undepositedToken);
+        poolsConfig.whitelistPool( pools,   tokens[0], undepositedToken);
 
    		vm.startPrank(address(collateralAndLiquidity));
         assertEq(0, pools.depositedUserBalance(address(collateralAndLiquidity), undepositedToken));
@@ -477,7 +477,7 @@ contract TestPools2 is Deployment
 		vm.stopPrank();
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool(  tokenA, tokenB);
+		poolsConfig.whitelistPool( pools,   tokenA, tokenB);
 
         vm.startPrank(address(collateralAndLiquidity));
 
@@ -534,7 +534,7 @@ contract TestPools2 is Deployment
 		vm.stopPrank();
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool(  token0, token1);
+		poolsConfig.whitelistPool( pools,   token0, token1);
 
    		vm.startPrank(address(collateralAndLiquidity));
         token0.approve(address(pools), type(uint256).max);
@@ -760,7 +760,7 @@ contract TestPools2 is Deployment
        	vm.stopPrank();
 
        	vm.prank(address(dao));
-       	poolsConfig.whitelistPool(  token0, token1);
+       	poolsConfig.whitelistPool( pools,   token0, token1);
 
    		vm.startPrank(address(collateralAndLiquidity));
     	token0.transfer(alice, 1000 ether);
@@ -827,7 +827,7 @@ contract TestPools2 is Deployment
        	vm.stopPrank();
 
 		vm.prank(address(dao));
-       	poolsConfig.whitelistPool(  token0, token1);
+       	poolsConfig.whitelistPool( pools,   token0, token1);
 
    		vm.startPrank(address(collateralAndLiquidity));
     	token0.transfer(alice, 1000 ether);
@@ -963,7 +963,7 @@ contract TestPools2 is Deployment
        	vm.stopPrank();
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool(  token0, token1);
+		poolsConfig.whitelistPool( pools,   token0, token1);
 
    		vm.startPrank(address(collateralAndLiquidity));
 		bytes32 poolID = PoolUtils._poolIDOnly(token0, token1);
@@ -1146,7 +1146,7 @@ contract TestPools2 is Deployment
 		vm.stopPrank();
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool(  token0, token1);
+		poolsConfig.whitelistPool( pools,   token0, token1);
 
 		// Add the initial liquidity
 		vm.startPrank(alice);
@@ -1243,8 +1243,8 @@ contract TestPools2 is Deployment
 		vm.stopPrank();
 
 		vm.startPrank(address(dao));
-		poolsConfig.whitelistPool(  chain[0], chain[1]);
-		poolsConfig.whitelistPool(  chain[1], chain[2]);
+		poolsConfig.whitelistPool( pools,   chain[0], chain[1]);
+		poolsConfig.whitelistPool( pools,   chain[1], chain[2]);
 		vm.stopPrank();
 
 		vm.startPrank(address(collateralAndLiquidity));
@@ -1419,7 +1419,7 @@ function testMinLiquidityAndReclaimedAmounts() public {
         vm.stopPrank();
 
         vm.prank(address(dao));
-        poolsConfig.whitelistPool(  token0, token1);
+        poolsConfig.whitelistPool( pools,   token0, token1);
 
 		vm.startPrank(address(collateralAndLiquidity));
 		token0.approve( address(pools), type(uint256).max );
@@ -1449,7 +1449,7 @@ function testMinLiquidityAndReclaimedAmounts() public {
 		vm.stopPrank();
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool(  token0, token1);
+		poolsConfig.whitelistPool( pools,   token0, token1);
 
 		vm.startPrank(address(alice));
 		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token0, token1, initialLiquidity0 * 10 ** decimals0, initialLiquidity1 * 10 ** decimals1, 0, block.timestamp, false );
@@ -1545,7 +1545,7 @@ function testMinLiquidityAndReclaimedAmounts() public {
 		vm.stopPrank();
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool(  token0, token1);
+		poolsConfig.whitelistPool( pools,   token0, token1);
 
 		vm.startPrank(alice);
 		token0.approve(address(pools),type(uint256).max);
@@ -1650,7 +1650,7 @@ function testMinLiquidityAndReclaimedAmounts() public {
             uint256 zapAmountB = 1000 ether;
 
 			vm.prank(address(dao));
-			poolsConfig.whitelistPool(  tokenA, tokenB);
+			poolsConfig.whitelistPool( pools,   tokenA, tokenB);
 
             // make initial deposits
             tokenA.approve(address(collateralAndLiquidity),type(uint256).max);
@@ -1709,8 +1709,8 @@ function testMinLiquidityAndReclaimedAmounts() public {
        	IERC20 token2 = new TestERC20("TEST", 18);
 
 		vm.startPrank(address(dao));
-		poolsConfig.whitelistPool(  token0, token1);
-		poolsConfig.whitelistPool(  token1, token2);
+		poolsConfig.whitelistPool( pools,   token0, token1);
+		poolsConfig.whitelistPool( pools,   token1, token2);
 		vm.stopPrank();
 
 		// Approvals for adding liquidity
@@ -1741,7 +1741,7 @@ function testMinLiquidityAndReclaimedAmounts() public {
        	IERC20 token1 = new TestERC20("TEST", 18);
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool(  token0, token1);
+		poolsConfig.whitelistPool( pools,   token0, token1);
 
 		// Approvals for adding liquidity
 		token0.approve(address(collateralAndLiquidity),type(uint256).max);
@@ -1766,7 +1766,7 @@ function testMinLiquidityAndReclaimedAmounts() public {
        	IERC20 token1 = new TestERC20("TEST", 18);
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool(  token0, token1);
+		poolsConfig.whitelistPool( pools,   token0, token1);
 
 		// Approvals for adding liquidity
 		token0.approve(address(collateralAndLiquidity),type(uint256).max);
@@ -1802,10 +1802,10 @@ function testMinLiquidityAndReclaimedAmounts() public {
 		vm.stopPrank();
 
 		vm.startPrank(address(dao));
-		poolsConfig.whitelistPool(tokenA, wbtc);
-		poolsConfig.whitelistPool(tokenA, weth);
-		poolsConfig.whitelistPool(tokenB, wbtc);
-		poolsConfig.whitelistPool(tokenB, weth);
+		poolsConfig.whitelistPool( pools, tokenA, wbtc);
+		poolsConfig.whitelistPool( pools, tokenA, weth);
+		poolsConfig.whitelistPool( pools, tokenB, wbtc);
+		poolsConfig.whitelistPool( pools, tokenB, weth);
 		vm.stopPrank();
 
 		vm.startPrank(DEPLOYER);
@@ -1815,59 +1815,8 @@ function testMinLiquidityAndReclaimedAmounts() public {
 		collateralAndLiquidity.depositLiquidityAndIncreaseShare(tokenB, weth, 1000 ether, 1000 ether, 0, block.timestamp, false);
 
 		uint256 gas0 = gasleft();
-		uint256 amountOut = pools.depositDoubleSwapWithdraw(tokenA, weth, tokenB, 10 ether, 0, block.timestamp);
+		pools.depositDoubleSwapWithdraw(tokenA, weth, tokenB, 10 ether, 0, block.timestamp);
 		console.log( "DOUBLE SWAP GAS: ", gas0 - gasleft() );
 		vm.stopPrank();
 		}
-
-
-	// A unit test that ensures the `renounceOwnership` function within `setContracts` function really revokes ownership and no owner-only function can be called after that.
-	// A unit test that checks `addLiquidity` with a reversed token order (`tokenB`, `tokenA` instead of `tokenA`, `tokenB`) to ensure that liquidity is added correctly regardless of the order.
-	// A unit test that tests for correct calculation of rewards distribution after an arbitrage opportunity is exploited.
-	// A unit test that tests withdrawal fails if a user tries to withdraw more tokens than they have deposited.
-	// A unit test that checks that a swap transaction reverts if attempted with a non-whitelisted token pair.
-	// A unit test that ensures appropriate events (`LiquidityAdded`, `LiquidityRemoved`, `TokenDeposit`, `TokenWithdrawal`, `SwapAndArbitrage`) are emitted with correct parameters on each respective action.
-	// A unit test that tests for proper reversion when attempting to start the exchange without the `_startExchangeApproved` flag being set.
-	// A unit test that checks that an attempt to add liquidity to a non-existent pool reverts as expected.
-	// A unit test that verifies that `addLiquidity` respects the deposited token ratio when reserves are non-zero.
-	// A unit test that checks if the total liquidity adjusts correctly after multiple sequential adds and removes of liquidity by different users.
-	// A unit test that verifies the swap functionality when a pool is imbalanced and how it impacts arbitrage profit.
-	// A unit test that attempts swapping with exact in and exact out to check for slippage handling.
-	// A unit test that ensures arithmetic underflow and overflow do not occur during add/remove liquidity operations and swaps (test with large numbers, boundary conditions).
-	// A unit test that checks if the protocol correctly handles deposits and withdraws of dust amounts (just above and just below the PoolUtils.DUST limit).
-	// A unit test that simulates a high-volume swap and checks if arbitrage correctly rebalances the pool.
-	// A unit test that checks that calling `deposit` and `withdraw` functions affects the `_userDeposits` mapping correctly.
-	// A unit test that ensures `addLiquidity` and `removeLiquidity` revert if called before the exchange is live (`_startExchangeApproved` set to true).
-	// A unit test that confirms the behavior of `addLiquidity` when one of the tokens has a high decimal count and the other one has a low decimal count, creating a situation where the token amounts in the pool become very disproportionate.
-	// A unit test that checks if liquidity is correctly returned when a user removes only a fraction of their total liquidity in a pool.
-	// A unit test that checks the behavior of `_addLiquidity` when one of the `maxAmount` inputs is so small that adding it to the pool would not change the pool's liquidity due to rounding.
-
-
-	// A unit test that checks transfer of ownership of the contract to a new owner.
-	// A unit test that verifies withdrawal of a token does not proceed if the contract's balance of the token is less than the requested amount, despite user balance being sufficient.
-	// A unit test that checks the exact amount of tokens transferred after calling `deposit`.
-	// A unit test that ensures `withdraw` transfers the exact amount of tokens back to the user.
-	// A unit test that confirms fee on transfer tokens are handled correctly when depositing.
-	// A unit test that confirms fee on transfer tokens are handled correctly when withdrawing.
-	// A unit test that verifies the swap function reverts when the input token is not whitelisted.
-	// A unit test that checks if a swap fails when the output token is not whitelisted.
-	// A unit test that checks the behavior when calling `withdraw` with amount greater than the token balance of the contract.
-	// A unit test that attempts a swap with a zero `minAmountOut`, expecting success under normal conditions.
-	// A unit test that verifies owner cannot call functions after renouncing ownership.
-	// A unit test that checks balance consistency of `_userDeposits` mapping after several deposit and withdrawal actions by the same user.
-	// A unit test that confirms correct handling of rounding errors during the addition and removal of liquidity.
-	// A unit test that tests boundary conditions of `_addLiquidity` where one of the `maxAmount` inputs is exactly PoolUtils.DUST.
-	// A unit test that checks the behavior of `_addLiquidity` when both `maxAmount` inputs are very large, near the limits of uint256.
-	// A unit test that confirms the swap function properly reverts when the deadline is set in the past.
-	// A unit test that confirms that only whitelisted tokens can be used for _arbitrage.
-	// A unit test that verifies `startExchangeApproved` reverts if called by an address other than the `bootstrapBallot`.
-	// A unit test that verifies `setContracts` can no longer be called after ownership has been renounced.
-	// A unit test that verifies correct transfer of `swapAmountOut` to the sender after calling `depositSwapWithdraw`.
-	// A unit test that confirms that `_userDeposits` mapping is updated after a successful `depositSwapWithdraw`.
-	// A unit test that verifies reversion if `_addLiquidity` is called for a non-whitelisted pair.
-	// A unit test that confirms the protocol fee is accounted for after a swap.
-	// A unit test that tests the behavior when `_adjustReservesForSwap` is called with a very small swapAmountIn that causes negligible reserve changes.
-	// A unit test that checks whether dust reserves are reached during high slippage swaps and ensures they are handled properly.
-	// A unit test that checks `_adjustReservesForSwap` successfully updates the internal reserves mapping after a swap.
-	// A unit test that checks `_attemptArbitrage` with an insufficient swapAmountIn to generate profit reverts correctly.
     }

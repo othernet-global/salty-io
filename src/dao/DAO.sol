@@ -246,8 +246,8 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 			require( bestWhitelistingBallotID == ballotID, "Only the token whitelisting ballot with the most votes can be finalized" );
 
 			// All tokens are paired with both WBTC and WETH, so whitelist both pairings
-			poolsConfig.whitelistPool( IERC20(ballot.address1), exchangeConfig.wbtc() );
-			poolsConfig.whitelistPool( IERC20(ballot.address1), exchangeConfig.weth() );
+			poolsConfig.whitelistPool( pools,  IERC20(ballot.address1), exchangeConfig.wbtc() );
+			poolsConfig.whitelistPool( pools,  IERC20(ballot.address1), exchangeConfig.weth() );
 
 			bytes32 pool1 = PoolUtils._poolIDOnly( IERC20(ballot.address1), exchangeConfig.wbtc() );
 			bytes32 pool2 = PoolUtils._poolIDOnly( IERC20(ballot.address1), exchangeConfig.weth() );

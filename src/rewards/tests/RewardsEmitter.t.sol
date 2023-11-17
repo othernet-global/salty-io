@@ -47,8 +47,8 @@ contract TestRewardsEmitter is Deployment
 
         // Whitelist
         vm.startPrank(address(dao));
-        poolsConfig.whitelistPool(  token1, token2);
-        poolsConfig.whitelistPool(  token2, token3);
+        poolsConfig.whitelistPool( pools,   token1, token2);
+        poolsConfig.whitelistPool( pools,   token2, token3);
         vm.stopPrank();
 
         vm.startPrank(DEPLOYER);
@@ -612,7 +612,7 @@ contract TestRewardsEmitter is Deployment
 
         // Whitelist the previously unlisted pool and add rewards again
         vm.prank(address(dao));
-        poolsConfig.whitelistPool(  tokenA, tokenB);
+        poolsConfig.whitelistPool( pools,   tokenA, tokenB);
 
         // Add rewards to the now whitelisted pool
         liquidityRewardsEmitter.addSALTRewards(addedRewards);

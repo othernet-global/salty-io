@@ -22,7 +22,7 @@ interface IPools is IPoolStats
 	function depositDoubleSwapWithdraw( IERC20 swapTokenIn, IERC20 swapTokenMiddle, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline ) external returns (uint256 swapAmountOut);
 
 	// Views
-	function exchangeStarted() external view returns (bool);
+	function exchangeIsLive() external view returns (bool);
 	function getPoolReserves(IERC20 tokenA, IERC20 tokenB) external view returns (uint256 reserveA, uint256 reserveB);
 	function depositedUserBalance(address user, IERC20 token) external view returns (uint256);
 	}
