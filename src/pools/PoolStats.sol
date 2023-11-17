@@ -45,9 +45,11 @@ abstract contract PoolStats is IPoolStats
 
 
 	// Called at the end of Upkeep.performUpkeep to reset the arbitrage stats for the pools
-	function clearProfitsForPools( bytes32[] calldata poolIDs ) external
+	function clearProfitsForPools() external
 		{
 		require(msg.sender == address(exchangeConfig.upkeep()), "PoolStats.clearProfitsForPools is only callable from the Upkeep contract" );
+
+		bytes32[] memory poolIDs = poolsConfig.whitelistedPools();
 
 		for( uint256 i = 0; i < poolIDs.length; i++ )
 			_arbitrageProfits[ poolIDs[i] ] = 0;
@@ -121,10 +123,10 @@ abstract contract PoolStats is IPoolStats
 	// === VIEWS ===
 
 	// Look at the arbitrage that has been generated since the last performUpkeep and determine how much each of the pools contributed to those generated profits.
-	// Only callable by the Upkeep contract.
-	function profitsForPools( bytes32[] calldata poolIDs ) external view returns (uint256[] memory _calculatedProfits)
+	// Returns the profits for all of the current whitelisted pools
+	function profitsForWhitelistedPools() external view returns (uint256[] memory _calculatedProfits)
 		{
-		require(msg.sender == address(exchangeConfig.upkeep()), "PoolStats.profitsForPools is only callable from the Upkeep contract" );
+		bytes32[] memory poolIDs = poolsConfig.whitelistedPools();
 
 		_calculatedProfits = new uint256[](poolIDs.length);
 		_calculateArbitrageProfits( poolIDs, _calculatedProfits );
