@@ -204,12 +204,11 @@ contract Upkeep is IUpkeep, ReentrancyGuard
 	// 7. Distribute SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter.
 	function step7() public onlySameContract
 		{
+		uint256[] memory profitsForPools = pools.profitsForWhitelistedPools();
+
 		bytes32[] memory poolIDs = poolsConfig.whitelistedPools();
-
-		uint256[] memory profitsForPools = pools.profitsForPools(poolIDs);
-
 		saltRewards.performUpkeep(poolIDs, profitsForPools );
-		pools.clearProfitsForPools(poolIDs);
+		pools.clearProfitsForPools();
 		}
 
 
