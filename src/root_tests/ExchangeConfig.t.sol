@@ -111,4 +111,10 @@ contract TestExchangeConfig is Deployment
     	// Call `walletHasAccess` function with a non-DAO address which is not allowed by accessManager
     	assertFalse(exchangeConfig.walletHasAccess(address(0x1234)));
     }
+
+
+
+	// A unit test that verifies `setContracts` reverts if called more than once.
+    // A unit test that checks if `setAccessManager` correctly reverts when supplied with the zero address as parameter.
+    // A unit test that checks `walletHasAccess` function when the given wallet address is the Airdrop address, should return true.
 	}

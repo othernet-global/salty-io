@@ -275,5 +275,4 @@ contract TestAccessManager is Deployment
 
 		assertEq( recoveredAddress, 0x1234519DCA2ef23207E1CA7fd70b96f281893bAa, "Incorrect recovered address" );
 		}
-    }
-
+	}

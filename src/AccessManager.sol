@@ -12,8 +12,7 @@ import "./SigningTools.sol";
 //
 // This contract can be replaced by the DAO with other mechanics such as completely open access, decentralized ID services, KYC by region, or whatever else deemed the best option by the DAO.
 //
-// Making proposals and voting is not access restricted - just in case AccessManager.sol is ever updated with a flaw in it that universally prevents access (which would effectively cripple the DAO if proposals and voting were then mistakingly restricted).
-// Acquiring xSALT still requires access though as the underlying staking mechanism itself requires access.
+// Making proposals and voting is not access restricted - just in case AccessManager.sol is ever updated with a flaw in it that universally blocks access (which would effectively cripple the DAO if proposals and voting were then mistakingly restricted).
 //
 // Updateable using DAO.proposeSetContractAddress( "accessManager" )
 
