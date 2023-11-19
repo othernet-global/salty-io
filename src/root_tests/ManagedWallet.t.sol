@@ -297,4 +297,70 @@ contract TestManagedWallet is Deployment
         assertEq(managedWallet.proposedMainWallet(), newMainWalletAddress, "Proposed main wallet should be set correctly even if it's the same as current mainWallet");
         assertEq(managedWallet.proposedConfirmationWallet(), newConfirmationWalletAddress, "Proposed confirmation wallet should be set correctly even if it's the same as current confirmationWallet");
     }
+
+
+    // A unit test to ensure that when the mainWallet is changed, subsequent calls to proposeWallets by the old mainWallet address fail.
+    function testChangeMainWalletAndFailSubsequentProposeWalletsByOldMainWallet() public {
+            address newMainWallet = address(0x3333);
+            ManagedWallet managedWallet = new ManagedWallet(alice, address(this));
+
+            // Propose new main wallet
+            vm.prank(alice);
+            managedWallet.proposeWallets(newMainWallet, address(this));
+
+            // Confirm the proposal as the confirmation wallet
+            vm.prank(address(this));
+        	vm.deal(address(this), 0.06 ether);
+            (bool success,) = address(managedWallet).call{value: 0.06 ether}("");
+            assertTrue(success, "Confirmation of proposal failed");
+
+            // Forward time past the active timelock
+            vm.warp(block.timestamp + TIMELOCK_DURATION);
+
+            // Change the wallets using the new proposed main wallet
+            vm.startPrank(newMainWallet);
+            managedWallet.changeWallets();
+            vm.stopPrank();
+
+            // Ensure that the main wallet has been changed
+            assertEq(managedWallet.mainWallet(), newMainWallet, "mainWallet should be updated to newMainWallet");
+
+            // Attempt to propose wallets by the old main wallet (alice)
+            address attemptNewProposedMainWallet = address(0x5555);
+            address attemptNewProposedConfirmationWallet = address(0x6666);
+
+            // Expect revert because alice is not the main wallet anymore
+            vm.startPrank(alice);
+            vm.expectRevert("Only the current mainWallet can propose changes");
+            managedWallet.proposeWallets(attemptNewProposedMainWallet, attemptNewProposedConfirmationWallet);
+            vm.stopPrank();
+    }
+
+
+    // A unit test to verify that upon proposing new wallets, the activeTimelock remains unchanged until the confirmationWallet sends the necessary ether.
+    function testActiveTimelockUnchangedUntilConfirmation() public {
+        ManagedWallet managedWallet = new ManagedWallet(alice, address(this));
+
+        // Propose new wallets
+        address newMainWallet = address(0x3333);
+        address newConfirmationWallet = address(0x4444);
+        vm.prank(alice);
+        managedWallet.proposeWallets(newMainWallet, newConfirmationWallet);
+
+        // Check that activeTimelock is not yet set (remains the max uint256 value)
+        uint256 activeTimelockBefore = managedWallet.activeTimelock();
+        assertEq(activeTimelockBefore, type(uint256).max, "initial activeTimelock should be max uint256");
+
+        // Confirmation wallet sends necessary ether to confirm the proposal
+        uint256 amountToSend = 1 ether;
+        vm.prank(address(this));
+        vm.deal(address(this), amountToSend);
+		(bool success,) = address(managedWallet).call{value: amountToSend}("");
+		assertTrue(success, "Confirmation of proposal failed");
+
+        // Ensure activeTimelock is now updated to current timestamp + TIMELOCK_DURATION
+        uint256 expectedTimelock = block.timestamp + TIMELOCK_DURATION;
+        uint256 activeTimelockAfterValidConfirmation = managedWallet.activeTimelock();
+        assertEq(activeTimelockAfterValidConfirmation, expectedTimelock, "activeTimelock not updated after confirmation");
+    }
 	}

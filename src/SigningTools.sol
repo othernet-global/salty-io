@@ -3,7 +3,7 @@ pragma solidity =0.8.22;
 
 library SigningTools
 	{
-	// The public address of the signer for BootstrapBallot voting and default AccessManager
+	// The public address of the signer for verfication of BootstrapBallot voting and default AccessManager
 	address constant public EXPECTED_SIGNER = 0x1234519DCA2ef23207E1CA7fd70b96f281893bAa;
 
 

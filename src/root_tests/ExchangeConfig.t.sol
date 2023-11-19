@@ -113,8 +113,42 @@ contract TestExchangeConfig is Deployment
     }
 
 
-
 	// A unit test that verifies `setContracts` reverts if called more than once.
+	function testSetContractsRevertsIfCalledMoreThanOnce() public {
+        // Arrange: Deploy the contract and setup contracts for the first time
+        vm.prank(address(this));
+        ExchangeConfig exchangeConfig = new ExchangeConfig(salt, wbtc, weth, dai, usds, managedTeamWallet);
+
+        IDAO mockDao = IDAO(address(0x1));
+        IUpkeep mockUpkeep = IUpkeep(address(0x2));
+        IInitialDistribution mockInitialDistribution = IInitialDistribution(address(0x3));
+        IAirdrop mockAirdrop = IAirdrop(address(0x4));
+
+        // Act: Call setContracts for the first time
+        exchangeConfig.setContracts(mockDao, mockUpkeep, mockInitialDistribution, mockAirdrop, teamVestingWallet, daoVestingWallet);
+
+        // Assert: Calling setContracts again should revert
+        vm.expectRevert("setContracts can only be called once");
+        exchangeConfig.setContracts(mockDao, mockUpkeep, mockInitialDistribution, mockAirdrop, teamVestingWallet, daoVestingWallet);
+    }
+
+
     // A unit test that checks if `setAccessManager` correctly reverts when supplied with the zero address as parameter.
+    function testSetAccessManagerRevertsWithZeroAddress() public
+        {
+        // Deploy the ExchangeConfig contract
+        exchangeConfig = new ExchangeConfig(salt, wbtc, weth, dai, usds, managedTeamWallet);
+
+        // Set the expected revert reason and call the function with the zero address
+        vm.expectRevert("_accessManager cannot be address(0)");
+        exchangeConfig.setAccessManager(IAccessManager(address(0)));
+        }
+
+
     // A unit test that checks `walletHasAccess` function when the given wallet address is the Airdrop address, should return true.
+    // A unit test that checks `walletHasAccess` function when the given wallet address is the Airdrop address, should return true.
+    function testWalletHasAccessAirdropAddress() public {
+        // Call `walletHasAccess` function with Airdrop address
+        assertTrue(exchangeConfig.walletHasAccess(address(airdrop)));
+    }
 	}

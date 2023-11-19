@@ -47,7 +47,6 @@ contract ManagedWallet is IManagedWallet
 
 		// Make sure we're not overwriting a previous proposal (as only the confirmationWallet can reject proposals)
 		require( proposedMainWallet == address(0), "Cannot overwrite non-zero proposed mainWallet." );
-		require( proposedConfirmationWallet == address(0), "Cannot overwrite non-zero proposed confirmationWallet." );
 
 		proposedMainWallet = _proposedMainWallet;
 		proposedConfirmationWallet = _proposedConfirmationWallet;
