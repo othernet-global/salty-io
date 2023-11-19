@@ -42,8 +42,16 @@ contract TestUnimodal is ArbitrageSearch, Test
 
 
 	// Fuzzes reserves and swapAmountInValueInETH with uint112s
-	function testUnimodalHypothesis(uint112 swapAmountInValueInETH, uint112 reservesA0, uint112 reservesA1, uint112 reservesB0, uint112 reservesB1, uint112 reservesC0, uint112 reservesC1) public
+	function testUnimodalHypothesis(uint256 swapAmountInValueInETH, uint256 reservesA0, uint256 reservesA1, uint256 reservesB0, uint256 reservesB1, uint256 reservesC0, uint256 reservesC1) public
 		{
+		swapAmountInValueInETH = swapAmountInValueInETH % type(uint112).max;
+		reservesA0 = reservesA0 % type(uint112).max;
+		reservesA1 = reservesA1 % type(uint112).max;
+		reservesB0 = reservesB0 % type(uint112).max;
+		reservesB1 = reservesB1 % type(uint112).max;
+		reservesC0 = reservesC0 % type(uint112).max;
+		reservesC1 = reservesC1 % type(uint112).max;
+
 		uint256 bruteForceAmountIn = _bruteForceFindBestArbAmountIn(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1);
 		uint256 binarySearchAmountIn = _binarySearch(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1);
 

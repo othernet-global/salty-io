@@ -639,5 +639,135 @@ contract TestRewardsEmitter is Deployment
         vm.expectRevert("_rewardsConfig cannot be address(0)");
         new RewardsEmitter(staking, exchangeConfig, poolsConfig, IRewardsConfig(address(0)), false);
     }
+
+
+    // A unit test that checks if SALT transfer fails, addSALTRewards reverts appropriately
+    function testAddSALTRewardsTransferFail() public {
+        // The test uses Alice to perform the transaction.
+        vm.prank(alice);
+
+        // We expect the SALT transfer to fail. No specific revert reason is provided here, so we simulate a generic transfer failure.
+        vm.expectRevert();
+
+        // We call addSALTRewards with an arbitrary pool ID and an amount that we assume will fail to transfer due to lack of funds or other reasons.
+        // This would need to be a valid Pool ID normally, but since transfer will fail, it's largely irrelevant for this test.
+        bytes32 arbitraryPoolID = poolIDs[0]; // Assuming poolIDs[0] is a valid Pool ID already set up in the test environment.
+        uint256 amountThatWillFail = 1001 ether; // Assuming Alice has less than this amount, the transfer will fail.
+
+        // Create the AddedReward struct with the arbitrary pool and amount.
+        AddedReward[] memory addedRewards = new AddedReward[](1);
+        addedRewards[0] = AddedReward({poolID: arbitraryPoolID, amountToAdd: amountThatWillFail});
+
+        // Attempt to add SALT rewards, should revert due to failed transfer.
+        stakingRewardsEmitter.addSALTRewards(addedRewards);
+    }
+
+
+    // A unit test that verifies performUpkeep's behavior with a non-zero starting balance of the contract
+	function testPerformUpkeepWithNonZeroStartingBalance() public {
+        // Assumptions:
+        // - non-zero starting balance means the contract already has SALT tokens before performUpkeep is called.
+        // - performUpkeep is already correctly implemented to handle distributions.
+        // - rewardsConfig.rewardsEmitterDailyPercentTimes1000() is available and returns the daily percent times 1000.
+        // - We are testing liquidityRewardsEmitter which directly calls performUpkeep.
+
+        // Arrange
+        uint256 startingBalance = salt.balanceOf(address(liquidityRewardsEmitter));
+        require(startingBalance > 0, "Precondition: non-zero starting balance required");
+
+        uint256 timeSinceLastUpkeep = 1 hours; // 1 hour since last upkeep for the test.
+        uint256 dailyPercent1000x = rewardsConfig.rewardsEmitterDailyPercentTimes1000();
+
+        // Calculate expected total emitted rewards
+        uint256 expectedEmittedRewards = startingBalance * timeSinceLastUpkeep * dailyPercent1000x / (24 hours * 100000);
+
+        // Perform upkeep
+        vm.prank(address(upkeep));
+        liquidityRewardsEmitter.performUpkeep(timeSinceLastUpkeep); // External call to performUpkeep
+
+        // After the performUpkeep call, we expect the balance of liquidityRewardsEmitter to decrease
+        // by the amount of rewards emitted during the upkeep
+        // Assert
+        uint256 endingBalance = salt.balanceOf(address(liquidityRewardsEmitter));
+        uint256 emittedRewards = startingBalance - endingBalance;
+
+        assertEq(emittedRewards, expectedEmittedRewards - 6, "Incorrect emitted rewards after performUpkeep");
+    }
+
+
+    // A unit test that simulate performUpkeep being called successively without any time gap
+    function testPerformUpkeepSuccessivelyWithoutTimeGap() public {
+        // Arrange
+        uint256 startingBalance = salt.balanceOf(address(liquidityRewardsEmitter));
+        require(startingBalance > 0, "Precondition: non-zero starting balance required");
+
+        uint256 timeSinceLastUpkeep = 1 hours; // 1 hour since last upkeep for the test.
+        uint256 dailyPercent1000x = rewardsConfig.rewardsEmitterDailyPercentTimes1000();
+
+        // Calculate expected total emitted rewards
+        uint256 expectedEmittedRewards = startingBalance * timeSinceLastUpkeep * dailyPercent1000x / (24 hours * 100000);
+
+        // Perform upkeep
+        vm.prank(address(upkeep));
+        liquidityRewardsEmitter.performUpkeep(timeSinceLastUpkeep); // External call to performUpkeep
+
+        // After the performUpkeep call, we expect the balance of liquidityRewardsEmitter to decrease
+        // by the amount of rewards emitted during the upkeep
+        // Assert
+        uint256 endingBalance = salt.balanceOf(address(liquidityRewardsEmitter));
+        uint256 emittedRewards = startingBalance - endingBalance;
+
+        assertEq(emittedRewards, expectedEmittedRewards - 6, "Incorrect emitted rewards after performUpkeep");
+
+
+        uint256 startingBalance2 = salt.balanceOf(address(liquidityRewardsEmitter));
+        vm.prank(address(upkeep));
+        liquidityRewardsEmitter.performUpkeep(0); // External call to performUpkeep
+
+        // After the performUpkeep call, we expect the balance of liquidityRewardsEmitter to decrease
+        // by the amount of rewards emitted during the upkeep
+        // Assert
+        uint256 endingBalance2 = salt.balanceOf(address(liquidityRewardsEmitter));
+        uint256 emittedRewards2 = startingBalance2 - endingBalance2;
+
+        assertEq(emittedRewards2, 0, "Incorrect emitted rewards after performUpkeep");
+    }
+
+
+    // A unit test that confirms performUpkeep does not revert when called immediately after deployment with no pendingRewards
+    function testPerformUpkeepDoesNotRevertOnEmptyPendingRewards() public {
+        // Simulate deployment conditions where no rewards have been added yet
+        // Expect performUpkeep to not revert despite having no rewards pending
+        vm.prank(address(upkeep));
+        liquidityRewardsEmitter.performUpkeep(0);
+    }
+
+
+    // A unit test that confirms correct handling of rounding for very small reward amounts in performUpkeep
+    function testPerformUpkeepRoundingRewards() public {
+        // Add a very small reward amount to a test pool
+        bytes32 testPoolID = poolIDs[0];
+        uint256 smallRewardAmount = 0.0001 ether;
+        AddedReward[] memory addedRewards = new AddedReward[](1);
+        addedRewards[0] = AddedReward({poolID: testPoolID, amountToAdd: smallRewardAmount});
+        vm.prank(DEPLOYER);
+        liquidityRewardsEmitter.addSALTRewards(addedRewards);
+
+        // Check initial pending rewards
+        uint256 initialPendingRewards = pendingLiquidityRewardsForPool(testPoolID);
+        assertEq(initialPendingRewards, smallRewardAmount, "Initial rewards incorrect");
+
+        // Perform upkeep with a 1 second delay
+        vm.prank(address(upkeep));
+        liquidityRewardsEmitter.performUpkeep(1);
+
+        // Expected pending rewards should be rounded down to the nearest wei after subtracting the upkeep percentage
+        uint256 expectedPendingRewards = initialPendingRewards - (initialPendingRewards * rewardsConfig.rewardsEmitterDailyPercentTimes1000() / (1 days * 100000));
+        uint256 finalPendingRewards = pendingLiquidityRewardsForPool(testPoolID);
+
+        // We expect some level of rounding error, but it should not be more than 1 wei
+        // Check with assert to confirm the subtraction is indeed rounded correctly
+        assertTrue(finalPendingRewards >= expectedPendingRewards && finalPendingRewards <= expectedPendingRewards + 1, "Final pending rewards rounding incorrect");
+    }
 	}
 

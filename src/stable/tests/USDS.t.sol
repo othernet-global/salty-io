@@ -241,4 +241,32 @@ contract USDSTest is Deployment
         // The total supply should have increased by the mint amount
         assertEq(newTotalSupply, initialTotalSupply + mintAmount);
     }
+
+
+    // A unit test that consistently sends varying amounts of USDS to the contract and ensures burnTokensInContract accurately burns only the tokens within the contract.
+    function testBurnOnlyContractTokens(uint256 amount1, uint256 amount2, uint256 amount3) public {
+
+		amount1 = amount1 % type(uint64).max;
+		amount2 = amount2 % type(uint64).max;
+		amount3 = amount3 % type(uint64).max;
+
+		vm.startPrank(address(collateralAndLiquidity));
+		usds.mintTo(address(usds), amount1 + 1);
+		usds.mintTo(address(usds), amount2 + 1);
+		vm.stopPrank();
+
+		assertEq(usds.balanceOf(address(usds)), amount1 + amount2 + 2, "Incorrect minted balance" );
+		assertEq( usds.totalSupply(), amount1 + amount2 + 2, "Incorrect total supply" );
+
+		usds.burnTokensInContract();
+		assertEq(usds.balanceOf(address(usds)), 0);
+
+		vm.prank(address(collateralAndLiquidity));
+		usds.mintTo(address(usds), amount3 + 1);
+
+		assertEq(usds.balanceOf(address(usds)), amount3 + 1);
+
+		usds.burnTokensInContract();
+		assertEq(usds.balanceOf(address(usds)), 0);
+    }
 	}

@@ -48,7 +48,7 @@ contract StableConfig is IStableConfig, Ownable
         {
         if (increase)
             {
-			// Don't increase if the remainingRatio after the rewards would be less than 105% - to ensure that the position will be liquidatable for more than the originally borrowed USDS amount (assume reasonable market volatility)
+			// Don't increase rewardPercentForCallingLiquidation if the remainingRatio after the rewards would be less than 105% - to ensure that the position will be liquidatable for more than the originally borrowed USDS amount (assume reasonable market volatility)
 			uint256 remainingRatioAfterReward = minimumCollateralRatioPercent - rewardPercentForCallingLiquidation - 1;
 
             if (remainingRatioAfterReward >= 105 && rewardPercentForCallingLiquidation < 10)
@@ -124,7 +124,7 @@ contract StableConfig is IStableConfig, Ownable
             }
         else
             {
-			// Don't decrease if the remainingRatio after the rewards would be less than 105% - to ensure that the position will be liquidatable for more than the originally borrowed USDS amount (assume reasonable market volatility)
+			// Don't decrease the minimumCollateralRatioPercent if the remainingRatio after the rewards would be less than 105% - to ensure that the position will be liquidatable for more than the originally borrowed USDS amount (assume reasonable market volatility)
 			uint256 remainingRatioAfterReward = minimumCollateralRatioPercent - 1 - rewardPercentForCallingLiquidation;
 
             if (remainingRatioAfterReward >= 105 && minimumCollateralRatioPercent > 110)

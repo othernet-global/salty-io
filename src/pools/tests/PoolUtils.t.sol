@@ -151,9 +151,4 @@ contract TestPoolUtils is Deployment
 		assertEq(swapAmountIn, 1000000000000000000 );
 		assertEq(swapAmountOut, 999000999000999000 );
     	}
-
-
-	// A unit test that sets maximumInternalSwapPercentTimes1000 to 0 and ensures _placeInternalSwap does not perform a swap
-	// A unit test that checks if _placeInternalSwap respects the timestamp requirement for swaps
-	// A unit test that validates proper function of _placeInternalSwap when dealing with tokens that have decimals other than 18
 	}

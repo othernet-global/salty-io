@@ -38,14 +38,14 @@ contract ManagedWallet is IManagedWallet
         }
 
 
-	// Make a request to change the main or confirmation wallet.
+	// Make a request to change the main and confirmation wallets.
 	function proposeWallets( address _proposedMainWallet, address _proposedConfirmationWallet ) external
 		{
 		require( msg.sender == mainWallet, "Only the current mainWallet can propose changes" );
 		require( _proposedMainWallet != address(0), "_proposedMainWallet cannot be the zero address" );
 		require( _proposedConfirmationWallet != address(0), "_proposedConfirmationWallet cannot be the zero address" );
 
-		// Make sure we're not overwriting a previous proposal (only the confirmationWallet can reject)
+		// Make sure we're not overwriting a previous proposal (as only the confirmationWallet can reject proposals)
 		require( proposedMainWallet == address(0), "Cannot overwrite non-zero proposed mainWallet." );
 		require( proposedConfirmationWallet == address(0), "Cannot overwrite non-zero proposed confirmationWallet." );
 
@@ -56,13 +56,13 @@ contract ManagedWallet is IManagedWallet
 		}
 
 
-	// The confirmation wallet confirms or rejects wallet proposals by sending a specific amount of ETH to the contract
+	// The confirmation wallet confirms or rejects wallet proposals by sending a specific amount of ETH to this contract
     receive() external payable
     	{
     	require( msg.sender == confirmationWallet, "Invalid sender" );
 
 		// Confirm if .05 or more ether is sent and otherwise reject.
-		// Done this way in case custodial wallets are used as the confirmationWallet - which sometimes won't allow for specific smart contract calls.
+		// Done this way in case custodial wallets are used as the confirmationWallet - which sometimes won't allow for smart contract calls.
     	if ( msg.value >= .05 ether )
     		activeTimelock = block.timestamp + TIMELOCK_DURATION; // establish the timelock
     	else

@@ -130,6 +130,8 @@ contract TestCollateral is Deployment
 	// A unit test that verifies the liquidateUser function correctly transfers WETH to the liquidator and WBTC/WETH to the USDS contract
 	function testLiquidatePosition() public {
 
+		assertEq( collateralAndLiquidity.numberOfUsersWithBorrowedUSDS(), 0 );
+
 		assertEq(wbtc.balanceOf(address(usds)), 0, "USDS contract should start with zero WBTC");
 		assertEq(weth.balanceOf(address(usds)), 0, "USDS contract should start with zero WETH");
 		assertEq(usds.balanceOf(alice), 0, "Alice should start with zero USDS");
@@ -177,6 +179,8 @@ contract TestCollateral is Deployment
 		maxUSDS = collateralAndLiquidity.maxBorrowableUSDS(alice);
 		collateralAndLiquidity.borrowUSDS( maxUSDS );
 		vm.stopPrank();
+
+		assertEq( collateralAndLiquidity.numberOfUsersWithBorrowedUSDS(), 1 );
 
 		uint256 maxWithdrawable = collateralAndLiquidity.maxWithdrawableCollateral(alice);
 		assertEq( maxWithdrawable, 0, "Alice shouldn't be able to withdraw any collateral" );
@@ -227,6 +231,8 @@ contract TestCollateral is Deployment
 		// Verify that the Liquidizer received the WBTC and WETH from Alice's liquidated collateral
 		assertEq(wbtc.balanceOf(address(liquidizer)), depositedWBTC - bobRewardWBTC - 1, "The Liquidizer contract should have received Alice's WBTC");
 		assertEq(weth.balanceOf(address(liquidizer)), depositedWETH - bobRewardWETH, "The Liquidizer contract should have received Alice's WETH - Bob's WETH reward");
+
+		assertEq( collateralAndLiquidity.numberOfUsersWithBorrowedUSDS(), 0 );
 		}
 
 
@@ -840,9 +846,17 @@ contract TestCollateral is Deployment
 	// A unit test that checks that partial repayment of borrowed USDS adjust accounting correctly as does full repayment.
 	function testRepaymentAdjustsAccountingCorrectly() public {
 
+		// Start with no borrowers
+		assertEq( collateralAndLiquidity.numberOfUsersWithBorrowedUSDS(), 0 );
+
 		_depositCollateralAndBorrowMax(alice);
 
+
 		uint256 aliceBorrowedUSDS = collateralAndLiquidity.usdsBorrowedByUsers(alice);
+
+		// Check that there is now one user borrowing USDS
+		assertEq( collateralAndLiquidity.numberOfUsersWithBorrowedUSDS(), 1 );
+
 
         // Alice repays half of her borrowed amount
         vm.startPrank(alice);
@@ -1902,4 +1916,149 @@ contract TestCollateral is Deployment
 		}
 
 
+
+	// A unit test to ensure that depositing collateral updates the totalSharesForPool accurately
+    function testDepositCollateralAndIncreaseTotalShares() public {
+        // Initial balances for Alice
+        uint256 initialWBTCBalanceA = wbtc.balanceOf(alice);
+        uint256 initialWETHBalanceA = weth.balanceOf(alice);
+
+		bytes32[] memory poolIDs = new bytes32[](1);
+		poolIDs[0] = PoolUtils._poolIDOnly(wbtc, weth);
+
+		uint256 initialTotalShares = collateralAndLiquidity.totalSharesForPools(poolIDs)[0];
+
+        vm.prank(alice);
+        (uint256 addedA, uint256 addedB, uint256 addedLiquidity) = collateralAndLiquidity.depositCollateralAndIncreaseShare(initialWBTCBalanceA / 2, initialWETHBalanceA / 2, 0, block.timestamp, false);
+
+		uint256 finalTotalShares = collateralAndLiquidity.totalSharesForPools(poolIDs)[0];
+
+		assertEq( finalTotalShares, initialTotalShares + (addedA + addedB) );
+		assertEq( finalTotalShares, initialTotalShares + addedLiquidity );
+    }
+
+
+	// A unit test to validate that liquidateUser cannot be called within a certain time frame after the last deposit or borrow action
+	function testCannotLiquidateWithinCertainTimeFrame() public {
+        // Deposit and borrow from Alice's account to create basis for liquidation
+        _depositCollateralAndBorrowMax(alice);
+
+        // Cause a drastic price drop to allow for liquidation
+        _crashCollateralPrice();
+
+        vm.expectRevert("Must wait for the cooldown to expire");
+        collateralAndLiquidity.liquidateUser(alice);
+
+        // Warp past the lockout period, so liquidation is now allowed
+        vm.warp(block.timestamp + 1 hours); // warp to just after the lockout period
+
+        // Now liquidateUser job should be successful as the lockout period has passed and collateral value has dropped
+        collateralAndLiquidity.liquidateUser(alice);
+
+        // Check that Alice's collateral and borrowed USDS are now 0 indicating successful liquidation
+        assertEq(collateralAndLiquidity.userShareForPool(alice, collateralPoolID), 0);
+        assertEq(collateralAndLiquidity.usdsBorrowedByUsers(alice), 0);
+    }
+
+
+	// A unit test ensuring that the liquidation reward does not exceed the liquidated collateral value or maximum reward amount
+	function testLiquidationRewardNotExceedingLimits() public {
+        // Depositing collateral and borrowing the maximum amount for Alice
+        _depositCollateralAndBorrowMax(alice);
+
+        // Crashing collateral price to enable liquidation
+        _crashCollateralPrice();
+
+        // Alice should now be liquidatable
+        assertTrue(collateralAndLiquidity.canUserBeLiquidated(alice), "Alice should be liquidatable");
+
+        // Warp to ensure there's enough time past
+        vm.warp(block.timestamp + 1 days);
+
+        // Simulate liquidation and capture the rewards
+        (uint256 preRewardWBTCBalance, uint256 preRewardWETHBalance) = (wbtc.balanceOf(bob), weth.balanceOf(bob));
+
+        // Calculate USD value of Alice's liquidated collateral
+        uint256 aliceCollateralValueUSD = collateralAndLiquidity.userCollateralValueInUSD(alice);
+
+        vm.startPrank(bob);
+        collateralAndLiquidity.liquidateUser(alice);
+        vm.stopPrank();
+
+        (uint256 postRewardWBTCBalance, uint256 postRewardWETHBalance) = (wbtc.balanceOf(bob), weth.balanceOf(bob));
+
+        // Calculate actual rewards received
+        uint256 receivedRewardWBTC = postRewardWBTCBalance - preRewardWBTCBalance;
+        uint256 receivedRewardWETH = postRewardWETHBalance - preRewardWETHBalance;
+
+        // Calculate USD value of received rewards
+        uint256 receivedRewardUSDValue = collateralAndLiquidity.underlyingTokenValueInUSD(receivedRewardWBTC, receivedRewardWETH);
+
+        // Get the maximum allowable reward from the stableConfig
+        uint256 maxRewardValue = stableConfig.maxRewardValueForCallingLiquidation();
+
+        // Bob's reward should not exceed either the value of Alice's liquidated collateral or the max reward
+        assertTrue(receivedRewardUSDValue <= aliceCollateralValueUSD, "Reward exceeds liquidated collateral value");
+        assertTrue(receivedRewardUSDValue <= maxRewardValue, "Reward exceeds maximum allowance");
+    }
+
+
+	// A unit test to verify that user USDS borrow balance cannot become negative after partial or full repayments
+	function testBorrowBalanceNotNegativeAfterRepayment() public {
+        address testUser = alice; // Test with Alice's account
+
+        // Ensure that Alice had deposited collateral previously
+        _depositCollateralAndBorrowMax(testUser);
+
+        uint256 borrowedAmount = collateralAndLiquidity.usdsBorrowedByUsers(testUser);
+        assertTrue(borrowedAmount > 0, "Borrowed amount should be greater than 0");
+
+        // Repay part of the borrowed amount
+        uint256 halfRepayment = borrowedAmount / 2;
+        vm.prank(testUser);
+        collateralAndLiquidity.repayUSDS(halfRepayment);
+
+        // Check if the borrowed balance is now half of what it was
+        uint256 remainingBorrow = collateralAndLiquidity.usdsBorrowedByUsers(testUser);
+        assertEq(remainingBorrow, halfRepayment, "Remaining borrow after partial payment should be half of initial borrow");
+
+        // Repay the rest of the borrowed amount
+        vm.prank(testUser);
+        collateralAndLiquidity.repayUSDS(halfRepayment);
+
+        // Check if the borrowed balance is now 0
+        remainingBorrow = collateralAndLiquidity.usdsBorrowedByUsers(testUser);
+        assertEq(remainingBorrow, 0, "Remaining borrow after full repayment should be 0");
+
+        // Attempting to repay more than the borrowed amount should fail
+        uint256 excessRepayment = 1 ether;
+        vm.prank(testUser);
+        vm.expectRevert("Cannot repay more than the borrowed amount");
+        collateralAndLiquidity.repayUSDS(excessRepayment);
+
+        // Ensure the borrowed amount has not gone negative
+        remainingBorrow = collateralAndLiquidity.usdsBorrowedByUsers(testUser);
+        assertTrue(remainingBorrow >= 0, "Borrowed balance should not be negative after repayment");
+    }
+
+
+	// A unit test that confirms canUserBeLiquidated returns true only if the wallet is on the _walletsWithBorrowedUSDS list and undercollateralized
+	function testCanUserBeLiquidated_TrueIfWalletOnBorrowedListAndUndercollateralized() public {
+        assertEq(0, collateralAndLiquidity.numberOfUsersWithBorrowedUSDS(), "Borrowed USDS list should start empty");
+
+        // Alice deposits collateral and borrows
+        _depositCollateralAndBorrowMax(alice);
+
+        // At the start, Alice should not be liquidatable because she's just borrowed up to the max allowed (collateral ratio at 200%)
+        assertFalse(collateralAndLiquidity.canUserBeLiquidated(alice), "Alice should not be liquidatable at the start");
+
+        // Crash the collateral price to drop the collateral ratio below the minimum (110%)
+        _crashCollateralPrice();
+
+        // Now Alice should have a collateral ratio below the liquidation threshold (collateral ratio dropped below 110%)
+        assertTrue(collateralAndLiquidity.canUserBeLiquidated(alice), "Alice should be liquidatable after price crash");
+
+        // Bob has not borrowed any USDS, so he should not be on the borrowed list and not undercollateralized
+        assertFalse(collateralAndLiquidity.canUserBeLiquidated(bob), "Bob should not be liquidatable without borrowing");
+    }
 }

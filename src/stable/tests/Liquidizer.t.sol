@@ -352,4 +352,286 @@ function testAggregatesMultipleCallsToShouldBurnMoreUSDS() public {
 		assertEq( salt.totalBurned(), saltAmount );
         assertEq(salt.balanceOf(address(liquidizer)), 0);
     }
+
+
+    // A unit test to confirm that the `setContracts` function fails when called by an address other than the owner
+    function testSetContractsNotOwnerReverts() public {
+        // Deploy a new Liquidizer contract so we can call setContracts
+        Liquidizer newLiquidizer = new Liquidizer(exchangeConfig, poolsConfig);
+
+        // Prepare the contract addresses that would be passed to setContracts
+        ICollateralAndLiquidity _collateralAndLiquidity = ICollateralAndLiquidity(address(0x12345));
+        IPools _pools = IPools(address(0x54321));
+        IDAO _dao = IDAO(address(0xABCDEF));
+
+        // Expect the transaction to revert due to the caller not being the owner of the new Liquidizer contract
+        vm.expectRevert("Ownable: caller is not the owner");
+        address nonOwner = address(0xBEEF);
+        vm.prank(nonOwner);
+        newLiquidizer.setContracts(_collateralAndLiquidity, _pools, _dao);
+    }
+
+
+    // A unit test to confirm that the `shouldBurnMoreUSDS` function fails when called by an address other than the CollateralAndLiquidity contract
+    function testShouldBurnMoreUSDSRevertWhenNotCollateralAndLiquidity() public {
+        uint256 usdsToBurn = 1 ether;
+
+        vm.startPrank( address(0x1234));
+        vm.expectRevert("Liquidizer.shouldBurnMoreUSDS is only callable from the CollateralAndLiquidity contract");
+        liquidizer.shouldBurnMoreUSDS(usdsToBurn);
+        vm.stopPrank();
+    }
+
+
+    // A unit test that ensures `performUpkeep` fails when called by an address other than the Upkeep contract
+    function testPerformUpkeepNotByUpkeepContractShouldFail() public {
+        address nonUpkeepAddress = address(0x1234); // an arbitrary address that is not the upkeep contract
+
+        // We expect the transaction to revert with the specific error message
+        vm.expectRevert("Liquidizer.performUpkeep is only callable from the Upkeep contract");
+        vm.prank(nonUpkeepAddress);
+        liquidizer.performUpkeep();
+    }
+
+
+    // A unit test that checks if `performUpkeep` correctly handles the burning of excess USDS in the contract
+	function testPerformUpkeepBurnsExcessUSDS() public {
+    		uint256 initialBalance = 10 ether; // Assuming initial USDS balance is 10 ether
+    		uint256 usdsToBurn = 5 ether;  // USDS that should be burned is 5 ether
+
+    		// Mint USDS to the contract
+    		vm.prank(address(collateralAndLiquidity));
+    		usds.mintTo(address(liquidizer), initialBalance);
+
+    		// Set the USDS that should be burned to 5 ether
+    		vm.prank(address(collateralAndLiquidity));
+    		liquidizer.shouldBurnMoreUSDS(usdsToBurn);
+
+    		// Perform upkeep
+    		vm.prank(address(upkeep));
+    		liquidizer.performUpkeep();
+
+    		// Check that the excess USDS (5 ether) remains after burning 5 ether that should be burned
+    		uint256 remainingBalance = usds.balanceOf(address(liquidizer));
+    		assertEq(remainingBalance, initialBalance - usdsToBurn, "Remaining USDS balance should be 5 ether");
+
+    		// Check that usdsThatShouldBeBurned is now 0 after burning
+    		uint256 remainingUsdsToBeBurned = liquidizer.usdsThatShouldBeBurned();
+    		assertEq(remainingUsdsToBeBurned, 0, "usdsThatShouldBeBurned should be 0 after burning");
+    	}
+
+
+	function _createLiquidity() internal
+		{
+		vm.prank(address(collateralAndLiquidity));
+		usds.mintTo(DEPLOYER, 100000000 ether);
+
+		vm.startPrank(DEPLOYER);
+		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
+		weth.approve(address(collateralAndLiquidity), type(uint256).max);
+		usds.approve(address(collateralAndLiquidity), type(uint256).max);
+		dai.approve(address(collateralAndLiquidity), type(uint256).max);
+
+        // 1 WBTC = 10000 USDS
+        // 1 WETH = 1000 USDS
+        // 1 DAI = 1 USDS
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare(wbtc, usds, 1000 * 10**8, 10000000 ether, 0, block.timestamp, false);
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare(weth, usds, 10000 ether, 10000000 ether, 0, block.timestamp, false);
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare(dai, usds, 1000000 ether, 1000000 ether, 0, block.timestamp, false);
+		vm.stopPrank();
+		}
+
+
+    // A unit test to ensure that when `performUpkeep` is called, the correct amount of WBTC, WETH, and DAI is swapped to USDS
+	function testPerformUpkeepSwapsCorrectTokenAmounts() public {
+        // setup token balances in contract
+        uint256 initialWbtcBalance = 5 * 10**8;
+        uint256 initialWethBalance = 10 ether;
+        uint256 initialDaiBalance = 1000 ether;
+
+        // Transfer initial balances to the contract
+        vm.startPrank(DEPLOYER);
+        wbtc.transfer(address(liquidizer), initialWbtcBalance );
+        weth.transfer(address(liquidizer), initialWethBalance );
+        dai.transfer(address(liquidizer), initialDaiBalance );
+        vm.stopPrank();
+
+        _createLiquidity();
+
+		vm.prank(address(upkeep));
+		liquidizer.performUpkeep();
+
+        // Assume specific amounts are swapped based on some hypothetical example ratios:
+        // 1 WBTC = 10000 USDS
+        // 1 WETH = 1000 USDS
+        // 1 DAI = 1 USDS
+//        uint256 expectedUsdsFromWbtc = 5 ether * 10000;
+//        uint256 expectedUsdsFromWeth = initialWethBalance * 1000;
+//        uint256 expectedUsdsFromDai = initialDaiBalance;
+//        uint256 expectedTotalUsds = expectedUsdsFromWbtc + expectedUsdsFromWeth + expectedUsdsFromDai;
+
+		uint256 expectedTotalUSDS = 60740254770105516374173;
+
+        // Check balances after performUpkeep
+        uint256 finalUsdsBalance = usds.balanceOf(address(liquidizer));
+        // assert that all WBTC, WETH, and DAI are swapped to USDS
+        assertEq(wbtc.balanceOf(address(liquidizer)), 0, "WBTC should be completely swapped to USDS");
+        assertEq(weth.balanceOf(address(liquidizer)), 0, "WETH should be completely swapped to USDS");
+        assertEq(dai.balanceOf(address(liquidizer)), 0, "DAI should be completely swapped to USDS");
+        assertEq(finalUsdsBalance, expectedTotalUSDS, "Final USDS balance should reflect the swapped amounts from WBTC, WETH, and DAI");
+
+        // assert that no additional tokens are present in the contract
+        assertEq(salt.balanceOf(address(liquidizer)), 0, "No SALT tokens should be present in Liquidizer's balance after performUpkeep");
+    }
+
+
+    // A unit test that verifies the proper functioning of `_burnUSDS` method with various amounts of USDS to burn
+	function testBurnUSDSCorrectlyHandlesVariousAmounts() public {
+        uint256 smallAmountToBurn = 1 ether;
+        uint256 largeAmountToBurn = 10 ether;
+        uint256 balanceToSet = 5 ether;
+
+        // Set-up the initial balance of USDS in the contract
+        vm.startPrank(address(collateralAndLiquidity));
+        usds.mintTo(address(liquidizer), balanceToSet);
+		liquidizer.shouldBurnMoreUSDS(smallAmountToBurn);
+		vm.stopPrank();
+
+        // Ensure the contract has the correct initial balance
+        assertEq(usds.balanceOf(address(liquidizer)), balanceToSet);
+
+        // Should be able to burn an amount less than the balance without reverting
+        vm.prank(address(upkeep));
+        liquidizer.performUpkeep();
+
+        // Confirm the correct amount was burned
+        assertEq(usds.balanceOf(address(liquidizer)), balanceToSet - smallAmountToBurn);
+        assertEq(liquidizer.usdsThatShouldBeBurned(), 0);
+
+
+        // Specify burning more than the balance in the liquidizer
+        vm.prank(address(collateralAndLiquidity));
+		liquidizer.shouldBurnMoreUSDS(largeAmountToBurn);
+
+        vm.prank(address(upkeep));
+        liquidizer.performUpkeep();
+        assertEq(usds.balanceOf(address(liquidizer)), 0);
+        assertEq(liquidizer.usdsThatShouldBeBurned(), 6 ether);
+    }
+
+
+    // A unit test that confirms an increase in `usdsThatShouldBeBurned` only by the expected amount after a liquidation event
+    function testIncreaseInUsdsThatShouldBeBurnedAfterLiquidation() public {
+        uint256 initialUsdsToBurn = liquidizer.usdsThatShouldBeBurned();
+        uint256 liquidationAmount = 1 ether; // amount that should increase after liquidation
+
+        // Assuming the address of collateralAndLiquidity contract is allowed to call shouldBurnMoreUSDS
+        vm.prank(address(collateralAndLiquidity));
+        liquidizer.shouldBurnMoreUSDS(liquidationAmount);
+
+        uint256 finalUsdsToBurn = liquidizer.usdsThatShouldBeBurned();
+
+        // Check if `usdsThatShouldBeBurned` increased by the expected amount only
+        assertEq(finalUsdsToBurn, initialUsdsToBurn + liquidationAmount, "usdsThatShouldBeBurned did not increase by the expected amount after liquidation");
+    }
+
+
+    // A unit test to ensure that the USDS balance of the DAO is increased by the expected amount after POL withdrawal
+    function testUSDSBalanceDecreasedAfterPOLWithdrawal() public {
+        // Deposit SALT/USDS to the DAO to simulate Protocol Owned Liquidity
+        vm.prank(address(collateralAndLiquidity));
+        usds.mintTo(address(dao), 100 ether);
+
+        vm.prank(address(daoVestingWallet));
+        salt.transfer(address(dao), 100 ether);
+
+        vm.prank(address(upkeep));
+        dao.formPOL(salt, usds, 100 ether, 100 ether);
+
+		bytes32 poolID = PoolUtils._poolIDOnly( salt, usds );
+		assertEq( collateralAndLiquidity.userShareForPool(address(dao),poolID ), 200 ether);
+
+
+        // Set the USDS that should be burned to an amount greater than the balance
+        vm.prank(address(collateralAndLiquidity));
+        liquidizer.shouldBurnMoreUSDS(150 ether);
+
+		// Start with 20 ether of USDS in the Liquidizer just to make sure it gets burned
+        vm.prank(address(collateralAndLiquidity));
+        usds.mintTo(address(liquidizer), 20 ether);
+
+		// Initial stats
+		uint256 usdsSupply = usds.totalSupply();
+
+        // Call performUpkeep, which should trigger POL withdrawal and USDS burning
+        vm.prank(address(exchangeConfig.upkeep()));
+        liquidizer.performUpkeep();
+
+		uint256 usdsBurned = usdsSupply - usds.totalSupply();
+		assertEq( usdsBurned, 20 ether );
+
+		// 1% of the SALT from the SALT/USDS POL should have been sent to the liquidizer
+		assertEq( salt.balanceOf( address(liquidizer) ), 1 ether );
+		assertEq( usds.balanceOf( address(liquidizer)), 1 ether );
+
+		usdsSupply = usds.totalSupply();
+		uint256 saltSupply = salt.totalSupply();
+
+		// Call upkeep again to burn the SALT and USDS in the Liquidizer
+        vm.prank(address(exchangeConfig.upkeep()));
+        liquidizer.performUpkeep();
+
+		usdsBurned = usdsSupply - usds.totalSupply();
+		assertEq( usdsBurned, 1 ether );
+
+		uint256 saltBurned = saltSupply - salt.totalSupply();
+		assertEq( saltBurned, 1 ether );
+    }
+
+
+    // A unit test to check that no USDS burning occurs if non-USDS (WBTC, WETH, or DAI) balances are zero during `performUpkeep`
+	function testNoUsdsBurningIfNonUSDSBalancesAreZero() public {
+        // Initialize non-USDS balances to zero
+        assertEq(wbtc.balanceOf(address(liquidizer)), 0, "WBTC balance should be 0");
+        assertEq(weth.balanceOf(address(liquidizer)), 0, "WETH balance should be 0");
+        assertEq(dai.balanceOf(address(liquidizer)), 0, "DAI balance should be 0");
+
+        // Store current USDS balance and usdsThatShouldBeBurned before performUpkeep
+        uint256 initialUsdsBalance = usds.balanceOf(address(liquidizer));
+        uint256 initialUsdsShouldBeBurned = liquidizer.usdsThatShouldBeBurned();
+
+        // Perform upkeep
+        vm.prank(address(exchangeConfig.upkeep()));
+        liquidizer.performUpkeep();
+
+        // Assert USDS balance and usdsThatShouldBeBurned remain unchanged
+        assertEq(usds.balanceOf(address(liquidizer)), initialUsdsBalance, "USDS balance should not change");
+        assertEq(liquidizer.usdsThatShouldBeBurned(), initialUsdsShouldBeBurned, "usdsThatShouldBeBurned should not change");
+    }
+
+
+    // A unit test that confirms that SALT balance is burned and USDS balance is unaffected when SALT is present during `performUpkeep`
+    function testPerformUpkeepBurnSaltBalanceOnly() public {
+        // Given
+        uint256 initialSaltBalance = 5 ether;
+        uint256 initialUsdsBalance = 1 ether;
+        vm.prank(address(teamVestingWallet));
+        salt.transfer(address(liquidizer), initialSaltBalance); // Assume the existence of mintTo function for setup
+
+        vm.prank(address(collateralAndLiquidity));
+        usds.mintTo(address(liquidizer), initialUsdsBalance); // Assume the existence of mintTo function for setup
+
+        // Verify initial conditions
+        assertEq(salt.balanceOf(address(liquidizer)), initialSaltBalance, "Initial SALT balance should be set for test");
+        assertEq(usds.balanceOf(address(liquidizer)), initialUsdsBalance, "Initial USDS balance should be unchanged");
+
+        // When
+        vm.prank(address(exchangeConfig.upkeep())); // Perform the upkeep as the authorized upkeep address
+        liquidizer.performUpkeep();
+
+        // Then
+        assertEq(salt.balanceOf(address(liquidizer)), 0, "SALT should be burned (balance zero)");
+        assertEq(salt.totalBurned(), initialSaltBalance, "SALT burned amount should match initial balance");
+        assertEq(usds.balanceOf(address(liquidizer)), initialUsdsBalance, "USDS balance should remain unaffected");
+    }
 	}

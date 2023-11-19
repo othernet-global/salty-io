@@ -741,4 +741,227 @@ contract SharedRewardsTest is Deployment
         vm.expectRevert("_stakingConfig cannot be address(0)");
         stakingRewards = new TestStakingRewards(exchangeConfig, poolsConfig, IStakingConfig(address(0)));
     }
+
+
+    // A unit test that confirms that rewards cannot be claimed from pools where the user has no shares
+    function testRewardsCannotBeClaimedWithoutShares() public {
+        vm.prank(alice);
+        stakingRewards.externalIncreaseUserShare(alice, poolIDs[0], 5 ether, true);
+
+        // Add rewards to poolIDs[0]
+        AddedReward[] memory addedRewards = new AddedReward[](1);
+        addedRewards[0] = AddedReward(poolIDs[0], 10 ether);
+        stakingRewards.addSALTRewards(addedRewards);
+
+        // Warp time to ensure potential claim is possible
+        vm.warp(block.timestamp + 1 days);
+
+        // Bob attempts to claim rewards without having any shares in poolIDs[0]
+        vm.prank(bob);
+        stakingRewards.claimAllRewards(poolIDs);
+
+        // Verify Bob's SALT balance remains unchanged since he cannot claim without shares
+        assertEq(salt.balanceOf(bob), 100 ether, "Bob's SALT balance should not have changed");
+    }
+
+
+
+    // A unit test where alice, bob and charlie have multiple shares and share rewards
+    function testAliceBobCharlieMultipleSharesAndShareRewards() public {
+        // Initial SALT transfers and approvals setup are asserted in setUp(), assumes each starts with 100 ether (10^20)
+
+        // Alice, Bob, and Charlie stake their shares in the Salt pool (STAKED_SALT)
+        vm.prank(alice);
+        stakingRewards.externalIncreaseUserShare(alice, poolIDs[0], 20 ether, false); // externalIncreaseUserShare is assumed
+
+        vm.prank(bob);
+        stakingRewards.externalIncreaseUserShare(bob, poolIDs[0], 30 ether, false); // externalIncreaseUserShare is assumed
+
+        vm.prank(charlie);
+        stakingRewards.externalIncreaseUserShare(charlie, poolIDs[0], 50 ether, false); // externalIncreaseUserShare is assumed
+
+        // Admin then adds SALT rewards to the pool
+        AddedReward[] memory addedRewards = new AddedReward[](1);
+        addedRewards[0] = AddedReward(poolIDs[0], 100 ether); // 100 ether reward is assumed to be for the pool
+
+
+        vm.startPrank(alice);
+        salt.approve(address(stakingRewards), type(uint256).max);
+        stakingRewards.addSALTRewards(addedRewards); // addSALTRewards is assumed
+		vm.stopPrank();
+
+        // Warp forward to let the rewards distribute according to the shares
+        vm.warp(block.timestamp + 1 days);
+
+        // Retrieve user rewards for each
+        uint256 aliceReward = stakingRewards.userRewardForPool(alice, poolIDs[0]);
+        uint256 bobReward = stakingRewards.userRewardForPool(bob, poolIDs[0]);
+        uint256 charlieReward = stakingRewards.userRewardForPool(charlie, poolIDs[0]);
+
+        // Assert that Alice, Bob, and Charlie have the correct proportion of rewards relative to their shares
+        assertEq(aliceReward, (20 ether * 100 ether) / (20 ether + 30 ether + 50 ether), "Incorrect Alice reward");
+        assertEq(bobReward, (30 ether * 100 ether) / (20 ether + 30 ether + 50 ether), "Incorrect Bob reward");
+        assertEq(charlieReward, (50 ether * 100 ether) / (20 ether + 30 ether + 50 ether), "Incorrect Charlie reward");
+
+		uint256 aliceStartBalance = salt.balanceOf(alice);
+		uint256 bobStartBalance = salt.balanceOf(bob);
+		uint256 charlieStartBalance = salt.balanceOf(charlie);
+
+        // Alice, Bob, and Charlie claim their rewards
+        vm.prank(alice);
+        stakingRewards.claimAllRewards(poolIDs);
+        vm.prank(bob);
+        stakingRewards.claimAllRewards(poolIDs);
+        vm.prank(charlie);
+        stakingRewards.claimAllRewards(poolIDs);
+
+        // Assert their salt balances have increased by the reward amounts
+        uint256 aliceEndBalance = salt.balanceOf(alice);
+        uint256 bobEndBalance = salt.balanceOf(bob);
+        uint256 charlieEndBalance = salt.balanceOf(charlie);
+
+        assertEq(aliceEndBalance, aliceStartBalance + aliceReward, "Alice did not receive correct rewards");
+        assertEq(bobEndBalance, bobStartBalance + bobReward, "Bob did not receive correct rewards");
+        assertEq(charlieEndBalance, charlieStartBalance + charlieReward, "Charlie did not receive correct rewards");
+
+        // Finally, assert their rewards are now zero after claiming
+        assertEq(stakingRewards.userRewardForPool(alice, poolIDs[0]), 0, "Alice rewards not zeroed after claim");
+        assertEq(stakingRewards.userRewardForPool(bob, poolIDs[0]), 0, "Bob rewards not zeroed after claim");
+        assertEq(stakingRewards.userRewardForPool(charlie, poolIDs[0]), 0, "Charlie rewards not zeroed after claim");
+    }
+
+
+    // A unit test that checks if the contract correctly updates the total rewards and transfers the correct amount of SALT tokens when adding rewards to multiple pools with varying amounts
+	function testRewardUpdateAndTokenTransferMultiplePools() external {
+        uint256 totalPoolRewardsBefore1 = stakingRewards.totalRewards(poolIDs[0]);
+        uint256 totalPoolRewardsBefore2 = stakingRewards.totalRewards(poolIDs[1]);
+
+        uint256 rewardAmountPool1 = 10 ether;
+        uint256 rewardAmountPool2 = 20 ether;
+
+        AddedReward[] memory rewardsToAdd = new AddedReward[](2);
+        rewardsToAdd[0] = AddedReward(poolIDs[0], rewardAmountPool1);
+        rewardsToAdd[1] = AddedReward(poolIDs[1], rewardAmountPool2);
+
+		uint256 initialAliceSaltBalance = salt.balanceOf(alice);
+
+        vm.prank(alice);
+        stakingRewards.addSALTRewards(rewardsToAdd);
+
+        uint256 totalPoolRewardsAfter1 = stakingRewards.totalRewards(poolIDs[0]);
+        uint256 totalPoolRewardsAfter2 = stakingRewards.totalRewards(poolIDs[1]);
+
+        uint256 aliceBalanceAfter = salt.balanceOf(alice);
+
+        assertEq(totalPoolRewardsAfter1, totalPoolRewardsBefore1 + rewardAmountPool1, "Incorrect total rewards for pool 1 after adding.");
+        assertEq(totalPoolRewardsAfter2, totalPoolRewardsBefore2 + rewardAmountPool2, "Incorrect total rewards for pool 2 after adding.");
+        assertEq(aliceBalanceAfter, initialAliceSaltBalance - (rewardAmountPool1 + rewardAmountPool2), "Incorrect SALT token transfer amount." );
+    }
+
+
+    // A unit test that checks if adding SALT rewards to multiple valid pools updates the total rewards for each pool correctly and transfers the correct amount of SALT from the sender to the contract
+    function testAddSALTRewardsToMultiplePools2() public {
+    	// Initial balance of alice and the contract
+    	uint256 initialAliceSaltBalance = salt.balanceOf(alice);
+    	uint256 initialContractSaltBalance = salt.balanceOf(address(stakingRewards));
+
+    	// Rewards to add to each pool
+    	uint256 rewardPool0 = 10 ether;
+    	uint256 rewardPool1 = 5 ether;
+
+    	// Expected total rewards after adding
+    	uint256 expectedTotalRewardsPool0 = stakingRewards.totalRewards(poolIDs[0]) + rewardPool0;
+    	uint256 expectedTotalRewardsPool1 = stakingRewards.totalRewards(poolIDs[1]) + rewardPool1;
+
+    	// Prepare AddedReward array
+    	AddedReward[] memory addedRewards = new AddedReward[](2);
+    	addedRewards[0] = AddedReward({poolID: poolIDs[0], amountToAdd: rewardPool0});
+    	addedRewards[1] = AddedReward({poolID: poolIDs[1], amountToAdd: rewardPool1});
+
+    	// Alice adds rewards to multiple pools
+    	vm.startPrank(alice);
+    	stakingRewards.addSALTRewards(addedRewards);
+    	vm.stopPrank();
+
+    	// Check total rewards for each pool
+    	assertEq(stakingRewards.totalRewards(poolIDs[0]), expectedTotalRewardsPool0, "Total rewards for pool 0 should match expected value");
+    	assertEq(stakingRewards.totalRewards(poolIDs[1]), expectedTotalRewardsPool1, "Total rewards for pool 1 should match expected value");
+
+    	// Check the SALT balance of alice and the contract
+    	uint256 finalAliceSaltBalance = salt.balanceOf(alice);
+    	uint256 finalContractSaltBalance = salt.balanceOf(address(stakingRewards));
+
+    	assertEq(finalAliceSaltBalance, initialAliceSaltBalance - (rewardPool0 + rewardPool1), "Alice's SALT balance should decrease by the total rewards added");
+    	assertEq(finalContractSaltBalance, initialContractSaltBalance + (rewardPool0 + rewardPool1), "Contract's SALT balance should increase by the total rewards added");
+    }
+
+
+    // A unit test that checks whether a user can successfully claim all rewards from multiple valid pools, and the correct amount of rewards are transferred to their wallet
+	function testClaimAllRewardsMultipleValidPools() public {
+        vm.startPrank(alice);
+        // Alice increases her share in poolIDs[0] and poolIDs[1] by 5 ether each (external calls).
+        stakingRewards.externalIncreaseUserShare(alice, poolIDs[0], 5 ether, true);
+        stakingRewards.externalIncreaseUserShare(alice, poolIDs[1], 5 ether, true);
+        vm.stopPrank();
+
+        // Add rewards to the pools (assuming external call function present).
+        AddedReward[] memory addedRewards = new AddedReward[](2);
+        addedRewards[0] = AddedReward(poolIDs[0], 10 ether);
+        addedRewards[1] = AddedReward(poolIDs[1], 20 ether);
+        vm.startPrank(alice);
+        stakingRewards.addSALTRewards(addedRewards);
+        vm.stopPrank();
+
+        // Check Alice's SALT balance before claiming.
+        uint256 aliceSaltBalanceBeforeClaim = salt.balanceOf(alice);
+
+        // Alice claims all rewards from both pools (external calls).
+        vm.prank(alice);
+        stakingRewards.claimAllRewards(poolIDs);
+
+        // Check Alice's SALT balance after claiming.
+        uint256 aliceSaltBalanceAfterClaim = salt.balanceOf(alice);
+        uint256 expectedRewards = 10 ether + 20 ether;
+
+        // Assert that Alice's after-claim balance is increased by the expected reward amount.
+        assertEq(aliceSaltBalanceAfterClaim, aliceSaltBalanceBeforeClaim + expectedRewards, "Incorrect reward amount transferred to Alice");
+    }
+
+
+    // A unit test that checks if a user can increase or decrease their share in a pool, considering the pool's validity, the cooldown period, and the amount being non-zero
+    function testUserCanIncreaseOrDecreaseShare() public {
+        vm.startPrank(alice);
+
+        // Increase Alice's share in a pool by a non-zero amount within the pool's validity
+        bytes32 validPoolID = poolIDs[0]; // Assuming poolIDs[0] is a valid pool for the sake of this test
+        uint256 increaseAmount = 5 ether;
+        stakingRewards.externalIncreaseUserShare(alice, validPoolID, increaseAmount, true);
+
+        // Check if the share has increased correctly
+        uint256 aliceShareAfterIncrease = stakingRewards.userShareForPool(alice, validPoolID);
+        assertEq(aliceShareAfterIncrease, increaseAmount, "Alice's share did not increase correctly");
+
+        // Attempt to decrease share that exceeds existing user share, expect revert
+        uint256 decreaseAmountExceeding = 6 ether;
+        vm.expectRevert("Cannot decrease more than existing user share");
+        stakingRewards.externalDecreaseUserShare(alice, validPoolID, decreaseAmountExceeding, true);
+
+        // Attempt to decrease share during cooldown period, expect revert
+        vm.warp(block.timestamp + 1); // Warp time by 1 second
+        uint256 decreaseAmountWithinShare = 4 ether;
+        vm.expectRevert("Must wait for the cooldown to expire");
+        stakingRewards.externalDecreaseUserShare(alice, validPoolID, decreaseAmountWithinShare, true);
+
+        // Warp time to pass cooldown period and decrease share
+        uint256 cooldownPeriod = stakingConfig.modificationCooldown();
+        vm.warp(block.timestamp + cooldownPeriod);
+        stakingRewards.externalDecreaseUserShare(alice, validPoolID, decreaseAmountWithinShare, true);
+
+        // Check if the share has decreased correctly
+        uint256 aliceShareAfterDecrease = stakingRewards.userShareForPool(alice, validPoolID);
+        uint256 expectedShareAfterDecrease = increaseAmount - decreaseAmountWithinShare;
+        assertEq(aliceShareAfterDecrease, expectedShareAfterDecrease, "Alice's share did not decrease correctly");
+
+        vm.stopPrank();
+    }
 	}

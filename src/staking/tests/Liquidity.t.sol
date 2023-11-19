@@ -598,5 +598,113 @@ contract LiquidityTest is Deployment
 		}
 
 
+	// A unit test to check that liquidity can be withdrawn if the underlying pool is unwhitelisted
+    function testWithdrawLiquidityAfterPoolUnwhitelisted() public {
+        // Setup prerequisites for the test:
+        vm.startPrank(alice);
+        uint256 initialAliceToken1Balance = token1.balanceOf(alice);
+        uint256 initialAliceToken2Balance = token2.balanceOf(alice);
+        uint256 addedAmount1 = 100 ether;
+        uint256 addedAmount2 = 200 ether;
 
+        // Add liquidity first to ensure Alice has some liquidity in the pool
+        collateralAndLiquidity.depositLiquidityAndIncreaseShare(token1, token2, addedAmount1, addedAmount2, 0 ether, block.timestamp, false);
+        vm.stopPrank();
+
+        uint256 expectedLiquidity = collateralAndLiquidity.userShareForPool(alice, pool1);
+        assertEq(expectedLiquidity, 300 ether, "Initial liquidity does not match expected");
+
+        // Now, unwhitelist the pool as if it's a DAO decision
+        vm.prank(address(dao));
+        poolsConfig.unwhitelistPool(pools, token1, token2);
+
+		vm.warp(block.timestamp + 1 hours);
+
+        // Now, Alice should still be able to withdraw her liquidity since the pool is not whitelisted
+        uint256 initialLiquidityPoolBalance = totalSharesForPool(pool1);
+        vm.startPrank(alice);
+        collateralAndLiquidity.withdrawLiquidityAndClaim(token1, token2, expectedLiquidity, 0, 0, block.timestamp);
+        vm.stopPrank();
+
+        // Check final state
+        uint256 liquidityAfterWithdraw = collateralAndLiquidity.userShareForPool(alice, pool1);
+        uint256 liquidityPoolBalanceAfter = totalSharesForPool(pool1);
+
+        assertEq(liquidityAfterWithdraw, 0, "Alice should have zero liquidity remaining in the pool");
+        assertEq(liquidityPoolBalanceAfter, initialLiquidityPoolBalance - expectedLiquidity, "Total pool liquidity did not decrease as expected");
+
+        // There is some DUST restriction in draining the liquidity pool completely
+        assertEq(token1.balanceOf(alice), initialAliceToken1Balance - 100, "Alice's token1 balance should be restored to initial");
+        assertEq(token2.balanceOf(alice), initialAliceToken2Balance - 100, "Alice's token2 balance should be restored to initial");
+    }
+
+
+	// A unit test that checks for correct behavior when adding liquidity with zero amounts
+	function testAddingLiquidityWithZeroAmounts() public {
+        // Remember the starting balances
+        uint256 startingBalanceToken1 = token1.balanceOf(address(this));
+        uint256 startingBalanceToken2 = token2.balanceOf(address(this));
+
+        // Try to add liquidity with zero amounts
+        vm.expectRevert("The amount of tokenA to add is too small");
+        collateralAndLiquidity.depositLiquidityAndIncreaseShare(token1, token2, 0, 0, 0, block.timestamp, false);
+
+        // Verify that the contract balance has not changed
+        assertEq(token1.balanceOf(address(this)), startingBalanceToken1, "Token1 balance should not change");
+        assertEq(token2.balanceOf(address(this)), startingBalanceToken2, "Token2 balance should not change");
+    }
+
+
+	// A unit test that checks liquidity cannot be added past the deadline
+	function testCannotAddLiquidityPastDeadline() public {
+        vm.startPrank(alice);
+
+        uint256 deadline = block.timestamp - 1; // Simulate a deadline that's already passed
+        uint256 addedAmount1 = 10 ether;
+        uint256 addedAmount2 = 20 ether;
+
+        vm.expectRevert("TX EXPIRED");
+        collateralAndLiquidity.depositLiquidityAndIncreaseShare(token1, token2, addedAmount1, addedAmount2, 0 ether, deadline, false);
+        vm.stopPrank();
+    }
+
+
+	// A unit test that checks liquidity cannot be withdrawn past the deadline
+	function testCannotWithdrawPastDeadline() public {
+        // Set up liquidity
+        vm.startPrank(alice);
+        uint256 liquidityAmount = 10 ether;
+        collateralAndLiquidity.depositLiquidityAndIncreaseShare(token1, token2, liquidityAmount, liquidityAmount, 0, block.timestamp, true);
+        vm.stopPrank();
+
+        // Increase block timestamp past the withdraw deadline
+        uint256 deadline = block.timestamp + 1 days;
+        vm.warp(deadline + 1); // 1 second past the deadline
+
+        // Expecting withdraw to revert due to deadline being exceeded.
+        vm.expectRevert("TX EXPIRED");
+        vm.prank(alice);
+        collateralAndLiquidity.withdrawLiquidityAndClaim(token1, token2, liquidityAmount, 0, 0, deadline);
+    }
+
+
+	// A unit test that checks rejection when adding liquidity to a pool with a bad pair or non-existent pool
+	function testAddLiquidityToBadPair() public {
+        IERC20 badToken1 = new TestERC20("BADTOKEN1", 18);
+        IERC20 badToken2 = new TestERC20("BADTOKEN2", 18);
+
+        uint256 amount1 = 1 ether;
+        uint256 amount2 = 1 ether;
+
+        badToken1.transfer(alice, amount1);
+        badToken2.transfer(alice, amount2);
+
+        vm.startPrank(alice);
+
+        badToken1.approve(address(collateralAndLiquidity), amount1);
+        badToken2.approve(address(collateralAndLiquidity), amount2);
+
+        vm.expectRevert("Invalid pool");
+        collateralAndLiquidity.depositLiquidityAndIncreaseShare(badToken1, badToken2, amount1, amount2, 0 ether, block.timestamp + 1 hours, false);
+    }
 	}

@@ -2,6 +2,7 @@
 pragma solidity =0.8.22;
 
 import "../../dev/Deployment.sol";
+import "../interfaces/IStaking.sol";
 
 
 contract StakingTest is Deployment
@@ -945,4 +946,297 @@ contract StakingTest is Deployment
 		assertEq(staking.userXSalt(airdrop), 8 ether);
 		assertEq(staking.userXSalt(alice), 2 ether);
 		}
+
+
+	// A unit test that checks the proper burning of SALT tokens when the expeditedUnstakeFee is applied.
+	function testExpeditedUnstakeBurnsSalt() external {
+        // Alice stakes SALT to receive xSALT
+        uint256 amountToStake = 10 ether;
+        vm.prank(alice);
+        staking.stakeSALT(amountToStake);
+
+        // Alice unstakes all of her xSALT with the minimum unstake weeks to incur an expedited unstake fee
+        uint256 unstakeWeeks = stakingConfig.minUnstakeWeeks();
+        uint256 initialSaltSupply = salt.totalSupply();
+        vm.prank(alice);
+        uint256 unstakeID = staking.unstake(amountToStake, unstakeWeeks);
+
+        // Warp block time to after the unstaking completion time
+        uint256 completionTime = block.timestamp + unstakeWeeks * 1 weeks;
+        vm.warp(completionTime);
+
+        // Calculate the claimable SALT (which would be less than the unstaked amount due to the expedited fee)
+        uint256 claimableSALT = staking.calculateUnstake(amountToStake, unstakeWeeks);
+        uint256 expeditedUnstakeFee = amountToStake - claimableSALT;
+
+		uint256 existingBalance = salt.balanceOf(alice);
+
+        // Alice recovers the SALT after completing unstake
+        vm.prank(alice);
+        staking.recoverSALT(unstakeID);
+
+        // Calculate the new total supply of SALT after burning the expedited unstake fee
+        uint256 newSaltSupply = salt.totalSupply();
+
+        // Check if the expedited unstake fee was correctly burnt
+        assertEq(newSaltSupply, initialSaltSupply - expeditedUnstakeFee);
+
+        // Check if the correct amount of SALT was returned to Alice after unstaking
+        assertEq(salt.balanceOf(alice), existingBalance + claimableSALT);
+    }
+
+
+
+	// A unit test that checks proper access restriction for calling stakeSALT function.
+	function testUserWithoutExchangeAccessCannotStakeSALT() public {
+        vm.expectRevert("Sender does not have exchange access");
+        vm.prank(address(0xdead));
+        staking.stakeSALT(1 ether);
+    }
+
+
+	// A unit test that verifies the correct amount of xSALT is assigned to the user in relation to the staked SALT.
+	function testCorrectXSALTAssignment() public {
+        // Assume Deployment set up the necessary initial distribution and approvals
+
+        address user = alice; // Use Alice for the test
+
+        // Arrange: Stake amounts ranging from 1 to 5 ether for testing
+        uint256[] memory stakeAmounts = new uint256[](5);
+        for (uint256 i = 0; i < stakeAmounts.length; i++)
+          stakeAmounts[i] = (i + 1) * 1 ether;
+
+        // Act and Assert:
+        for (uint256 i = 0; i < stakeAmounts.length; i++)
+        	{
+        	uint256 startingStaked = staking.userXSalt(user);
+
+			// Alice stakes SALT
+			vm.prank(user);
+			staking.stakeSALT(stakeAmounts[i]);
+
+			uint256 amountStaked = staking.userXSalt(user) - startingStaked;
+
+			// Check that Alice is assigned the correct amount of xSALT
+			assertEq(amountStaked, stakeAmounts[i], "Unexpected xSALT balance after staking");
+			}
+	    }
+
+
+	// A unit test that ensures proper handling of edge cases for numWeeks in calculateUnstake (boundary values).
+	function testCalculateUnstakeEdgeCases() public {
+        uint256 unstakedXSALT = 10 ether;
+
+        // Test with minimum unstake weeks
+        uint256 minUnstakeWeeks = stakingConfig.minUnstakeWeeks();
+        vm.prank(address(staking));
+        uint256 claimableSALTMin = staking.calculateUnstake(unstakedXSALT, minUnstakeWeeks);
+        uint256 expectedClaimableSALTMin = (unstakedXSALT * stakingConfig.minUnstakePercent()) / 100;
+        assertEq(claimableSALTMin, expectedClaimableSALTMin);
+
+        // Test with maximum unstake weeks
+        uint256 maxUnstakeWeeks = stakingConfig.maxUnstakeWeeks();
+        vm.prank(address(staking));
+        uint256 claimableSALTMax = staking.calculateUnstake(unstakedXSALT, maxUnstakeWeeks);
+        uint256 expectedClaimableSALTMax = unstakedXSALT;
+        assertEq(claimableSALTMax, expectedClaimableSALTMax);
+
+        // Test with weeks one less than minimum
+        vm.expectRevert("Unstaking duration too short");
+        staking.calculateUnstake(unstakedXSALT, minUnstakeWeeks - 1);
+
+        // Test with weeks one more than maximum
+        vm.expectRevert("Unstaking duration too long");
+        staking.calculateUnstake(unstakedXSALT, maxUnstakeWeeks + 1);
+    }
+
+
+	// A unit test that checks the correct user's unstakeIDs list is maintained after several unstakes and cancels.
+	function testMaintainCorrectUnstakeIDsListAfterUnstakesAndCancels() public {
+        // Alice stakes 25 ether which gives her 25 ether worth of xSALT
+        vm.startPrank(alice);
+        staking.stakeSALT(25 ether);
+
+        // Alice performs 3 unstake operations with 5 ether each
+        uint256 unstakeID1 = staking.unstake(5 ether, 4);
+        uint256 unstakeID2 = staking.unstake(5 ether, 4);
+        uint256 unstakeID3 = staking.unstake(5 ether, 4);
+
+        // Verify that unstake IDs are recorded correctly
+        uint256[] memory aliceUnstakeIDs = staking.userUnstakeIDs(alice);
+        assertEq(aliceUnstakeIDs[0], unstakeID1);
+        assertEq(aliceUnstakeIDs[1], unstakeID2);
+        assertEq(aliceUnstakeIDs[2], unstakeID3);
+
+        // Alice cancels her second unstake
+        staking.cancelUnstake(unstakeID2);
+        // Verify that second unstake ID now has a UnstakeState of CANCELLED
+        Unstake memory canceledUnstake = staking.unstakeByID(unstakeID2);
+        assertEq(uint256(canceledUnstake.status), uint256(UnstakeState.CANCELLED));
+
+        // Alice performs an additional unstake operation with 5 ether
+        uint256 unstakeID4 = staking.unstake(5 ether, 4);
+
+        // Alice unstake IDs should still include the cancelled ID and the new unstake ID
+        aliceUnstakeIDs = staking.userUnstakeIDs(alice);
+
+        assertEq(aliceUnstakeIDs.length, 4); // Ensure we have 4 unstake IDs
+        assertEq(aliceUnstakeIDs[0], unstakeID1);
+        assertEq(aliceUnstakeIDs[1], unstakeID2);
+        assertEq(aliceUnstakeIDs[2], unstakeID3);
+        assertEq(aliceUnstakeIDs[3], unstakeID4);
+
+        // All unstake IDs should correspond to the correct Unstake data
+        assertEq(staking.unstakeByID(aliceUnstakeIDs[0]).unstakedXSALT, 5 ether);
+        assertEq(staking.unstakeByID(aliceUnstakeIDs[1]).unstakedXSALT, 5 ether);
+        assertEq(uint256(staking.unstakeByID(aliceUnstakeIDs[1]).status), uint256(UnstakeState.CANCELLED)); // This is the cancelled one
+        assertEq(staking.unstakeByID(aliceUnstakeIDs[2]).unstakedXSALT, 5 ether);
+        assertEq(staking.unstakeByID(aliceUnstakeIDs[3]).unstakedXSALT, 5 ether);
+
+        vm.stopPrank();
+    }
+
+
+	// A unit test to verify proper permission checks for cancelUnstake and recoverSALT functions.
+	function testPermissionChecksForCancelUnstakeAndRecoverSALT() public {
+		uint256 stakeAmount = 10 ether;
+		uint256 unstakeAmount = 5 ether;
+		uint256 unstakeWeeks = 4;
+
+		// Alice stakes SALT
+		vm.prank(alice);
+		staking.stakeSALT(stakeAmount);
+
+		// Alice tries to unstake
+		vm.startPrank(alice);
+		uint256 aliceUnstakeID = staking.unstake(unstakeAmount, unstakeWeeks);
+		vm.stopPrank();
+
+		// Bob should not be able to cancel Alice's unstake
+		vm.startPrank(bob);
+		vm.expectRevert("Sender is not the original staker");
+		staking.cancelUnstake(aliceUnstakeID);
+		vm.stopPrank();
+
+		// Alice cancels her unstake
+		vm.prank(alice);
+		staking.cancelUnstake(aliceUnstakeID);
+
+		// The xSALT balance should be as if nothing was unstaked since the unstake was cancelled
+		assertEq(staking.userXSalt(alice), stakeAmount);
+
+		// Alice tries to unstake again
+		vm.prank(alice);
+		aliceUnstakeID = staking.unstake(unstakeAmount, unstakeWeeks);
+
+		// Warp to the future beyond the unstake completion time
+		vm.warp(block.timestamp + unstakeWeeks * 1 weeks);
+
+		// Bob should not be able to recover SALT from Alice's unstake
+		vm.prank(bob);
+		vm.expectRevert("Sender is not the original staker");
+		staking.recoverSALT(aliceUnstakeID);
+
+		// Alice recovers SALT from her unstake
+		vm.prank(alice);
+		staking.recoverSALT(aliceUnstakeID);
+
+		// Verify the xSALT balance decreased by unstaked amount and SALT balance increased by claimed amount
+		uint256 aliceXSaltBalance = staking.userXSalt(alice);
+		uint256 aliceSaltBalance = salt.balanceOf(alice);
+		assertEq(aliceXSaltBalance, stakeAmount - unstakeAmount);
+
+		Unstake memory unstake = staking.unstakeByID(aliceUnstakeID);
+
+		// Started with 100 ether and staked 10 ether originally
+		assertEq(aliceSaltBalance, 90 ether + unstake.claimableSALT);
+	}
+
+
+	// A unit test that ensures staking more than the user's SALT balance fails appropriately.
+	function testStakingMoreThanBalance() external {
+        uint256 initialAliceBalance = salt.balanceOf(alice);
+        uint256 excessiveAmount = initialAliceBalance + 1 ether;
+
+        vm.startPrank(alice);
+
+        vm.expectRevert("ERC20: transfer amount exceeds balance");
+        staking.stakeSALT(excessiveAmount);
+
+        vm.stopPrank();
+    }
+
+
+	// A unit test that confirms correct UnstakeState updates after cancelUnstake and recoverSALT calls.
+	function testUnstakeStateUpdatesAfterCancelAndRecover() public {
+        uint256 stakeAmount = 10 ether;
+        uint256 unstakeAmount = 5 ether;
+        uint256 unstakeDuration = 4;
+
+        // Alice stakes
+        vm.prank(alice);
+        staking.stakeSALT(stakeAmount);
+
+        // Alice initiates an unstake request
+        vm.prank(alice);
+        uint256 unstakeID = staking.unstake(unstakeAmount, unstakeDuration);
+
+        // Check the initial state of the unstake
+        Unstake memory initialUnstake = staking.unstakeByID(unstakeID);
+        assertEq(uint256(initialUnstake.status), uint256(UnstakeState.PENDING), "Unstake should be pending");
+
+        // Cancel the unstake request
+        vm.prank(alice);
+        staking.cancelUnstake(unstakeID);
+
+        // Check the state of the unstake after cancellation
+        Unstake memory cancelledUnstake = staking.unstakeByID(unstakeID);
+        assertEq(uint256(cancelledUnstake.status), uint256(UnstakeState.CANCELLED), "Unstake should be cancelled");
+
+        // Alice tries to recover SALT after cancellation, which should fail
+        vm.prank(alice);
+        vm.expectRevert("Only PENDING unstakes can be claimed");
+        staking.recoverSALT(unstakeID);
+
+        // Alice initiates another unstake which she will attempt to recover
+        vm.prank(alice);
+        unstakeID = staking.unstake(unstakeAmount, unstakeDuration);
+
+        // Advance time to after the unstake duration
+        vm.warp(block.timestamp + 4 weeks);
+
+        // Recover SALT from the unstake
+        vm.prank(alice);
+        staking.recoverSALT(unstakeID);
+
+        // Check the state of the unstake after recovery
+        Unstake memory recoveredUnstake = staking.unstakeByID(unstakeID);
+        assertEq(uint256(recoveredUnstake.status), uint256(UnstakeState.CLAIMED), "Unstake should be claimed");
+    }
+
+
+	// A unit test that confirms no SALT is recoverable if recoverSALT is called on an unstake with UnstakeState.CANCELLED.
+	function testCannotRecoverSALTFromCancelledUnstake() public {
+        // Alice stakes 10 SALT
+        vm.startPrank(alice);
+        uint256 amountToStake = 10 ether;
+        staking.stakeSALT(amountToStake);
+
+        // Alice unstakes 5 SALT with 4 weeks duration
+        uint256 numWeeks = 4;
+        uint256 unstakeID = staking.unstake(5 ether, numWeeks);
+
+        // Alice cancels the unstake
+        staking.cancelUnstake(unstakeID);
+
+        // Assert the unstake status is CANCELLED
+        Unstake memory unstake = staking.unstakeByID(unstakeID);
+        assertEq(uint256(unstake.status), uint256(UnstakeState.CANCELLED));
+
+        // Attempt to recover SALT should fail since unstake is cancelled
+        vm.expectRevert("Only PENDING unstakes can be claimed");
+        staking.recoverSALT(unstakeID);
+
+        vm.stopPrank();
+    }
 	}

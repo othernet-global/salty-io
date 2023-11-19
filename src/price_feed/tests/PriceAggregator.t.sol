@@ -213,6 +213,90 @@ contract TestPriceAggreagator is Deployment
         vm.expectRevert( "Invalid BTC price" );
         priceAggregator.getPriceBTC();
     }
+
+
+
+	function _absoluteDifference( uint256 x, uint256 y ) internal pure returns (uint256)
+		{
+		if ( x > y )
+			return x - y;
+
+		return y - x;
+		}
+
+
+    // A unit test that confirms _aggregatePrices correctly averages the two closest prices when the closest two prices are exactly at the maximum allowed difference apart
+    function testAggregatePricesMaxDifference() public {
+        // Setup
+        uint256 price1 = 100 ether; // Initial price for feed1
+        uint256 price2 = 100 ether + 3 ether; // Price for feed2, at max allowed difference
+        uint256 price3 = 0; // Price for feed3 is irrelevant as it should be discarded
+
+        // Set prices for price feeds with the maximum allowed difference
+        priceFeed1.setBTCPrice(price1);
+        priceFeed2.setBTCPrice(price2);
+        priceFeed3.setBTCPrice(price3);
+
+        // Expect that _aggregatePrices correctly averages the two closest prices
+        uint256 expectedPrice = (price1 + price2) / 2;
+        uint256 aggregatedPrice = priceAggregator.getPriceBTC();
+
+        // Check that the average is correctly calculated
+        assertEq(aggregatedPrice, expectedPrice, "Aggregated price did not match expected average");
+    }
+
+
+    // A unit test that confirms that the _absoluteDifference function works as expected when x or y is zero
+    function testAbsoluteDifferenceWithZero() public {
+        uint256 xZero = 0;
+        uint256 yZero = 0;
+        uint256 xNonZero = 5 ether;
+        uint256 yNonZero = 10 ether;
+
+        // Test _absoluteDifference with x = 0 and y = 0
+        uint256 result = _absoluteDifference(xZero, yZero);
+        assertEq(result, 0, "The absolute difference of zero and zero should be zero");
+
+        // Test _absoluteDifference with x = 0 and y > 0
+        result = _absoluteDifference(xZero, yNonZero);
+        assertEq(result, yNonZero, "The absolute difference of zero and a non-zero value should be the non-zero value");
+
+        // Test _absoluteDifference with x > 0 and y = 0
+        result = _absoluteDifference(xNonZero, yZero);
+        assertEq(result, xNonZero, "The absolute difference of a non-zero value and zero should be the non-zero value");
+    }
+
+
+    // A unit test to ensure that _getPriceBTC and _getPriceETH functions return zero when the external call fails (and not via revert)
+	function testGetPriceReturnsZeroOnExternalCallFailure() public {
+        // Setup: Make external calls fail for BTC and ETH prices
+        ForcedPriceFeed(address(priceFeed1)).setRevertNext();
+        ForcedPriceFeed(address(priceFeed2)).setRevertNext();
+        ForcedPriceFeed(address(priceFeed3)).setRevertNext();
+
+        // Check that the BTC price returns zero on external call failure
+        vm.expectRevert( "Invalid BTC price" );
+        uint256 btcPrice = priceAggregator.getPriceBTC();
+        assertEq(btcPrice, 0, "BTC price should be zero on external call failure");
+
+        // Check that the ETH price returns zero on external call failure
+        vm.expectRevert( "Invalid ETH price" );
+        uint256 ethPrice = priceAggregator.getPriceETH();
+        assertEq(ethPrice, 0, "ETH price should be zero on external call failure");
+    }
+
+    // A unit test that validates the behavior of _aggregatePrices when two price sources are exactly the same and the third one is different
+    function testAggregatePricesTwoSameOneDifferent() public {
+        // Setup
+        priceFeed1.setBTCPrice(50000 ether);  // Same price for priceFeed1 and priceFeed2
+        priceFeed2.setBTCPrice(50000 ether);  // Same price for priceFeed1 and priceFeed2
+        priceFeed3.setBTCPrice(51000 ether);  // Different price for priceFeed3
+
+        // If the two same prices are valid, and within range, the function should aggregate them correctly.
+        uint256 expectedPrice = (50000 ether + 50000 ether) / 2;
+        uint256 aggregatedPrice = priceAggregator.getPriceBTC();
+        assertEq(aggregatedPrice, expectedPrice, "Aggregated price should be the average of the two same prices");
+    }
 	}
 
 
