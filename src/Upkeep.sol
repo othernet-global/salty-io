@@ -15,6 +15,7 @@ import "./dao/interfaces/IDAO.sol";
 
 
 // Performs the following upkeep for each call to performUpkeep():
+// (Uses a maximum of 2.2 million gas with 100 whitelisted pools according to UpkeepGasUsage.t.sol)
 
 // 1. Swaps tokens previously sent to the Liquidizer contract for USDS and burns specified amounts of USDS.
 
@@ -31,10 +32,9 @@ import "./dao/interfaces/IDAO.sol";
 // 10. Sends SALT from the DAO vesting wallet to the DAO (linear distribution over 10 years).
 // 11. Sends SALT from the team vesting wallet to the team (linear distribution over 10 years).
 
-// WETH arbitrage profits are converted directly via depositSwapWithdraw - as performUpkeep is called often and the generated arbitrage profits
-// being calls will be manageable trade-wise.
-// Additionally, simulations show that the impact from sandwich attacks on swap transactions is limited due to the atomic arbitrage process.
-// See PoolUtils.__placeInternalSwap for more details.
+// WETH arbitrage profits are converted directly via depositSwapWithdraw - as performUpkeep is called often and the generated arbitrage profits should be manageable compared to the size of the reserves.
+// Additionally, simulations show that the impact from sandwich attacks on swap transactions (even without specifying slippage) is limited due to the atomic arbitrage process.
+// See PoolUtils.__placeInternalSwap and Sandwich.t.sol for more details.
 
 contract Upkeep is IUpkeep, ReentrancyGuard
     {
@@ -224,7 +224,7 @@ contract Upkeep is IUpkeep, ReentrancyGuard
 		}
 
 
-	// 9. Collect SALT rewards from the DAO's Protocol Owned Liquidity, send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.
+	// 9. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL), send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.
 	function step9() public onlySameContract
 		{
 		dao.processRewardsFromPOL();
@@ -239,7 +239,6 @@ contract Upkeep is IUpkeep, ReentrancyGuard
 
 
 	// 11. Sends SALT from the team vesting wallet to the team (linear distribution over 10 years).
-	// The teamVestingWallet vests to this contract - which is then transferred to the active teamWallet.
 	function step11() public onlySameContract
 		{
 		uint256 releaseableAmount = VestingWallet(payable(exchangeConfig.teamVestingWallet())).releasable(address(salt));
@@ -253,7 +252,6 @@ contract Upkeep is IUpkeep, ReentrancyGuard
 
 	// Perform the various steps of performUpkeep as outlined at the top of the contract.
 	// Each step is wrapped in a try/catch to prevent reversions from cascading through the performUpkeep.
-	// Uses a maximum of 2.2 million gas with 100 whitelisted pools according to UpkeepGasUsage.t.sol
 	function performUpkeep() public nonReentrant
 		{
 		// Perform the multiple steps of performUpkeep()
