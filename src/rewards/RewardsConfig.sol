@@ -13,7 +13,7 @@ contract RewardsConfig is IRewardsConfig, Ownable
     event StakingRewardsPercentChanged(uint256 newStakingRewardsPercent);
     event PercentRewardsSaltUSDSChanged(uint256 newPercentRewardsSaltUSDS);
 
-	// The target daily percent rewards emitter distribution (from the SALT balance in each emitter contract).
+	// The target daily percent of rewards distributed by the stakingRewardsEmitter and liquidityRewardsEmitter (from the SALT balance in each emitter contract).
 	// Rewards Emitters distribute SALT rewards over time to the SharedRewards contracts where the rewards can be claimed by users.
 	// Range: .25% to 2.5% with an adjustment of 0.25%
 	uint256 public rewardsEmitterDailyPercentTimes1000 = 1000;  // Defaults to 1.0% with a 1000x multiplier

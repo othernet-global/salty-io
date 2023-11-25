@@ -106,7 +106,7 @@ contract TestDAO is Deployment
 		else if ( parameter == Parameters.ParameterTypes.baseBallotQuorumPercentTimes1000 )
 			return daoConfig.baseBallotQuorumPercentTimes1000();
 		else if ( parameter == Parameters.ParameterTypes.ballotDuration )
-			return daoConfig.ballotDuration();
+			return daoConfig.ballotMinimumDuration();
 		else if ( parameter == Parameters.ParameterTypes.requiredProposalPercentStakeTimes1000 )
 			return daoConfig.requiredProposalPercentStakeTimes1000();
 		else if ( parameter == Parameters.ParameterTypes.maxPendingTokensForWhitelisting )
@@ -269,7 +269,7 @@ contract TestDAO is Deployment
         vm.warp(block.timestamp + 11 days );
 
         // Test Parameter Ballot finalization
-		salt.transfer( address(dao), 199999 ether );
+		salt.transfer( address(dao), 399999 ether );
 
 		vm.expectRevert( "Whitelisting is not currently possible due to insufficient bootstrapping rewards" );
         dao.finalizeBallot(ballotID);
@@ -424,10 +424,10 @@ contract TestDAO is Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 1000000 ether );
 
-        proposals.proposeCountryExclusion( "USA", "description" );
+        proposals.proposeCountryExclusion( "US", "description" );
 		_voteForAndFinalizeBallot(1, Vote.YES);
 
-		assertTrue( dao.countryIsExcluded( "USA" ), "US should be excluded" );
+		assertTrue( dao.countryIsExcluded( "US" ), "US should be excluded" );
 		vm.stopPrank();
 
 		// GeoVersion is now 1 and effectively has cleared access
@@ -437,10 +437,10 @@ contract TestDAO is Deployment
 
 
         vm.startPrank(alice);
-        proposals.proposeCountryInclusion( "USA", "description" );
+        proposals.proposeCountryInclusion( "US", "description" );
 		_voteForAndFinalizeBallot(2, Vote.YES);
 
-		assertFalse( dao.countryIsExcluded( "USA" ), "US shouldn't be excluded" );
+		assertFalse( dao.countryIsExcluded( "US" ), "US shouldn't be excluded" );
     	}
 
 
@@ -450,10 +450,10 @@ contract TestDAO is Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 1000000 ether );
 
-        proposals.proposeCountryExclusion( "USA", "description" );
+        proposals.proposeCountryExclusion( "US", "description" );
 		_voteForAndFinalizeBallot(1, Vote.YES);
 
-		assertTrue( dao.countryIsExcluded( "USA" ), "US should be excluded" );
+		assertTrue( dao.countryIsExcluded( "US" ), "US should be excluded" );
 		vm.stopPrank();
 
 		// GeoVersion is now 1 and effectively has cleared access
@@ -463,10 +463,10 @@ contract TestDAO is Deployment
 
 
         vm.startPrank(alice);
-        proposals.proposeCountryInclusion( "USA", "description" );
+        proposals.proposeCountryInclusion( "US", "description" );
 		_voteForAndFinalizeBallot(2, Vote.NO);
 
-		assertTrue( dao.countryIsExcluded( "USA" ), "US should be excluded" );
+		assertTrue( dao.countryIsExcluded( "US" ), "US should be excluded" );
     	}
 
 
@@ -476,10 +476,10 @@ contract TestDAO is Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 1000000 ether );
 
-        proposals.proposeCountryExclusion( "USA", "description" );
+        proposals.proposeCountryExclusion( "US", "description" );
 		_voteForAndFinalizeBallot(1, Vote.YES);
 
-		assertTrue( dao.countryIsExcluded( "USA" ), "USA should be excluded" );
+		assertTrue( dao.countryIsExcluded( "US" ), "USA should be excluded" );
     	}
 
 
@@ -489,11 +489,11 @@ contract TestDAO is Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 1000000 ether );
 
-        proposals.proposeCountryExclusion( "USA", "description" );
+        proposals.proposeCountryExclusion( "US", "description" );
 		_voteForAndFinalizeBallot(1, Vote.NO);
 
-		assertFalse( dao.countryIsExcluded( "USA" ), "USA shouldn't be excluded" );
-		assertFalse( dao.countryIsExcluded( "USA" ), "USA shouldn't be excluded" );
+		assertFalse( dao.countryIsExcluded( "US" ), "USA shouldn't be excluded" );
+		assertFalse( dao.countryIsExcluded( "US" ), "USA shouldn't be excluded" );
     	}
 
 
@@ -921,17 +921,17 @@ contract TestDAO is Deployment
     	{
     	vm.startPrank(address(bootstrapBallot));
 
-		uint256[] memory dummyYes = new uint256[](5);
-		uint256[] memory dummyNo = new uint256[](5);
+		uint256[] memory dummyYes = new uint256[](4);
+		uint256[] memory dummyNo = new uint256[](4);
 
 		dummyYes[0] = 2;
 		dummyNo[0] = 1;
 
-		assertFalse( dao.countryIsExcluded( "USA") );
+		assertFalse( dao.countryIsExcluded( "US") );
 
     	dao.initialGeoExclusion(dummyYes, dummyNo);
 
-		assertTrue( dao.countryIsExcluded( "USA") );
+		assertTrue( dao.countryIsExcluded( "US") );
     	}
 
 
@@ -940,17 +940,17 @@ contract TestDAO is Deployment
     	{
     	vm.startPrank(address(bootstrapBallot));
 
-		uint256[] memory dummyYes = new uint256[](5);
-		uint256[] memory dummyNo = new uint256[](5);
+		uint256[] memory dummyYes = new uint256[](4);
+		uint256[] memory dummyNo = new uint256[](4);
 
 		dummyYes[0] = 1;
 		dummyNo[0] = 2;
 
-		assertFalse( dao.countryIsExcluded( "USA") );
+		assertFalse( dao.countryIsExcluded( "US") );
 
     	dao.initialGeoExclusion(dummyYes, dummyNo);
 
-		assertFalse( dao.countryIsExcluded( "USA") );
+		assertFalse( dao.countryIsExcluded( "US") );
     	}
 
 
@@ -962,17 +962,17 @@ contract TestDAO is Deployment
     	{
     	vm.startPrank(address(bootstrapBallot));
 
-		uint256[] memory dummyYes = new uint256[](5);
-		uint256[] memory dummyNo = new uint256[](5);
+		uint256[] memory dummyYes = new uint256[](4);
+		uint256[] memory dummyNo = new uint256[](4);
 
 		dummyYes[1] = 2;
 		dummyNo[1] = 1;
 
-		assertFalse( dao.countryIsExcluded( "CAN") );
+		assertFalse( dao.countryIsExcluded( "CA") );
 
     	dao.initialGeoExclusion(dummyYes, dummyNo);
 
-		assertTrue( dao.countryIsExcluded( "CAN") );
+		assertTrue( dao.countryIsExcluded( "CA") );
     	}
 
 
@@ -981,17 +981,17 @@ contract TestDAO is Deployment
     	{
     	vm.startPrank(address(bootstrapBallot));
 
-		uint256[] memory dummyYes = new uint256[](5);
-		uint256[] memory dummyNo = new uint256[](5);
+		uint256[] memory dummyYes = new uint256[](4);
+		uint256[] memory dummyNo = new uint256[](4);
 
 		dummyYes[1] = 1;
 		dummyNo[1] = 2;
 
-		assertFalse( dao.countryIsExcluded( "CAN") );
+		assertFalse( dao.countryIsExcluded( "CA") );
 
     	dao.initialGeoExclusion(dummyYes, dummyNo);
 
-		assertFalse( dao.countryIsExcluded( "CAN") );
+		assertFalse( dao.countryIsExcluded( "CA") );
     	}
 
 
@@ -1003,17 +1003,17 @@ contract TestDAO is Deployment
     	{
     	vm.startPrank(address(bootstrapBallot));
 
-		uint256[] memory dummyYes = new uint256[](5);
-		uint256[] memory dummyNo = new uint256[](5);
+		uint256[] memory dummyYes = new uint256[](4);
+		uint256[] memory dummyNo = new uint256[](4);
 
 		dummyYes[2] = 2;
 		dummyNo[2] = 1;
 
-		assertFalse( dao.countryIsExcluded( "GBR") );
+		assertFalse( dao.countryIsExcluded( "GB") );
 
     	dao.initialGeoExclusion(dummyYes, dummyNo);
 
-		assertTrue( dao.countryIsExcluded( "GBR") );
+		assertTrue( dao.countryIsExcluded( "GB") );
     	}
 
 
@@ -1022,17 +1022,17 @@ contract TestDAO is Deployment
     	{
     	vm.startPrank(address(bootstrapBallot));
 
-		uint256[] memory dummyYes = new uint256[](5);
-		uint256[] memory dummyNo = new uint256[](5);
+		uint256[] memory dummyYes = new uint256[](4);
+		uint256[] memory dummyNo = new uint256[](4);
 
 		dummyYes[2] = 1;
 		dummyNo[2] = 2;
 
-		assertFalse( dao.countryIsExcluded( "GBR") );
+		assertFalse( dao.countryIsExcluded( "GB") );
 
     	dao.initialGeoExclusion(dummyYes, dummyNo);
 
-		assertFalse( dao.countryIsExcluded( "GBR") );
+		assertFalse( dao.countryIsExcluded( "GB") );
     	}
 
 
@@ -1043,25 +1043,23 @@ contract TestDAO is Deployment
         	{
         	vm.startPrank(address(bootstrapBallot));
 
-    		uint256[] memory dummyYes = new uint256[](5);
-    		uint256[] memory dummyNo = new uint256[](5);
+    		uint256[] memory dummyYes = new uint256[](4);
+    		uint256[] memory dummyNo = new uint256[](4);
 
     		dummyYes[3] = 2;
     		dummyNo[3] = 1;
 
-    		assertFalse( dao.countryIsExcluded( "CHN") );
-    		assertFalse( dao.countryIsExcluded( "CUB") );
-    		assertFalse( dao.countryIsExcluded( "IND") );
-    		assertFalse( dao.countryIsExcluded( "PAK") );
-    		assertFalse( dao.countryIsExcluded( "RUS") );
+    		assertFalse( dao.countryIsExcluded( "CN") );
+    		assertFalse( dao.countryIsExcluded( "IN") );
+    		assertFalse( dao.countryIsExcluded( "PK") );
+    		assertFalse( dao.countryIsExcluded( "RU") );
 
         	dao.initialGeoExclusion(dummyYes, dummyNo);
 
-    		assertTrue( dao.countryIsExcluded( "CHN") );
-    		assertTrue( dao.countryIsExcluded( "CUB") );
-    		assertTrue( dao.countryIsExcluded( "IND") );
-    		assertTrue( dao.countryIsExcluded( "PAK") );
-    		assertTrue( dao.countryIsExcluded( "RUS") );
+    		assertTrue( dao.countryIsExcluded( "CN") );
+    		assertTrue( dao.countryIsExcluded( "IN") );
+    		assertTrue( dao.countryIsExcluded( "PK") );
+    		assertTrue( dao.countryIsExcluded( "RU") );
         	}
 
 
@@ -1070,25 +1068,23 @@ contract TestDAO is Deployment
         	{
         	vm.startPrank(address(bootstrapBallot));
 
-    		uint256[] memory dummyYes = new uint256[](5);
-    		uint256[] memory dummyNo = new uint256[](5);
+    		uint256[] memory dummyYes = new uint256[](4);
+    		uint256[] memory dummyNo = new uint256[](4);
 
     		dummyYes[3] = 1;
     		dummyNo[3] = 2;
 
-    		assertFalse( dao.countryIsExcluded( "CHN") );
-    		assertFalse( dao.countryIsExcluded( "CUB") );
-    		assertFalse( dao.countryIsExcluded( "IND") );
-    		assertFalse( dao.countryIsExcluded( "PAK") );
-    		assertFalse( dao.countryIsExcluded( "RUS") );
+    		assertFalse( dao.countryIsExcluded( "CN") );
+    		assertFalse( dao.countryIsExcluded( "IN") );
+    		assertFalse( dao.countryIsExcluded( "PK") );
+    		assertFalse( dao.countryIsExcluded( "RU") );
 
         	dao.initialGeoExclusion(dummyYes, dummyNo);
 
-    		assertFalse( dao.countryIsExcluded( "CHN") );
-    		assertFalse( dao.countryIsExcluded( "CUB") );
-    		assertFalse( dao.countryIsExcluded( "IND") );
-    		assertFalse( dao.countryIsExcluded( "PAK") );
-    		assertFalse( dao.countryIsExcluded( "RUS") );
+    		assertFalse( dao.countryIsExcluded( "CN") );
+    		assertFalse( dao.countryIsExcluded( "IN") );
+    		assertFalse( dao.countryIsExcluded( "PK") );
+    		assertFalse( dao.countryIsExcluded( "RU") );
         	}
 
 
@@ -1097,52 +1093,17 @@ contract TestDAO is Deployment
     	{
     	vm.startPrank(address(bootstrapBallot));
 
-		uint256[] memory dummyYes = new uint256[](5);
-		uint256[] memory dummyNo = new uint256[](5);
-
-		dummyYes[4] = 2;
-		dummyNo[4] = 1;
-
-		assertFalse( dao.countryIsExcluded( "AFG") );
-		assertFalse( dao.countryIsExcluded( "IRN") );
-		assertFalse( dao.countryIsExcluded( "PRK") );
-		assertFalse( dao.countryIsExcluded( "SYR") );
-		assertFalse( dao.countryIsExcluded( "VEN") );
+		uint256[] memory dummyYes = new uint256[](4);
+		uint256[] memory dummyNo = new uint256[](4);
 
     	dao.initialGeoExclusion(dummyYes, dummyNo);
 
-		assertTrue( dao.countryIsExcluded( "AFG") );
-		assertTrue( dao.countryIsExcluded( "IRN") );
-		assertTrue( dao.countryIsExcluded( "PRK") );
-		assertTrue( dao.countryIsExcluded( "SYR") );
-		assertTrue( dao.countryIsExcluded( "VEN") );
-    	}
-
-
-	// A unit test to validate that geo exclusion fails
-	function testGeoExclusionNo5() public
-    	{
-    	vm.startPrank(address(bootstrapBallot));
-
-		uint256[] memory dummyYes = new uint256[](5);
-		uint256[] memory dummyNo = new uint256[](5);
-
-		dummyYes[4] = 1;
-		dummyNo[4] = 2;
-
-		assertFalse( dao.countryIsExcluded( "AFG") );
-		assertFalse( dao.countryIsExcluded( "IRN") );
-		assertFalse( dao.countryIsExcluded( "PRK") );
-		assertFalse( dao.countryIsExcluded( "SYR") );
-		assertFalse( dao.countryIsExcluded( "VEN") );
-
-    	dao.initialGeoExclusion(dummyYes, dummyNo);
-
-		assertFalse( dao.countryIsExcluded( "AFG") );
-		assertFalse( dao.countryIsExcluded( "IRN") );
-		assertFalse( dao.countryIsExcluded( "PRK") );
-		assertFalse( dao.countryIsExcluded( "SYR") );
-		assertFalse( dao.countryIsExcluded( "VEN") );
+		assertTrue( dao.countryIsExcluded( "AF") );
+		assertTrue( dao.countryIsExcluded( "CU") );
+		assertTrue( dao.countryIsExcluded( "IR") );
+		assertTrue( dao.countryIsExcluded( "KP") );
+		assertTrue( dao.countryIsExcluded( "SY") );
+		assertTrue( dao.countryIsExcluded( "VE") );
     	}
 
 
@@ -1211,7 +1172,7 @@ contract TestDAO is Deployment
         vm.stopPrank();
 
         // Increase block time to finalize the ballot
-        vm.warp(block.timestamp + daoConfig.ballotDuration());
+        vm.warp(block.timestamp + daoConfig.ballotMinimumDuration());
 
         // Expect revert because quorum is still not reached
         vm.expectRevert("The ballot is not yet able to be finalized");
@@ -1267,7 +1228,7 @@ contract TestDAO is Deployment
 		proposals.castVote(ballotID, Vote.YES);
 
 		// Increase block time to finalize the ballot
-		vm.warp(block.timestamp + daoConfig.ballotDuration());
+		vm.warp(block.timestamp + daoConfig.ballotMinimumDuration());
 
 		uint256 bootstrapRewards = daoConfig.bootstrappingRewards();
         uint256 initialDaoBalance = salt.balanceOf(address(dao));

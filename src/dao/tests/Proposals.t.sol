@@ -118,7 +118,7 @@ contract TestProposals is Deployment
         assertEq(ballot.number1, 1);
         assertEq(ballot.string1, "");
         assertEq(ballot.description, "description");
-        assertEq(ballot.ballotMinimumEndTime, block.timestamp + daoConfig.ballotDuration());
+        assertEq(ballot.ballotMinimumEndTime, block.timestamp + daoConfig.ballotMinimumDuration());
     }
 
 
@@ -146,8 +146,8 @@ contract TestProposals is Deployment
 		uint256 ballotID = 1;
 		assertFalse( proposals.canFinalizeBallot(ballotID) );
 
-        // Increasing block time by ballotDuration to allow for proposal finalization
-        vm.warp(block.timestamp + daoConfig.ballotDuration());
+        // Increasing block time by ballotMinimumDuration to allow for proposal finalization
+        vm.warp(block.timestamp + daoConfig.ballotMinimumDuration());
 		assertFalse( proposals.canFinalizeBallot(ballotID) );
 
 		// Have alice cast some votes
@@ -169,10 +169,10 @@ contract TestProposals is Deployment
 
 	// A unit test that verifies the proposeCountryInclusion and proposeCountryExclusion functions with different country names. Check that the appropriate country name gets stored in the proposal.
 	function testProposeCountryInclusionExclusion() public {
-        string memory inclusionBallotName = "include:usa";
-        string memory exclusionBallotName = "exclude:can";
-        string memory countryName1 = "usa";
-        string memory countryName2 = "can";
+        string memory inclusionBallotName = "include:us";
+        string memory exclusionBallotName = "exclude:ca";
+        string memory countryName1 = "us";
+        string memory countryName2 = "ca";
 
         // Assert initial balances
         assertEq(usds.balanceOf(alice), 1000000 ether);
@@ -405,7 +405,7 @@ contract TestProposals is Deployment
         bool canFinalizeBallotStillEarly = proposals.canFinalizeBallot(ballotID);
 
 		// Ballot reached end time, no quorum
-        vm.warp(block.timestamp + daoConfig.ballotDuration() + 1); // ballot end time reached
+        vm.warp(block.timestamp + daoConfig.ballotMinimumDuration() + 1); // ballot end time reached
 
 		vm.expectRevert( "SALT staked cannot be zero to determine quorum" );
 		proposals.canFinalizeBallot(ballotID);
@@ -873,7 +873,7 @@ staking.stakeSALT(1000 ether);
         // Test proposeParameterBallot function
         vm.startPrank(DEPLOYER);
         staking.stakeSALT( 2500000 ether );
-       proposals.proposeCountryInclusion( "USA", "description" );
+       proposals.proposeCountryInclusion( "US", "description" );
         vm.stopPrank();
 
         uint256 ballotID = 1;
@@ -981,7 +981,7 @@ staking.stakeSALT(1000 ether);
         // Test proposeParameterBallot function
         vm.startPrank(DEPLOYER);
         staking.stakeSALT( 2000000 ether );
-        proposals.proposeCountryInclusion("USA", "description" );
+        proposals.proposeCountryInclusion("US", "description" );
         vm.stopPrank();
 
         uint256 ballotID = 1;
@@ -1021,13 +1021,13 @@ staking.stakeSALT(1000 ether);
 		// Test proposeParameterBallot function
 		vm.startPrank(DEPLOYER);
         staking.stakeSALT( 100 ether );
-		proposals.proposeCountryInclusion("USA", "description" );
+		proposals.proposeCountryInclusion("US", "description" );
 		vm.stopPrank();
 
 		vm.startPrank(alice);
         staking.stakeSALT( 100 ether );
 		vm.expectRevert( "Cannot create a proposal similar to a ballot that is still open" );
-		proposals.proposeCountryInclusion("USA", "description" );
+		proposals.proposeCountryInclusion("US", "description" );
 		vm.stopPrank();
 
 	}
@@ -1152,7 +1152,7 @@ staking.stakeSALT(1000 ether);
         assertEq(ballot.number1, number1);
         assertEq(ballot.string1, string1);
         assertEq(ballot.description, description);
-        assertEq(ballot.ballotMinimumEndTime, block.timestamp + daoConfig.ballotDuration());
+        assertEq(ballot.ballotMinimumEndTime, block.timestamp + daoConfig.ballotMinimumDuration());
     }
 
 
@@ -1218,7 +1218,7 @@ staking.stakeSALT(1000 ether);
        assertEq(ballot.address1, testTokenAddress);
        assertEq(ballot.string1, "abc");
        assertEq(ballot.description, "def");
-       assertEq(ballot.ballotMinimumEndTime, block.timestamp + daoConfig.ballotDuration());
+       assertEq(ballot.ballotMinimumEndTime, block.timestamp + daoConfig.ballotMinimumDuration());
 		vm.stopPrank();
 
        vm.startPrank(alice);
@@ -1332,14 +1332,14 @@ staking.stakeSALT(1000 ether);
 
    		// Propose a ballot
    		vm.prank(alice);
-   		proposals.proposeCountryInclusion("usa", "proposed ballot");
+   		proposals.proposeCountryInclusion("US", "proposed ballot");
 
    		// Casting a vote YES
    		vm.prank(alice);
    		proposals.castVote( ballotID, Vote.YES );
 
    		// Now, we allow some time to pass in order to finalize the ballot
-   		vm.warp(block.timestamp + daoConfig.ballotDuration());
+   		vm.warp(block.timestamp + daoConfig.ballotMinimumDuration());
 
    		// We finalize the ballot
    		vm.prank( address(dao) );
@@ -1360,13 +1360,13 @@ staking.stakeSALT(1000 ether);
         // Proposing country inclusion with empty country name should fail
         vm.startPrank(alice);
         staking.stakeSALT(1000 ether);
-        vm.expectRevert("Country must be an ISO 3166 Alpha-3 Code");
+        vm.expectRevert("Country must be an ISO 3166 Alpha-2 Code");
         proposals.proposeCountryInclusion(emptyCountryName, "description");
         vm.stopPrank();
 
         // Proposing country exclusion with empty country name should fail
         vm.startPrank(alice);
-        vm.expectRevert("Country must be an ISO 3166 Alpha-3 Code");
+        vm.expectRevert("Country must be an ISO 3166 Alpha-2 Code");
         proposals.proposeCountryExclusion(emptyCountryName, "description");
         vm.stopPrank();
     }
@@ -1407,7 +1407,7 @@ staking.stakeSALT(1000 ether);
         assertEq(retrievedBallot.number1, 2);
         assertEq(retrievedBallot.string1, "");
         assertEq(retrievedBallot.description, "testBallotForID");
-        assertEq(retrievedBallot.ballotMinimumEndTime, block.timestamp + daoConfig.ballotDuration());
+        assertEq(retrievedBallot.ballotMinimumEndTime, block.timestamp + daoConfig.ballotMinimumDuration());
 
         // Clear the ballot
         vm.startPrank(address(dao));
@@ -1501,7 +1501,7 @@ staking.stakeSALT(1000 ether);
 		// Create a third ballot
        vm.startPrank(bob);
         staking.stakeSALT( 1000 ether);
- 		proposals.proposeCountryInclusion("USA", "description" );
+ 		proposals.proposeCountryInclusion("US", "description" );
 
 		ballotIDs = proposals.openBallots();
 		assertEq( ballotIDs.length, 3 );
@@ -1704,7 +1704,7 @@ staking.stakeSALT(1000 ether);
         assertTrue(proposals.userHasActiveProposal(alice));
 
         // Warp to the future past the ballot duration to finalize the vote.
-        vm.warp(block.timestamp + daoConfig.ballotDuration());
+        vm.warp(block.timestamp + daoConfig.ballotMinimumDuration());
 
         // Finalize the ballot using the DAO.
         vm.prank(address(exchangeConfig.dao()));

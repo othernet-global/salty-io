@@ -28,12 +28,12 @@ contract StableConfig is IStableConfig, Ownable
 	// Range: 1000 to 5000 with an adjustment of 500 ether
     uint256 public minimumCollateralValueForBorrowing = 2500 ether;
 
-    // The ratio required for initial collateral / borrowed USDS
+    // the initial maximum collateral / borrowed USDS ratio.
     // Defaults to 2.0x so that staking $1000 worth of BTC/ETH LP would allow you to borrow $500 of USDS
     // Range: 150 to 300 with an adjustment of 25
     uint256 public initialCollateralRatioPercent = 200;
 
-	// The minimum ratio of collateral / borrowed USDS that can lead to the position being liquidated
+	// The minimum ratio of collateral / borrowed USDS below which positions can be liquidated
 	// and the user losing their collateral (and keeping the borrowed USDS)
 	// Range: 110 to 120 with an adjustment of 1
 	uint256 public minimumCollateralRatioPercent = 110;

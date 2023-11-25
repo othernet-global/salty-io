@@ -74,7 +74,7 @@ contract TestComprehensive1 is Deployment
 		// Cast votes for the BootstrapBallot so that the initialDistribution can happen
 		bytes memory sig = abi.encodePacked(aliceVotingSignature);
 		vm.startPrank(alice);
-		uint256[] memory regionalVotes = new uint256[](5);
+		uint256[] memory regionalVotes = new uint256[](4);
 		bootstrapBallot.vote(true, regionalVotes, sig);
 		vm.stopPrank();
 

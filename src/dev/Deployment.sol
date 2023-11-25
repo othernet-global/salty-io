@@ -60,7 +60,7 @@ contract Deployment is Test
 	IForcedPriceFeed public forcedPriceFeed = IForcedPriceFeed(address(0x3B0Eb37f26b502bAe83df4eCc54afBDfb90B5d3a));
 
 	// The DAO contract can provide us with all other contract addresses in the protocol
-	IDAO public dao = IDAO(address(0x2cC45b355b034549C34248bBF9f8deE3c2A3B205));
+	IDAO public dao = IDAO(address(0xA221fB7F376fB29CEaA8145786846E020b47f359));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));
@@ -334,7 +334,7 @@ contract Deployment is Test
 		whitelistBob();
 
 		// Voting stage (yesVotes: 2, noVotes: 0)
-		uint256[] memory regionalVotes = new uint256[](5);
+		uint256[] memory regionalVotes = new uint256[](4);
 
 
 		bytes memory sig = abi.encodePacked(aliceVotingSignature);

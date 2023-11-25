@@ -28,8 +28,8 @@ contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
 	uint256 public startExchangeNo;
 
 	// Yes/No tallies on whether or not to exclude specified countries/regions
-	uint256[] private _initialGeoExclusionYes = new uint256[](5);
-	uint256[] private _initialGeoExclusionNo = new uint256[](5);
+	uint256[] private _initialGeoExclusionYes = new uint256[](4);
+	uint256[] private _initialGeoExclusionNo = new uint256[](4);
 
 
 	constructor( IExchangeConfig _exchangeConfig, IAirdrop _airdrop, uint256 ballotDuration )
@@ -51,7 +51,7 @@ contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
 	// Requires a valid signature to signify that the msg.sender is authorized to vote (being whitelisted and the retweeting exchange launch posting - checked offchain)
 	function vote( bool voteStartExchangeYes, uint256[] calldata votesRegionalExclusions, bytes calldata signature ) external nonReentrant
 		{
-		require( votesRegionalExclusions.length == 5, "Incorrect length for votesRegionalExclusions" );
+		require( votesRegionalExclusions.length == 4, "Incorrect length for votesRegionalExclusions" );
 		require( ! hasVoted[msg.sender], "User already voted" );
 
 		// Verify the signature to confirm the user is authorized to vote
@@ -63,7 +63,7 @@ contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
 		else
 			startExchangeNo++;
 
-		for( uint256 i = 0; i < 5; i++ )
+		for( uint256 i = 0; i < 4; i++ )
 			{
 			if ( votesRegionalExclusions[i] == 1 )
 				_initialGeoExclusionYes[i]++;

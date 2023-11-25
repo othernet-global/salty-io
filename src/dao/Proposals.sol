@@ -107,7 +107,7 @@ contract Proposals is IProposals, ReentrancyGuard
 		require( openBallotsByName[ballotName] == 0, "Cannot create a proposal similar to a ballot that is still open" );
 		require( openBallotsByName[ string.concat(ballotName, "_confirm")] == 0, "Cannot create a proposal for a ballot with a secondary confirmation" );
 
-		uint256 ballotMinimumEndTime = block.timestamp + daoConfig.ballotDuration();
+		uint256 ballotMinimumEndTime = block.timestamp + daoConfig.ballotMinimumDuration();
 
 		// Add the new Ballot to storage
 		ballotID = nextBallotID++;
@@ -224,7 +224,7 @@ contract Proposals is IProposals, ReentrancyGuard
 
 	function proposeCountryInclusion( string calldata country, string calldata description ) external nonReentrant
 		{
-		require( bytes(country).length == 3, "Country must be an ISO 3166 Alpha-3 Code" );
+		require( bytes(country).length == 2, "Country must be an ISO 3166 Alpha-2 Code" );
 
 		string memory ballotName = string.concat("include:", country );
 		_possiblyCreateProposal( ballotName, BallotType.INCLUDE_COUNTRY, address(0), 0, country, description );
@@ -233,7 +233,7 @@ contract Proposals is IProposals, ReentrancyGuard
 
 	function proposeCountryExclusion( string calldata country, string calldata description ) external nonReentrant
 		{
-		require( bytes(country).length == 3, "Country must be an ISO 3166 Alpha-3 Code" );
+		require( bytes(country).length == 2, "Country must be an ISO 3166 Alpha-2 Code" );
 
 		string memory ballotName = string.concat("exclude:", country );
 		_possiblyCreateProposal( ballotName, BallotType.EXCLUDE_COUNTRY, address(0), 0, country, description );

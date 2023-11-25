@@ -101,6 +101,14 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		salt.approve(address(collateralAndLiquidity), type(uint256).max);
 		usds.approve(address(collateralAndLiquidity), type(uint256).max);
 		dai.approve(address(collateralAndLiquidity), type(uint256).max);
+
+		// Excluded by default: Afghanistan, Curba, Iran, North Korea, Syria, Venezuela
+		excludedCountries["AF"] = true;
+		excludedCountries["CU"] = true;
+		excludedCountries["IR"] = true;
+		excludedCountries["KP"] = true;
+		excludedCountries["SY"] = true;
+		excludedCountries["VE"] = true;
         }
 
 
@@ -382,34 +390,23 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 
 		// Exclude the United States?
 		if ( geoExclusionYes[0] > geoExclusionNo[0] )
-			excludedCountries["USA"] = true;
+			excludedCountries["US"] = true;
 
 		// Exclude Canada?
 		if ( geoExclusionYes[1] > geoExclusionNo[1] )
-			excludedCountries["CAN"] = true;
+			excludedCountries["CA"] = true;
 
 		// Exclude the United Kingdom?
 		if ( geoExclusionYes[2] > geoExclusionNo[2] )
-			excludedCountries["GBR"] = true;
+			excludedCountries["GB"] = true;
 
-		// Exclude China, Cuba, India, Pakistan, Russia?
+		// Exclude China, India, Pakistan, Russia?
 		if ( geoExclusionYes[3] > geoExclusionNo[3] )
 			{
-			excludedCountries["CHN"] = true;
-			excludedCountries["CUB"] = true;
-			excludedCountries["IND"] = true;
-			excludedCountries["PAK"] = true;
-			excludedCountries["RUS"] = true;
-			}
-
-		// Exclude Afghanistan, Iran, North Korea, Syria, Venezuela?
-		if ( geoExclusionYes[4] > geoExclusionNo[4] )
-			{
-			excludedCountries["AFG"] = true;
-			excludedCountries["IRN"] = true;
-			excludedCountries["PRK"] = true;
-			excludedCountries["SYR"] = true;
-			excludedCountries["VEN"] = true;
+			excludedCountries["CN"] = true;
+			excludedCountries["IN"] = true;
+			excludedCountries["PK"] = true;
+			excludedCountries["RU"] = true;
 			}
 		}
 

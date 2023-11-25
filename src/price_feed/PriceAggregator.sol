@@ -23,7 +23,7 @@ contract PriceAggregator is IPriceAggregator, Ownable
 	// The next time at which setPriceFeed can be called
 	uint256 public setPriceFeedCooldownExpiration;
 
-	// The maximum percent difference between two non-zero PriceFeed prices when determining price.
+	// The maximum percent difference between two non-zero PriceFeed prices when aggregating price.
 	// When the two closest PriceFeeds (out of the three) have prices further apart than this the aggregated price is considered invalid.
 	// Range: 1% to 7% with an adjustment of .50%
 	uint256 public maximumPriceFeedPercentDifferenceTimes1000 = 3000; // Defaults to 3.0% with a 1000x multiplier

@@ -21,7 +21,7 @@ contract DAOConfig is IDAOConfig, Ownable
 	// Note that new tokens will only be able to be whitelisted (even if the vote is favorable) once the DAO SALT balance is at least this amount.
 	// The DAO receives 25 million SALT (linearly over 10 years - about 48k per week) as well as default ~23% of the Protocol Owned Liquidity SALT rewards.
 	// Range: 50k ether to 500k ether with an adjustment of 50k ether
-	uint256 public bootstrappingRewards = 100000 ether;
+	uint256 public bootstrappingRewards = 200000 ether;
 
 	// For rewards distributed to the DAO, the percentage of SALT that is burned with the remaining staying in the DAO for later use.
 	// Range: 25% to 75% with an adjustment of 5%
@@ -42,7 +42,7 @@ contract DAOConfig is IDAOConfig, Ownable
 	// How many days minimum a ballot has to exist before it can be taken action on.
 	// Action will only be taken if it has the required votes and quorum to do so.
 	// Range: 3 to 14 days with an adjustment of 1 day
-	uint256 public ballotDuration = 10 days;
+	uint256 public ballotMinimumDuration = 10 days;
 
 	// The percent of staked SALT that a user has to have to make a proposal
 	// Range: 0.10% to 2% with an adjustment of 0.10%
@@ -116,16 +116,16 @@ contract DAOConfig is IDAOConfig, Ownable
     	{
         if (increase)
         	{
-            if (ballotDuration < 14 days)
-                ballotDuration += 1 days;
+            if (ballotMinimumDuration < 14 days)
+                ballotMinimumDuration += 1 days;
         	}
         else
         	{
-            if (ballotDuration > 3 days)
-                ballotDuration -= 1 days;
+            if (ballotMinimumDuration > 3 days)
+                ballotMinimumDuration -= 1 days;
         	}
 
-		emit BallotDurationChanged(ballotDuration);
+		emit BallotDurationChanged(ballotMinimumDuration);
     	}
 
 

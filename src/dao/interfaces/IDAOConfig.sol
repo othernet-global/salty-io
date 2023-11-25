@@ -17,7 +17,7 @@ interface IDAOConfig
     function bootstrappingRewards() external view returns (uint256);
     function percentPolRewardsBurned() external view returns (uint256);
     function baseBallotQuorumPercentTimes1000() external view returns (uint256);
-    function ballotDuration() external view returns (uint256);
+    function ballotMinimumDuration() external view returns (uint256);
     function requiredProposalPercentStakeTimes1000() external view returns (uint256);
     function maxPendingTokensForWhitelisting() external view returns (uint256);
     function arbitrageProfitsPercentPOL() external view returns (uint256);

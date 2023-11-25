@@ -578,7 +578,6 @@ contract TestSaltRewards2 is Deployment
 
         // Balance of contract before running sendLiquidityRewards
         uint256 initialSaltContractBalance = salt.balanceOf(address(_saltRewards));
-        uint256 initialLiquidityRewardsEmitterBalanceSaltUSDS = salt.balanceOf(address(liquidityRewardsEmitter)) + 1 ether;
 
         // Call sendLiquidityRewards, which should include directRewardsForSaltUSDSPoolID only for saltUSDSPoolID
         _saltRewards.sendLiquidityRewards(40 ether, 1 ether, poolIDs, profitsForPools);

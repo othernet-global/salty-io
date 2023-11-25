@@ -15,7 +15,7 @@ import "./dao/interfaces/IDAO.sol";
 
 
 // Performs the following upkeep for each call to performUpkeep():
-// (Uses a maximum of 2.2 million gas with 100 whitelisted pools according to UpkeepGasUsage.t.sol)
+// (Uses a maximum of 2.3 million gas with 100 whitelisted pools according to UpkeepGasUsage.t.sol)
 
 // 1. Swaps tokens previously sent to the Liquidizer contract for USDS and burns specified amounts of USDS.
 
