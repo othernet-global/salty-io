@@ -27,9 +27,6 @@ contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
 	uint256 public startExchangeYes;
 	uint256 public startExchangeNo;
 
-	// Yes/No tallies on whether or not to exclude specified countries/regions
-	uint256[] private _initialGeoExclusionYes = new uint256[](4);
-	uint256[] private _initialGeoExclusionNo = new uint256[](4);
 
 
 	constructor( IExchangeConfig _exchangeConfig, IAirdrop _airdrop, uint256 ballotDuration )
@@ -46,12 +43,10 @@ contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
 
 
 	// Cast a YES or NO vote to start up the exchange, distribute SALT and establish initial geo restrictions.
-	// votesRegionalExclusions: 0 (no opinion), 1 (yes to exclusion), 2 (no to exclusion)
 	// Votes cannot be changed once they are cast.
 	// Requires a valid signature to signify that the msg.sender is authorized to vote (being whitelisted and the retweeting exchange launch posting - checked offchain)
-	function vote( bool voteStartExchangeYes, uint256[] calldata votesRegionalExclusions, bytes calldata signature ) external nonReentrant
+	function vote( bool voteStartExchangeYes, bytes calldata signature ) external nonReentrant
 		{
-		require( votesRegionalExclusions.length == 4, "Incorrect length for votesRegionalExclusions" );
 		require( ! hasVoted[msg.sender], "User already voted" );
 
 		// Verify the signature to confirm the user is authorized to vote
@@ -62,15 +57,6 @@ contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
 			startExchangeYes++;
 		else
 			startExchangeNo++;
-
-		for( uint256 i = 0; i < 4; i++ )
-			{
-			if ( votesRegionalExclusions[i] == 1 )
-				_initialGeoExclusionYes[i]++;
-
-			if ( votesRegionalExclusions[i] == 2 )
-				_initialGeoExclusionNo[i]++;
-			}
 
 		hasVoted[msg.sender] = true;
 
@@ -88,26 +74,11 @@ contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
 		if ( startExchangeYes > startExchangeNo )
 			{
 			exchangeConfig.initialDistribution().distributionApproved();
-			exchangeConfig.dao().initialGeoExclusion(_initialGeoExclusionYes, _initialGeoExclusionNo);
 			exchangeConfig.dao().pools().startExchangeApproved();
 
 			startExchangeApproved = true;
 			}
 
 		ballotFinalized = true;
-		}
-
-
-	// === VIEWS ===
-
-	function initialGeoExclusionYes() external view returns (uint256[] memory)
-		{
-		return _initialGeoExclusionYes;
-		}
-
-
-	function initialGeoExclusionNo() external view returns (uint256[] memory)
-		{
-		return _initialGeoExclusionNo;
 		}
 	}

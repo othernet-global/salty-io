@@ -333,18 +333,14 @@ contract Deployment is Test
 		whitelistAlice();
 		whitelistBob();
 
-		// Voting stage (yesVotes: 2, noVotes: 0)
-		uint256[] memory regionalVotes = new uint256[](4);
-
-
 		bytes memory sig = abi.encodePacked(aliceVotingSignature);
 		vm.startPrank(alice);
-		bootstrapBallot.vote(true, regionalVotes, sig);
+		bootstrapBallot.vote(true, sig);
 		vm.stopPrank();
 
 		sig = abi.encodePacked(bobVotingSignature);
 		vm.startPrank(bob);
-		bootstrapBallot.vote(true, regionalVotes, sig);
+		bootstrapBallot.vote(true, sig);
 		vm.stopPrank();
 
 		// Increase current blocktime to be greater than completionTimestamp

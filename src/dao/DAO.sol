@@ -102,7 +102,15 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		usds.approve(address(collateralAndLiquidity), type(uint256).max);
 		dai.approve(address(collateralAndLiquidity), type(uint256).max);
 
-		// Excluded by default: Afghanistan, Cuba, Iran, North Korea, Syria, Venezuela
+		// Excluded by default: United States, Canada, United Kingdom, China, India, Pakistan, Russian, Afghanistan, Cuba, Iran, North Korea, Syria, Venezuela
+		// Note that the DAO can remove any of these exclusions - or open up access completely to the exchange as it sees fit.
+		excludedCountries["US"] = true;
+		excludedCountries["CA"] = true;
+		excludedCountries["GB"] = true;
+		excludedCountries["CN"] = true;
+		excludedCountries["IN"] = true;
+		excludedCountries["PK"] = true;
+		excludedCountries["RU"] = true;
 		excludedCountries["AF"] = true;
 		excludedCountries["CU"] = true;
 		excludedCountries["IR"] = true;
@@ -379,35 +387,6 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		tokenB.safeTransfer( address(liquidizer), reclaimedB );
 
 		emit POLWithdrawn(address(tokenA), address(tokenB), reclaimedA, reclaimedB);
-		}
-
-
-	// Initially excluded countries as voted on by the airdrop recipients on the bootstrap ballot.
-	// Any excluded country can be re-included by the DAO after launch as needed.
-	function initialGeoExclusion(uint256[] calldata geoExclusionYes, uint256[] calldata geoExclusionNo) external
-		{
-		require( msg.sender == address(exchangeConfig.initialDistribution().bootstrapBallot()), "DAO.initialGeoExclusion can only be called from the BootstrapBallot" );
-
-		// Exclude the United States?
-		if ( geoExclusionYes[0] > geoExclusionNo[0] )
-			excludedCountries["US"] = true;
-
-		// Exclude Canada?
-		if ( geoExclusionYes[1] > geoExclusionNo[1] )
-			excludedCountries["CA"] = true;
-
-		// Exclude the United Kingdom?
-		if ( geoExclusionYes[2] > geoExclusionNo[2] )
-			excludedCountries["GB"] = true;
-
-		// Exclude China, India, Pakistan, Russia?
-		if ( geoExclusionYes[3] > geoExclusionNo[3] )
-			{
-			excludedCountries["CN"] = true;
-			excludedCountries["IN"] = true;
-			excludedCountries["PK"] = true;
-			excludedCountries["RU"] = true;
-			}
 		}
 
 

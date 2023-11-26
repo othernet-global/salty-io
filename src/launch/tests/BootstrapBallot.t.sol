@@ -128,13 +128,12 @@ contract TestBootstrapBallot is Deployment
         // Voting stage (yesVotes: 2, noVotes: 0)
 		bytes memory sig = abi.encodePacked(aliceVotingSignature);
         vm.startPrank(alice);
-		uint256[] memory regionalVotes = new uint256[](4);
-		bootstrapBallot.vote(true, regionalVotes, sig);
+		bootstrapBallot.vote(true, sig);
         vm.stopPrank();
 
 		sig = abi.encodePacked(bobVotingSignature);
         vm.startPrank(bob);
-		bootstrapBallot.vote(true, regionalVotes, sig);
+		bootstrapBallot.vote(true, sig);
         vm.stopPrank();
 
         // Increase current blocktime to be greater than completionTimestamp
@@ -156,13 +155,12 @@ contract TestBootstrapBallot is Deployment
 
         // Voting stage (yesVotes: 2, noVotes: 0)
         vm.startPrank(alice);
-		uint256[] memory regionalVotes = new uint256[](4);
-		bootstrapBallot.vote(true, regionalVotes, sig);
+		bootstrapBallot.vote(true, sig);
         vm.stopPrank();
 
 		sig = abi.encodePacked(bobVotingSignature);
         vm.startPrank(bob);
-		bootstrapBallot.vote(true, regionalVotes, sig);
+		bootstrapBallot.vote(true, sig);
         vm.stopPrank();
 
         // Increase current blocktime to be greater than completionTimestamp
@@ -185,13 +183,12 @@ contract TestBootstrapBallot is Deployment
 
         // Voting stage (yesVotes: 2, noVotes: 0)
         vm.startPrank(alice);
-		uint256[] memory regionalVotes = new uint256[](4);
-		bootstrapBallot.vote(true, regionalVotes, sig);
+		bootstrapBallot.vote(true, sig);
         vm.stopPrank();
 
 		sig = abi.encodePacked(bobVotingSignature);
         vm.startPrank(bob);
-		bootstrapBallot.vote(true, regionalVotes, sig);
+		bootstrapBallot.vote(true, sig);
         vm.stopPrank();
 
         // Increase current blocktime to be greater than completionTimestamp
@@ -215,13 +212,12 @@ contract TestBootstrapBallot is Deployment
         // Voting stage (yesVotes: 2, noVotes: 0)
 		bytes memory sig = abi.encodePacked(aliceVotingSignature);
         vm.startPrank(alice);
-		uint256[] memory regionalVotes = new uint256[](4);
-		bootstrapBallot.vote(false, regionalVotes, sig);
+		bootstrapBallot.vote(false, sig);
         vm.stopPrank();
 
 		sig = abi.encodePacked(bobVotingSignature);
         vm.startPrank(bob);
-		bootstrapBallot.vote(false, regionalVotes, sig);
+		bootstrapBallot.vote(false, sig);
         vm.stopPrank();
 
         // Increase current blocktime to be greater than completionTimestamp
@@ -242,18 +238,17 @@ contract TestBootstrapBallot is Deployment
         // Cast votes (yesVotes: 2, noVotes: 1)
 		bytes memory sig = abi.encodePacked(aliceVotingSignature);
         vm.startPrank(alice);
-		uint256[] memory regionalVotes = new uint256[](4);
-		bootstrapBallot.vote(true, regionalVotes, sig);
+		bootstrapBallot.vote(true, sig);
         vm.stopPrank();
 
 		sig = abi.encodePacked(bobVotingSignature);
         vm.startPrank(bob);
-		bootstrapBallot.vote(true, regionalVotes, sig);
+		bootstrapBallot.vote(true, sig);
         vm.stopPrank();
 
 		sig = abi.encodePacked(charlieVotingSignature);
         vm.startPrank(charlie);
-		bootstrapBallot.vote(false, regionalVotes, sig);
+		bootstrapBallot.vote(false, sig);
         vm.stopPrank();
 
         // Assertions
@@ -271,12 +266,11 @@ contract TestBootstrapBallot is Deployment
 
         // Alice casts her vote
         vm.startPrank(alice);
-		uint256[] memory regionalVotes = new uint256[](4);
-		bootstrapBallot.vote(true, regionalVotes, sig);
+		bootstrapBallot.vote(true, sig);
 
         // Alice tries to vote again
         vm.expectRevert("User already voted");
-		bootstrapBallot.vote(true, regionalVotes, sig);
+		bootstrapBallot.vote(true, sig);
         vm.stopPrank();
     }
 
@@ -319,8 +313,7 @@ contract TestBootstrapBallot is Deployment
 		bytes memory sig = abi.encodePacked(aliceVotingSignature);
 
 		vm.startPrank(alice);
-		uint256[] memory regionalVotes = new uint256[](4);
-		bootstrapBallot.vote(false, regionalVotes, sig);
+		bootstrapBallot.vote(false, sig);
 		vm.stopPrank();
 
 		assertEq(bootstrapBallot.startExchangeNo(), 1);
@@ -333,13 +326,12 @@ contract TestBootstrapBallot is Deployment
 
         // Voting stage (yesVotes: 1, noVotes: 1)
         vm.startPrank(alice);
-		uint256[] memory regionalVotes = new uint256[](4);
-		bootstrapBallot.vote(true, regionalVotes, sig);
+		bootstrapBallot.vote(true, sig);
         vm.stopPrank();
 
 		sig = abi.encodePacked(bobVotingSignature);
         vm.startPrank(bob);
-		bootstrapBallot.vote(false, regionalVotes, sig);
+		bootstrapBallot.vote(false, sig);
         vm.stopPrank();
 
         // Increase current blocktime to be greater than completionTimestamp
@@ -377,8 +369,7 @@ contract TestBootstrapBallot is Deployment
 
             // Vote stage
             vm.startPrank(alice);
-			uint256[] memory regionalVotes = new uint256[](4);
-			bootstrapBallot.vote(true, regionalVotes,sig);
+			bootstrapBallot.vote(true,sig);
             vm.stopPrank();
 
             // Check if Alice voted
@@ -386,123 +377,6 @@ contract TestBootstrapBallot is Deployment
         }
 
 
-
-        // A unit test to check that regional exclusion tallies update correct on voting
-        function _testRegionalExclusionVoting( uint256 votingIndex ) public {
-            assertTrue(bootstrapBallot.initialGeoExclusionYes()[votingIndex] == 0, "Shouldn't be an initial yes vote");
-
-		bytes memory sig = abi.encodePacked(aliceVotingSignature);
-
-            // Vote stage
-            vm.startPrank(alice);
-			uint256[] memory regionalVotes = new uint256[](4);
-			regionalVotes[votingIndex] = 1; // yes on exclusion
-			bootstrapBallot.vote(true, regionalVotes, sig);
-            vm.stopPrank();
-
-            assertTrue(bootstrapBallot.initialGeoExclusionYes()[votingIndex] == 1, "User vote not recognized");
-        }
-
-
-		function testRegionalExclusionVoting0() public
-			{
-			_testRegionalExclusionVoting(0);
-			}
-
-
-		function testRegionalExclusionVoting1() public
-			{
-			_testRegionalExclusionVoting(1);
-			}
-
-
-		function testRegionalExclusionVoting2() public
-			{
-			_testRegionalExclusionVoting(2);
-			}
-
-
-		function testRegionalExclusionVoting3() public
-			{
-			_testRegionalExclusionVoting(3);
-			}
-
-
-
-        // A unit test to check that regional exclusion tallies update correct on voting
-        function _testRegionalExclusionVotingNo( uint256 votingIndex ) public {
-            assertTrue(bootstrapBallot.initialGeoExclusionNo()[votingIndex] == 0, "Shouldn't be an initial yes vote");
-
-		bytes memory sig = abi.encodePacked(aliceVotingSignature);
-
-            // Vote stage
-            vm.startPrank(alice);
-			uint256[] memory regionalVotes = new uint256[](4);
-			regionalVotes[votingIndex] = 2; // no on exclusion
-			bootstrapBallot.vote(false, regionalVotes, sig);
-            vm.stopPrank();
-
-            assertTrue(bootstrapBallot.initialGeoExclusionNo()[votingIndex] == 1, "User vote not recognized");
-        }
-
-
-		function testRegionalExclusionVotingNo0() public
-			{
-			_testRegionalExclusionVotingNo(0);
-			}
-
-
-		function testRegionalExclusionVotingNo1() public
-			{
-			_testRegionalExclusionVotingNo(1);
-			}
-
-
-		function testRegionalExclusionVotingNo2() public
-			{
-			_testRegionalExclusionVotingNo(2);
-			}
-
-
-		function testRegionalExclusionVotingNo3() public
-			{
-			_testRegionalExclusionVotingNo(3);
-			}
-
-
-        // A unit test to check that regional exclusion tallies update correct on voting
-        function testMultipleRegionalExclusionVotes() public {
-            assertTrue(bootstrapBallot.initialGeoExclusionNo()[0] == 0, "Shouldn't be an initial yes vote");
-            assertTrue(bootstrapBallot.initialGeoExclusionYes()[0] == 0, "Shouldn't be an initial yes vote");
-
-            // Vote stage
-		bytes memory sig = abi.encodePacked(aliceVotingSignature);
-
-            vm.startPrank(alice);
-			uint256[] memory regionalVotes = new uint256[](4);
-			regionalVotes[0] = 1; // yes on exclusion
-			bootstrapBallot.vote(true, regionalVotes, sig);
-            vm.stopPrank();
-
-		sig = abi.encodePacked(bobVotingSignature);
-
-            vm.startPrank(bob);
-			regionalVotes = new uint256[](4);
-			regionalVotes[0] = 1; // yes on exclusion
-			bootstrapBallot.vote(true, regionalVotes, sig);
-            vm.stopPrank();
-
-
-		sig = abi.encodePacked(charlieVotingSignature);
-            vm.startPrank(charlie);
-			regionalVotes = new uint256[](4);
-			regionalVotes[0] = 2; // no on exclusion
-			bootstrapBallot.vote(true, regionalVotes, sig);
-            vm.stopPrank();
-
-            assertTrue(bootstrapBallot.initialGeoExclusionYes()[0] == 2, "User votes not recognized");
-            assertTrue(bootstrapBallot.initialGeoExclusionNo()[0] == 1, "User votes not recognized");
-        }
 
 
 
@@ -513,11 +387,10 @@ contract TestBootstrapBallot is Deployment
 		{
 		bytes memory sig = abi.encodePacked(hex"1234567890");
 
-		uint256[] memory regionalVotes = new uint256[](4);
         vm.startPrank(alice);
 
 		vm.expectRevert();
-		bootstrapBallot.vote(true, regionalVotes, sig);
+		bootstrapBallot.vote(true, sig);
         vm.stopPrank();
 		}
 
@@ -534,11 +407,10 @@ contract TestBootstrapBallot is Deployment
     // A unit test to check the the the signature has to be correct oto have the user vote
 	function testVoteSignatureRequirement() public {
 		bytes memory sig = abi.encodePacked(hex"123456");
-		uint256[] memory regionalVotes = new uint256[](4);
 
 		vm.expectRevert();
         vm.startPrank(alice);
-		bootstrapBallot.vote(true, regionalVotes, sig);
+		bootstrapBallot.vote(true, sig);
         vm.stopPrank();
         }
 
@@ -549,12 +421,10 @@ contract TestBootstrapBallot is Deployment
     		bytes memory validSignature = abi.encodePacked(aliceVotingSignature); // aliceVotingSignature should be a predefined valid signature corresponding to Alice
     		bytes memory invalidSignature = new bytes(65); // Just an arbitrary invalid signature
 
-    		uint256[] memory regionalVotes = new uint256[](4); // Empty regionalVotes array for simplicity.
-
     		// Attempted vote with incorrect signature should be reverted
     		vm.startPrank(alice);
     		vm.expectRevert("Incorrect BootstrapBallot.vote signatory");
-    		bootstrapBallot.vote(true, regionalVotes, invalidSignature);
+    		bootstrapBallot.vote(true, invalidSignature);
     		vm.stopPrank();
 
 
@@ -563,7 +433,7 @@ contract TestBootstrapBallot is Deployment
     		uint256 beforeNoCount = bootstrapBallot.startExchangeNo();
 
     		vm.startPrank(alice);
-    		bootstrapBallot.vote(true, regionalVotes, validSignature);
+    		bootstrapBallot.vote(true, validSignature);
     		vm.stopPrank();
 
     		uint256 afterYesCount = bootstrapBallot.startExchangeYes();
@@ -579,23 +449,20 @@ contract TestBootstrapBallot is Deployment
         // Arrange: Prepare environment and state before finalizing the ballot
         // Alice votes YES with some regional exclusion votes, sig provided by deployment context
         bytes memory aliceSig = abi.encodePacked(aliceVotingSignature); // assuming aliceVotingSignature is provided
-        uint256[] memory regionalVotesAlice = new uint256[](4); // example regional votes setup, can be adjusted
         vm.startPrank(alice);
-        bootstrapBallot.vote(true, regionalVotesAlice, aliceSig);
+        bootstrapBallot.vote(true, aliceSig);
         vm.stopPrank();
 
         // Bob also votes YES with some regional exclusion votes, sig provided by deployment context
         bytes memory bobSig = abi.encodePacked(bobVotingSignature); // assuming bobVotingSignature is provided
-        uint256[] memory regionalVotesBob = new uint256[](4); // example regional votes setup, can be adjusted
         vm.startPrank(bob);
-        bootstrapBallot.vote(true, regionalVotesBob, bobSig);
+        bootstrapBallot.vote(true, bobSig);
         vm.stopPrank();
 
         // Charlie votes NO with some regional exclusion votes, sig provided by deployment context
         bytes memory charlieSig = abi.encodePacked(charlieVotingSignature); // assuming charlieVotingSignature is provided
-        uint256[] memory regionalVotesCharlie = new uint256[](4); // example regional votes setup, can be adjusted
         vm.startPrank(charlie);
-        bootstrapBallot.vote(false, regionalVotesCharlie, charlieSig);
+        bootstrapBallot.vote(false, charlieSig);
         vm.stopPrank();
 
         // Assert: Ensure `startExchangeApproved` is false initially
@@ -614,21 +481,18 @@ contract TestBootstrapBallot is Deployment
 	function testFinalizeBallotUnsuccessfulAfterAlreadyFinalizedAndStarted() public {
         // Set initial votes (yesVotes: 2, noVotes: 1)
         vm.startPrank(alice);
-        uint256[] memory regionalVotesAlice = new uint256[](4);
         bytes memory sigAlice = abi.encodePacked(aliceVotingSignature);
-        bootstrapBallot.vote(true, regionalVotesAlice, sigAlice);
+        bootstrapBallot.vote(true, sigAlice);
         vm.stopPrank();
 
         vm.startPrank(bob);
-        uint256[] memory regionalVotesBob = new uint256[](4);
         bytes memory sigBob = abi.encodePacked(bobVotingSignature);
-        bootstrapBallot.vote(true, regionalVotesBob, sigBob);
+        bootstrapBallot.vote(true, sigBob);
         vm.stopPrank();
 
         vm.startPrank(charlie);
-        uint256[] memory regionalVotesCharlie = new uint256[](4);
         bytes memory sigCharlie = abi.encodePacked(charlieVotingSignature);
-        bootstrapBallot.vote(false, regionalVotesCharlie, sigCharlie);
+        bootstrapBallot.vote(false, sigCharlie);
         vm.stopPrank();
 
         // Move time forward to finalize the ballot
@@ -647,38 +511,24 @@ contract TestBootstrapBallot is Deployment
     }
 
 
-    // A unit test that checks the correct exception is thrown if vote() is called with a votesRegionalExclusions array of incorrect size (not 5).
-	function testVoteWrongRegionalVotesSize() public {
-        // Set initial votes (yesVotes: 2, noVotes: 1)
-        vm.startPrank(alice);
-        uint256[] memory regionalVotesAlice = new uint256[](6);
-        bytes memory sigAlice = abi.encodePacked(aliceVotingSignature);
-
-        vm.expectRevert( "Incorrect length for votesRegionalExclusions" );
-        bootstrapBallot.vote(true, regionalVotesAlice, sigAlice);
-        vm.stopPrank();
-    }
 
 
     // A unit test that confirms finalizeBallot does not execute after ballotFinalized is already true with a failed vote.
 	function testFinalizeBallotUnsuccessfulAfterAlreadyFinalizedAndNotStarted() public {
         // Set initial votes (yesVotes: 1, noVotes: 2)
         vm.startPrank(alice);
-        uint256[] memory regionalVotesAlice = new uint256[](4);
         bytes memory sigAlice = abi.encodePacked(aliceVotingSignature);
-        bootstrapBallot.vote(true, regionalVotesAlice, sigAlice);
+        bootstrapBallot.vote(true, sigAlice);
         vm.stopPrank();
 
         vm.startPrank(bob);
-        uint256[] memory regionalVotesBob = new uint256[](4);
         bytes memory sigBob = abi.encodePacked(bobVotingSignature);
-        bootstrapBallot.vote(false, regionalVotesBob, sigBob);
+        bootstrapBallot.vote(false, sigBob);
         vm.stopPrank();
 
         vm.startPrank(charlie);
-        uint256[] memory regionalVotesCharlie = new uint256[](4);
         bytes memory sigCharlie = abi.encodePacked(charlieVotingSignature);
-        bootstrapBallot.vote(false, regionalVotesCharlie, sigCharlie);
+        bootstrapBallot.vote(false, sigCharlie);
         vm.stopPrank();
 
         // Move time forward to finalize the ballot
@@ -700,65 +550,17 @@ contract TestBootstrapBallot is Deployment
     // A unit test that verifies the vote() function does not authorize the user for the airdrop if the signature is incorrect.
     function testVoteWithIncorrectSignatureDoesNotAuthorizeForAirdrop() public {
         bytes memory incorrectSignature = new bytes(65);
-        uint256[] memory regionalVotes = new uint256[](4); // Dummy regional votes
         address voter = alice; // Replace with actual voter address if needed
 
         vm.startPrank(voter);
         // Expect a revert with a specific error message related to incorrect signature verification
         vm.expectRevert("Incorrect BootstrapBallot.vote signatory");
-        bootstrapBallot.vote(true, regionalVotes, incorrectSignature); // External call to vote function
+        bootstrapBallot.vote(true, incorrectSignature); // External call to vote function
         vm.stopPrank();
 
         // Assert that the voter has not been authorized for the airdrop after the failed vote attempt
         assertEq(airdrop.isAuthorized(voter), false, "Voter should not be authorized for airdrop after voting with an incorrect signature");
     }
 
-
-    // A unit test that checks if vote() properly increments the correct exclusion counters based on regional vote selections, including mixed yes/no/abstain combinations.
-    function testVoteProperlyIncrementsExclusionCounters() public {
-        // Prepare signatures and other data for voters
-        uint256[] memory regionalVotesAlice = new uint256[](4);
-        uint256[] memory regionalVotesBob = new uint256[](4);
-        uint256[] memory regionalVotesCharlie = new uint256[](4);
-
-        // Set up different regional vote options for alice, bob, and charlie
-        regionalVotesAlice[0] = 1; // Alice votes "yes" on exclusion for region 0
-        regionalVotesAlice[2] = 2; // Alice votes "no" on exclusion for region 2
-        regionalVotesBob[1] = 1; // Bob votes "yes" on exclusion for region 1
-        regionalVotesBob[3] = 2; // Bob votes "no" on exclusion for region 3
-
-        // Cast votes
-        vm.prank(alice);
-        bootstrapBallot.vote(true, regionalVotesAlice, aliceVotingSignature);
-
-        vm.prank(bob);
-        bootstrapBallot.vote(true, regionalVotesBob, bobVotingSignature);
-
-        vm.prank(charlie);
-        bootstrapBallot.vote(false, regionalVotesCharlie, charlieVotingSignature); // Charlie also votes "no" for exchange start
-
-        // Retrieve updated exclusion tallies
-        uint256[] memory geoExclusionYes = bootstrapBallot.initialGeoExclusionYes();
-        uint256[] memory geoExclusionNo = bootstrapBallot.initialGeoExclusionNo();
-
-        // Verify tally updates
-        assertEq(geoExclusionYes[0], 1, "Region 0 YES votes should be 1"); // Alice voted "yes" on exclusion
-        assertEq(geoExclusionNo[0], 0, "Region 0 NO votes should be 0");
-
-        assertEq(geoExclusionYes[1], 1, "Region 1 YES votes should be 1"); // Bob voted "yes" on exclusion
-        assertEq(geoExclusionNo[1], 0, "Region 1 NO votes should be 0");
-
-        assertEq(geoExclusionYes[2], 0, "Region 2 YES votes should be 0");
-        assertEq(geoExclusionNo[2], 1, "Region 2 NO votes should be 1"); // Alice voted "no" on exclusion
-
-        assertEq(geoExclusionYes[3], 0, "Region 3 YES votes should be 0");
-        assertEq(geoExclusionNo[3], 1, "Region 3 NO votes should be 1"); // Bob voted "no" on exclusion
-
-        // Ensure the exchange start no-vote of Charlie is accounted for
-        uint256 startExchangeYesCount = bootstrapBallot.startExchangeYes();
-        uint256 startExchangeNoCount = bootstrapBallot.startExchangeNo();
-        assertEq(startExchangeYesCount, 2, "Start exchange YES vote count should be 2"); // Alice and Bob voted "yes"
-        assertEq(startExchangeNoCount, 1, "Start exchange NO vote count should be 1"); // Charlie voted "no"
-    }
 
 	}

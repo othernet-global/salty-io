@@ -74,18 +74,17 @@ contract TestComprehensive1 is Deployment
 		// Cast votes for the BootstrapBallot so that the initialDistribution can happen
 		bytes memory sig = abi.encodePacked(aliceVotingSignature);
 		vm.startPrank(alice);
-		uint256[] memory regionalVotes = new uint256[](4);
-		bootstrapBallot.vote(true, regionalVotes, sig);
+		bootstrapBallot.vote(true, sig);
 		vm.stopPrank();
 
 		sig = abi.encodePacked(bobVotingSignature);
 		vm.startPrank(bob);
-		bootstrapBallot.vote(true, regionalVotes, sig);
+		bootstrapBallot.vote(true, sig);
 		vm.stopPrank();
 
 		sig = abi.encodePacked(charlieVotingSignature);
 		vm.startPrank(charlie);
-		bootstrapBallot.vote(false, regionalVotes, sig);
+		bootstrapBallot.vote(false, sig);
 		vm.stopPrank();
 
 		// Finalize the ballot to distribute SALT to the protocol contracts and start up the exchange

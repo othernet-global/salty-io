@@ -16,8 +16,6 @@ interface IDAO
 	function processRewardsFromPOL() external;
 	function withdrawPOL( IERC20 tokenA, IERC20 tokenB, uint256 percentToLiquidate ) external;
 
-	function initialGeoExclusion(uint256[] calldata geoExclusionYes, uint256[] calldata geoExclusionNo) external;
-
 	// Views
 	function pools() external returns (IPools);
 	function websiteURL() external returns (string memory);
