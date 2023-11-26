@@ -215,6 +215,24 @@ contract TestDeployment is Deployment
         assertEq( getContract(address(usds), "collateralAndLiquidity()"), address(collateralAndLiquidity), "Incorrect usds.collateral" );
 
         assertEq( exchangeConfig.managedTeamWallet().mainWallet(), teamWallet, "Incorrect teamWallet" );
+
+        // Check the initial country exclusion
+		// Excluded by default: United States, Canada, United Kingdom, China, India, Pakistan, Russian, Afghanistan, Cuba, Iran, North Korea, Syria, Venezuela
+        assertTrue( dao.countryIsExcluded("US"), "US should be initially excluded" );
+        assertTrue( dao.countryIsExcluded("CA"), "CA should be initially excluded" );
+        assertTrue( dao.countryIsExcluded("GB"), "GB should be initially excluded" );
+
+        assertTrue( dao.countryIsExcluded("CN"), "CN should be initially excluded" );
+        assertTrue( dao.countryIsExcluded("IN"), "IN should be initially excluded" );
+        assertTrue( dao.countryIsExcluded("PK"), "PK should be initially excluded" );
+        assertTrue( dao.countryIsExcluded("RU"), "RU should be initially excluded" );
+
+        assertTrue( dao.countryIsExcluded("AF"), "AF should be initially excluded" );
+        assertTrue( dao.countryIsExcluded("CU"), "CU should be initially excluded" );
+        assertTrue( dao.countryIsExcluded("IR"), "IR should be initially excluded" );
+        assertTrue( dao.countryIsExcluded("KP"), "KP should be initially excluded" );
+        assertTrue( dao.countryIsExcluded("SY"), "SY should be initially excluded" );
+        assertTrue( dao.countryIsExcluded("VE"), "VE should be initially excluded" );
     	}
 
 
