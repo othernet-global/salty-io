@@ -27,8 +27,9 @@ interface IStakingRewards
 	function totalRewardsForPools( bytes32[] calldata poolIDs ) external view returns (uint256[] calldata rewards);
 
 	function userRewardForPool( address wallet, bytes32 poolID ) external view returns (uint256);
-	function userRewardsForPools( address wallet, bytes32[] calldata poolIDs ) external view returns (uint256[] calldata rewards);
 	function userShareForPool( address wallet, bytes32 poolID ) external view returns (uint256);
+
+	function userRewardsForPools( address wallet, bytes32[] calldata poolIDs ) external view returns (uint256[] calldata rewards);
 	function userShareForPools( address wallet, bytes32[] calldata poolIDs ) external view returns (uint256[] calldata shares);
 	function userCooldowns( address wallet, bytes32[] calldata poolIDs ) external view returns (uint256[] calldata cooldowns);
 	}

@@ -102,7 +102,7 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		usds.approve(address(collateralAndLiquidity), type(uint256).max);
 		dai.approve(address(collateralAndLiquidity), type(uint256).max);
 
-		// Excluded by default: United States, Canada, United Kingdom, China, India, Pakistan, Russian, Afghanistan, Cuba, Iran, North Korea, Syria, Venezuela
+		// Excluded by default: United States, Canada, United Kingdom, China, India, Pakistan, Russia, Afghanistan, Cuba, Iran, North Korea, Syria, Venezuela
 		// Note that the DAO can remove any of these exclusions - or open up access completely to the exchange as it sees fit.
 		excludedCountries["US"] = true;
 		excludedCountries["CA"] = true;

@@ -563,4 +563,11 @@ contract TestBootstrapBallot is Deployment
     }
 
 
+	function testVotingSignature() public
+		{
+		bytes memory deployerVotingSignature = hex"cb4e1eb53165e70808a1d2597fedee93ce65e200ea3da08acab7fb1f8bc7b148317f66499a4ec7f7c93fb6f87d68a80ddd9adeabba6f355d9ff5a93a8b88b7631b";
+
+		vm.prank(DEPLOYER);
+		bootstrapBallot.vote( true, deployerVotingSignature );
+		}
 	}

@@ -10,7 +10,7 @@ import "../pools/interfaces/IPoolsConfig.sol";
 // Convenience functions called from the Web3 UI
 contract Utils
     {
-	function tokenNames( address[] memory tokens ) public view returns (string[] memory)
+	function tokenNames( address[] memory tokens ) external view returns (string[] memory)
 		{
 		string[] memory names = new string[]( tokens.length );
 
@@ -25,7 +25,7 @@ contract Utils
 		}
 
 
-	function tokenDecimals( address[] memory tokens ) public view returns (uint256[] memory)
+	function tokenDecimals( address[] memory tokens ) external view returns (uint256[] memory)
 		{
 		uint256[] memory decimals = new uint256[]( tokens.length );
 
@@ -40,7 +40,7 @@ contract Utils
 		}
 
 
-	function tokenSupplies( address[] memory tokens ) public view returns (uint256[] memory)
+	function tokenSupplies( address[] memory tokens ) external view returns (uint256[] memory)
 		{
 		uint256[] memory supplies = new uint256[]( tokens.length );
 
@@ -55,7 +55,7 @@ contract Utils
 		}
 
 
-	function underlyingTokens( IPoolsConfig poolsConfig, bytes32[] memory poolIDs ) public view returns (address[] memory)
+	function underlyingTokens( IPoolsConfig poolsConfig, bytes32[] memory poolIDs ) external view returns (address[] memory)
 		{
 		address[] memory tokens = new address[]( poolIDs.length * 2 );
 
@@ -72,7 +72,7 @@ contract Utils
 		}
 
 
-	function poolReserves( IPools pools, IPoolsConfig poolsConfig, bytes32[] memory poolIDs ) public view returns (uint256[] memory)
+	function poolReserves( IPools pools, IPoolsConfig poolsConfig, bytes32[] memory poolIDs ) external view returns (uint256[] memory)
 		{
 		uint256[] memory reserves = new uint256[]( poolIDs.length * 2 );
 
@@ -91,7 +91,7 @@ contract Utils
 
 
 
-	function userBalances( address wallet, address[] memory tokenIDs ) public view  returns (uint256[] memory)
+	function userBalances( address wallet, address[] memory tokenIDs ) external view  returns (uint256[] memory)
 		{
 		uint256[] memory balances = new uint256[]( tokenIDs.length );
 
