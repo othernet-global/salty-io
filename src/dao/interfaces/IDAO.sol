@@ -17,6 +17,6 @@ interface IDAO
 	function withdrawPOL( IERC20 tokenA, IERC20 tokenB, uint256 percentToLiquidate ) external;
 
 	// Views
-	function pools() external returns (IPools);
-	function websiteURL() external returns (string memory);
+	function pools() external view returns (IPools);
+	function websiteURL() external view returns (string memory);
 	}

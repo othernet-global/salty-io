@@ -9,11 +9,11 @@ interface IAirdrop
 	function claimAirdrop() external;
 
 	// Views
-	function saltAmountForEachUser() external returns (uint256);
-	function claimingAllowed() external returns (bool);
-	function claimed(address wallet) external returns (bool);
+	function saltAmountForEachUser() external view returns (uint256);
+	function claimingAllowed() external view returns (bool);
+	function claimed(address wallet) external view returns (bool);
 
-	function isAuthorized(address wallet) external returns (bool);
-	function numberAuthorized() external returns (uint256);
+	function isAuthorized(address wallet) external view returns (bool);
+	function numberAuthorized() external view returns (uint256);
 	function authorizedWallets() external view returns (address[] calldata);
 	}

@@ -13,6 +13,6 @@ interface ILiquidizer
 	function performUpkeep() external;
 
 	// Views
-	function usdsThatShouldBeBurned() external returns (uint256 _usdsThatShouldBeBurned);
+	function usdsThatShouldBeBurned() external view returns (uint256 _usdsThatShouldBeBurned);
 	}
 

@@ -10,6 +10,6 @@ interface ISaltRewards
     function performUpkeep( bytes32[] calldata poolIDs, uint256[] calldata profitsForPools ) external;
 
     // Views
-    function stakingRewardsEmitter() external returns (IRewardsEmitter);
-    function liquidityRewardsEmitter() external returns (IRewardsEmitter);
+    function stakingRewardsEmitter() external view returns (IRewardsEmitter);
+    function liquidityRewardsEmitter() external view returns (IRewardsEmitter);
     }

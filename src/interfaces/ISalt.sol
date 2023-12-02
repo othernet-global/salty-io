@@ -9,5 +9,5 @@ interface ISalt is IERC20
 	function burnTokensInContract() external;
 
 	// Views
-	function totalBurned() external returns (uint256);
+	function totalBurned() external view returns (uint256);
 	}

@@ -7,7 +7,7 @@ interface IUpkeep
 	function performUpkeep() external;
 
 	// Views
-	function currentRewardsForCallingPerformUpkeep() external returns (uint256);
-	function lastUpkeepTimeEmissions() external returns (uint256);
-	function lastUpkeepTimeRewardsEmitters() external returns (uint256);
+	function currentRewardsForCallingPerformUpkeep() external view returns (uint256);
+	function lastUpkeepTimeEmissions() external view returns (uint256);
+	function lastUpkeepTimeRewardsEmitters() external view returns (uint256);
 	}

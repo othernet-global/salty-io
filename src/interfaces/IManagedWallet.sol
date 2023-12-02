@@ -8,9 +8,9 @@ interface IManagedWallet
 	function changeWallets() external;
 
 	// Views
-	function mainWallet() external returns (address wallet);
-	function confirmationWallet() external returns (address wallet);
-	function proposedMainWallet() external returns (address wallet);
-	function proposedConfirmationWallet() external returns (address wallet);
+	function mainWallet() external view returns (address wallet);
+	function confirmationWallet() external view returns (address wallet);
+	function proposedMainWallet() external view returns (address wallet);
+	function proposedConfirmationWallet() external view returns (address wallet);
     function activeTimelock() external view returns (uint256);
 	}

@@ -48,8 +48,8 @@ interface IProposals
 	function castVote( uint256 ballotID, Vote vote ) external;
 
 	// Views
-	function nextBallotID() external returns (uint256);
-	function openBallotsByName( string calldata name ) external returns (uint256);
+	function nextBallotID() external view returns (uint256);
+	function openBallotsByName( string calldata name ) external view returns (uint256);
 
 	function ballotForID( uint256 ballotID ) external view returns (Ballot calldata);
 	function lastUserVoteForBallot( uint256 ballotID, address user ) external view returns (UserVote calldata);
@@ -62,5 +62,5 @@ interface IProposals
 	function openBallots() external view returns (uint256[] memory);
 	function openBallotsForTokenWhitelisting() external view returns (uint256[] memory);
 	function tokenWhitelistingBallotWithTheMostVotes() external view returns (uint256);
-	function userHasActiveProposal( address user ) external returns (bool);
+	function userHasActiveProposal( address user ) external view returns (bool);
 	}

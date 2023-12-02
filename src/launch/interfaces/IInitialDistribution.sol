@@ -9,5 +9,5 @@ interface IInitialDistribution
 	function distributionApproved() external;
 
 	// Views
-	function bootstrapBallot() external returns (IBootstrapBallot);
+	function bootstrapBallot() external view returns (IBootstrapBallot);
 	}

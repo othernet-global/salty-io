@@ -6,7 +6,7 @@ import "../dev/Deployment.sol";
 
 contract TestDeployment is Deployment
 	{
-	address constant public TEAM_WALLET = address(0x123456789);
+	address constant public TEAM_WALLET = address(0xBB1A8d7927CFA75E3cA2eD99DB7A9Cbafb62Cd50);
 	address constant public TEAM_CONFIRMATION_WALLET = address(0x999999999);
 
 	function functionExists( address _contract, string memory _functionName ) public returns (bool)
