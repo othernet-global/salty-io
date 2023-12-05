@@ -64,8 +64,8 @@ contract Staking is IStaking, StakingRewards
 		uint256 claimableSALT = calculateUnstake( amountUnstaked, numWeeks );
 		uint256 completionTime = block.timestamp + numWeeks * ( 1 weeks );
 
-		Unstake memory u = Unstake( UnstakeState.PENDING, msg.sender, amountUnstaked, claimableSALT, completionTime );
 		unstakeID = nextUnstakeID++;
+		Unstake memory u = Unstake( UnstakeState.PENDING, msg.sender, amountUnstaked, claimableSALT, completionTime, unstakeID );
 
 		_unstakesByID[unstakeID] = u;
 		_userUnstakeIDs[msg.sender].push( unstakeID );
