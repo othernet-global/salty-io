@@ -132,7 +132,7 @@ contract SaltRewards is ISaltRewards
 			totalProfits += profitsForPools[i];
 
 		// Make sure that there are some profits to determine the proportional liquidity rewards.
-		// Otherwise just ahdnle the SALT balance later so it can be divided between stakingRewardsEmitter and liquidityRewardsEmitter without further accounting.
+		// Otherwise just handle the SALT balance later so it can be divided between stakingRewardsEmitter and liquidityRewardsEmitter without further accounting.
 		if ( totalProfits == 0 )
 			return;
 
