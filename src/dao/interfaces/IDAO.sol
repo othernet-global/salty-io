@@ -9,7 +9,6 @@ import "../../interfaces/ISalt.sol";
 interface IDAO
 	{
 	function finalizeBallot( uint256 ballotID ) external;
-	function countryIsExcluded( string calldata country ) external view returns (bool);
 
 	function withdrawArbitrageProfits( IERC20 weth ) external returns (uint256 withdrawnAmount);
 	function formPOL( IERC20 tokenA, IERC20 tokenB, uint256 amountA, uint256 amountB ) external;
@@ -19,4 +18,5 @@ interface IDAO
 	// Views
 	function pools() external view returns (IPools);
 	function websiteURL() external view returns (string memory);
+	function countryIsExcluded( string calldata country ) external view returns (bool);
 	}
