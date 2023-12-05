@@ -129,8 +129,12 @@ abstract contract StakingRewards is IStakingRewards, ReentrancyGuard
 		user.userShare -= uint128(decreaseShareAmount);
 		user.virtualRewards -= uint128(virtualRewardsToRemove);
 
-		// Some of the rewardsForAmount are actually virtualRewards and can't be claimed
-		uint256 claimableRewards = rewardsForAmount - virtualRewardsToRemove;
+		uint256 claimableRewards = 0;
+
+		// Some of the rewardsForAmount are actually virtualRewards and can't be claimed.
+		// In the event that virtualRewards are greater than actual rewards - claimableRewards will stay zero.
+		if ( virtualRewardsToRemove < rewardsForAmount )
+			claimableRewards = rewardsForAmount - virtualRewardsToRemove;
 
 		// Send the claimable rewards
 		if ( claimableRewards != 0 )
