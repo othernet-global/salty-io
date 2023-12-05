@@ -243,6 +243,11 @@ abstract contract StakingRewards is IStakingRewards, ReentrancyGuard
 		uint256 rewardsShare = ( totalRewards[poolID] * user.userShare ) / totalShares[poolID];
 
 		// Reduce by the virtualRewards - as they were only added to keep the share / rewards ratio the same when the used added their share
+
+		// In the event that virtualRewards exceeds rewardsShare due to precision loss - just return zero
+		if ( user.virtualRewards > rewardsShare )
+			return 0;
+
 		return rewardsShare - user.virtualRewards;
 		}
 
@@ -271,6 +276,13 @@ abstract contract StakingRewards is IStakingRewards, ReentrancyGuard
 
 		for( uint256 i = 0; i < shares.length; i++ )
 			shares[i] = _userShareInfo[wallet][ poolIDs[i] ].userShare;
+		}
+
+
+	// Get the user's virtual rewards for a specified pool.
+	function userVirtualRewardsForPool( address wallet, bytes32 poolID ) public view returns (uint256)
+		{
+		return _userShareInfo[wallet][poolID].virtualRewards;
 		}
 
 
