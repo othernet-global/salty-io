@@ -18,7 +18,8 @@ enum UnstakeState { NONE, PENDING, CANCELLED, CLAIMED }
 	address wallet;					// the wallet of the user performing the unstake
 	uint256 unstakedXSALT;		// the amount of xSALT that was unstaked
 	uint256 claimableSALT;		// claimable SALT at completion time
-	uint256 completionTime;		// the timestamp when the unstake completes
+	uint256 completionTime;	// the timestamp when the unstake completes
+	uint256	unstakeID;			// the unstake ID
 	}
 
 
