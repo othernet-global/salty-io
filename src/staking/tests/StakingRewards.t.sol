@@ -42,7 +42,7 @@ contract SharedRewardsTest is Deployment
 		// Pools for testing
         poolIDs = new bytes32[](2);
         poolIDs[0] = PoolUtils.STAKED_SALT;
-        poolIDs[1] = PoolUtils._poolIDOnly(token1, token2);
+        poolIDs[1] = PoolUtils._poolID(token1, token2);
 
         // This contract approves max so that SALT rewards can be added
         salt.approve(address(stakingRewards), type(uint256).max);
@@ -728,19 +728,6 @@ contract SharedRewardsTest is Deployment
             aliceSaltBalanceAfterClaim = salt.balanceOf(alice);
             assertEq(aliceSaltBalanceAfterClaim, aliceSaltBalanceBeforeClaim + 10 ether, "Alice should not be able to claim rewards");
         }
-
-
-	// A unit test that checks if the constructor rejects zero addresses for the configuration contracts and token.
-    function testConstructorRejectsZeroAddresses() public {
-        vm.expectRevert("_exchangeConfig cannot be address(0)");
-        stakingRewards = new TestStakingRewards(IExchangeConfig(address(0)), poolsConfig, stakingConfig);
-
-        vm.expectRevert("_poolsConfig cannot be address(0)");
-        stakingRewards = new TestStakingRewards(exchangeConfig, IPoolsConfig(address(0)), stakingConfig);
-
-        vm.expectRevert("_stakingConfig cannot be address(0)");
-        stakingRewards = new TestStakingRewards(exchangeConfig, poolsConfig, IStakingConfig(address(0)));
-    }
 
 
     // A unit test that confirms that rewards cannot be claimed from pools where the user has no shares

@@ -25,38 +25,6 @@ contract TestExchangeConfig is Deployment
 		}
 
 
-    // A unit test to check the ExchangeConfig constructor when it is supplied with an invalid null address for one or more parameters. Verify that the function reverts with the correct error message.
-    function testConstructorWithInvalidNullAddresses() public
-    		{
-    		IERC20 fakeIERC20 = IERC20(address(12345));
-    		IUSDS fakeUSDS = IUSDS(address(23456));
-
-    		// Test with _salt as zero address
-    		vm.expectRevert("_salt cannot be address(0)");
-    		new ExchangeConfig(ISalt(address(0)), fakeIERC20, fakeIERC20, fakeIERC20, fakeUSDS, managedTeamWallet);
-
-    		// Test with _wbtc as zero address
-    		vm.expectRevert("_wbtc cannot be address(0)");
-    		new ExchangeConfig(salt, IERC20(address(0)), fakeIERC20, fakeIERC20, fakeUSDS, managedTeamWallet);
-
-    		// Test with _weth as zero address
-    		vm.expectRevert("_weth cannot be address(0)");
-    		new ExchangeConfig(salt, fakeIERC20, IERC20(address(0)), fakeIERC20, fakeUSDS, managedTeamWallet);
-
-    		// Test with _dai as zero address
-    		vm.expectRevert("_dai cannot be address(0)");
-    		new ExchangeConfig(salt, fakeIERC20, fakeIERC20, IERC20(address(0)), fakeUSDS, managedTeamWallet);
-
-    		// Test with _usds as zero address
-    		vm.expectRevert("_usds cannot be address(0)");
-    		new ExchangeConfig(salt, fakeIERC20, fakeIERC20, fakeIERC20, IUSDS(address(0)), managedTeamWallet);
-
-    		// Test with _teamWallet as zero address
-    		vm.expectRevert("_managedTeamWallet cannot be address(0)");
-    		new ExchangeConfig(salt, fakeIERC20, fakeIERC20, fakeIERC20, fakeUSDS, IManagedWallet(address(0)));
-    		}
-
-
     // A unit test to check the setAccessManager function when it is called by an address other than the owner. Verify that the function reverts with the correct error message.
 	function testSetAccessManagerAsNonOwner() public
         {

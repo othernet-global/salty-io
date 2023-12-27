@@ -35,13 +35,6 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 
 	constructor( ISalt _salt, IERC20 _wbtc, IERC20 _weth, IERC20 _dai, IUSDS _usds, IManagedWallet _managedTeamWallet )
 		{
-		require( address(_salt) != address(0), "_salt cannot be address(0)" );
-		require( address(_wbtc) != address(0), "_wbtc cannot be address(0)" );
-		require( address(_weth) != address(0), "_weth cannot be address(0)" );
-		require( address(_dai) != address(0), "_dai cannot be address(0)" );
-		require( address(_usds) != address(0), "_usds cannot be address(0)" );
-		require( address(_managedTeamWallet) != address(0), "_managedTeamWallet cannot be address(0)" );
-
 		salt = _salt;
 		wbtc = _wbtc;
 		weth = _weth;
@@ -56,13 +49,6 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 		{
 		// setContracts is only called once (on deployment)
 		require( address(dao) == address(0), "setContracts can only be called once" );
-
-		require( address(_dao) != address(0), "_dao cannot be address(0)" );
-		require( address(_upkeep) != address(0), "_upkeep cannot be address(0)" );
-		require( address(_initialDistribution) != address(0), "_initialDistribution cannot be address(0)" );
-		require( address(_airdrop) != address(0), "_airdrop cannot be address(0)" );
-		require( address(_teamVestingWallet) != address(0), "_teamVestingWallet cannot be address(0)" );
-		require( address(_daoVestingWallet) != address(0), "_daoVestingWallet cannot be address(0)" );
 
 		dao = _dao;
 		upkeep = _upkeep;

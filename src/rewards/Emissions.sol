@@ -26,10 +26,6 @@ contract Emissions is IEmissions
 
     constructor( ISaltRewards _saltRewards, IExchangeConfig _exchangeConfig, IRewardsConfig _rewardsConfig )
 		{
-		require( address(_saltRewards) != address(0), "_saltRewards cannot be address(0)" );
-		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
-		require( address(_rewardsConfig) != address(0), "_rewardsConfig cannot be address(0)" );
-
 		saltRewards = _saltRewards;
 		exchangeConfig = _exchangeConfig;
 		rewardsConfig = _rewardsConfig;

@@ -22,8 +22,8 @@ import "./PoolUtils.sol";
 
 contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	{
-	event LiquidityAdded(address indexed tokenA, address indexed tokenB, uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity);
-	event LiquidityRemoved(address indexed tokenA, address indexed tokenB, uint256 reclaimedA, uint256 reclaimedB, uint256 removedLiquidity);
+	event LiquidityAdded(IERC20 indexed tokenA, IERC20 indexed tokenB, uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity);
+	event LiquidityRemoved(IERC20 indexed tokenA, IERC20 indexed tokenB, uint256 reclaimedA, uint256 reclaimedB, uint256 removedLiquidity);
 	event TokenDeposit(address indexed user, IERC20 indexed token, uint256 amount);
 	event TokenWithdrawal(address indexed user, IERC20 indexed token, uint256 amount);
 	event SwapAndArbitrage(address indexed user, IERC20 indexed swapTokenIn, IERC20 indexed swapTokenOut, uint256 swapAmountIn, uint256 swapAmountOut, uint256 arbitrageProfit);
@@ -59,9 +59,6 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	// This will be called only once - at deployment time
 	function setContracts( IDAO _dao, ICollateralAndLiquidity _collateralAndLiquidity ) external onlyOwner
 		{
-		require( address(_dao) != address(0), "_dao cannot be address(0)" );
-		require( address(_collateralAndLiquidity) != address(0), "_collateralAndLiquidity cannot be address(0)" );
-
 		dao = _dao;
 		collateralAndLiquidity = _collateralAndLiquidity;
 
@@ -96,8 +93,8 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		uint256 reserve0 = reserves.reserve0;
 		uint256 reserve1 = reserves.reserve1;
 
-		// If either reserve is less than dust then consider the pool to be empty and that the added liquidity will become the initial token ratio
-		if ( ( reserve0 < PoolUtils.DUST ) || ( reserve1 < PoolUtils.DUST ) )
+		// If either reserve is zero then consider the pool to be empty and that the added liquidity will become the initial token ratio
+		if ( ( reserve0 == 0 ) || ( reserve1 == 0 ) )
 			{
 			// Update the reserves
 			reserves.reserve0 += uint128(maxAmount0);
@@ -132,9 +129,9 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		// Use whichever added amount was larger to maintain better numeric resolution.
 		// Rounded down in favor of the protocol.
 		if ( addedAmount0 > addedAmount1)
-			addedLiquidity = (addedAmount0 * totalLiquidity) / reserve0;
+			addedLiquidity = (totalLiquidity * addedAmount0) / reserve0;
 		else
-			addedLiquidity = (addedAmount1 * totalLiquidity) / reserve1;
+			addedLiquidity = (totalLiquidity * addedAmount1) / reserve1;
 		}
 
 
@@ -149,7 +146,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		require( maxAmountA > PoolUtils.DUST, "The amount of tokenA to add is too small" );
 		require( maxAmountB > PoolUtils.DUST, "The amount of tokenB to add is too small" );
 
-		(bytes32 poolID, bool flipped) = PoolUtils._poolID(tokenA, tokenB);
+		(bytes32 poolID, bool flipped) = PoolUtils._poolIDAndFlipped(tokenA, tokenB);
 
 		// Flip the users arguments if they are not in reserve token order with address(tokenA) < address(tokenB)
 		if ( flipped )
@@ -164,7 +161,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		tokenA.safeTransferFrom(msg.sender, address(this), addedAmountA );
 		tokenB.safeTransferFrom(msg.sender, address(this), addedAmountB );
 
-		emit LiquidityAdded(address(tokenA), address(tokenB), addedAmountA, addedAmountB, addedLiquidity);
+		emit LiquidityAdded(tokenA, tokenB, addedAmountA, addedAmountB, addedLiquidity);
 		}
 
 
@@ -175,22 +172,19 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		require( msg.sender == address(collateralAndLiquidity), "Pools.removeLiquidity is only callable from the CollateralAndLiquidity contract" );
 		require( liquidityToRemove > 0, "The amount of liquidityToRemove cannot be zero" );
 
-		(bytes32 poolID, bool flipped) = PoolUtils._poolID(tokenA, tokenB);
+		(bytes32 poolID, bool flipped) = PoolUtils._poolIDAndFlipped(tokenA, tokenB);
 
 		// Determine how much liquidity is being withdrawn and round down in favor of the protocol
 		PoolReserves storage reserves = _poolReserves[poolID];
 		reclaimedA = ( reserves.reserve0 * liquidityToRemove ) / totalLiquidity;
 		reclaimedB = ( reserves.reserve1 * liquidityToRemove ) / totalLiquidity;
 
-		// Make sure that removing liquidity doesn't drive the reserves below DUST
-		if ( reserves.reserve0 < (reclaimedA + PoolUtils.DUST) )
-			reclaimedA = reserves.reserve0 - PoolUtils.DUST;
-
-		if ( reserves.reserve1 < (reclaimedB + PoolUtils.DUST) )
-			reclaimedB = reserves.reserve1 - PoolUtils.DUST;
-
 		reserves.reserve0 -= uint128(reclaimedA);
 		reserves.reserve1 -= uint128(reclaimedB);
+
+		// Make sure that removing liquidity doesn't drive either of the reserves below DUST.
+		// This is to ensure that ratios remain relatively constant even after a maximum withdrawal.
+        require((reserves.reserve0 >= PoolUtils.DUST) && (reserves.reserve0 >= PoolUtils.DUST), "Insufficient reserves after liquidity removal");
 
 		// Switch reclaimed amounts back to the order that was specified in the call arguments so they make sense to the caller
 		if (flipped)
@@ -202,7 +196,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		tokenA.safeTransfer( msg.sender, reclaimedA );
 		tokenB.safeTransfer( msg.sender, reclaimedB );
 
-		emit LiquidityRemoved(address(tokenA), address(tokenB), reclaimedA, reclaimedB, liquidityToRemove);
+		emit LiquidityRemoved(tokenA, tokenB, reclaimedA, reclaimedB, liquidityToRemove);
 		}
 
 
@@ -240,7 +234,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	// Only the reserves are updated - the function does not adjust deposited user balances or do ERC20 transfers.
     function _adjustReservesForSwap( IERC20 tokenIn, IERC20 tokenOut, uint256 amountIn ) internal returns (uint256 amountOut)
     	{
-        (bytes32 poolID, bool flipped) = PoolUtils._poolID(tokenIn, tokenOut);
+        (bytes32 poolID, bool flipped) = PoolUtils._poolIDAndFlipped(tokenIn, tokenOut);
 
         PoolReserves storage reserves = _poolReserves[poolID];
         uint256 reserve0 = reserves.reserve0;
@@ -340,7 +334,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		(uint256 reservesC0, uint256 reservesC1) = getPoolReserves( arbToken3, weth);
 
 		// Determine the best amount of WETH to start the arbitrage with
-		uint256 arbitrageAmountIn = _binarySearch(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1 );
+		uint256 arbitrageAmountIn = _bisectionSearch(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1 );
 
 		// If arbitrage is viable, then perform it
 		if (arbitrageAmountIn > 0)
@@ -414,7 +408,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	// The pool reserves for two specified tokens - returned in the order specified by the caller
 	function getPoolReserves(IERC20 tokenA, IERC20 tokenB) public view returns (uint256 reserveA, uint256 reserveB)
 		{
-		(bytes32 poolID, bool flipped) = PoolUtils._poolID(tokenA, tokenB);
+		(bytes32 poolID, bool flipped) = PoolUtils._poolIDAndFlipped(tokenA, tokenB);
 		PoolReserves memory reserves = _poolReserves[poolID];
 		reserveA = reserves.reserve0;
 		reserveB = reserves.reserve1;

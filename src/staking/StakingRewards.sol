@@ -45,10 +45,6 @@ abstract contract StakingRewards is IStakingRewards, ReentrancyGuard
 	// Constructs a new StakingRewards contract with providing configs
  	constructor( IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig )
 		{
-		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
-		require( address(_poolsConfig) != address(0), "_poolsConfig cannot be address(0)" );
-		require( address(_stakingConfig) != address(0), "_stakingConfig cannot be address(0)" );
-
 		exchangeConfig = _exchangeConfig;
     	poolsConfig = _poolsConfig;
 		stakingConfig = _stakingConfig;

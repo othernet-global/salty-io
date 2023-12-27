@@ -35,8 +35,8 @@
 			IERC20 token2 = new TestERC20("TEST", 18);
 			IERC20 token3 = new TestERC20("TEST", 18);
 
-			pool1 = PoolUtils._poolIDOnly(token1, token2);
-			pool2 = PoolUtils._poolIDOnly(token2, token3);
+			pool1 = PoolUtils._poolID(token1, token2);
+			pool2 = PoolUtils._poolID(token2, token3);
 			vm.stopPrank();
 
 			// Whitelist pools
@@ -89,18 +89,6 @@
 
 
 
-		// A unit test to check the constructor when the _exchangeConfig parameter is a zero address.
-		function testEmissionsConstructorWithZeroAddressExchangeConfig() public {
-			vm.expectRevert("_exchangeConfig cannot be address(0)");
-			new Emissions(saltRewards, IExchangeConfig(address(0)), rewardsConfig);
-		}
-
-
-		// A unit test to check the constructor when the _rewardsConfig parameter is a zero address.
-		function testEmissionsConstructorWithZeroAddressRewardsConfig() public {
-				vm.expectRevert("_rewardsConfig cannot be address(0)");
-				new Emissions(saltRewards, exchangeConfig, IRewardsConfig(address(0)));
-			}
 
 
 		// A unit test to check the performUpkeep function when the remaining SALT balance is zero.
@@ -122,13 +110,6 @@
 			// Therefore, the initial and final SALT balances should be the same
 			assertEq(salt.balanceOf(address(emissions)), 0);
 			}
-
-
-		// A unit test to validate that the contract initialization fails when the _saltRewards is a zero address.
-		function testEmissionsConstructorWithZeroAddressSaltRewards() public {
-			vm.expectRevert("_saltRewards cannot be address(0)");
-			new Emissions(ISaltRewards(address(0)), exchangeConfig, rewardsConfig);
-		}
 
 
 		// A unit test to verify SALT approval to saltRewards in the performUpkeep function.

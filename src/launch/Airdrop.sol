@@ -34,9 +34,6 @@ contract Airdrop is IAirdrop, ReentrancyGuard
 
 	constructor( IExchangeConfig _exchangeConfig, IStaking _staking )
 		{
-		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
-		require( address(_staking) != address(0), "_staking cannot be address(0)" );
-
 		exchangeConfig = _exchangeConfig;
 		staking = _staking;
 
@@ -101,11 +98,4 @@ contract Airdrop is IAirdrop, ReentrancyGuard
     	{
     	return _authorizedUsers.length();
     	}
-
-
-	// Returns an array of the currently authorized wallets
-	function authorizedWallets() external view returns (address[] memory)
-		{
-		return _authorizedUsers.values();
-		}
 	}

@@ -28,8 +28,6 @@ contract USDS is ERC20, IUSDS, Ownable
 	// This will be called only once - at deployment time
 	function setCollateralAndLiquidity( ICollateralAndLiquidity _collateralAndLiquidity ) external onlyOwner
 		{
-		require( address(_collateralAndLiquidity) != address(0), "_collateralAndLiquidity cannot be address(0)" );
-
 		collateralAndLiquidity = _collateralAndLiquidity;
 
 		// setCollateralAndLiquidity can only be called once

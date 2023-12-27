@@ -31,11 +31,9 @@ abstract contract Liquidity is ILiquidity, StakingRewards
 	constructor( IPools _pools, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig )
 		StakingRewards( _exchangeConfig, _poolsConfig, _stakingConfig )
 		{
-		require( address(_pools) != address(0), "_pools cannot be address(0)" );
-
 		pools = _pools;
 
-		collateralPoolID = PoolUtils._poolIDOnly( exchangeConfig.wbtc(), exchangeConfig.weth() );
+		collateralPoolID = PoolUtils._poolID( exchangeConfig.wbtc(), exchangeConfig.weth() );
 		}
 
 
@@ -52,7 +50,7 @@ abstract contract Liquidity is ILiquidity, StakingRewards
 	function _dualZapInLiquidity(IERC20 tokenA, IERC20 tokenB, uint256 zapAmountA, uint256 zapAmountB ) internal returns (uint256 amountForLiquidityA, uint256 amountForLiquidityB  )
 		{
 		(uint256 reserveA, uint256 reserveB) = pools.getPoolReserves(tokenA, tokenB);
-		(uint256 swapAmountA, uint256 swapAmountB ) = PoolMath._determineZapSwapAmount( reserveA, reserveB, tokenA, tokenB, zapAmountA, zapAmountB );
+		(uint256 swapAmountA, uint256 swapAmountB ) = PoolMath._determineZapSwapAmount( reserveA, reserveB, zapAmountA, zapAmountB );
 
 		// tokenA is in excess so swap some of it to tokenB?
 		if ( swapAmountA > 0)
@@ -65,7 +63,7 @@ abstract contract Liquidity is ILiquidity, StakingRewards
 			}
 
 		// tokenB is in excess so swap some of it to tokenA?
-		if ( swapAmountB > 0)
+		else if ( swapAmountB > 0)
 			{
 			tokenB.approve( address(pools), swapAmountB );
 
@@ -86,10 +84,6 @@ abstract contract Liquidity is ILiquidity, StakingRewards
 		{
 		require( exchangeConfig.walletHasAccess(msg.sender), "Sender does not have exchange access" );
 
-		// Remember the initial underlying token balances of this contract so we can later determine if any of the user's tokens are later unused after adding liquidity and should be sent back.
-		uint256 startingBalanceA = tokenA.balanceOf( address(this) );
-		uint256 startingBalanceB = tokenB.balanceOf( address(this) );
-
 		// Transfer the specified maximum amount of tokens from the user
 		tokenA.safeTransferFrom(msg.sender, address(this), maxAmountA );
 		tokenB.safeTransferFrom(msg.sender, address(this), maxAmountB );
@@ -104,7 +98,7 @@ abstract contract Liquidity is ILiquidity, StakingRewards
 
 		// Deposit the specified liquidity into the Pools contract
 		// The added liquidity will be owned by this contract. (external call to Pools contract)
-		bytes32 poolID = PoolUtils._poolIDOnly( tokenA, tokenB );
+		bytes32 poolID = PoolUtils._poolID( tokenA, tokenB );
 		(addedAmountA, addedAmountB, addedLiquidity) = pools.addLiquidity( tokenA, tokenB, maxAmountA, maxAmountB, minLiquidityReceived, totalShares[poolID]);
 
 		// Increase the user's liquidity share by the amount of addedLiquidity.
@@ -113,11 +107,11 @@ abstract contract Liquidity is ILiquidity, StakingRewards
 		_increaseUserShare( msg.sender, poolID, addedLiquidity, true );
 
 		// If any of the user's tokens were not used, then send them back
-		if ( tokenA.balanceOf( address(this) ) > startingBalanceA )
-			tokenA.safeTransfer( msg.sender, tokenA.balanceOf( address(this) ) - startingBalanceA );
+		if ( addedAmountA < maxAmountA )
+			tokenA.safeTransfer( msg.sender, maxAmountA - addedAmountA );
 
-		if ( tokenB.balanceOf( address(this) ) > startingBalanceB )
-			tokenB.safeTransfer( msg.sender, tokenB.balanceOf( address(this) ) - startingBalanceB );
+		if ( addedAmountB < maxAmountB )
+			tokenB.safeTransfer( msg.sender, maxAmountB - addedAmountB );
 
 		emit LiquidityDeposited(msg.sender, address(tokenA), address(tokenB), addedAmountA, addedAmountB, addedLiquidity);
 		}
@@ -126,7 +120,7 @@ abstract contract Liquidity is ILiquidity, StakingRewards
 	// Withdraw specified liquidity, decrease the user's liquidity share and claim any pending rewards.
     function _withdrawLiquidityAndClaim( IERC20 tokenA, IERC20 tokenB, uint256 liquidityToWithdraw, uint256 minReclaimedA, uint256 minReclaimedB ) internal returns (uint256 reclaimedA, uint256 reclaimedB)
 		{
-		bytes32 poolID = PoolUtils._poolIDOnly( tokenA, tokenB );
+		bytes32 poolID = PoolUtils._poolID( tokenA, tokenB );
 		require( userShareForPool(msg.sender, poolID) >= liquidityToWithdraw, "Cannot withdraw more than existing user share" );
 
 		// Remove the amount of liquidity specified by the user.
@@ -151,7 +145,7 @@ abstract contract Liquidity is ILiquidity, StakingRewards
 	// Requires exchange access for the sending wallet.
 	function depositLiquidityAndIncreaseShare( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 deadline, bool useZapping ) external nonReentrant ensureNotExpired(deadline) returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
 		{
-		require( PoolUtils._poolIDOnly( tokenA, tokenB ) != collateralPoolID, "Stablecoin collateral cannot be deposited via Liquidity.depositLiquidityAndIncreaseShare" );
+		require( PoolUtils._poolID( tokenA, tokenB ) != collateralPoolID, "Stablecoin collateral cannot be deposited via Liquidity.depositLiquidityAndIncreaseShare" );
 
     	return _depositLiquidityAndIncreaseShare(tokenA, tokenB, maxAmountA, maxAmountB, minLiquidityReceived, useZapping);
 		}
@@ -162,7 +156,7 @@ abstract contract Liquidity is ILiquidity, StakingRewards
 	// No exchange access required for withdrawals.
     function withdrawLiquidityAndClaim( IERC20 tokenA, IERC20 tokenB, uint256 liquidityToWithdraw, uint256 minReclaimedA, uint256 minReclaimedB, uint256 deadline ) external nonReentrant ensureNotExpired(deadline) returns (uint256 reclaimedA, uint256 reclaimedB)
     	{
-		require( PoolUtils._poolIDOnly( tokenA, tokenB ) != collateralPoolID, "Stablecoin collateral cannot be withdrawn via Liquidity.withdrawLiquidityAndClaim" );
+		require( PoolUtils._poolID( tokenA, tokenB ) != collateralPoolID, "Stablecoin collateral cannot be withdrawn via Liquidity.withdrawLiquidityAndClaim" );
 
     	return _withdrawLiquidityAndClaim(tokenA, tokenB, liquidityToWithdraw, minReclaimedA, minReclaimedB);
     	}

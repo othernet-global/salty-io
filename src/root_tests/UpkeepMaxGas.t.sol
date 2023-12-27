@@ -98,7 +98,7 @@ contract TestMaxUpkeep is Deployment
     	vm.stopPrank();
 
     	vm.prank(address(collateralAndLiquidity));
-    	liquidizer.shouldBurnMoreUSDS( 100000 ether );
+    	liquidizer.incrementBurnableUSDS( 100000 ether );
 
     	// Mimic arbitrage profits deposited as WETH for the DAO
     	vm.prank(DEPLOYER);

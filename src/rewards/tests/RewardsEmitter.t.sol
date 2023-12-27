@@ -38,8 +38,8 @@ contract TestRewardsEmitter is Deployment
 		token2 = new TestERC20("TEST", 18);
 		token3 = new TestERC20("TEST", 18);
 
-        bytes32 pool1 = PoolUtils._poolIDOnly(token1, token2);
-        bytes32 pool2 = PoolUtils._poolIDOnly(token2, token3);
+        bytes32 pool1 = PoolUtils._poolID(token1, token2);
+        bytes32 pool2 = PoolUtils._poolID(token2, token3);
 
         poolIDs = new bytes32[](2);
         poolIDs[0] = pool1;
@@ -592,7 +592,7 @@ contract TestRewardsEmitter is Deployment
 		IERC20 tokenB = new TestERC20( "TEST", 18 );
 
         bytes32 unlistedPoolID;
-        unlistedPoolID = PoolUtils._poolIDOnly(tokenA, tokenB);
+        unlistedPoolID = PoolUtils._poolID(tokenA, tokenB);
         uint256 addedReward = 100 ether;
 
         // Record initial balance of the contract
@@ -622,22 +622,6 @@ contract TestRewardsEmitter is Deployment
 
         // Ensure that the pending rewards for the whitelisted pool have been correctly incremented
         assertEq(pendingLiquidityRewardsForPool(unlistedPoolID), addedReward);
-    }
-
-
-    // A unit test that tries to instantiate the RewardsEmitter with invalid contract arguments (e.g. address(0)) and expects it to revert.
-    function testRewardsEmitterConstructorRevertsWithZeroAddresses() public {
-        vm.expectRevert("_stakingRewards cannot be address(0)");
-        new RewardsEmitter(IStakingRewards(address(0)), exchangeConfig, poolsConfig, rewardsConfig, false);
-
-        vm.expectRevert("_exchangeConfig cannot be address(0)");
-        new RewardsEmitter(staking, IExchangeConfig(address(0)), poolsConfig, rewardsConfig, false);
-
-        vm.expectRevert("_poolsConfig cannot be address(0)");
-        new RewardsEmitter(staking, exchangeConfig, IPoolsConfig(address(0)), rewardsConfig, false);
-
-        vm.expectRevert("_rewardsConfig cannot be address(0)");
-        new RewardsEmitter(staking, exchangeConfig, poolsConfig, IRewardsConfig(address(0)), false);
     }
 
 

@@ -9,27 +9,24 @@ import "./interfaces/IPriceFeed.sol";
 // Prices are returned with 18 decimals.
 contract CoreChainlinkFeed is IPriceFeed
     {
+    uint256 constant MAX_ANSWER_DELAY = 60 minutes;
+
 	// https://docs.chain.link/data-feeds/price-feeds/addresses
-	address immutable public CHAINLINK_BTC_USD;
-    address immutable public CHAINLINK_ETH_USD;
+	AggregatorV3Interface immutable public CHAINLINK_BTC_USD;
+    AggregatorV3Interface immutable public CHAINLINK_ETH_USD;
 
 
 	constructor( address _CHAINLINK_BTC_USD, address _CHAINLINK_ETH_USD )
 		{
-		require( _CHAINLINK_BTC_USD != address(0), "_CHAINLINK_BTC_USD cannot be address(0)" );
-		require( _CHAINLINK_ETH_USD != address(0), "_CHAINLINK_ETH_USD cannot be address(0)" );
-
-		CHAINLINK_BTC_USD = _CHAINLINK_BTC_USD;
-		CHAINLINK_ETH_USD = _CHAINLINK_ETH_USD;
+		CHAINLINK_BTC_USD = AggregatorV3Interface(_CHAINLINK_BTC_USD);
+		CHAINLINK_ETH_USD = AggregatorV3Interface(_CHAINLINK_ETH_USD);
 		}
 
 
 	// Returns a Chainlink oracle price with 18 decimals (converted from Chainlink's 8 decimals).
 	// Returns zero on any type of failure.
-	function latestChainlinkPrice(address _chainlinkFeed) public view returns (uint256)
+	function latestChainlinkPrice(AggregatorV3Interface chainlinkFeed) public view returns (uint256)
 		{
-		AggregatorV3Interface chainlinkFeed = AggregatorV3Interface(_chainlinkFeed);
-
 		int256 price = 0;
 
 		try chainlinkFeed.latestRoundData()
@@ -41,13 +38,13 @@ contract CoreChainlinkFeed is IPriceFeed
 			uint80 // _answeredInRound
 		)
 			{
-			price = _price;
-
 			// Make sure that the Chainlink price update has occurred within its 60 minute heartbeat
 			// https://docs.chain.link/data-feeds#check-the-timestamp-of-the-latest-answer
 			uint256 answerDelay = block.timestamp - _answerTimestamp;
 
-			if ( answerDelay > 60 minutes )
+			if ( answerDelay <= MAX_ANSWER_DELAY )
+				price = _price;
+			else
 				price = 0;
 			}
 		catch (bytes memory) // Catching any failure

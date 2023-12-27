@@ -3,6 +3,8 @@ pragma solidity =0.8.22;
 
 import "forge-std/Test.sol";
 import "../StableConfig.sol";
+import "../../price_feed/interfaces/IPriceFeed.sol";
+
 
 contract TestStableConfig is Test
 	{

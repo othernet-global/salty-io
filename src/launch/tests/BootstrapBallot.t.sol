@@ -275,19 +275,6 @@ contract TestBootstrapBallot is Deployment
     }
 
 
-    // A unit test to check the constructor when supplied parameters are address(0). Verify that it throws an error stating "_exchangeConfig cannot be address(0)" or "_airdrop cannot be address(0)".
-    function test_constructor() public {
-    	vm.expectRevert( "_exchangeConfig cannot be address(0)" );
-   		bootstrapBallot = new BootstrapBallot( IExchangeConfig(address(0)), airdrop, 60 * 60 * 24 * 3 );
-
-    	vm.expectRevert( "_airdrop cannot be address(0)" );
-   		bootstrapBallot = new BootstrapBallot( exchangeConfig, IAirdrop(address(0)), 60 * 60 * 24 * 3 );
-
-    	vm.expectRevert( "ballotDuration cannot be zero" );
-   		bootstrapBallot = new BootstrapBallot( exchangeConfig, airdrop, 0 );
-    }
-
-
     // A unit test to check the completionTimestamp is correctly set equal to the current block timestamp plus the ballot duration in constructor.
     function test_completionTimestamp() public {
     	// Store the current block timestamp before constructing the contract

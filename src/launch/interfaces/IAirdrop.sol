@@ -15,5 +15,4 @@ interface IAirdrop
 
 	function isAuthorized(address wallet) external view returns (bool);
 	function numberAuthorized() external view returns (uint256);
-	function authorizedWallets() external view returns (address[] calldata);
 	}

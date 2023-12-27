@@ -119,7 +119,7 @@ contract TestDAO is Deployment
 		else if ( parameter == Parameters.ParameterTypes.maximumPriceFeedPercentDifferenceTimes1000 )
 			return priceAggregator.maximumPriceFeedPercentDifferenceTimes1000();
 		else if ( parameter == Parameters.ParameterTypes.setPriceFeedCooldown )
-			return priceAggregator.setPriceFeedCooldown();
+			return priceAggregator.priceFeedModificationCooldown();
 
 		require(false, "Invalid ParameterType" );
 		return 0;
@@ -284,8 +284,8 @@ contract TestDAO is Deployment
 
 		// Check to see that the bootstrapping rewards have been sent
 		bytes32[] memory poolIDs = new bytes32[](2);
-		poolIDs[0] = PoolUtils._poolIDOnly(token,wbtc);
-		poolIDs[1] = PoolUtils._poolIDOnly(token,weth);
+		poolIDs[0] = PoolUtils._poolID(token,wbtc);
+		poolIDs[1] = PoolUtils._poolID(token,weth);
 
 		uint256[] memory pendingRewards = liquidityRewardsEmitter.pendingRewardsForPools( poolIDs );
 
@@ -758,7 +758,7 @@ contract TestDAO is Deployment
 	// A unit test to validate that formPOL works correctly and changes balances as expected
 	function testFormPOL() public {
 
-		assertEq( collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds)), 0 );
+		assertEq( collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usds)), 0 );
 
 		uint256 saltAmount = 10 ether;
         uint256 usdsAmount = 5 ether;
@@ -783,7 +783,7 @@ contract TestDAO is Deployment
         assertEq(salt.balanceOf(address(dao)), 0, "DAO SALT balance incorrect after formPOL");
         assertEq(usds.balanceOf(address(dao)), 0, "DAO USDS balance incorrect after formPOL");
 
-		bytes32 poolID = PoolUtils._poolIDOnly(salt,usds);
+		bytes32 poolID = PoolUtils._poolID(salt,usds);
 		assertTrue( collateralAndLiquidity.userShareForPool(address(dao), poolID) > 0 );
 		assertEq( collateralAndLiquidity.userShareForPool(address(dao), poolID), collateralAndLiquidity.totalShares(poolID) );
     }
@@ -855,8 +855,8 @@ contract TestDAO is Deployment
     	vm.warp( block.timestamp + 1 days );
 
 		bytes32[] memory poolIDs = new bytes32[](2);
-		poolIDs[0] = PoolUtils._poolIDOnly(salt, usds);
-		poolIDs[1] = PoolUtils._poolIDOnly(usds, dai);
+		poolIDs[0] = PoolUtils._poolID(salt, usds);
+		poolIDs[1] = PoolUtils._poolID(usds, dai);
 
 		// Check balances before performUpkeep()
 		assertEq( salt.balanceOf( address(teamWallet)), 0 );
@@ -894,7 +894,7 @@ contract TestDAO is Deployment
 		vm.prank(address(upkeep));
 		dao.formPOL(salt, usds, 1000 ether, 1000 ether);
 
-		uint256 daoShare = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds) );
+		uint256 daoShare = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usds) );
 
 		// Starting liquidator balances
 		assertEq( salt.balanceOf(address(liquidizer)), 0);
@@ -906,7 +906,7 @@ contract TestDAO is Deployment
         dao.withdrawPOL(salt, usds, 10);
 
 		// Check that 10% of the share has been removed
-		uint256 daoShare2 = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds) );
+		uint256 daoShare2 = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usds) );
 		assertEq( daoShare2, daoShare * 90 / 100);
 
         // Verify tokens are sent to the Liquidizer
@@ -1071,7 +1071,7 @@ contract TestDAO is Deployment
         usds.mintTo(address(dao), usdsAmount);
 
         // Capture the initial POL state
-        bytes32 saltUsdsPoolID = PoolUtils._poolIDOnly(salt, usds);
+        bytes32 saltUsdsPoolID = PoolUtils._poolID(salt, usds);
         uint256 initialSaltBalanceDAO = salt.balanceOf(address(dao));
         uint256 initialUsdsBalanceDAO = usds.balanceOf(address(dao));
 

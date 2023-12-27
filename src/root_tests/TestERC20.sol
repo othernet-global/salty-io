@@ -17,8 +17,8 @@ contract TestERC20 is ERC20
 		{
 		_decimals = uint8(__decimals);
 
-		// 1 trillion initial supply
-		INITIAL_SUPPLY = 1000 * 1000000000 * 10 ** _decimals;
+		// 1 quadrillion initial supply
+		INITIAL_SUPPLY = 1000 * 1000 * 1000000000 * 10 ** _decimals;
 		_mint( msg.sender, INITIAL_SUPPLY );
         }
 

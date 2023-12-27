@@ -102,7 +102,7 @@ contract TestUpkeepEdge is Deployment
 
     	// Indicate that some USDS should be burned
     	vm.prank( address(collateralAndLiquidity));
-    	liquidizer.shouldBurnMoreUSDS( 40 ether);
+    	liquidizer.incrementBurnableUSDS( 40 ether);
 
     	// Mimic arbitrage profits deposited as WETH for the DAO
     	vm.prank(DEPLOYER);
@@ -154,8 +154,8 @@ contract TestUpkeepEdge is Deployment
 		ITestUpkeep(address(upkeep)).step5();
 		vm.stopPrank();
 
-		assertEq( collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds)), 0 );
-		assertEq( collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(usds, dai)), 0 );
+		assertEq( collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usds)), 0 );
+		assertEq( collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(usds, dai)), 0 );
 		}
 
 
@@ -179,10 +179,10 @@ contract TestUpkeepEdge is Deployment
     function testStep9() public
     	{
 		bytes32[] memory poolIDs = new bytes32[](4);
-		poolIDs[0] = PoolUtils._poolIDOnly(salt,weth);
-		poolIDs[1] = PoolUtils._poolIDOnly(salt,wbtc);
-		poolIDs[2] = PoolUtils._poolIDOnly(wbtc,weth);
-		poolIDs[3] = PoolUtils._poolIDOnly(salt,usds);
+		poolIDs[0] = PoolUtils._poolID(salt,weth);
+		poolIDs[1] = PoolUtils._poolID(salt,wbtc);
+		poolIDs[2] = PoolUtils._poolID(wbtc,weth);
+		poolIDs[3] = PoolUtils._poolID(salt,usds);
 
 		uint256 initialSupply = salt.totalSupply();
 

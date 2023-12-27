@@ -22,20 +22,20 @@ import "../Upkeep.sol";
 // It handles proposing ballots, tracking votes, enforcing voting requirements, and executing approved proposals.
 contract DAO is IDAO, Parameters, ReentrancyGuard
     {
-	event BallotFinalized(uint256 indexed ballotID);
+	event BallotFinalized(uint256 indexed ballotID, Vote winningVote);
     event SetContract(string indexed ballotName, address indexed contractAddress);
     event SetWebsiteURL(string newURL);
-    event WhitelistToken(address indexed token);
-    event UnwhitelistToken(address indexed token);
-    event GeoExclusionUpdated(string country, bool excluded);
+    event WhitelistToken(IERC20 indexed token);
+    event UnwhitelistToken(IERC20 indexed token);
+    event GeoExclusionUpdated(string country, bool excluded, uint256 geoVersion);
     event ArbitrageProfitsWithdrawn(address indexed upkeepContract, IERC20 indexed weth, uint256 withdrawnAmount);
     event SaltSent(address indexed to, uint256 amount);
     event ContractCalled(address indexed contractAddress, uint256 indexed intArg);
     event TeamRewardsTransferred(uint256 teamAmount);
 
-    event POLFormed(address indexed tokenA, address indexed tokenB, uint256 amountA, uint256 amountB);
+    event POLFormed(IERC20 indexed tokenA, IERC20 indexed tokenB, uint256 amountA, uint256 amountB);
     event POLProcessed(uint256 claimedSALT);
-    event POLWithdrawn(address indexed tokenA, address indexed tokenB, uint256 withdrawnA, uint256 withdrawnB);
+    event POLWithdrawn(IERC20 indexed tokenA, IERC20 indexed tokenB, uint256 withdrawnA, uint256 withdrawnB);
 
 	using SafeERC20 for ISalt;
 	using SafeERC20 for IERC20;
@@ -63,23 +63,12 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 	string public websiteURL;
 
 	// Countries that have been excluded from access to the DEX (used by AccessManager.sol)
+	// Keys as ISO 3166 Alpha-2 Codes
 	mapping(string=>bool) public excludedCountries;
 
 
     constructor( IPools _pools, IProposals _proposals, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IRewardsConfig _rewardsConfig, IStableConfig _stableConfig, IDAOConfig _daoConfig, IPriceAggregator _priceAggregator, IRewardsEmitter _liquidityRewardsEmitter, ICollateralAndLiquidity _collateralAndLiquidity )
 		{
-		require( address(_pools) != address(0), "_pools cannot be address(0)" );
-		require( address(_proposals) != address(0), "_proposals cannot be address(0)" );
-		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
-		require( address(_poolsConfig) != address(0), "_poolsConfig cannot be address(0)" );
-		require( address(_stakingConfig) != address(0), "_stakingConfig cannot be address(0)" );
-		require( address(_rewardsConfig) != address(0), "_rewardsConfig cannot be address(0)" );
-		require( address(_stableConfig) != address(0), "_stableConfig cannot be address(0)" );
-		require( address(_daoConfig) != address(0), "_daoConfig cannot be address(0)" );
-		require( address(_priceAggregator) != address(0), "_priceAggregator cannot be address(0)" );
-		require( address(_liquidityRewardsEmitter) != address(0), "_liquidityRewardsEmitter cannot be address(0)" );
-		require( address(_collateralAndLiquidity) != address(0), "_collateralAndLiquidity cannot be address(0)" );
-
 		pools = _pools;
 		proposals = _proposals;
 		exchangeConfig = _exchangeConfig;
@@ -135,7 +124,7 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		// Finalize the ballot even if NO_CHANGE won
 		proposals.markBallotAsFinalized(ballotID);
 
-		emit BallotFinalized(ballotID);
+		emit BallotFinalized(ballotID, winningVote);
 		}
 
 
@@ -171,7 +160,7 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 			poolsConfig.unwhitelistPool( pools, IERC20(ballot.address1), exchangeConfig.wbtc() );
 			poolsConfig.unwhitelistPool( pools, IERC20(ballot.address1), exchangeConfig.weth() );
 
-			emit UnwhitelistToken(ballot.address1);
+			emit UnwhitelistToken(IERC20(ballot.address1));
 			}
 
 		else if ( ballot.ballotType == BallotType.SEND_SALT )
@@ -197,7 +186,7 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 			{
 			excludedCountries[ ballot.string1 ] = false;
 
-			emit GeoExclusionUpdated(ballot.string1, false);
+			emit GeoExclusionUpdated(ballot.string1, false, exchangeConfig.accessManager().geoVersion());
 			}
 
 		else if ( ballot.ballotType == BallotType.EXCLUDE_COUNTRY )
@@ -207,7 +196,7 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 			// If the AccessManager doesn't implement excludedCountriesUpdated, this will revert and countries will not be able to be excluded until the AccessManager is working properly.
 			exchangeConfig.accessManager().excludedCountriesUpdated();
 
-			emit GeoExclusionUpdated(ballot.string1, true);
+			emit GeoExclusionUpdated(ballot.string1, true, exchangeConfig.accessManager().geoVersion());
 			}
 
 		// Once an initial setContract proposal passes, it automatically starts a second confirmation ballot (to prevent last minute approvals)
@@ -265,8 +254,8 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 			poolsConfig.whitelistPool( pools,  IERC20(ballot.address1), exchangeConfig.wbtc() );
 			poolsConfig.whitelistPool( pools,  IERC20(ballot.address1), exchangeConfig.weth() );
 
-			bytes32 pool1 = PoolUtils._poolIDOnly( IERC20(ballot.address1), exchangeConfig.wbtc() );
-			bytes32 pool2 = PoolUtils._poolIDOnly( IERC20(ballot.address1), exchangeConfig.weth() );
+			bytes32 pool1 = PoolUtils._poolID( IERC20(ballot.address1), exchangeConfig.wbtc() );
+			bytes32 pool2 = PoolUtils._poolID( IERC20(ballot.address1), exchangeConfig.weth() );
 
 			// Send the initial bootstrappingRewards to promote initial liquidity on these two newly whitelisted pools
 			AddedReward[] memory addedRewards = new AddedReward[](2);
@@ -276,7 +265,7 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 			exchangeConfig.salt().approve( address(liquidityRewardsEmitter), bootstrappingRewards * 2 );
 			liquidityRewardsEmitter.addSALTRewards( addedRewards );
 
-			emit WhitelistToken(ballot.address1);
+			emit WhitelistToken(IERC20(ballot.address1));
 			}
 
 		// Mark the ballot as finalized (which will also remove it from the list of open token whitelisting proposals)
@@ -331,7 +320,7 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		// Use zapping to form the liquidity so that all the specified tokens are used
 		collateralAndLiquidity.depositLiquidityAndIncreaseShare( tokenA, tokenB, amountA, amountB, 0, block.timestamp, true );
 
-		emit POLFormed(address(tokenA), address(tokenB), amountA, amountB);
+		emit POLFormed(tokenA, tokenB, amountA, amountB);
 		}
 
 
@@ -341,8 +330,8 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 
 		// The DAO owns SALT/USDS and USDS/DAI liquidity.
 		bytes32[] memory poolIDs = new bytes32[](2);
-		poolIDs[0] = PoolUtils._poolIDOnly(salt, usds);
-		poolIDs[1] = PoolUtils._poolIDOnly(usds, dai);
+		poolIDs[0] = PoolUtils._poolID(salt, usds);
+		poolIDs[1] = PoolUtils._poolID(usds, dai);
 
 		uint256 claimedSALT = collateralAndLiquidity.claimAllRewards(poolIDs);
 		if ( claimedSALT == 0 )
@@ -372,7 +361,7 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		{
 		require(msg.sender == address(liquidizer), "DAO.withdrawProtocolOwnedLiquidity is only callable from the Liquidizer contract" );
 
-		bytes32 poolID = PoolUtils._poolIDOnly(tokenA, tokenB);
+		bytes32 poolID = PoolUtils._poolID(tokenA, tokenB);
 		uint256 liquidityHeld = collateralAndLiquidity.userShareForPool( address(this), poolID );
 		if ( liquidityHeld == 0 )
 			return;
@@ -386,7 +375,7 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		tokenA.safeTransfer( address(liquidizer), reclaimedA );
 		tokenB.safeTransfer( address(liquidizer), reclaimedB );
 
-		emit POLWithdrawn(address(tokenA), address(tokenB), reclaimedA, reclaimedB);
+		emit POLWithdrawn(tokenA, tokenB, reclaimedA, reclaimedB);
 		}
 
 

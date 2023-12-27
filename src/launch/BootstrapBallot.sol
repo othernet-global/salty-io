@@ -12,6 +12,8 @@ import "../SigningTools.sol";
 
 contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
     {
+	event BallotFinalized(bool startExchange);
+
     IExchangeConfig immutable public exchangeConfig;
     IAirdrop immutable public airdrop;
 	uint256 immutable public completionTimestamp;
@@ -31,8 +33,6 @@ contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
 
 	constructor( IExchangeConfig _exchangeConfig, IAirdrop _airdrop, uint256 ballotDuration )
 		{
-		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
-		require( address(_airdrop) != address(0), "_airdrop cannot be address(0)" );
 		require( ballotDuration > 0, "ballotDuration cannot be zero" );
 
 		exchangeConfig = _exchangeConfig;
@@ -78,6 +78,8 @@ contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
 
 			startExchangeApproved = true;
 			}
+
+		emit BallotFinalized(startExchangeApproved);
 
 		ballotFinalized = true;
 		}

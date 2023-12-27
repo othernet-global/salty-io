@@ -184,7 +184,7 @@ contract TestUpkeepFlawed is Deployment
 
     	// Indicate that some USDS should be burned
     	vm.prank( address(collateralAndLiquidity));
-    	liquidizer.shouldBurnMoreUSDS( 40 ether);
+    	liquidizer.incrementBurnableUSDS( 40 ether);
 
     	// Mimic arbitrage profits deposited as WETH for the DAO
     	vm.prank(DEPLOYER);
@@ -229,7 +229,7 @@ contract TestUpkeepFlawed is Deployment
 		assertEq( reservesA, 2374966892934008368 ); // Close to 2.375 ether
 		assertEq( reservesB, 2374966892934008368 ); // Close to 2.375 ether
 
-		uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(usds, dai));
+		uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(usds, dai));
 		assertEq( daoLiquidity, 4749933785868016736 ); // Close to 4.75 ether
 
 
@@ -240,7 +240,7 @@ contract TestUpkeepFlawed is Deployment
 		assertEq( reservesA, 9024453775958744234 ); // Close to 9.025 ether
 		assertEq( reservesB, 9023845464674444490 ); // Close to 9.025 ether - a little worse because some of the USDS reserve was also used for USDS/DAI POL
 
-		daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds));
+		daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usds));
 		assertEq( daoLiquidity, 18048299240633188724 ); // Close to 18.05 ether
 
 
@@ -272,11 +272,11 @@ contract TestUpkeepFlawed is Deployment
 		assertEq( staking.totalRewardsForPools(poolIDsA)[0], expectedStakingRewardsFromBootstrapping + expectedStakingRewardsFromArbitrageProfits + 3836898935172364  );
 
 		bytes32[] memory poolIDs = new bytes32[](5);
-		poolIDs[0] = PoolUtils._poolIDOnly(salt,weth);
-		poolIDs[1] = PoolUtils._poolIDOnly(salt,wbtc);
-		poolIDs[2] = PoolUtils._poolIDOnly(wbtc,weth);
-		poolIDs[3] = PoolUtils._poolIDOnly(salt,usds);
-		poolIDs[4] = PoolUtils._poolIDOnly(usds,dai);
+		poolIDs[0] = PoolUtils._poolID(salt,weth);
+		poolIDs[1] = PoolUtils._poolID(salt,wbtc);
+		poolIDs[2] = PoolUtils._poolID(wbtc,weth);
+		poolIDs[3] = PoolUtils._poolID(salt,usds);
+		poolIDs[4] = PoolUtils._poolID(usds,dai);
 
 		// Check if the rewards were transferred to the liquidity contract:
 		// 1% max of ( 5 million / 9 pools + 45% of 185786 ether sent from saltRewards).
@@ -336,7 +336,7 @@ contract TestUpkeepFlawed is Deployment
 
        	// Indicate that some USDS should be burned
        	vm.prank( address(collateralAndLiquidity));
-       	liquidizer.shouldBurnMoreUSDS( 40 ether);
+       	liquidizer.incrementBurnableUSDS( 40 ether);
 
        	// Mimic arbitrage profits deposited as WETH for the DAO
        	vm.prank(DEPLOYER);
@@ -381,7 +381,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( reservesA, 0 ); // Close to 2.375 ether
     	assertEq( reservesB, 0 ); // Close to 2.375 ether
 
-    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(usds, dai));
+    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(usds, dai));
     	assertEq( daoLiquidity, 0 ); // Close to 4.75 ether
 
 
@@ -392,7 +392,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( reservesA, 0 ); // Close to 9.025 ether
     	assertEq( reservesB, 0 ); // Close to 9.025 ether - a little worse because some of the USDS reserve was also used for USDS/DAI POL
 
-    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds));
+    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usds));
     	assertEq( daoLiquidity, 0 ); // Close to 18.05 ether
 
 
@@ -422,11 +422,11 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 30835716220238095238095  );
 
     	bytes32[] memory poolIDs = new bytes32[](5);
-    	poolIDs[0] = PoolUtils._poolIDOnly(salt,weth);
-    	poolIDs[1] = PoolUtils._poolIDOnly(salt,wbtc);
-    	poolIDs[2] = PoolUtils._poolIDOnly(wbtc,weth);
-    	poolIDs[3] = PoolUtils._poolIDOnly(salt,usds);
-    	poolIDs[4] = PoolUtils._poolIDOnly(usds,dai);
+    	poolIDs[0] = PoolUtils._poolID(salt,weth);
+    	poolIDs[1] = PoolUtils._poolID(salt,wbtc);
+    	poolIDs[2] = PoolUtils._poolID(wbtc,weth);
+    	poolIDs[3] = PoolUtils._poolID(salt,usds);
+    	poolIDs[4] = PoolUtils._poolID(usds,dai);
 
     	// Check if the rewards were transferred to the liquidity contract:
     	// 1% max of ( 5 million / 9 pools + 45% of 185786 ether sent from saltRewards).
@@ -476,7 +476,7 @@ contract TestUpkeepFlawed is Deployment
 
        	// Indicate that some USDS should be burned
        	vm.prank( address(collateralAndLiquidity));
-       	liquidizer.shouldBurnMoreUSDS( 40 ether);
+       	liquidizer.incrementBurnableUSDS( 40 ether);
 
        	// Mimic arbitrage profits deposited as WETH for the DAO
        	vm.prank(DEPLOYER);
@@ -521,7 +521,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( reservesA, 0 ); // Close to 2.375 ether
     	assertEq( reservesB, 0 ); // Close to 2.375 ether
 
-    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(usds, dai));
+    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(usds, dai));
     	assertEq( daoLiquidity, 0 ); // Close to 4.75 ether
 
 
@@ -532,7 +532,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( reservesA, 9499379908450585589 ); // Close to 9.025 ether
     	assertEq( reservesB, 9489699143208499853 ); // Close to 9.025 ether - a little worse because some of the USDS reserve was also used for USDS/DAI POL
 
-    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds));
+    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usds));
     	assertEq( daoLiquidity, 18989079051659085442 ); // Close to 18.05 ether
 
 
@@ -562,11 +562,11 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 30836057905767896890493  );
 
     	bytes32[] memory poolIDs = new bytes32[](5);
-    	poolIDs[0] = PoolUtils._poolIDOnly(salt,weth);
-    	poolIDs[1] = PoolUtils._poolIDOnly(salt,wbtc);
-    	poolIDs[2] = PoolUtils._poolIDOnly(wbtc,weth);
-    	poolIDs[3] = PoolUtils._poolIDOnly(salt,usds);
-    	poolIDs[4] = PoolUtils._poolIDOnly(usds,dai);
+    	poolIDs[0] = PoolUtils._poolID(salt,weth);
+    	poolIDs[1] = PoolUtils._poolID(salt,wbtc);
+    	poolIDs[2] = PoolUtils._poolID(wbtc,weth);
+    	poolIDs[3] = PoolUtils._poolID(salt,usds);
+    	poolIDs[4] = PoolUtils._poolID(usds,dai);
 
     	// Check if the rewards were transferred to the liquidity contract:
     	// 1% max of ( 5 million / 9 pools + 45% of 185786 ether sent from saltRewards).
@@ -616,7 +616,7 @@ contract TestUpkeepFlawed is Deployment
 
        	// Indicate that some USDS should be burned
        	vm.prank( address(collateralAndLiquidity));
-       	liquidizer.shouldBurnMoreUSDS( 40 ether);
+       	liquidizer.incrementBurnableUSDS( 40 ether);
 
        	// Mimic arbitrage profits deposited as WETH for the DAO
        	vm.prank(DEPLOYER);
@@ -661,7 +661,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( reservesA, 2372593734239580153 ); // Close to 2.375 ether
     	assertEq( reservesB, 2374966892934008368 ); // Close to 2.375 ether
 
-    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(usds, dai));
+    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(usds, dai));
     	assertEq( daoLiquidity, 4747560627173588521 ); // Close to 4.75 ether
 
 
@@ -672,7 +672,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( reservesA, 0 ); // Close to 9.025 ether
     	assertEq( reservesB, 0 ); // Close to 9.025 ether - a little worse because some of the USDS reserve was also used for USDS/DAI POL
 
-    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds));
+    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usds));
     	assertEq( daoLiquidity, 0 ); // Close to 18.05 ether
 
 
@@ -702,11 +702,11 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 30836121991093864768028  );
 
     	bytes32[] memory poolIDs = new bytes32[](5);
-    	poolIDs[0] = PoolUtils._poolIDOnly(salt,weth);
-    	poolIDs[1] = PoolUtils._poolIDOnly(salt,wbtc);
-    	poolIDs[2] = PoolUtils._poolIDOnly(wbtc,weth);
-    	poolIDs[3] = PoolUtils._poolIDOnly(salt,usds);
-    	poolIDs[4] = PoolUtils._poolIDOnly(usds,dai);
+    	poolIDs[0] = PoolUtils._poolID(salt,weth);
+    	poolIDs[1] = PoolUtils._poolID(salt,wbtc);
+    	poolIDs[2] = PoolUtils._poolID(wbtc,weth);
+    	poolIDs[3] = PoolUtils._poolID(salt,usds);
+    	poolIDs[4] = PoolUtils._poolID(usds,dai);
 
     	// Check if the rewards were transferred to the liquidity contract:
     	// 1% max of ( 5 million / 9 pools + 45% of 185786 ether sent from saltRewards).
@@ -756,7 +756,7 @@ contract TestUpkeepFlawed is Deployment
 
        	// Indicate that some USDS should be burned
        	vm.prank( address(collateralAndLiquidity));
-       	liquidizer.shouldBurnMoreUSDS( 40 ether);
+       	liquidizer.incrementBurnableUSDS( 40 ether);
 
        	// Mimic arbitrage profits deposited as WETH for the DAO
        	vm.prank(DEPLOYER);
@@ -801,7 +801,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( reservesA, 2372593734239580153 ); // Close to 2.375 ether
     	assertEq( reservesB, 2374966892934008368 ); // Close to 2.375 ether
 
-    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(usds, dai));
+    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(usds, dai));
     	assertEq( daoLiquidity, 4747560627173588521 ); // Close to 4.75 ether
 
 
@@ -812,7 +812,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( reservesA, 9024453775958744234 ); // Close to 9.025 ether
     	assertEq( reservesB, 9014829003115815807 ); // Close to 9.025 ether - a little worse because some of the USDS reserve was also used for USDS/DAI POL
 
-    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds));
+    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usds));
     	assertEq( daoLiquidity, 18039282779074560041 ); // Close to 18.05 ether
 
 
@@ -842,11 +842,11 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 30835716220238095238095  );
 
     	bytes32[] memory poolIDs = new bytes32[](5);
-    	poolIDs[0] = PoolUtils._poolIDOnly(salt,weth);
-    	poolIDs[1] = PoolUtils._poolIDOnly(salt,wbtc);
-    	poolIDs[2] = PoolUtils._poolIDOnly(wbtc,weth);
-    	poolIDs[3] = PoolUtils._poolIDOnly(salt,usds);
-    	poolIDs[4] = PoolUtils._poolIDOnly(usds,dai);
+    	poolIDs[0] = PoolUtils._poolID(salt,weth);
+    	poolIDs[1] = PoolUtils._poolID(salt,wbtc);
+    	poolIDs[2] = PoolUtils._poolID(wbtc,weth);
+    	poolIDs[3] = PoolUtils._poolID(salt,usds);
+    	poolIDs[4] = PoolUtils._poolID(usds,dai);
 
     	// Check if the rewards were transferred to the liquidity contract:
     	// 1% max of ( 5 million / 9 pools + 45% of 185786 ether sent from saltRewards).
@@ -900,7 +900,7 @@ contract TestUpkeepFlawed is Deployment
 
        	// Indicate that some USDS should be burned
        	vm.prank( address(collateralAndLiquidity));
-       	liquidizer.shouldBurnMoreUSDS( 40 ether);
+       	liquidizer.incrementBurnableUSDS( 40 ether);
 
        	// Mimic arbitrage profits deposited as WETH for the DAO
        	vm.prank(DEPLOYER);
@@ -945,7 +945,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( reservesA, 2372593734239580153 ); // Close to 2.375 ether
     	assertEq( reservesB, 2374966892934008368 ); // Close to 2.375 ether
 
-    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(usds, dai));
+    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(usds, dai));
     	assertEq( daoLiquidity, 4747560627173588521 ); // Close to 4.75 ether
 
 
@@ -956,7 +956,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( reservesA, 9024453775958744234 ); // Close to 9.025 ether
     	assertEq( reservesB, 9014829003115815807 ); // Close to 9.025 ether - a little worse because some of the USDS reserve was also used for USDS/DAI POL
 
-    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds));
+    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usds));
     	assertEq( daoLiquidity, 18039282779074560041 ); // Close to 18.05 ether
 
 
@@ -986,11 +986,11 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 30000324616660839934269  );
 
     	bytes32[] memory poolIDs = new bytes32[](5);
-    	poolIDs[0] = PoolUtils._poolIDOnly(salt,weth);
-    	poolIDs[1] = PoolUtils._poolIDOnly(salt,wbtc);
-    	poolIDs[2] = PoolUtils._poolIDOnly(wbtc,weth);
-    	poolIDs[3] = PoolUtils._poolIDOnly(salt,usds);
-    	poolIDs[4] = PoolUtils._poolIDOnly(usds,dai);
+    	poolIDs[0] = PoolUtils._poolID(salt,weth);
+    	poolIDs[1] = PoolUtils._poolID(salt,wbtc);
+    	poolIDs[2] = PoolUtils._poolID(wbtc,weth);
+    	poolIDs[3] = PoolUtils._poolID(salt,usds);
+    	poolIDs[4] = PoolUtils._poolID(usds,dai);
 
     	// Check if the rewards were transferred to the liquidity contract:
     	// 1% max of ( 5 million / 9 pools + 45% of 185786 ether sent from saltRewards).
@@ -1044,7 +1044,7 @@ contract TestUpkeepFlawed is Deployment
 
        	// Indicate that some USDS should be burned
        	vm.prank( address(collateralAndLiquidity));
-       	liquidizer.shouldBurnMoreUSDS( 40 ether);
+       	liquidizer.incrementBurnableUSDS( 40 ether);
 
        	// Mimic arbitrage profits deposited as WETH for the DAO
        	vm.prank(DEPLOYER);
@@ -1089,7 +1089,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( reservesA, 2372593734239580153 ); // Close to 2.375 ether
     	assertEq( reservesB, 2374966892934008368 ); // Close to 2.375 ether
 
-    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(usds, dai));
+    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(usds, dai));
     	assertEq( daoLiquidity, 4747560627173588521 ); // Close to 4.75 ether
 
 
@@ -1100,7 +1100,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( reservesA, 9024453775958744234 ); // Close to 9.025 ether
     	assertEq( reservesB, 9014829003115815807 ); // Close to 9.025 ether - a little worse because some of the USDS reserve was also used for USDS/DAI POL
 
-    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds));
+    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usds));
     	assertEq( daoLiquidity, 18039282779074560041 ); // Close to 18.05 ether
 
 
@@ -1130,11 +1130,11 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 30000000000000000000000 );
 
     	bytes32[] memory poolIDs = new bytes32[](5);
-    	poolIDs[0] = PoolUtils._poolIDOnly(salt,weth);
-    	poolIDs[1] = PoolUtils._poolIDOnly(salt,wbtc);
-    	poolIDs[2] = PoolUtils._poolIDOnly(wbtc,weth);
-    	poolIDs[3] = PoolUtils._poolIDOnly(salt,usds);
-    	poolIDs[4] = PoolUtils._poolIDOnly(usds,dai);
+    	poolIDs[0] = PoolUtils._poolID(salt,weth);
+    	poolIDs[1] = PoolUtils._poolID(salt,wbtc);
+    	poolIDs[2] = PoolUtils._poolID(wbtc,weth);
+    	poolIDs[3] = PoolUtils._poolID(salt,usds);
+    	poolIDs[4] = PoolUtils._poolID(usds,dai);
 
     	// Check if the rewards were transferred to the liquidity contract:
     	// 1% max of ( 5 million / 9 pools + 45% of 185786 ether sent from saltRewards).
@@ -1188,7 +1188,7 @@ contract TestUpkeepFlawed is Deployment
 
        	// Indicate that some USDS should be burned
        	vm.prank( address(collateralAndLiquidity));
-       	liquidizer.shouldBurnMoreUSDS( 40 ether);
+       	liquidizer.incrementBurnableUSDS( 40 ether);
 
        	// Mimic arbitrage profits deposited as WETH for the DAO
        	vm.prank(DEPLOYER);
@@ -1233,7 +1233,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( reservesA, 2372593734239580153 ); // Close to 2.375 ether
     	assertEq( reservesB, 2374966892934008368 ); // Close to 2.375 ether
 
-    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(usds, dai));
+    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(usds, dai));
     	assertEq( daoLiquidity, 4747560627173588521 ); // Close to 4.75 ether
 
 
@@ -1244,7 +1244,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( reservesA, 9024453775958744234 ); // Close to 9.025 ether
     	assertEq( reservesB, 9014829003115815807 ); // Close to 9.025 ether - a little worse because some of the USDS reserve was also used for USDS/DAI POL
 
-    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds));
+    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usds));
     	assertEq( daoLiquidity, 18039282779074560041 ); // Close to 18.05 ether
 
 
@@ -1274,11 +1274,11 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 0 );
 
     	bytes32[] memory poolIDs = new bytes32[](5);
-    	poolIDs[0] = PoolUtils._poolIDOnly(salt,weth);
-    	poolIDs[1] = PoolUtils._poolIDOnly(salt,wbtc);
-    	poolIDs[2] = PoolUtils._poolIDOnly(wbtc,weth);
-    	poolIDs[3] = PoolUtils._poolIDOnly(salt,usds);
-    	poolIDs[4] = PoolUtils._poolIDOnly(usds,dai);
+    	poolIDs[0] = PoolUtils._poolID(salt,weth);
+    	poolIDs[1] = PoolUtils._poolID(salt,wbtc);
+    	poolIDs[2] = PoolUtils._poolID(wbtc,weth);
+    	poolIDs[3] = PoolUtils._poolID(salt,usds);
+    	poolIDs[4] = PoolUtils._poolID(usds,dai);
 
     	// Check if the rewards were transferred to the liquidity contract:
     	// 1% max of ( 5 million / 9 pools + 45% of 185786 ether sent from saltRewards).
@@ -1328,7 +1328,7 @@ contract TestUpkeepFlawed is Deployment
 
        	// Indicate that some USDS should be burned
        	vm.prank( address(collateralAndLiquidity));
-       	liquidizer.shouldBurnMoreUSDS( 40 ether);
+       	liquidizer.incrementBurnableUSDS( 40 ether);
 
        	// Mimic arbitrage profits deposited as WETH for the DAO
        	vm.prank(DEPLOYER);
@@ -1373,7 +1373,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( reservesA, 2372593734239580153 ); // Close to 2.375 ether
     	assertEq( reservesB, 2374966892934008368 ); // Close to 2.375 ether
 
-    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(usds, dai));
+    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(usds, dai));
     	assertEq( daoLiquidity, 4747560627173588521 ); // Close to 4.75 ether
 
 
@@ -1384,7 +1384,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( reservesA, 9024453775958744234 ); // Close to 9.025 ether
     	assertEq( reservesB, 9014829003115815807 ); // Close to 9.025 ether - a little worse because some of the USDS reserve was also used for USDS/DAI POL
 
-    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds));
+    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usds));
     	assertEq( daoLiquidity, 18039282779074560041 ); // Close to 18.05 ether
 
 
@@ -1416,11 +1416,11 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( staking.totalRewardsForPools(poolIDsA)[0], expectedStakingRewardsFromBootstrapping + expectedStakingRewardsFromArbitrageProfits + 3836898935172364  );
 
     	bytes32[] memory poolIDs = new bytes32[](5);
-    	poolIDs[0] = PoolUtils._poolIDOnly(salt,weth);
-    	poolIDs[1] = PoolUtils._poolIDOnly(salt,wbtc);
-    	poolIDs[2] = PoolUtils._poolIDOnly(wbtc,weth);
-    	poolIDs[3] = PoolUtils._poolIDOnly(salt,usds);
-    	poolIDs[4] = PoolUtils._poolIDOnly(usds,dai);
+    	poolIDs[0] = PoolUtils._poolID(salt,weth);
+    	poolIDs[1] = PoolUtils._poolID(salt,wbtc);
+    	poolIDs[2] = PoolUtils._poolID(wbtc,weth);
+    	poolIDs[3] = PoolUtils._poolID(salt,usds);
+    	poolIDs[4] = PoolUtils._poolID(usds,dai);
 
     	// Check if the rewards were transferred to the liquidity contract:
     	// 1% max of ( 5 million / 9 pools + 45% of 185786 ether sent from saltRewards).
@@ -1476,7 +1476,7 @@ contract TestUpkeepFlawed is Deployment
 
        	// Indicate that some USDS should be burned
        	vm.prank( address(collateralAndLiquidity));
-       	liquidizer.shouldBurnMoreUSDS( 40 ether);
+       	liquidizer.incrementBurnableUSDS( 40 ether);
 
        	// Mimic arbitrage profits deposited as WETH for the DAO
        	vm.prank(DEPLOYER);
@@ -1521,7 +1521,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( reservesA, 2372593734239580153 ); // Close to 2.375 ether
     	assertEq( reservesB, 2374966892934008368 ); // Close to 2.375 ether
 
-    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(usds, dai));
+    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(usds, dai));
     	assertEq( daoLiquidity, 4747560627173588521 ); // Close to 4.75 ether
 
 
@@ -1532,7 +1532,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( reservesA, 9024453775958744234 ); // Close to 9.025 ether
     	assertEq( reservesB, 9014829003115815807 ); // Close to 9.025 ether - a little worse because some of the USDS reserve was also used for USDS/DAI POL
 
-    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds));
+    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usds));
     	assertEq( daoLiquidity, 18039282779074560041 ); // Close to 18.05 ether
 
 
@@ -1564,11 +1564,11 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( staking.totalRewardsForPools(poolIDsA)[0], expectedStakingRewardsFromBootstrapping + expectedStakingRewardsFromArbitrageProfits + 3836898935172364  );
 
     	bytes32[] memory poolIDs = new bytes32[](5);
-    	poolIDs[0] = PoolUtils._poolIDOnly(salt,weth);
-    	poolIDs[1] = PoolUtils._poolIDOnly(salt,wbtc);
-    	poolIDs[2] = PoolUtils._poolIDOnly(wbtc,weth);
-    	poolIDs[3] = PoolUtils._poolIDOnly(salt,usds);
-    	poolIDs[4] = PoolUtils._poolIDOnly(usds,dai);
+    	poolIDs[0] = PoolUtils._poolID(salt,weth);
+    	poolIDs[1] = PoolUtils._poolID(salt,wbtc);
+    	poolIDs[2] = PoolUtils._poolID(wbtc,weth);
+    	poolIDs[3] = PoolUtils._poolID(salt,usds);
+    	poolIDs[4] = PoolUtils._poolID(usds,dai);
 
     	// Check if the rewards were transferred to the liquidity contract:
     	// 1% max of ( 5 million / 9 pools + 45% of 185786 ether sent from saltRewards).
@@ -1628,7 +1628,7 @@ contract TestUpkeepFlawed is Deployment
 
        	// Indicate that some USDS should be burned
        	vm.prank( address(collateralAndLiquidity));
-       	liquidizer.shouldBurnMoreUSDS( 40 ether);
+       	liquidizer.incrementBurnableUSDS( 40 ether);
 
        	// Mimic arbitrage profits deposited as WETH for the DAO
        	vm.prank(DEPLOYER);
@@ -1673,7 +1673,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( reservesA, 2372593734239580153 ); // Close to 2.375 ether
     	assertEq( reservesB, 2374966892934008368 ); // Close to 2.375 ether
 
-    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(usds, dai));
+    	uint256 daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(usds, dai));
     	assertEq( daoLiquidity, 4747560627173588521 ); // Close to 4.75 ether
 
 
@@ -1684,7 +1684,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( reservesA, 9024453775958744234 ); // Close to 9.025 ether
     	assertEq( reservesB, 9014829003115815807 ); // Close to 9.025 ether - a little worse because some of the USDS reserve was also used for USDS/DAI POL
 
-    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolIDOnly(salt, usds));
+    	daoLiquidity = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usds));
     	assertEq( daoLiquidity, 18039282779074560041 ); // Close to 18.05 ether
 
 
@@ -1716,11 +1716,11 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( staking.totalRewardsForPools(poolIDsA)[0], expectedStakingRewardsFromBootstrapping + expectedStakingRewardsFromArbitrageProfits + 3836898935172364  );
 
     	bytes32[] memory poolIDs = new bytes32[](5);
-    	poolIDs[0] = PoolUtils._poolIDOnly(salt,weth);
-    	poolIDs[1] = PoolUtils._poolIDOnly(salt,wbtc);
-    	poolIDs[2] = PoolUtils._poolIDOnly(wbtc,weth);
-    	poolIDs[3] = PoolUtils._poolIDOnly(salt,usds);
-    	poolIDs[4] = PoolUtils._poolIDOnly(usds,dai);
+    	poolIDs[0] = PoolUtils._poolID(salt,weth);
+    	poolIDs[1] = PoolUtils._poolID(salt,wbtc);
+    	poolIDs[2] = PoolUtils._poolID(wbtc,weth);
+    	poolIDs[3] = PoolUtils._poolID(salt,usds);
+    	poolIDs[4] = PoolUtils._poolID(usds,dai);
 
     	// Check if the rewards were transferred to the liquidity contract:
     	// 1% max of ( 5 million / 9 pools + 45% of 185786 ether sent from saltRewards).

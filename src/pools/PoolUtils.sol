@@ -18,7 +18,7 @@ library PoolUtils
 
     // Return the unique poolID for the given two tokens.
     // Tokens are sorted before being hashed to make reversed pairs equivalent.
-    function _poolIDOnly( IERC20 tokenA, IERC20 tokenB ) internal pure returns (bytes32 poolID)
+    function _poolID( IERC20 tokenA, IERC20 tokenB ) internal pure returns (bytes32 poolID)
     	{
         // See if the token orders are flipped
         if ( uint160(address(tokenB)) < uint160(address(tokenA)) )
@@ -29,7 +29,7 @@ library PoolUtils
 
 
     // Return the unique poolID and whether or not it is flipped
-    function _poolID( IERC20 tokenA, IERC20 tokenB ) internal pure returns (bytes32 poolID, bool flipped)
+    function _poolIDAndFlipped( IERC20 tokenA, IERC20 tokenB ) internal pure returns (bytes32 poolID, bool flipped)
     	{
         // See if the token orders are flipped
         if ( uint160(address(tokenB)) < uint160(address(tokenA)) )
@@ -58,7 +58,7 @@ library PoolUtils
 
 		(uint256 reservesIn,) = pools.getPoolReserves( tokenIn, tokenOut );
 
-		uint256 maxAmountIn = reservesIn * maximumInternalSwapPercentTimes1000 / (100000);
+		uint256 maxAmountIn = reservesIn * maximumInternalSwapPercentTimes1000 / (100 * 1000);
 		if ( amountIn > maxAmountIn )
 			amountIn = maxAmountIn;
 

@@ -9,7 +9,7 @@ import "./PoolUtils.sol";
 	=== DERIVATION ===
 	// User will zap z0 of token0 and z1 of token1 into the pool
     // Initial reserves: r0 and r1
-    // Assuming z0 in excess, determine how much z0 should be swapped to z1 first for z0/z1 = r0/z1 so that liquidity can be added
+    // Assuming z0 in excess, determine how much z0 should be swapped to z1 first so that the resulting z0/z1 matches the resulting post-swap reserves ratio so that liquidity can be added with minimal leftover.
 
     // Initial k
     k = r0 * r1
@@ -88,133 +88,138 @@ import "./PoolUtils.sol";
     // Quadratic equation
     xx(b+d) + x(2ab + 2ad) + (aad-abc) = 0
 
+    // Factor out 2a
+    xx(b+d) + x(2a)(b+d) + (aad-abc) = 0
+
+    // Divide by (b+d)
+    xx + x(2a) + (aad-abc)/(b+d) = 0
+
     xxA + xB + C = 0
 
-    A = b + d
-    B = 2a(b+d)
-    C = a(ad - bc)
+    A = 1
+    B = 2a
+    C = a(ad - bc)/(b+d)
 
     // Substitute back
     a = r0         b = r1
     c = z0         d = z1
 
-    A = r1 + z1
-    B = 2r0(r1 + z1)
-    C = r0(r0z1 - r1z0)
+    A = 1
+    B = 2r0
+    C = r0(r0z1 - r1z0)/(r1 + z1)
 
     x = [-B + sqrt(B^2 - 4AC)] / 2A
 */
 
 library PoolMath
 	{
-	// The number of decimals that are used in the calculations for zapping in liquidity
-	// Note that REDUCED_DECIMALS = 7 was tested with 800 billion and 500 billion 18 decimal pools with 100 billion tokens being
-	// zapped in and the calculations did not overflow.  Dropping down to 6 will allow even larger amounts to be used without issue at reasonable precision.
-	uint256 constant private REDUCED_DECIMALS = 6;
+	// Determine the most significant bit of a non-zero number
+    function _mostSignificantBit(uint256 x) internal pure returns (uint256 msb)
+    	{
+        if (x >= 2**128) { x >>= 128; msb += 128; }
+        if (x >= 2**64) { x >>= 64; msb += 64; }
+        if (x >= 2**32) { x >>= 32; msb += 32; }
+        if (x >= 2**16) { x >>= 16; msb += 16; }
+        if (x >= 2**8) { x >>= 8; msb += 8; }
+        if (x >= 2**4) { x >>= 4; msb += 4; }
+        if (x >= 2**2) { x >>= 2; msb += 2; }
+        if (x >= 2**1) { x >>= 1; msb += 1; }
+	    }
 
 
-	// Reduce the precision of the decimals to avoid overflow / underflow and convert to int256
-	function _reducePrecision( uint256 n, uint8 decimals ) internal pure returns (int256)
+	// Determine the maximum msb across the given values
+	function _maximumMSB( uint256 r0, uint256 r1, uint256 z0, uint256 z1 ) internal pure returns (uint256 msb)
 		{
-		// Make sure n doesn't overflow
-		if ( ( n == 0 ) || ( n >= uint256(type(int256).max )) )
-			return 0;
+		msb = _mostSignificantBit(r0);
 
-		// Decimals already at REDUCED_DECIMALS?
-		if ( decimals == REDUCED_DECIMALS )
-			return int256(n);
+		uint256 m = _mostSignificantBit(r1);
+		if ( m > msb )
+			msb = m;
 
-		// Decimals less than REDUCED_DECIMALS?
-		if ( decimals < REDUCED_DECIMALS )
-			return int256( n * 10**(REDUCED_DECIMALS - decimals) );
+		m = _mostSignificantBit(z0);
+		if ( m > msb )
+			msb = m;
 
-		// Decimals more than REDUCED_DECIMALS
-		return int256( n / 10**(decimals - REDUCED_DECIMALS) );
-		}
-
-
-	// Convert from the reduced precision int back to uint256
-	function _restorePrecision( int256 n, uint8 decimals ) internal pure returns (uint256)
-		{
-		// Negative n shouldn't happen, but the check is here just in case
-		if ( n <= 0 )
-			return 0;
-
-		// Original decimals already at REDUCED_DECIMALS?
-		if ( decimals == REDUCED_DECIMALS )
-			return uint256(n);
-
-		// Original decimals less than REDUCED_DECIMALS?
-		if ( decimals < REDUCED_DECIMALS )
-			return uint256(n) / 10**(REDUCED_DECIMALS - decimals);
-
-		// Original decimals more than REDUCED_DECIMALS
-		return uint256(n) * 10**(decimals - REDUCED_DECIMALS);
+		m = _mostSignificantBit(z1);
+		if ( m > msb )
+			msb = m;
 		}
 
 
 	// Given initial reserves, and that the user wants to zap specified token amounts into the pool as liquidity,
 	// determine how much of token0 needs to be swapped to token1 such that the liquidity added has the same proportion as the reserves in the pool after that swap.
 	// Assumes that token0 is in excess (in regards to the current reserve ratio).
-    function _zapSwapAmount( uint256 reserve0, uint256 reserve1, uint256 zapAmount0, uint256 zapAmount1, uint8 decimals0, uint8 decimals1 ) internal pure returns (uint256 swapAmount)
+    function _zapSwapAmount( uint256 reserve0, uint256 reserve1, uint256 zapAmount0, uint256 zapAmount1 ) internal pure returns (uint256 swapAmount)
     	{
-    	// Convert all inputs to int256s with limited precision so the calculations don't overflow
-    	int256 r0 = _reducePrecision( reserve0, decimals0 );
-		int256 r1 = _reducePrecision( reserve1, decimals1 );
-		int256 z0 = _reducePrecision( zapAmount0, decimals0 );
-		int256 z1 = _reducePrecision( zapAmount1, decimals1 );
+    	uint256 maximumMSB = _maximumMSB( reserve0, reserve1, zapAmount0, zapAmount1);
+
+		uint256 shift = 0;
+
+    	// Assumes the largest number has more than 80 bits - but if not then shifts zero effectively as a straight assignment.
+    	// C will be calculated as: C = r0 * ( r1 * z0 - r0 * z1 ) / ( r1 + z1 );
+    	// Multiplying three 80 bit numbers will yield 240 bits - within the 256 bit limit.
+		if ( maximumMSB > 80 )
+			shift = maximumMSB - 80;
+
+    	// Normalize the inputs to 80 bits.
+    	uint256 r0 = reserve0 >> shift;
+		uint256 r1 = reserve1 >> shift;
+		uint256 z0 = zapAmount0 >> shift;
+		uint256 z1 = zapAmount1 >> shift;
 
 		// In order to swap and zap, require that the reduced precision reserves and one of the zapAmounts exceed DUST.
 		// Otherwise their value was too small and was crushed by the above precision reduction and we should just return swapAmounts of zero so that default addLiquidity will be attempted without a preceding swap.
-        if ( r0 < int256(int256(PoolUtils.DUST)) )
+        if ( r0 < PoolUtils.DUST)
         	return 0;
 
-        if ( r1 < int256(PoolUtils.DUST) )
+        if ( r1 < PoolUtils.DUST)
         	return 0;
 
-        if ( z0 < int256(PoolUtils.DUST) )
-        if ( z1 < int256(PoolUtils.DUST) )
+        if ( z0 < PoolUtils.DUST)
+        if ( z1 < PoolUtils.DUST)
         	return 0;
 
-        // Components of the above quadratic formula: x = [-B + sqrt(B^2 - 4AC)] / 2A
-		int256 A = r1 + z1;
-        int256 B = 2 * r0 * ( r1 + z1 );
-        int256 C = r0 * ( r0 * z1 - r1 * z0 );
+        // Components of the quadratic formula mentioned in the initial comment block: x = [-B + sqrt(B^2 - 4AC)] / 2A
+		uint256 A = 1;
+        uint256 B = 2 * r0;
 
-        int256 discriminant = B * B - 4 * A * C;
+		// Here for reference
+//        uint256 C = r0 * ( r0 * z1 - r1 * z0 ) / ( r1 + z1 );
+//        uint256 discriminant = B * B - 4 * A * C;
 
-        // Discriminant needs to be positive to have a real solution to the swapAmount
-        if ( discriminant < 0 )
-        	return 0; // should never happen - but will default to zapless addLiquidity if it does
+		// Negate C (from above) and add instead of subtract.
+		// r1 * z0 guaranteed to be greater than r0 * z1 per the conditional check in _determineZapSwapAmount
+        uint256 C = r0 * ( r1 * z0 - r0 * z1 ) / ( r1 + z1 );
+        uint256 discriminant = B * B + 4 * A * C;
 
         // Compute the square root of the discriminant.
-        // It's already been established above that discriminant is positive or zero.
-        int256 sqrtDiscriminant = int256( Math.sqrt(uint256(discriminant)) );
+        uint256 sqrtDiscriminant = Math.sqrt(discriminant);
 
-		// Prevent negative swap amounts
+		// Safety check: make sure B is not greater than sqrtDiscriminant
 		if ( B > sqrtDiscriminant )
-			return 0; // should never happen - but will default to zapless addLiquidity if it does
+			return 0;
 
         // Only use the positive sqrt of the discriminant from: x = (-B +/- sqrtDiscriminant) / 2A
-		swapAmount = _restorePrecision( ( sqrtDiscriminant - B ) / ( 2 * A ), decimals0 );
+		swapAmount = ( sqrtDiscriminant - B ) / ( 2 * A );
+
+		// Denormalize from the 80 bit representation
+		swapAmount <<= shift;
     	}
 
 
 	// Determine how much of either token needs to be swapped to give them a ratio equivalent to the reserves.
 	// If (0,0) is returned it signifies that no swap should be done before the addLiquidity.
-	function _determineZapSwapAmount( uint256 reserveA, uint256 reserveB, IERC20 tokenA, IERC20 tokenB, uint256 zapAmountA, uint256 zapAmountB ) internal view returns (uint256 swapAmountA, uint256 swapAmountB )
+	function _determineZapSwapAmount( uint256 reserveA, uint256 reserveB, uint256 zapAmountA, uint256 zapAmountB ) internal pure returns (uint256 swapAmountA, uint256 swapAmountB )
 		{
-		uint8 decimalsA = ERC20(address(tokenA)).decimals();
-		uint8 decimalsB = ERC20(address(tokenB)).decimals();
-
 		// zapAmountA / zapAmountB exceeds the ratio of reserveA / reserveB? - meaning too much zapAmountA
 		if ( zapAmountA * reserveB > reserveA * zapAmountB )
-			(swapAmountA, swapAmountB) = (_zapSwapAmount( reserveA, reserveB, zapAmountA, zapAmountB, decimalsA, decimalsB ), 0);
+			(swapAmountA, swapAmountB) = (_zapSwapAmount( reserveA, reserveB, zapAmountA, zapAmountB ), 0);
 
 		// zapAmountA / zapAmountB is less than the ratio of reserveA / reserveB? - meaning too much zapAmountB
 		if ( zapAmountA * reserveB < reserveA * zapAmountB )
-			(swapAmountA, swapAmountB) = (0, _zapSwapAmount( reserveB, reserveA, zapAmountB, zapAmountA, decimalsB, decimalsA ));
+			(swapAmountA, swapAmountB) = (0, _zapSwapAmount( reserveB, reserveA, zapAmountB, zapAmountA ));
 
+		// Ensure we are not swapping more than was specified for zapping
 		if ( ( swapAmountA > zapAmountA ) || ( swapAmountB > zapAmountB ) )
 			return (0, 0);
 

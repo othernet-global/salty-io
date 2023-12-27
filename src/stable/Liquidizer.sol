@@ -20,7 +20,7 @@ import "../pools/PoolUtils.sol";
 // When there is insufficient USDS to burn, Protocol Owned Liquidity from the DAO is withdrawn, and converted to USDS.
 contract Liquidizer is ILiquidizer, Ownable
     {
-    event ShouldBurnMoreUSDS(uint256 newTotal);
+    event incrementedBurnableUSDS(uint256 newTotal);
 
 	using SafeERC20 for ISalt;
 	using SafeERC20 for IUSDS;
@@ -48,9 +48,6 @@ contract Liquidizer is ILiquidizer, Ownable
 
 	constructor( IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig  )
 		{
-		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
-		require( address(_poolsConfig) != address(0), "_poolsConfig cannot be address(0)" );
-
 		poolsConfig = _poolsConfig;
 		exchangeConfig = _exchangeConfig;
 
@@ -65,10 +62,6 @@ contract Liquidizer is ILiquidizer, Ownable
 	// This will be called only once - at deployment time
 	function setContracts( ICollateralAndLiquidity _collateralAndLiquidity, IPools _pools, IDAO _dao) external onlyOwner
 		{
-		require( address(_collateralAndLiquidity) != address(0), "_collateralAndLiquidity cannot be address(0)" );
-		require( address(_pools) != address(0), "_pools cannot be address(0)" );
-		require( address(_dao) != address(0), "_dao cannot be address(0)" );
-
 		collateralAndLiquidity = _collateralAndLiquidity;
 		pools = _pools;
 		dao = _dao;
@@ -85,13 +78,13 @@ contract Liquidizer is ILiquidizer, Ownable
 
 
 	// Called when a user's collateral position has been liquidated - to indicate that the borrowed USDS from that position needs to be burned.
-	function shouldBurnMoreUSDS( uint256 usdsToBurn ) external
+	function incrementBurnableUSDS( uint256 usdsToBurn ) external
 		{
-		require( msg.sender == address(collateralAndLiquidity), "Liquidizer.shouldBurnMoreUSDS is only callable from the CollateralAndLiquidity contract" );
+		require( msg.sender == address(collateralAndLiquidity), "Liquidizer.incrementBurnableUSDS is only callable from the CollateralAndLiquidity contract" );
 
 		usdsThatShouldBeBurned += usdsToBurn;
 
-		emit ShouldBurnMoreUSDS(usdsThatShouldBeBurned);
+		emit incrementedBurnableUSDS(usdsThatShouldBeBurned);
 		}
 
 
@@ -118,18 +111,18 @@ contract Liquidizer is ILiquidizer, Ownable
 			// Leftover USDS will be kept in this contract in case it needs to be burned later.
 			_burnUSDS( usdsThatShouldBeBurned );
     		usdsThatShouldBeBurned = 0;
-
-			return;
 			}
+		else
+			{
+			// The entire usdsBalance will be burned - but there will still be an outstanding balance to burn later
+			_burnUSDS( usdsBalance );
+			usdsThatShouldBeBurned -= usdsBalance;
 
-		// The entire usdsBalance will be burned - but there will still be an outstanding balance to burn later
-		_burnUSDS( usdsBalance );
-		usdsThatShouldBeBurned -= usdsBalance;
-
-		// As there is a shortfall in the amount of USDS that can be burned, liquidate some Protocol Owned Liquidity and
-		// send the underlying tokens here to be swapped to USDS
-		dao.withdrawPOL(salt, usds, PERCENT_POL_TO_WITHDRAW);
-		dao.withdrawPOL(dai, usds, PERCENT_POL_TO_WITHDRAW);
+			// As there is a shortfall in the amount of USDS that can be burned, liquidate some Protocol Owned Liquidity and
+			// send the underlying tokens here to be swapped to USDS
+			dao.withdrawPOL(salt, usds, PERCENT_POL_TO_WITHDRAW);
+			dao.withdrawPOL(dai, usds, PERCENT_POL_TO_WITHDRAW);
+			}
 		}
 
 

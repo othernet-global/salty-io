@@ -4,6 +4,7 @@ pragma solidity =0.8.22;
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "../price_feed/interfaces/IPriceAggregator.sol";
 import "./interfaces/ICollateralAndLiquidity.sol";
 import "./interfaces/IStableConfig.sol";
@@ -38,8 +39,8 @@ contract CollateralAndLiquidity is Liquidity, ICollateralAndLiquidity
 	ILiquidizer immutable public liquidizer;
 
 	// Cached for efficiency
-	uint256 immutable public wbtcDecimals;
-    uint256 immutable public wethDecimals;
+	uint256 immutable public wbtcTenToTheDecimals;
+    uint256 immutable public wethTenToTheDecimals;
 
    	// Keeps track of wallets that have borrowed USDS (so that they can be checked easily for sufficient collateral ratios)
    	EnumerableSet.AddressSet private _walletsWithBorrowedUSDS;
@@ -51,10 +52,6 @@ contract CollateralAndLiquidity is Liquidity, ICollateralAndLiquidity
     constructor( IPools _pools, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IStableConfig _stableConfig, IPriceAggregator _priceAggregator, ILiquidizer _liquidizer )
 		Liquidity( _pools, _exchangeConfig, _poolsConfig, _stakingConfig )
     	{
-		require( address(_stableConfig) != address(0), "_stableConfig cannot be address(0)" );
-		require( address(_priceAggregator) != address(0), "_priceAggregator cannot be address(0)" );
-		require( address(_liquidizer) != address(0), "_liquidizer cannot be address(0)" );
-
 		priceAggregator = _priceAggregator;
         stableConfig = _stableConfig;
         liquidizer = _liquidizer;
@@ -63,8 +60,8 @@ contract CollateralAndLiquidity is Liquidity, ICollateralAndLiquidity
 		wbtc = exchangeConfig.wbtc();
 		weth = exchangeConfig.weth();
 
-		wbtcDecimals = ERC20(address(wbtc)).decimals();
-		wethDecimals = ERC20(address(weth)).decimals();
+		wbtcTenToTheDecimals = 10 ** IERC20Metadata(address(wbtc)).decimals();
+		wethTenToTheDecimals = 10 ** IERC20Metadata(address(weth)).decimals();
     	}
 
 
@@ -128,7 +125,7 @@ contract CollateralAndLiquidity is Liquidity, ICollateralAndLiquidity
 		usds.safeTransferFrom(msg.sender, address(usds), amountRepaid);
 
 		// Have USDS remember that the USDS should be burned
-		liquidizer.shouldBurnMoreUSDS( amountRepaid );
+		liquidizer.incrementBurnableUSDS( amountRepaid );
 
 		// Check if the user no longer has any borrowed USDS
 		if ( usdsBorrowedByUsers[msg.sender] == 0 )
@@ -181,7 +178,7 @@ contract CollateralAndLiquidity is Liquidity, ICollateralAndLiquidity
 
 		// Have the Liquidizer contract remember the amount of USDS that will need to be burned.
 		uint256 originallyBorrowedUSDS = usdsBorrowedByUsers[wallet];
-		liquidizer.shouldBurnMoreUSDS(originallyBorrowedUSDS);
+		liquidizer.incrementBurnableUSDS(originallyBorrowedUSDS);
 
 		// Clear the borrowedUSDS for the user who was liquidated so that they can simply keep the USDS they previously borrowed.
 		usdsBorrowedByUsers[wallet] = 0;
@@ -202,8 +199,8 @@ contract CollateralAndLiquidity is Liquidity, ICollateralAndLiquidity
         uint256 ethPrice = priceAggregator.getPriceETH();
 
 		// Keep the 18 decimals from the price and remove the decimals from the token balance
-		uint256 btcValue = ( amountBTC * btcPrice ) / (10 ** wbtcDecimals );
-		uint256 ethValue = ( amountETH * ethPrice ) / (10 ** wethDecimals );
+		uint256 btcValue = ( amountBTC * btcPrice ) / wbtcTenToTheDecimals;
+		uint256 ethValue = ( amountETH * ethPrice ) / wethTenToTheDecimals;
 
 		return btcValue + ethValue;
 		}

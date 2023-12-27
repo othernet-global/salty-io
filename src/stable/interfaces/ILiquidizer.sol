@@ -9,7 +9,7 @@ import "./ICollateralAndLiquidity.sol";
 interface ILiquidizer
 	{
 	function setContracts(ICollateralAndLiquidity _collateralAndLiquidity, IPools _pools, IDAO _dao) external; // onlyOwner
-	function shouldBurnMoreUSDS( uint256 usdsToBurn ) external;
+	function incrementBurnableUSDS( uint256 usdsToBurn ) external;
 	function performUpkeep() external;
 
 	// Views

@@ -32,18 +32,18 @@ struct Ballot
 
 interface IProposals
 	{
-	function createConfirmationProposal( string calldata ballotName, BallotType ballotType, address address1, string calldata string1, string calldata description ) external;
+	function createConfirmationProposal( string calldata ballotName, BallotType ballotType, address address1, string calldata string1, string calldata description ) external returns (uint256 ballotID);
 	function markBallotAsFinalized( uint256 ballotID ) external;
 
-	function proposeParameterBallot( uint256 parameterType, string calldata description ) external;
-	function proposeTokenWhitelisting( IERC20 token, string calldata tokenIconURL, string calldata description ) external;
-	function proposeTokenUnwhitelisting( IERC20 token, string calldata tokenIconURL, string calldata description ) external;
-	function proposeSendSALT( address wallet, uint256 amount, string calldata description ) external;
-	function proposeCallContract( address contractAddress, uint256 number, string calldata description ) external;
-	function proposeCountryInclusion( string calldata country, string calldata description ) external;
-	function proposeCountryExclusion( string calldata country, string calldata description ) external;
-	function proposeSetContractAddress( string calldata contractName, address newAddress, string calldata description ) external;
-	function proposeWebsiteUpdate( string calldata newWebsiteURL, string calldata description ) external;
+	function proposeParameterBallot( uint256 parameterType, string calldata description ) external returns (uint256 ballotID);
+	function proposeTokenWhitelisting( IERC20 token, string calldata tokenIconURL, string calldata description ) external returns (uint256 ballotID);
+	function proposeTokenUnwhitelisting( IERC20 token, string calldata tokenIconURL, string calldata description ) external returns (uint256 ballotID);
+	function proposeSendSALT( address wallet, uint256 amount, string calldata description ) external returns (uint256 ballotID);
+	function proposeCallContract( address contractAddress, uint256 number, string calldata description ) external returns (uint256 ballotID);
+	function proposeCountryInclusion( string calldata country, string calldata description ) external returns (uint256 ballotID);
+	function proposeCountryExclusion( string calldata country, string calldata description ) external returns (uint256 ballotID);
+	function proposeSetContractAddress( string calldata contractName, address newAddress, string calldata description ) external returns (uint256 ballotID);
+	function proposeWebsiteUpdate( string calldata newWebsiteURL, string calldata description ) external returns (uint256 ballotID);
 
 	function castVote( uint256 ballotID, Vote vote ) external;
 

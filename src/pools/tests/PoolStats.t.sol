@@ -27,10 +27,10 @@ contract TestPoolStats is Test, PoolStats
 	PoolStats(deployment.exchangeConfig(), deployment.poolsConfig())
 		{
 		// Different decimals
-		poolID = PoolUtils._poolIDOnly( tokenA, tokenB );
+		poolID = PoolUtils._poolID( tokenA, tokenB );
 
 		// Same decimals
-		poolID2 = PoolUtils._poolIDOnly( tokenB, tokenC );
+		poolID2 = PoolUtils._poolID( tokenB, tokenC );
 		}
 
 
@@ -42,7 +42,7 @@ contract TestPoolStats is Test, PoolStats
         uint256 initialProfit;
         uint256 arbitrageProfit = 0;  // no profit
 
-        poolID = PoolUtils._poolIDOnly( arbToken2, arbToken3 );
+        poolID = PoolUtils._poolID( arbToken2, arbToken3 );
         initialProfit = _arbitrageProfits[poolID];
 
         _updateProfitsFromArbitrage(arbToken2, arbToken3, arbitrageProfit);
@@ -57,7 +57,7 @@ contract TestPoolStats is Test, PoolStats
         IERC20 arbToken3 = tokenB;
         uint256 arbitrageProfit = 1 ether;
 
-        poolID = PoolUtils._poolIDOnly( arbToken2, arbToken3 );
+        poolID = PoolUtils._poolID( arbToken2, arbToken3 );
 
         uint256 initialProfit = _arbitrageProfits[poolID];
 
@@ -71,7 +71,7 @@ contract TestPoolStats is Test, PoolStats
 	// A unit test for `clearProfitsForPools` that verifies an exception is thrown when an unauthorized account tries to call it
 	function testClearProfitsForPoolsNotAuthorized() public {
         bytes32[] memory poolIDs = new bytes32[](1);
-        poolIDs[0] = PoolUtils._poolIDOnly(tokenA, tokenB);
+        poolIDs[0] = PoolUtils._poolID(tokenA, tokenB);
 
         vm.expectRevert("PoolStats.clearProfitsForPools is only callable from the Upkeep contract");
         this.clearProfitsForPools();
@@ -81,19 +81,10 @@ contract TestPoolStats is Test, PoolStats
 	// A unit test for `profitsForPools` that verifies it returns zero for pools without profits
 	function testPoolWithoutProfits() public
 	{
-		bytes32 _poolID2 = PoolUtils._poolIDOnly( tokenA, tokenB );
+		bytes32 _poolID2 = PoolUtils._poolID( tokenA, tokenB );
 		// Checking initial profit of pool to be zero
 		assertEq(_arbitrageProfits[_poolID2], 0, "Initial profit should be zero");
 	}
-
-
-	// A unit test to check constructor that throws error when exchangeConfig address is equal to zero
-	function testConstructorAddressZero() public
-    {
-    vm.expectRevert( "_exchangeConfig cannot be address(0)" );
-    new Pools(IExchangeConfig(address(0)), IPoolsConfig(address(0)));
-    }
-
 
 
 	// A unit test for `profitsForPools` that verifies it returns profits correctly for given pool IDs
@@ -299,15 +290,20 @@ contract TestPoolStats is Test, PoolStats
         uint256[] memory profits = this.profitsForWhitelistedPools();
 
         // Fetch the pool IDs
-        bytes32 poolIDAB = PoolUtils._poolIDOnly(tokenA, tokenB);
-        bytes32 poolIDBC = PoolUtils._poolIDOnly(tokenB, tokenC);
-        bytes32 poolIDCD = PoolUtils._poolIDOnly(tokenC, tokenD);
+        bytes32 poolIDAB = PoolUtils._poolID(tokenA, tokenB);
+        bytes32 poolIDBC = PoolUtils._poolID(tokenB, tokenC);
+        bytes32 poolIDCD = PoolUtils._poolID(tokenC, tokenD);
 
         // Fetch the pool indexes
         bytes32[] memory whitelistedPools = poolsConfig.whitelistedPools();
         uint64 indexAB = _poolIndex(tokenA, tokenB, whitelistedPools);
         uint64 indexBC = _poolIndex(tokenB, tokenC, whitelistedPools);
         uint64 indexCD = _poolIndex(tokenC, tokenD, whitelistedPools);
+
+//		console.log( "indexAB: ", indexAB );
+//		console.log( "indexBC: ", indexBC );
+//		console.log( "indexCD: ", indexCD );
+
 
         // Calculate expected profits distributed per pool
         uint256 totalProfitAB = _arbitrageProfits[poolIDAB];

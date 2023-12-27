@@ -21,7 +21,7 @@ contract PriceAggregator is IPriceAggregator, Ownable
 	IPriceFeed public priceFeed3; // CoreSaltyFeed by default
 
 	// The next time at which setPriceFeed can be called
-	uint256 public setPriceFeedCooldownExpiration;
+	uint256 public priceFeedModificationCooldownExpiration;
 
 	// The maximum percent difference between two non-zero PriceFeed prices when aggregating price.
 	// When the two closest PriceFeeds (out of the three) have prices further apart than this the aggregated price is considered invalid.
@@ -31,7 +31,7 @@ contract PriceAggregator is IPriceAggregator, Ownable
 	// The required cooldown between calls to setPriceFeed.
 	// Allows time to evaluate the performance of the recently updatef PriceFeed before further updates are made.
 	// Range: 30 to 45 days with an adjustment of 5 days
-	uint256 public setPriceFeedCooldown = 35 days;
+	uint256 public priceFeedModificationCooldown = 35 days;
 
 
 	function setInitialFeeds( IPriceFeed _priceFeed1, IPriceFeed _priceFeed2, IPriceFeed _priceFeed3 ) public onlyOwner
@@ -47,7 +47,7 @@ contract PriceAggregator is IPriceAggregator, Ownable
 	function setPriceFeed( uint256 priceFeedNum, IPriceFeed newPriceFeed ) public onlyOwner
 		{
 		// If the required cooldown is not met, simply return without reverting so that the original proposal can be finalized and new setPriceFeed proposals can be made.
-		if ( block.timestamp < setPriceFeedCooldownExpiration )
+		if ( block.timestamp < priceFeedModificationCooldownExpiration )
 			return;
 
 		if ( priceFeedNum == 1 )
@@ -57,7 +57,7 @@ contract PriceAggregator is IPriceAggregator, Ownable
 		else if ( priceFeedNum == 3 )
 			priceFeed3 = newPriceFeed;
 
-		setPriceFeedCooldownExpiration = block.timestamp + setPriceFeedCooldown;
+		priceFeedModificationCooldownExpiration = block.timestamp + priceFeedModificationCooldown;
 		emit PriceFeedSet(priceFeedNum, address(newPriceFeed));
 		}
 
@@ -79,20 +79,20 @@ contract PriceAggregator is IPriceAggregator, Ownable
 		}
 
 
-	function changeSetPriceFeedCooldown(bool increase) public onlyOwner
+	function changePriceFeedModificationCooldown(bool increase) public onlyOwner
 		{
         if (increase)
             {
-            if (setPriceFeedCooldown < 45 days)
-                setPriceFeedCooldown += 5 days;
+            if (priceFeedModificationCooldown < 45 days)
+                priceFeedModificationCooldown += 5 days;
             }
         else
             {
-            if (setPriceFeedCooldown > 30 days)
-                setPriceFeedCooldown -= 5 days;
+            if (priceFeedModificationCooldown > 30 days)
+                priceFeedModificationCooldown -= 5 days;
             }
 
-		emit SetPriceFeedCooldownChanged(setPriceFeedCooldown);
+		emit SetPriceFeedCooldownChanged(priceFeedModificationCooldown);
 		}
 
 

@@ -121,7 +121,7 @@ contract TestPools2 is Deployment
 
 		// 100 / 1000 tokenA and tokenB
 		// Add in the order that will require flipping within addLiquidity
-		(bytes32 poolID, bool flipped) = PoolUtils._poolID(tokenA, tokenB);
+		(bytes32 poolID, bool flipped) = PoolUtils._poolIDAndFlipped(tokenA, tokenB);
 		if ( flipped)
 	        pools.addLiquidity(tokenA, tokenB, 100 ether, 1000 ether, 0, collateralAndLiquidity.totalShares(poolID));
 		else
@@ -170,8 +170,8 @@ contract TestPools2 is Deployment
 		tokenA.approve(address(pools), type(uint256).max);
 		tokenB.approve(address(pools), type(uint256).max);
 
-		pools.addLiquidity(tokenA, tokenB, 1000 ether, 2000 ether, 0, collateralAndLiquidity.totalShares(PoolUtils._poolIDOnly(tokenA, tokenB)));
-		pools.addLiquidity(tokenA, tokenB, 500 ether, 500 ether, 0, collateralAndLiquidity.totalShares(PoolUtils._poolIDOnly(tokenA, tokenB)));
+		pools.addLiquidity(tokenA, tokenB, 1000 ether, 2000 ether, 0, collateralAndLiquidity.totalShares(PoolUtils._poolID(tokenA, tokenB)));
+		pools.addLiquidity(tokenA, tokenB, 500 ether, 500 ether, 0, collateralAndLiquidity.totalShares(PoolUtils._poolID(tokenA, tokenB)));
 
         // Get the new reserves after adding liquidity
         (uint256 reservesA, uint256 reservesB) = pools.getPoolReserves(tokenA, tokenB);
@@ -186,7 +186,7 @@ contract TestPools2 is Deployment
 function testSequentialLiquidityAdjustment() public {
 
 	bytes32[] memory poolIDs = new bytes32[](1);
-	poolIDs[0] = PoolUtils._poolIDOnly( tokens[1], tokens[2] );
+	poolIDs[0] = PoolUtils._poolID( tokens[1], tokens[2] );
 
     uint256 initialTotalLiquidity = collateralAndLiquidity.totalSharesForPools(poolIDs)[0];
     uint256 liquidityAddedByAlice;
@@ -311,7 +311,7 @@ function testSequentialLiquidityAdjustment() public {
         vm.startPrank(address(collateralAndLiquidity));
 
         // Expect revert when calling `addLiquidity` before exchange is live
-        uint256 totalShares = collateralAndLiquidity.totalShares(PoolUtils._poolIDOnly(tokens[0], tokens[1]));
+        uint256 totalShares = collateralAndLiquidity.totalShares(PoolUtils._poolID(tokens[0], tokens[1]));
         vm.expectRevert("The exchange is not yet live");
         pools.addLiquidity(tokens[0], tokens[1], 1 ether, 1 ether, 0, totalShares);
     }
@@ -511,7 +511,7 @@ function testSequentialLiquidityAdjustment() public {
         uint256 deadline = block.timestamp + 1 hours; // arbitrary deadline in the future
 
         // Assert that the pair is not whitelisted
-        bool isWhitelisted = poolsConfig.isWhitelisted(PoolUtils._poolIDOnly(nonExistingToken, tokens[0]));
+        bool isWhitelisted = poolsConfig.isWhitelisted(PoolUtils._poolID(nonExistingToken, tokens[0]));
         assertEq(isWhitelisted, false, "Non-existing token pair should not be whitelisted");
 
         // Act & Assert
@@ -633,7 +633,7 @@ function testSequentialLiquidityAdjustment() public {
 		tokenA.approve(address(pools), type(uint256).max);
 		tokenB.approve(address(pools), type(uint256).max);
 
-		pools.addLiquidity(tokenA, tokenB, PoolUtils.DUST + 1, PoolUtils.DUST + 1, 0, collateralAndLiquidity.totalShares(PoolUtils._poolIDOnly(tokenA, tokenB)));
+		pools.addLiquidity(tokenA, tokenB, PoolUtils.DUST + 1, PoolUtils.DUST + 1, 0, collateralAndLiquidity.totalShares(PoolUtils._poolID(tokenA, tokenB)));
 
         vm.expectRevert("Insufficient reserves after swap");
         pools.depositSwapWithdraw(tokenA, tokenB, 50, 0, block.timestamp + 1 minutes);
@@ -672,12 +672,16 @@ function testSequentialLiquidityAdjustment() public {
 
 		pools.addLiquidity(tokenA, tokenB, 100 ether, 100 ether, 0, 0);
 
-		pools.removeLiquidity(tokenA, tokenB, 200 ether, 0, 0, block.timestamp);
+		uint256 totalShares = 200 ether;
+		pools.removeLiquidity(tokenA, tokenB, 200 ether * ( 100 ether - 100 ) / ( 100 ether ), 0, 0, totalShares);
 
 		(uint256 reservesA, uint256 reservesB) = pools.getPoolReserves(tokenA, tokenB);
 
 		// Ensure that DUST remains
 		assertEq( reservesA, PoolUtils.DUST );
 		assertEq( reservesB, PoolUtils.DUST );
+
+		// Ensure that liquidity can be added back in
+		pools.addLiquidity(tokenA, tokenB, 100 ether, 100 ether, 0, 0);
 		}
     }

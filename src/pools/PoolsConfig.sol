@@ -25,7 +25,7 @@ contract PoolsConfig is IPoolsConfig, Ownable
     using EnumerableSet for EnumerableSet.Bytes32Set;
 
 
-	// Keeps track of what pools have been whitelisted
+	// Keeps track of what poolIDs have been whitelisted
 	EnumerableSet.Bytes32Set private _whitelist;
 
 	// A mapping from poolIDs to the underlying TokenPair
@@ -47,7 +47,7 @@ contract PoolsConfig is IPoolsConfig, Ownable
 		require( _whitelist.length() < maximumWhitelistedPools, "Maximum number of whitelisted pools already reached" );
 		require(tokenA != tokenB, "tokenA and tokenB cannot be the same token");
 
-		bytes32 poolID = PoolUtils._poolIDOnly(tokenA, tokenB);
+		bytes32 poolID = PoolUtils._poolID(tokenA, tokenB);
 
 		// Add to the whitelist and remember the underlying tokens for the pool
 		_whitelist.add(poolID);
@@ -62,7 +62,7 @@ contract PoolsConfig is IPoolsConfig, Ownable
 
 	function unwhitelistPool( IPools pools, IERC20 tokenA, IERC20 tokenB ) external onlyOwner
 		{
-		bytes32 poolID = PoolUtils._poolIDOnly(tokenA,tokenB);
+		bytes32 poolID = PoolUtils._poolID(tokenA,tokenB);
 
 		_whitelist.remove(poolID);
 		delete underlyingPoolTokens[poolID];
@@ -119,10 +119,7 @@ contract PoolsConfig is IPoolsConfig, Ownable
 	function isWhitelisted( bytes32 poolID ) public view returns (bool)
 		{
 		// The staked SALT pool is always considered whitelisted
-		if ( poolID == PoolUtils.STAKED_SALT )
-			return true;
-
-		return _whitelist.contains( poolID );
+		return ( poolID == PoolUtils.STAKED_SALT ) || _whitelist.contains( poolID );
 		}
 
 
@@ -146,10 +143,14 @@ contract PoolsConfig is IPoolsConfig, Ownable
 	function tokenHasBeenWhitelisted( IERC20 token, IERC20 wbtc, IERC20 weth ) external view returns (bool)
 		{
 		// See if the token has been whitelisted with either WBTC or WETH, as all whitelisted tokens are pooled with both WBTC and WETH
-		bytes32 poolID1 = PoolUtils._poolIDOnly( token, wbtc );
-		bytes32 poolID2 = PoolUtils._poolIDOnly( token, weth );
+		bytes32 poolID1 = PoolUtils._poolID( token, wbtc );
+		if ( isWhitelisted(poolID1) )
+			return true;
 
-		// || is used conservatively here: && should really work as all whitelisted tokens are paired with both WBTC and WETH.
-		return isWhitelisted(poolID1) || isWhitelisted(poolID2);
+		bytes32 poolID2 = PoolUtils._poolID( token, weth );
+		if ( isWhitelisted(poolID2) )
+			return true;
+
+		return false;
 		}
 	}

@@ -13,13 +13,11 @@ abstract contract ArbitrageSearch
 	ISalt immutable public salt;
 
 	// Used to estimate the point just to the right of the midpoint
-   	uint256 constant public MIDPOINT_PRECISION = 10**15; // .001 ETH precision for arb search
+   	uint256 constant public MIDPOINT_PRECISION = 0.001e18; // .001 ETH precision for arb search
 
 
     constructor( IExchangeConfig _exchangeConfig )
     	{
-		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
-
 		// Cached for efficiency
 		wbtc = _exchangeConfig.wbtc();
 		weth = _exchangeConfig.weth();
@@ -92,16 +90,18 @@ abstract contract ArbitrageSearch
 		}
 
 
-	// Perform a modified binary search to search for the bestArbAmountIn in a range of 1/128th to 125% of swapAmountInValueInETH.
+	// Perform iterative bisection to search for the bestArbAmountIn in a range of 1/128th to 125% of swapAmountInValueInETH.
 	// The search loop determines profits at the midpoint of the current range, and also just to the right of the midpoint.
 	// Assuming that the profit function is unimodal (has only one peak), the two profit calculations can show us which half of the range the maximum profit is in (where to keep looking).
 	//
-	// The unimodal assumption has been tested with fuzzing (see BinarySearch.t.sol) and looks to return optimum bestArbAmountIn within 1% of a brute force search method for fuzzed uint112 size reserves.
+	// The unimodal assumption has been tested with fuzzing (see ArbitrageSearch.t.sol) and looks to return optimum bestArbAmountIn within 1% of a brute force search method for fuzzed uint112 size reserves.
 	// Additionally, fuzzing and testing reveal that the non-overflow assumptions are valid if the assumption is made that reserves do not exceed uint112.max.
    	// The uint112 size would allow tokens with 18 decimals of precision and a 5 quadrillion max supply - which is excluded from the whitelist process.
    	// Additionally, for tokens that may increase total supply over time, these calculations are duplicated with overflow checking intact within Pools._arbitrage() when arbitrage actually occurs.
-	function _binarySearch( uint256 swapAmountInValueInETH, uint256 reservesA0, uint256 reservesA1, uint256 reservesB0, uint256 reservesB1, uint256 reservesC0, uint256 reservesC1 ) internal pure returns (uint256 bestArbAmountIn)
+	function _bisectionSearch( uint256 swapAmountInValueInETH, uint256 reservesA0, uint256 reservesA1, uint256 reservesB0, uint256 reservesB1, uint256 reservesC0, uint256 reservesC1 ) internal pure returns (uint256 bestArbAmountIn)
 		{
+		// This code can safely be made unchecked as the functionality for the found bestArbAmountIn is duplicated exactly in Pools._arbitrage with overflow checks kept in place.
+		// If any overflows occur as a result of the calculations here they will happen in the Pools._arbitrage code.
 		unchecked
 			{
 			if ( reservesA0 <= PoolUtils.DUST || reservesA1 <= PoolUtils.DUST || reservesB0 <= PoolUtils.DUST || reservesB1 <= PoolUtils.DUST || reservesC0 <= PoolUtils.DUST || reservesC1 <= PoolUtils.DUST )

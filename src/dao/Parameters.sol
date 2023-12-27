@@ -118,6 +118,6 @@ abstract contract Parameters
 		else if ( parameterType == ParameterTypes.maximumPriceFeedPercentDifferenceTimes1000 )
 			priceAggregator.changeMaximumPriceFeedPercentDifferenceTimes1000(increase);
 		else if ( parameterType == ParameterTypes.setPriceFeedCooldown )
-			priceAggregator.changeSetPriceFeedCooldown(increase);
+			priceAggregator.changePriceFeedModificationCooldown(increase);
 		}
 	}

@@ -69,11 +69,6 @@ contract Proposals is IProposals, ReentrancyGuard
 
     constructor( IStaking _staking, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IDAOConfig _daoConfig )
 		{
-		require( address(_staking) != address(0), "_staking cannot be address(0)" );
-		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
-		require( address(_poolsConfig) != address(0), "_poolsConfig cannot be address(0)" );
-		require( address(_daoConfig) != address(0), "_daoConfig cannot be address(0)" );
-
 		staking = _staking;
 		exchangeConfig = _exchangeConfig;
 		poolsConfig = _poolsConfig;
@@ -92,9 +87,9 @@ contract Proposals is IProposals, ReentrancyGuard
 			{
 			// Make sure that the sender has the minimum amount of xSALT required to make the proposal
 			uint256 totalStaked = staking.totalShares(PoolUtils.STAKED_SALT);
-			require( totalStaked > 0, "Total staked cannot be zero" );
-
 			uint256 requiredXSalt = ( totalStaked * daoConfig.requiredProposalPercentStakeTimes1000() ) / ( 100 * 1000 );
+
+			require( requiredXSalt > 0, "requiredXSalt cannot be zero" );
 
 			uint256 userXSalt = staking.userShareForPool( msg.sender, PoolUtils.STAKED_SALT );
 			require( userXSalt >= requiredXSalt, "Sender does not have enough xSALT to make the proposal" );
@@ -124,11 +119,11 @@ contract Proposals is IProposals, ReentrancyGuard
 
 
 	// Create a confirmation proposal from the DAO
-	function createConfirmationProposal( string calldata ballotName, BallotType ballotType, address address1, string calldata string1, string calldata description ) external
+	function createConfirmationProposal( string calldata ballotName, BallotType ballotType, address address1, string calldata string1, string calldata description ) external returns (uint256 ballotID)
 		{
 		require( msg.sender == address(exchangeConfig.dao()), "Only the DAO can create a confirmation proposal" );
 
-		_possiblyCreateProposal( ballotName, ballotType, address1, 0, string1, description );
+		return _possiblyCreateProposal( ballotName, ballotType, address1, 0, string1, description );
 		}
 
 
@@ -157,14 +152,14 @@ contract Proposals is IProposals, ReentrancyGuard
 		}
 
 
-	function proposeParameterBallot( uint256 parameterType, string calldata description ) external nonReentrant
+	function proposeParameterBallot( uint256 parameterType, string calldata description ) external nonReentrant returns (uint256 ballotID)
 		{
 		string memory ballotName = string.concat("parameter:", Strings.toString(parameterType) );
-		_possiblyCreateProposal( ballotName, BallotType.PARAMETER, address(0), parameterType, "", description );
+		return _possiblyCreateProposal( ballotName, BallotType.PARAMETER, address(0), parameterType, "", description );
 		}
 
 
-	function proposeTokenWhitelisting( IERC20 token, string calldata tokenIconURL, string calldata description ) external nonReentrant
+	function proposeTokenWhitelisting( IERC20 token, string calldata tokenIconURL, string calldata description ) external nonReentrant returns (uint256 ballotID)
 		{
 		require( address(token) != address(0), "token cannot be address(0)" );
 		require( token.totalSupply() < type(uint112).max, "Token supply cannot exceed uint112.max" ); // 5 quadrillion max supply with 18 decimals of precision
@@ -177,10 +172,12 @@ contract Proposals is IProposals, ReentrancyGuard
 
 		uint256 ballotID = _possiblyCreateProposal( ballotName, BallotType.WHITELIST_TOKEN, address(token), 0, tokenIconURL, description );
 		_openBallotsForTokenWhitelisting.add( ballotID );
+
+		return ballotID;
 		}
 
 
-	function proposeTokenUnwhitelisting( IERC20 token, string calldata tokenIconURL, string calldata description ) external nonReentrant
+	function proposeTokenUnwhitelisting( IERC20 token, string calldata tokenIconURL, string calldata description ) external nonReentrant returns (uint256 ballotID)
 		{
 		require( poolsConfig.tokenHasBeenWhitelisted(token, exchangeConfig.wbtc(), exchangeConfig.weth()), "Can only unwhitelist a whitelisted token" );
 		require( address(token) != address(exchangeConfig.wbtc()), "Cannot unwhitelist WBTC" );
@@ -190,13 +187,13 @@ contract Proposals is IProposals, ReentrancyGuard
 		require( address(token) != address(exchangeConfig.salt()), "Cannot unwhitelist SALT" );
 
 		string memory ballotName = string.concat("unwhitelist:", Strings.toHexString(address(token)) );
-		_possiblyCreateProposal( ballotName, BallotType.UNWHITELIST_TOKEN, address(token), 0, tokenIconURL, description );
+		return _possiblyCreateProposal( ballotName, BallotType.UNWHITELIST_TOKEN, address(token), 0, tokenIconURL, description );
 		}
 
 
 	// Proposes sending a specified amount of SALT to a wallet or contract.
 	// Only one sendSALT Ballot can be open at a time and the sending limit is 5% of the current SALT balance of the DAO.
-	function proposeSendSALT( address wallet, uint256 amount, string calldata description ) external nonReentrant
+	function proposeSendSALT( address wallet, uint256 amount, string calldata description ) external nonReentrant returns (uint256 ballotID)
 		{
 		require( wallet != address(0), "Cannot send SALT to address(0)" );
 
@@ -208,53 +205,53 @@ contract Proposals is IProposals, ReentrancyGuard
 		// This ballotName is not unique for the receiving wallet and enforces the restriction of one sendSALT ballot at a time.
 		// If more receivers are necessary at once, a splitter can be used.
 		string memory ballotName = "sendSALT";
-		_possiblyCreateProposal( ballotName, BallotType.SEND_SALT, wallet, amount, "", description );
+		return _possiblyCreateProposal( ballotName, BallotType.SEND_SALT, wallet, amount, "", description );
 		}
 
 
 	// Proposes calling the callFromDAO(uint256) function on an arbitrary contract.
-	function proposeCallContract( address contractAddress, uint256 number, string calldata description ) external nonReentrant
+	function proposeCallContract( address contractAddress, uint256 number, string calldata description ) external nonReentrant returns (uint256 ballotID)
 		{
 		require( contractAddress != address(0), "Contract address cannot be address(0)" );
 
 		string memory ballotName = string.concat("callContract:", Strings.toHexString(address(contractAddress)) );
-		_possiblyCreateProposal( ballotName, BallotType.CALL_CONTRACT, contractAddress, number, description, "" );
+		return _possiblyCreateProposal( ballotName, BallotType.CALL_CONTRACT, contractAddress, number, description, "" );
 		}
 
 
-	function proposeCountryInclusion( string calldata country, string calldata description ) external nonReentrant
+	function proposeCountryInclusion( string calldata country, string calldata description ) external nonReentrant returns (uint256 ballotID)
 		{
 		require( bytes(country).length == 2, "Country must be an ISO 3166 Alpha-2 Code" );
 
 		string memory ballotName = string.concat("include:", country );
-		_possiblyCreateProposal( ballotName, BallotType.INCLUDE_COUNTRY, address(0), 0, country, description );
+		return _possiblyCreateProposal( ballotName, BallotType.INCLUDE_COUNTRY, address(0), 0, country, description );
 		}
 
 
-	function proposeCountryExclusion( string calldata country, string calldata description ) external nonReentrant
+	function proposeCountryExclusion( string calldata country, string calldata description ) external nonReentrant returns (uint256 ballotID)
 		{
 		require( bytes(country).length == 2, "Country must be an ISO 3166 Alpha-2 Code" );
 
 		string memory ballotName = string.concat("exclude:", country );
-		_possiblyCreateProposal( ballotName, BallotType.EXCLUDE_COUNTRY, address(0), 0, country, description );
+		return _possiblyCreateProposal( ballotName, BallotType.EXCLUDE_COUNTRY, address(0), 0, country, description );
 		}
 
 
-	function proposeSetContractAddress( string calldata contractName, address newAddress, string calldata description ) external nonReentrant
+	function proposeSetContractAddress( string calldata contractName, address newAddress, string calldata description ) external nonReentrant returns (uint256 ballotID)
 		{
 		require( newAddress != address(0), "Proposed address cannot be address(0)" );
 
 		string memory ballotName = string.concat("setContract:", contractName );
-		_possiblyCreateProposal( ballotName, BallotType.SET_CONTRACT, newAddress, 0, "", description );
+		return _possiblyCreateProposal( ballotName, BallotType.SET_CONTRACT, newAddress, 0, "", description );
 		}
 
 
-	function proposeWebsiteUpdate( string calldata newWebsiteURL, string calldata description ) external nonReentrant
+	function proposeWebsiteUpdate( string calldata newWebsiteURL, string calldata description ) external nonReentrant returns (uint256 ballotID)
 		{
 		require( keccak256(abi.encodePacked(newWebsiteURL)) != keccak256(abi.encodePacked("")), "newWebsiteURL cannot be empty" );
 
 		string memory ballotName = string.concat("setURL:", newWebsiteURL );
-		_possiblyCreateProposal( ballotName, BallotType.SET_WEBSITE_URL, address(0), 0, newWebsiteURL, description );
+		return _possiblyCreateProposal( ballotName, BallotType.SET_WEBSITE_URL, address(0), 0, newWebsiteURL, description );
 		}
 
 

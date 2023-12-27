@@ -18,6 +18,8 @@ import "./SigningTools.sol";
 
 contract AccessManager is IAccessManager
 	{
+	event AccessGranted(address indexed wallet, uint256 geoVersion);
+
 	IDAO immutable public dao;
 
 	// Determines granted access for [geoVersion][wallet]
@@ -29,8 +31,6 @@ contract AccessManager is IAccessManager
 
 	constructor( IDAO _dao )
 		{
-		require( address(_dao) != address(0), "_dao cannot be address(0)" );
-
 		dao = _dao;
 		}
 
@@ -63,6 +63,8 @@ contract AccessManager is IAccessManager
     	require( _verifyAccess(msg.sender, signature), "Incorrect AccessManager.grantAccess signatory" );
 
         _walletsWithAccess[geoVersion][msg.sender] = true;
+
+        emit AccessGranted( msg.sender, geoVersion );
     	}
 
 

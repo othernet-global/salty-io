@@ -42,8 +42,8 @@ contract LiquidityTest is Deployment
 		token2 = new TestERC20("TEST", 18);
 		token3 = new TestERC20("TEST", 18);
 
-        pool1 = PoolUtils._poolIDOnly(token1, token2);
-        pool2 = PoolUtils._poolIDOnly(token2, token3);
+        pool1 = PoolUtils._poolID(token1, token2);
+        pool2 = PoolUtils._poolID(token2, token3);
 
         poolIDs = new bytes32[](2);
         poolIDs[0] = pool1;
@@ -217,7 +217,7 @@ contract LiquidityTest is Deployment
 
 		// Alice attempts to withdraw more than she deposited
 		vm.expectRevert("Must wait for the cooldown to expire" );
-		collateralAndLiquidity.withdrawLiquidityAndClaim(token1, token2, addedLiquidity, 0, 0, block.timestamp);
+		collateralAndLiquidity.withdrawLiquidityAndClaim(token1, token2, addedLiquidity / 2, 0, 0, block.timestamp);
 
 		// Make sure none of the share was removed
 		assertEq(collateralAndLiquidity.userShareForPool(alice, pool1), addedLiquidity, "User's share should not change after failed unstake attempt");
@@ -472,7 +472,7 @@ contract LiquidityTest is Deployment
     	token5 = new TestERC20("TEST", 18);
 
     	// Get pool ID of non-whitelisted pool
-    	nonWhitelistedPool = PoolUtils._poolIDOnly(token4, token5);
+    	nonWhitelistedPool = PoolUtils._poolID(token4, token5);
 
     	uint256 amountA = 10 ether;
     	uint256 amountB = 20 ether;
@@ -543,7 +543,7 @@ contract LiquidityTest is Deployment
     	IERC20 tokenA = new TestERC20("TEST", 8);
 		IERC20 tokenB = new TestERC20("TEST", 18);
 
-		bytes32 poolID = PoolUtils._poolIDOnly(tokenA, tokenB);
+		bytes32 poolID = PoolUtils._poolID(tokenA, tokenB);
 
 		tokenA.transfer(alice, 100000 * 10**8 );
 		tokenB.transfer(alice, 100000 ether );
@@ -620,22 +620,22 @@ contract LiquidityTest is Deployment
 
 		vm.warp(block.timestamp + 1 hours);
 
-        // Now, Alice should still be able to withdraw her liquidity since the pool is not whitelisted
+        // Now, Alice should still be able to withdraw liquidity since the pool is not whitelisted
         uint256 initialLiquidityPoolBalance = totalSharesForPool(pool1);
         vm.startPrank(alice);
-        collateralAndLiquidity.withdrawLiquidityAndClaim(token1, token2, expectedLiquidity, 0, 0, block.timestamp);
+        collateralAndLiquidity.withdrawLiquidityAndClaim(token1, token2, expectedLiquidity / 2, 0, 0, block.timestamp);
         vm.stopPrank();
 
         // Check final state
         uint256 liquidityAfterWithdraw = collateralAndLiquidity.userShareForPool(alice, pool1);
         uint256 liquidityPoolBalanceAfter = totalSharesForPool(pool1);
 
-        assertEq(liquidityAfterWithdraw, 0, "Alice should have zero liquidity remaining in the pool");
-        assertEq(liquidityPoolBalanceAfter, initialLiquidityPoolBalance - expectedLiquidity, "Total pool liquidity did not decrease as expected");
+        assertEq(liquidityAfterWithdraw, expectedLiquidity  / 2, "Alice should have zero liquidity remaining in the pool");
+        assertEq(liquidityPoolBalanceAfter, initialLiquidityPoolBalance - expectedLiquidity  / 2, "Total pool liquidity did not decrease as expected");
 
-        // There is some DUST restriction in draining the liquidity pool completely
-        assertEq(token1.balanceOf(alice), initialAliceToken1Balance - 100, "Alice's token1 balance should be restored to initial");
-        assertEq(token2.balanceOf(alice), initialAliceToken2Balance - 100, "Alice's token2 balance should be restored to initial");
+        // Have the deposited amount was withdrawn
+        assertEq(token1.balanceOf(alice), initialAliceToken1Balance - addedAmount1 / 2, "Incorrect token1 balance");
+        assertEq(token2.balanceOf(alice), initialAliceToken2Balance - addedAmount2 / 2, "Incorrect token2 balance");
     }
 
 
@@ -707,4 +707,66 @@ contract LiquidityTest is Deployment
         vm.expectRevert("Invalid pool");
         collateralAndLiquidity.depositLiquidityAndIncreaseShare(badToken1, badToken2, amount1, amount2, 0 ether, block.timestamp + 1 hours, false);
     }
+
+
+	// A unit test that tests depositing and withdrawing maximum liquidity
+	function testDepositAndWithdrawMaximumLiquidity() public {
+
+    	IERC20 tokenA = new TestERC20("TEST", 8);
+		IERC20 tokenB = new TestERC20("TEST", 18);
+
+		bytes32 poolID = PoolUtils._poolID(tokenA, tokenB);
+
+		tokenA.transfer(alice, 100000 * 10**8 );
+		tokenB.transfer(alice, 100000 ether );
+		tokenA.transfer(bob, 100000 * 10**8 );
+		tokenB.transfer(bob, 100000 ether );
+
+        // Whitelist the _pools
+		vm.startPrank( address(dao) );
+        poolsConfig.whitelistPool( pools,  tokenA, tokenB);
+        vm.stopPrank();
+
+        vm.startPrank(alice);
+        tokenA.approve(address(collateralAndLiquidity), type(uint256).max);
+        tokenB.approve(address(collateralAndLiquidity), type(uint256).max);
+        vm.stopPrank();
+
+        vm.startPrank(bob);
+        tokenA.approve(address(collateralAndLiquidity), type(uint256).max);
+        tokenB.approve(address(collateralAndLiquidity), type(uint256).max);
+        vm.stopPrank();
+
+
+		uint256 depositedA = ( 2000 ether *10**8) / priceAggregator.getPriceBTC();
+		uint256 depositedB = ( 2000 ether *10**18) / priceAggregator.getPriceETH();
+
+		(uint256 reserveA, uint256 reserveB) = pools.getPoolReserves(wbtc, weth);
+		assertEq( reserveA, 0, "reserveA doesn't start as zero" );
+		assertEq( reserveB, 0, "reserveB doesn't start as zero" );
+
+		// Alice deposits liquidity
+		vm.startPrank(alice);
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( tokenA, tokenB, depositedA, depositedB, 0, block.timestamp, false );
+
+		vm.warp( block.timestamp + 1 hours);
+
+		uint256 aliceCollateral = collateralAndLiquidity.userShareForPool(alice, poolID);
+		(uint256 removedA, ) = collateralAndLiquidity.withdrawLiquidityAndClaim(tokenA, tokenB, aliceCollateral * ( depositedA - 100 ) / depositedA, 0, 0, block.timestamp );
+
+		assertEq( depositedA, removedA + PoolUtils.DUST + 1 );
+//		assertEq( depositedB, removedB + PoolUtils.DUST );
+
+		vm.warp( block.timestamp + 1 hours );
+
+		// Make sure liquidity can be added again
+		collateralAndLiquidity.depositLiquidityAndIncreaseShare( tokenA, tokenB, depositedA, depositedB, 0, block.timestamp, false );
+
+//		console.log( "depositedA: ", depositedA );
+//		console.log( "removedA: ", removedA );
+//		console.log( "depositedB: ", depositedB );
+//		console.log( "removedB: ", removedB );
+		}
+
+
 	}

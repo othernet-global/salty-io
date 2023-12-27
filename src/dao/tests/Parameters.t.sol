@@ -108,7 +108,7 @@ contract TestParametersOffchain is Test
 		else if ( parameter == Parameters.ParameterTypes.maximumPriceFeedPercentDifferenceTimes1000 )
 			return priceAggregator.maximumPriceFeedPercentDifferenceTimes1000();
 		else if ( parameter == Parameters.ParameterTypes.setPriceFeedCooldown )
-			return priceAggregator.setPriceFeedCooldown();
+			return priceAggregator.priceFeedModificationCooldown();
 
 		require(false, "Invalid ParameterType" );
 		return 0;

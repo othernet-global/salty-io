@@ -66,17 +66,6 @@ contract Upkeep is IUpkeep, ReentrancyGuard
 
     constructor( IPools _pools, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IDAOConfig _daoConfig, IStableConfig _stableConfig, IPriceAggregator _priceAggregator, ISaltRewards _saltRewards, ICollateralAndLiquidity _collateralAndLiquidity, IEmissions _emissions, IDAO _dao )
 		{
-		require( address(_pools) != address(0), "_pools cannot be address(0)" );
-		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
-		require( address(_poolsConfig) != address(0), "_poolsConfig cannot be address(0)" );
-		require( address(_daoConfig) != address(0), "_daoConfig cannot be address(0)" );
-		require( address(_stableConfig) != address(0), "_stableConfig cannot be address(0)" );
-		require( address(_priceAggregator) != address(0), "_priceAggregator cannot be address(0)" );
-		require( address(_saltRewards) != address(0), "_saltRewards cannot be address(0)" );
-		require( address(_collateralAndLiquidity) != address(0), "_collateralAndLiquidity cannot be address(0)" );
-		require( address(_emissions) != address(0), "_emissions cannot be address(0)" );
-		require( address(_dao) != address(0), "_dao cannot be address(0)" );
-
 		pools = _pools;
 		exchangeConfig = _exchangeConfig;
 		poolsConfig = _poolsConfig;

@@ -38,11 +38,6 @@ contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
 
     constructor( IStakingRewards _stakingRewards, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IRewardsConfig _rewardsConfig, bool _isForCollateralAndLiquidity )
 		{
-		require( address(_stakingRewards) != address(0), "_stakingRewards cannot be address(0)" );
-		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
-		require( address(_poolsConfig) != address(0), "_poolsConfig cannot be address(0)" );
-		require( address(_rewardsConfig) != address(0), "_rewardsConfig cannot be address(0)" );
-
 		stakingRewards = _stakingRewards;
 		exchangeConfig = _exchangeConfig;
 		poolsConfig = _poolsConfig;

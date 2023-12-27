@@ -437,16 +437,5 @@ contract TestArbitrage is Deployment
 //		console.log( "profit: ", pools.depositedUserBalance( address(dao), weth ) );
 		assertEq( pools.depositedUserBalance( address(dao), weth ), 17176, "arbitrage profit incorrect" );
 		}
-
-
-	// A unit test that checks the constructor rejects an initialization with a zero address for _exchangeConfig.
-	function testArbitrageSearchZeroAddressExchangeConfig() public {
-        IExchangeConfig exchangeConfig = IExchangeConfig(address(0));
-
-        vm.expectRevert("_exchangeConfig cannot be address(0)");
-
-        new TestArbitrageSearch(exchangeConfig);
-    }
-
 	}
 

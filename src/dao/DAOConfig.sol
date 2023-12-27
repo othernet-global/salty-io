@@ -65,13 +65,13 @@ contract DAOConfig is IDAOConfig, Ownable
 		{
         if (increase)
         	{
-            if (bootstrappingRewards < 500000 * 1 ether)
-                bootstrappingRewards += 50000 * 1 ether;
+            if (bootstrappingRewards < 500000 ether)
+                bootstrappingRewards += 50000 ether;
             }
        	 else
        	 	{
-            if (bootstrappingRewards > 50000 * 1 ether)
-                bootstrappingRewards -= 50000 * 1 ether;
+            if (bootstrappingRewards > 50000 ether)
+                bootstrappingRewards -= 50000 ether;
 	        }
 
 		emit BootstrappingRewardsChanged(bootstrappingRewards);

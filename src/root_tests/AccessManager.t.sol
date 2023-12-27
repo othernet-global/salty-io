@@ -18,14 +18,6 @@ contract TestAccessManager is Deployment
 		}
 
 
-	// A unit test where the DAO address is set to address(0) upon contract creation to ensure that it reverts as expected.
-	function testCreateAccessManagerWithZeroAddress() public
-    	{
-    	IDAO zeroAddressDAO = IDAO(address(0));
-
-    	vm.expectRevert("_dao cannot be address(0)");
-    	new AccessManager(zeroAddressDAO);
-    	}
 
 
 	// A unit test where a user does not grant access and the walletHasAccess is checked to verify that the user does not have access.

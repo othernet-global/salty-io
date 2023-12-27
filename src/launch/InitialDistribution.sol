@@ -33,17 +33,6 @@ contract InitialDistribution is IInitialDistribution
 
 	constructor( ISalt _salt, IPoolsConfig _poolsConfig, IEmissions _emissions, IBootstrapBallot _bootstrapBallot, IDAO _dao, VestingWallet _daoVestingWallet, VestingWallet _teamVestingWallet, IAirdrop _airdrop, ISaltRewards _saltRewards, ICollateralAndLiquidity _collateralAndLiquidity  )
 		{
-		require( address(_salt) != address(0), "_salt cannot be address(0)" );
-		require( address(_poolsConfig) != address(0), "_poolsConfig cannot be address(0)" );
-		require( address(_emissions) != address(0), "_emissions cannot be address(0)" );
-		require( address(_bootstrapBallot) != address(0), "_bootstrapBallot cannot be address(0)" );
-		require( address(_dao) != address(0), "_dao cannot be address(0)" );
-		require( address(_daoVestingWallet) != address(0), "_daoVestingWallet cannot be address(0)" );
-		require( address(_teamVestingWallet) != address(0), "_teamVestingWallet cannot be address(0)" );
-		require( address(_airdrop) != address(0), "_airdrop cannot be address(0)" );
-		require( address(_saltRewards) != address(0), "_saltRewards cannot be address(0)" );
-		require( address(_collateralAndLiquidity) != address(0), "_collateralAndLiquidity cannot be address(0)" );
-
 		salt = _salt;
 		poolsConfig = _poolsConfig;
 		emissions = _emissions;

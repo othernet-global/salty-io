@@ -33,15 +33,8 @@ contract TestCoreChainlinkFeed is Test
 
     	// Test with valid addresses
     	CoreChainlinkFeed validFeed = new CoreChainlinkFeed(address(btcAggregator2), address(ethAggregator2));
-    	assertEq(validFeed.CHAINLINK_BTC_USD(), address(btcAggregator2));
-    	assertEq(validFeed.CHAINLINK_ETH_USD(), address(ethAggregator2));
-
-    	// Test with one address being the zero address
-    	vm.expectRevert("_CHAINLINK_BTC_USD cannot be address(0)");
-    	new CoreChainlinkFeed(address(0), address(ethAggregator2));
-
-    	vm.expectRevert("_CHAINLINK_ETH_USD cannot be address(0)");
-    	new CoreChainlinkFeed(address(btcAggregator2), address(0));
+    	assertEq(address(validFeed.CHAINLINK_BTC_USD()), address(btcAggregator2));
+    	assertEq(address(validFeed.CHAINLINK_ETH_USD()), address(ethAggregator2));
     }
 
 

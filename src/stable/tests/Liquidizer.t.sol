@@ -50,7 +50,7 @@ contract LiquidizerTest is Deployment
 
         // Try burning more than available
         vm.prank(address(collateralAndLiquidity));
-        liquidizer.shouldBurnMoreUSDS(usdsToBurn);
+        liquidizer.incrementBurnableUSDS(usdsToBurn);
 
         // Validate that the amount that should be burnt is set correctly
         assertEq(liquidizer.usdsThatShouldBeBurned(), usdsToBurn);
@@ -78,8 +78,8 @@ contract LiquidizerTest is Deployment
     }
 
 
-    // A unit test to confirm that `shouldBurnMoreUSDS` correctly aggregates multiple calls to increase `usdsThatShouldBeBurned`.
-function testAggregatesMultipleCallsToShouldBurnMoreUSDS() public {
+    // A unit test to confirm that `incrementBurnableUSDS` correctly aggregates multiple calls to increase `usdsThatShouldBeBurned`.
+function testAggregatesMultipleCallsToincrementBurnableUSDS() public {
     uint256 firstUsdsToBurn = 1 ether;
     uint256 secondUsdsToBurn = 2 ether;
     uint256 thirdUsdsToBurn = 3 ether;
@@ -87,17 +87,17 @@ function testAggregatesMultipleCallsToShouldBurnMoreUSDS() public {
     // Initially the usdsThatShouldBeBurned should be 0
     assertEq(liquidizer.usdsThatShouldBeBurned(), 0 ether);
 
-    // Call shouldBurnMoreUSDS multiple times and check if the USDS amount to be burned aggregates
+    // Call incrementBurnableUSDS multiple times and check if the USDS amount to be burned aggregates
     vm.prank(address(collateralAndLiquidity));
-    liquidizer.shouldBurnMoreUSDS(firstUsdsToBurn);
+    liquidizer.incrementBurnableUSDS(firstUsdsToBurn);
     assertEq(liquidizer.usdsThatShouldBeBurned(), firstUsdsToBurn);
 
     vm.prank(address(collateralAndLiquidity));
-    liquidizer.shouldBurnMoreUSDS(secondUsdsToBurn);
+    liquidizer.incrementBurnableUSDS(secondUsdsToBurn);
     assertEq(liquidizer.usdsThatShouldBeBurned(), firstUsdsToBurn + secondUsdsToBurn);
 
     vm.prank(address(collateralAndLiquidity));
-    liquidizer.shouldBurnMoreUSDS(thirdUsdsToBurn);
+    liquidizer.incrementBurnableUSDS(thirdUsdsToBurn);
     assertEq(liquidizer.usdsThatShouldBeBurned(), firstUsdsToBurn + secondUsdsToBurn + thirdUsdsToBurn);
         }
 
@@ -174,8 +174,8 @@ function testAggregatesMultipleCallsToShouldBurnMoreUSDS() public {
 		collateralAndLiquidity.depositLiquidityAndIncreaseShare(dai, usds, 100000 ether, 100000 ether, 0, block.timestamp, false );
 		vm.stopPrank();
 
-		bytes32 poolIDA = PoolUtils._poolIDOnly(salt, usds);
-		bytes32 poolIDB = PoolUtils._poolIDOnly(dai, usds);
+		bytes32 poolIDA = PoolUtils._poolID(salt, usds);
+		bytes32 poolIDB = PoolUtils._poolID(dai, usds);
 
 		assertEq( collateralAndLiquidity.userShareForPool(address(dao), poolIDA), 200000 ether);
 		assertEq( collateralAndLiquidity.userShareForPool(address(dao), poolIDB), 200000 ether);
@@ -183,7 +183,7 @@ function testAggregatesMultipleCallsToShouldBurnMoreUSDS() public {
         // Simulate shortfall in burning USDS
         uint256 shortfallAmount = 10 ether;
 		vm.prank(address(collateralAndLiquidity));
-        liquidizer.shouldBurnMoreUSDS(shortfallAmount);  // Assuming a setter for easy testing
+        liquidizer.incrementBurnableUSDS(shortfallAmount);  // Assuming a setter for easy testing
 
         // The test is setup to cause a withdrawal of POL
 		vm.prank(address(upkeep));
@@ -278,7 +278,7 @@ function testAggregatesMultipleCallsToShouldBurnMoreUSDS() public {
 
         // Set the USDS that should be burned to a higher number than the balance
         vm.prank(address(collateralAndLiquidity));
-        liquidizer.shouldBurnMoreUSDS(usdsRequiredToBurn);
+        liquidizer.incrementBurnableUSDS(usdsRequiredToBurn);
 
         assertEq(liquidizer.usdsThatShouldBeBurned(), usdsRequiredToBurn, "usdsThatShouldBeBurned should be set");
 
@@ -294,17 +294,17 @@ function testAggregatesMultipleCallsToShouldBurnMoreUSDS() public {
     }
 
 
-    // A unit test to ensure that calling `shouldBurnMoreUSDS` with zero value does not affect `usdsThatShouldBeBurned`.
-    function testCallingShouldBurnMoreUSDSWithZeroDoesNotAffectUsdsThatShouldBeBurned() public {
+    // A unit test to ensure that calling `incrementBurnableUSDS` with zero value does not affect `usdsThatShouldBeBurned`.
+    function testCallingincrementBurnableUSDSWithZeroDoesNotAffectUsdsThatShouldBeBurned() public {
         // Initially `usdsThatShouldBeBurned` should be 0
         assertEq(liquidizer.usdsThatShouldBeBurned(), 0 ether);
 
-        // Call `shouldBurnMoreUSDS` with 0 ether
+        // Call `incrementBurnableUSDS` with 0 ether
         vm.prank(address(collateralAndLiquidity));
-        liquidizer.shouldBurnMoreUSDS(0 ether);  // This call is expected to be safe and not revert because it's called by `collateralAndLiquidity`
+        liquidizer.incrementBurnableUSDS(0 ether);  // This call is expected to be safe and not revert because it's called by `collateralAndLiquidity`
 
         // Validate that `usdsThatShouldBeBurned` is still 0
-        assertEq(liquidizer.usdsThatShouldBeBurned(), 0 ether, "Calling shouldBurnMoreUSDS with zero should not affect usdsThatShouldBeBurned");
+        assertEq(liquidizer.usdsThatShouldBeBurned(), 0 ether, "Calling incrementBurnableUSDS with zero should not affect usdsThatShouldBeBurned");
     }
 
 
@@ -322,7 +322,7 @@ function testAggregatesMultipleCallsToShouldBurnMoreUSDS() public {
 
         // Set the USDS that should be burned to a higher number than the balance
         vm.prank(address(collateralAndLiquidity));
-        liquidizer.shouldBurnMoreUSDS(usdsRequiredToBurn);
+        liquidizer.incrementBurnableUSDS(usdsRequiredToBurn);
 
         assertEq(liquidizer.usdsThatShouldBeBurned(), usdsRequiredToBurn, "usdsThatShouldBeBurned should be set");
 
@@ -372,13 +372,13 @@ function testAggregatesMultipleCallsToShouldBurnMoreUSDS() public {
     }
 
 
-    // A unit test to confirm that the `shouldBurnMoreUSDS` function fails when called by an address other than the CollateralAndLiquidity contract
-    function testShouldBurnMoreUSDSRevertWhenNotCollateralAndLiquidity() public {
+    // A unit test to confirm that the `incrementBurnableUSDS` function fails when called by an address other than the CollateralAndLiquidity contract
+    function testincrementBurnableUSDSRevertWhenNotCollateralAndLiquidity() public {
         uint256 usdsToBurn = 1 ether;
 
         vm.startPrank( address(0x1234));
-        vm.expectRevert("Liquidizer.shouldBurnMoreUSDS is only callable from the CollateralAndLiquidity contract");
-        liquidizer.shouldBurnMoreUSDS(usdsToBurn);
+        vm.expectRevert("Liquidizer.incrementBurnableUSDS is only callable from the CollateralAndLiquidity contract");
+        liquidizer.incrementBurnableUSDS(usdsToBurn);
         vm.stopPrank();
     }
 
@@ -405,7 +405,7 @@ function testAggregatesMultipleCallsToShouldBurnMoreUSDS() public {
 
     		// Set the USDS that should be burned to 5 ether
     		vm.prank(address(collateralAndLiquidity));
-    		liquidizer.shouldBurnMoreUSDS(usdsToBurn);
+    		liquidizer.incrementBurnableUSDS(usdsToBurn);
 
     		// Perform upkeep
     		vm.prank(address(upkeep));
@@ -494,7 +494,7 @@ function testAggregatesMultipleCallsToShouldBurnMoreUSDS() public {
         // Set-up the initial balance of USDS in the contract
         vm.startPrank(address(collateralAndLiquidity));
         usds.mintTo(address(liquidizer), balanceToSet);
-		liquidizer.shouldBurnMoreUSDS(smallAmountToBurn);
+		liquidizer.incrementBurnableUSDS(smallAmountToBurn);
 		vm.stopPrank();
 
         // Ensure the contract has the correct initial balance
@@ -511,7 +511,7 @@ function testAggregatesMultipleCallsToShouldBurnMoreUSDS() public {
 
         // Specify burning more than the balance in the liquidizer
         vm.prank(address(collateralAndLiquidity));
-		liquidizer.shouldBurnMoreUSDS(largeAmountToBurn);
+		liquidizer.incrementBurnableUSDS(largeAmountToBurn);
 
         vm.prank(address(upkeep));
         liquidizer.performUpkeep();
@@ -525,9 +525,9 @@ function testAggregatesMultipleCallsToShouldBurnMoreUSDS() public {
         uint256 initialUsdsToBurn = liquidizer.usdsThatShouldBeBurned();
         uint256 liquidationAmount = 1 ether; // amount that should increase after liquidation
 
-        // Assuming the address of collateralAndLiquidity contract is allowed to call shouldBurnMoreUSDS
+        // Assuming the address of collateralAndLiquidity contract is allowed to call incrementBurnableUSDS
         vm.prank(address(collateralAndLiquidity));
-        liquidizer.shouldBurnMoreUSDS(liquidationAmount);
+        liquidizer.incrementBurnableUSDS(liquidationAmount);
 
         uint256 finalUsdsToBurn = liquidizer.usdsThatShouldBeBurned();
 
@@ -548,13 +548,13 @@ function testAggregatesMultipleCallsToShouldBurnMoreUSDS() public {
         vm.prank(address(upkeep));
         dao.formPOL(salt, usds, 100 ether, 100 ether);
 
-		bytes32 poolID = PoolUtils._poolIDOnly( salt, usds );
+		bytes32 poolID = PoolUtils._poolID( salt, usds );
 		assertEq( collateralAndLiquidity.userShareForPool(address(dao),poolID ), 200 ether);
 
 
         // Set the USDS that should be burned to an amount greater than the balance
         vm.prank(address(collateralAndLiquidity));
-        liquidizer.shouldBurnMoreUSDS(150 ether);
+        liquidizer.incrementBurnableUSDS(150 ether);
 
 		// Start with 20 ether of USDS in the Liquidizer just to make sure it gets burned
         vm.prank(address(collateralAndLiquidity));

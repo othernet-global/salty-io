@@ -190,38 +190,6 @@ contract TestInitialDistribution is Deployment
 	}
 
 
-	// A unit test to ensure that the contract initialization fails if a 0 address is provided for any of the parameters in the constructor.
-function testConstructorInitializationWithZeroAddress() public {
-    address zeroAddress = address(0);
-    InitialDistribution initialDist;
-
-    vm.expectRevert( "_salt cannot be address(0)" );
-    initialDist = new InitialDistribution(ISalt(zeroAddress), poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, collateralAndLiquidity);
-
-    vm.expectRevert( "_poolsConfig cannot be address(0)" );
-    initialDist = new InitialDistribution(salt, IPoolsConfig(zeroAddress), emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, collateralAndLiquidity);
-
-    vm.expectRevert( "_emissions cannot be address(0)" );
-    initialDist = new InitialDistribution(salt, poolsConfig, IEmissions(zeroAddress), bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, collateralAndLiquidity);
-
-    vm.expectRevert( "_dao cannot be address(0)" );
-    initialDist = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, IDAO(zeroAddress), daoVestingWallet, teamVestingWallet, airdrop, saltRewards, collateralAndLiquidity);
-
-    vm.expectRevert( "_daoVestingWallet cannot be address(0)" );
-    initialDist = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot,dao, VestingWallet(payable(zeroAddress)), teamVestingWallet, airdrop, saltRewards, collateralAndLiquidity);
-
-    vm.expectRevert( "_teamVestingWallet cannot be address(0)" );
-    initialDist = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, VestingWallet(payable(zeroAddress)), airdrop, saltRewards, collateralAndLiquidity);
-
-    vm.expectRevert( "_airdrop cannot be address(0)" );
-    initialDist = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, IAirdrop(zeroAddress), saltRewards, collateralAndLiquidity);
-
-    vm.expectRevert( "_saltRewards cannot be address(0)" );
-    initialDist = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, ISaltRewards(zeroAddress), collateralAndLiquidity);
-
-    vm.expectRevert( "_collateralAndLiquidity cannot be address(0)" );
-    initialDist = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, ICollateralAndLiquidity(zeroAddress));
-}
 
 	// A unit test to ensure the `distributionApproved` function can only be called once and subsequent calls fail.
 	function testDistributionApproved_callTwice() public {

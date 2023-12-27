@@ -127,16 +127,16 @@ contract TestPriceAggreagator is Deployment
             IPriceFeed newPriceFeed = IPriceFeed(address(new ForcedPriceFeed(1 ether, 1 ether)));
 
     		// Test setPriceFeed when cooldown period is met
-            vm.warp( block.timestamp + priceAggregator.setPriceFeedCooldown() );
+            vm.warp( block.timestamp + priceAggregator.priceFeedModificationCooldown() );
             priceAggregator.setPriceFeed(1, newPriceFeed);
             assertEq(address(priceAggregator.priceFeed1()), address(newPriceFeed));
 
             // Set priceFeed2 and priceFeed3 to newPriceFeed
-            vm.warp( block.timestamp + priceAggregator.setPriceFeedCooldown() );
+            vm.warp( block.timestamp + priceAggregator.priceFeedModificationCooldown() );
             priceAggregator.setPriceFeed(2, newPriceFeed);
             assertEq(address(priceAggregator.priceFeed2()), address(newPriceFeed));
 
-            vm.warp( block.timestamp + priceAggregator.setPriceFeedCooldown() );
+            vm.warp( block.timestamp + priceAggregator.priceFeedModificationCooldown() );
             priceAggregator.setPriceFeed(3, newPriceFeed);
             assertEq(address(priceAggregator.priceFeed3()), address(newPriceFeed));
 
@@ -297,6 +297,23 @@ contract TestPriceAggreagator is Deployment
         uint256 aggregatedPrice = priceAggregator.getPriceBTC();
         assertEq(aggregatedPrice, expectedPrice, "Aggregated price should be the average of the two same prices");
     }
+
+
+//    // A unit test that tests that near zero prices will not show proximity to zero itself
+//    function testPricesCloseToZero() public {
+//        // Setup
+//        priceFeed1.setBTCPrice(0);
+//        priceFeed2.setBTCPrice(.01 ether);
+//        priceFeed3.setBTCPrice(.0101 ether);
+//
+//        // If the two same prices are valid, and within range, the function should aggregate them correctly.
+//        uint256 expectedPrice = 2 ether;
+//        uint256 aggregatedPrice = priceAggregator.getPriceBTC();
+//
+//        console.log( "aggregatedPrice: ", aggregatedPrice );
+////        assertEq(aggregatedPrice, expectedPrice, "Aggregated price should be the average of the two same prices");
+//    }
+
 	}
 
 

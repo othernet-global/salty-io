@@ -21,9 +21,6 @@ contract CoreSaltyFeed is IPriceFeed
 
 	constructor( IPools _pools, IExchangeConfig _exchangeConfig )
 		{
-		require( address(_pools) != address(0), "_pools cannot be address(0)" );
-		require( address(_exchangeConfig) != address(0), "_exchangeConfig cannot be address(0)" );
-
 		pools = _pools;
 		wbtc = _exchangeConfig.wbtc();
 		weth = _exchangeConfig.weth();

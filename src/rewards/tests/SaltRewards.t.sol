@@ -69,8 +69,8 @@ contract TestSaltRewards2 is Deployment
 		poolsConfig.whitelistPool( pools,   token1, token2);
 
         bytes32[] memory poolIDs = new bytes32[](2);
-        poolIDs[0] = PoolUtils._poolIDOnly(salt,usds);
-		poolIDs[1] = PoolUtils._poolIDOnly(token1, token2);
+        poolIDs[0] = PoolUtils._poolID(salt,usds);
+		poolIDs[1] = PoolUtils._poolID(token1, token2);
 
         uint256[] memory profitsForPools = new uint256[](2);
         profitsForPools[0] = 10 ether;
@@ -132,9 +132,9 @@ contract TestSaltRewards2 is Deployment
             TestSaltRewards _saltRewards = new TestSaltRewards(stakingRewardsEmitter, liquidityRewardsEmitter, exchangeConfig, rewardsConfig);
 
             bytes32[] memory poolIDs = new bytes32[](3);
-            poolIDs[0] = PoolUtils._poolIDOnly(salt, usds);
-            poolIDs[1] = PoolUtils._poolIDOnly(wbtc, weth);
-            poolIDs[2] = PoolUtils._poolIDOnly(weth, usds);
+            poolIDs[0] = PoolUtils._poolID(salt, usds);
+            poolIDs[1] = PoolUtils._poolID(wbtc, weth);
+            poolIDs[2] = PoolUtils._poolID(weth, usds);
 
             uint256 liquidityBootstrapAmount = 900 ether;
 
@@ -199,7 +199,7 @@ contract TestSaltRewards2 is Deployment
         uint256 liquidityBootstrapAmount = 5 ether;
 
         bytes32[] memory poolIDs = new bytes32[](1);
-        poolIDs[0] = PoolUtils._poolIDOnly(salt, usds);
+        poolIDs[0] = PoolUtils._poolID(salt, usds);
 
         // Expect revert because the caller is not the initialDistribution
         vm.expectRevert("SaltRewards.sendInitialRewards is only callable from the InitialDistribution contract");
@@ -229,8 +229,8 @@ contract TestSaltRewards2 is Deployment
 		poolsConfig.whitelistPool( pools,   token1, token2);
 
         bytes32[] memory poolIDs = new bytes32[](2);
-        poolIDs[0] = PoolUtils._poolIDOnly(salt,usds);
-		poolIDs[1] = PoolUtils._poolIDOnly(token1, token2);
+        poolIDs[0] = PoolUtils._poolID(salt,usds);
+		poolIDs[1] = PoolUtils._poolID(token1, token2);
 
         uint256[] memory profitsForPools = new uint256[](2);
         profitsForPools[0] = 10 ether;
@@ -293,8 +293,8 @@ contract TestSaltRewards2 is Deployment
 		poolsConfig.whitelistPool( pools,   token1, token2);
 
         bytes32[] memory poolIDs = new bytes32[](2);
-        poolIDs[0] = PoolUtils._poolIDOnly(salt,usds);
-		poolIDs[1] = PoolUtils._poolIDOnly(token1, token2);
+        poolIDs[0] = PoolUtils._poolID(salt,usds);
+		poolIDs[1] = PoolUtils._poolID(token1, token2);
 
         uint256[] memory profitsForPools = new uint256[](2);
         profitsForPools[0] = 10 ether;
@@ -325,7 +325,7 @@ contract TestSaltRewards2 is Deployment
             salt.transfer(address(_saltRewards), 50 ether);
 
             bytes32[] memory poolIDs = new bytes32[](1);
-            poolIDs[0] = PoolUtils._poolIDOnly(salt,usds);
+            poolIDs[0] = PoolUtils._poolID(salt,usds);
 
             uint256[] memory profitsForPools = new uint256[](1);
             profitsForPools[0] = 10 ether;
@@ -348,8 +348,8 @@ contract TestSaltRewards2 is Deployment
 
         IERC20 token1 = new TestERC20("TOKEN1", 18);
         IERC20 token2 = new TestERC20("TOKEN2", 18);
-        bytes32 saltUSDSPoolID = PoolUtils._poolIDOnly(salt, usds);
-        bytes32 tokenPoolID = PoolUtils._poolIDOnly(token1, token2);
+        bytes32 saltUSDSPoolID = PoolUtils._poolID(salt, usds);
+        bytes32 tokenPoolID = PoolUtils._poolID(token1, token2);
 
         vm.prank(address(dao));
         poolsConfig.whitelistPool( pools, token1, token2);
@@ -405,8 +405,8 @@ contract TestSaltRewards2 is Deployment
             vm.prank(address(dao));
             poolsConfig.whitelistPool(pools, tokenA, tokenB);
 
-            bytes32 poolIdA = PoolUtils._poolIDOnly(salt,usds);
-            bytes32 poolIdB = PoolUtils._poolIDOnly(tokenA, tokenB);
+            bytes32 poolIdA = PoolUtils._poolID(salt,usds);
+            bytes32 poolIdB = PoolUtils._poolID(tokenA, tokenB);
             bytes32[] memory poolIDs = new bytes32[](2);
             poolIDs[0] = poolIdA;
             poolIDs[1] = poolIdB;
@@ -479,10 +479,10 @@ contract TestSaltRewards2 is Deployment
 
         uint256 initialPoolsCount = 4;
         bytes32[] memory poolIDs = new bytes32[](initialPoolsCount);
-        poolIDs[0] = PoolUtils._poolIDOnly(salt, usds);
-        poolIDs[1] = PoolUtils._poolIDOnly(wbtc, weth);
-        poolIDs[2] = PoolUtils._poolIDOnly(weth, usds);
-        poolIDs[3] = PoolUtils._poolIDOnly(salt, wbtc);
+        poolIDs[0] = PoolUtils._poolID(salt, usds);
+        poolIDs[1] = PoolUtils._poolID(wbtc, weth);
+        poolIDs[2] = PoolUtils._poolID(weth, usds);
+        poolIDs[3] = PoolUtils._poolID(salt, wbtc);
 
         uint256 liquidityBootstrapAmount = 1000 ether;
 
@@ -561,8 +561,8 @@ contract TestSaltRewards2 is Deployment
 
 		IERC20 newToken = new TestERC20( "TEST", 18 );
 
-        bytes32 saltUSDSPoolIDTest = PoolUtils._poolIDOnly(salt, usds);
-        bytes32 otherPoolIDTest = PoolUtils._poolIDOnly(newToken, usds);
+        bytes32 saltUSDSPoolIDTest = PoolUtils._poolID(salt, usds);
+        bytes32 otherPoolIDTest = PoolUtils._poolID(newToken, usds);
 
 		vm.prank(address(dao));
 		poolsConfig.whitelistPool(pools, newToken, usds);

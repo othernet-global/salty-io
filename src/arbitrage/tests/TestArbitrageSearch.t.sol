@@ -114,7 +114,7 @@ contract TestArbitrageSearch2 is Deployment
         uint256 reservesC0 = PoolUtils.DUST;
         uint256 reservesC1 = PoolUtils.DUST;
 
-        uint256 bestArbAmountIn = testArbitrageSearch.binarySearch(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1);
+        uint256 bestArbAmountIn = testArbitrageSearch.bisectionSearch(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1);
         assertEq(bestArbAmountIn, 0);
 
         // Case where some reserves are above DUST
@@ -123,16 +123,8 @@ contract TestArbitrageSearch2 is Deployment
         reservesB0 = PoolUtils.DUST + 1;
         reservesC1 = PoolUtils.DUST + 1;
 
-        bestArbAmountIn = testArbitrageSearch.binarySearch(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1);
+        bestArbAmountIn = testArbitrageSearch.bisectionSearch(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1);
         assertEq(bestArbAmountIn, 0);
-    }
-
-
-	// A unit test that checks the constructor rejects an initialization with a zero address for _exchangeConfig.
-	function testConstructorShouldFailWhenExchangeConfigIsZeroAddress() public {
-        // Expect a revert due to a zero address being passed to the constructor
-        vm.expectRevert("_exchangeConfig cannot be address(0)");
-        new TestArbitrageSearch(IExchangeConfig(address(0)));
     }
 
 
@@ -149,7 +141,7 @@ contract TestArbitrageSearch2 is Deployment
         // Simulating other reverts
         reservesA0 = 0;
         vm.expectRevert("reservesA0 or reservesA1 should be more than DUST");
-        testArbitrageSearch.binarySearch(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1);
+        testArbitrageSearch.bisectionSearch(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1);
     }
 
 

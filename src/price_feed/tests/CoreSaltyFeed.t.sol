@@ -128,19 +128,6 @@ contract TestCoreSaltyFeed is Deployment
 	}
 
 
-	// A unit test that validates that initializing the CoreSaltyFeed contract with zero addresses for the IPools or IExchangeConfig contracts fails as expected.
-	    // A unit test that validates that initializing the CoreSaltyFeed contract with zero addresses for the IPools or IExchangeConfig contracts fails as expected.
-        function testCoreSaltyFeedInitializationWithZeroAddresses() public
-            {
-            // Initialize with zero IPools address
-            vm.expectRevert("_pools cannot be address(0)");
-            new CoreSaltyFeed(IPools(address(0)), exchangeConfig);
-
-            // Initialize with zero IExchangeConfig address
-            vm.expectRevert("_exchangeConfig cannot be address(0)");
-            new CoreSaltyFeed(pools, IExchangeConfig(address(0)));
-            }
-
 
 	// A unit test that verifies the correct initialization of the pools, WBTC, WETH, and USDS contract addresses in the CoreSaltyFeed constructor.
 	function testCorrectInitializationOfContractAddresses() public

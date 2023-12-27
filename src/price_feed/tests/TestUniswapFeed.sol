@@ -41,7 +41,7 @@ contract TestUniswapFeed is CoreUniswapFeed
 
 	// Wrap the _getUniswapTwapWei function in a public function that includes a try/catch.
 	// Returns zero on any type of failure.
-    function getUniswapTwapWei( address pool, uint256 twapInterval ) public override view returns (uint256)
+    function getUniswapTwapWei( IUniswapV3Pool pool, uint256 twapInterval ) public override view returns (uint256)
 		{
 		require( !revertNext, "revertNext is true" );
 

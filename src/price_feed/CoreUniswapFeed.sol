@@ -18,8 +18,8 @@ contract CoreUniswapFeed is IPriceFeed
 
 
 	// Uniswap v3 pool addresses
-    address immutable public UNISWAP_V3_WBTC_WETH;
-	address immutable public UNISWAP_V3_WETH_USDC;
+    IUniswapV3Pool immutable public UNISWAP_V3_WBTC_WETH;
+	IUniswapV3Pool immutable public UNISWAP_V3_WETH_USDC;
 
 	IERC20 immutable public wbtc;
     IERC20 immutable public weth;
@@ -31,14 +31,8 @@ contract CoreUniswapFeed is IPriceFeed
 
 	constructor( IERC20 _wbtc, IERC20 _weth, IERC20 _usdc, address _UNISWAP_V3_WBTC_WETH, address _UNISWAP_V3_WETH_USDC )
 		{
-		require( address(_wbtc) != address(0), "_wbtc cannot be address(0)" );
-		require( address(_weth) != address(0), "_weth cannot be address(0)" );
-		require( address(_usdc) != address(0), "_usdc cannot be address(0)" );
-		require( _UNISWAP_V3_WBTC_WETH != address(0), "_UNISWAP_V3_WBTC_WETH cannot be address(0)" );
-		require( _UNISWAP_V3_WETH_USDC != address(0), "_UNISWAP_V3_WETH_USDC cannot be address(0)" );
-
-		UNISWAP_V3_WBTC_WETH = _UNISWAP_V3_WBTC_WETH;
-		UNISWAP_V3_WETH_USDC = _UNISWAP_V3_WETH_USDC;
+		UNISWAP_V3_WBTC_WETH = IUniswapV3Pool(_UNISWAP_V3_WBTC_WETH);
+		UNISWAP_V3_WETH_USDC = IUniswapV3Pool(_UNISWAP_V3_WETH_USDC);
 
 		usdc = _usdc;
 		wbtc = _wbtc;
@@ -53,23 +47,21 @@ contract CoreUniswapFeed is IPriceFeed
 
 
 	// Returns amount of token0 * (10**18) given token1
-    function _getUniswapTwapWei( address pool, uint256 twapInterval ) public view returns (uint256)
+    function _getUniswapTwapWei( IUniswapV3Pool pool, uint256 twapInterval ) public view returns (uint256)
     	{
-		IUniswapV3Pool _pool = IUniswapV3Pool( pool );
-
 		uint32[] memory secondsAgo = new uint32[](2);
 		secondsAgo[0] = uint32(twapInterval); // from (before)
 		secondsAgo[1] = 0; // to (now)
 
         // Get the historical tick data using the observe() function
-         (int56[] memory tickCumulatives, ) = _pool.observe(secondsAgo);
+         (int56[] memory tickCumulatives, ) = pool.observe(secondsAgo);
 
 		int24 tick = int24((tickCumulatives[1] - tickCumulatives[0]) / int56(uint56(twapInterval)));
 		uint160 sqrtPriceX96 = TickMath.getSqrtRatioAtTick( tick );
 		uint256 p = FullMath.mulDiv(sqrtPriceX96, sqrtPriceX96, FixedPoint96.Q96 );
 
-		uint8 decimals0 = ( ERC20( _pool.token0() ) ).decimals();
-		uint8 decimals1 = ( ERC20( _pool.token1() ) ).decimals();
+		uint8 decimals0 = ( ERC20( pool.token0() ) ).decimals();
+		uint8 decimals1 = ( ERC20( pool.token1() ) ).decimals();
 
 		if ( decimals1 > decimals0 )
 			return FullMath.mulDiv( 10 ** ( 18 + decimals1 - decimals0 ), FixedPoint96.Q96, p );
@@ -84,7 +76,7 @@ contract CoreUniswapFeed is IPriceFeed
 	// Wrap the _getUniswapTwapWei function in a public function that includes a try/catch.
 	// Returns zero on any type of failure.
 	// virtual - really just needed for the derived unit tests
-    function getUniswapTwapWei( address pool, uint256 twapInterval ) public virtual view returns (uint256)
+    function getUniswapTwapWei( IUniswapV3Pool pool, uint256 twapInterval ) public virtual view returns (uint256)
 		{
 		// Initialize return value to 0
 		uint256 twap = 0;

@@ -122,20 +122,6 @@ contract TestAirdrop is Deployment
 		}
 
 
-	// A unit test to check if the constructor reverts with any zero address arguments
-	function testAirdropConstructor() public
-    	{
-    	IExchangeConfig _exchangeConfigZero = IExchangeConfig(address(0));
-    	IStaking _stakingZero = IStaking(address(0));
-
-    	vm.expectRevert("_exchangeConfig cannot be address(0)");
-    	new Airdrop(_exchangeConfigZero, staking);
-
-    	vm.expectRevert("_staking cannot be address(0)");
-    	new Airdrop(exchangeConfig, _stakingZero);
-    	}
-
-
 	// A unit test to ensure the `whitelistWallet` function successfully adds a non-zero address to the `_whitelist` and verify that the function reverts when `claimingAllowed` is true.
 	function testWhitelistWallet() external {
     	// Check that Alice is already whitelisted

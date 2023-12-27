@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.22;
 
-import "../../price_feed/interfaces/IPriceFeed.sol";
-
-
 interface IStableConfig
 	{
 	function changeRewardPercentForCallingLiquidation(bool increase) external; // onlyOwner

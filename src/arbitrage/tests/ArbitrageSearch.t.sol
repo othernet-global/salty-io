@@ -6,7 +6,7 @@ import "../../dev/Deployment.sol";
 import "../../pools/PoolUtils.sol";
 
 
-contract TestUnimodal is ArbitrageSearch, Test
+contract TestArbitrageSearch is ArbitrageSearch, Test
 	{
 	Deployment deployment = new Deployment();
 
@@ -53,7 +53,7 @@ contract TestUnimodal is ArbitrageSearch, Test
 		reservesC1 = reservesC1 % type(uint112).max;
 
 		uint256 bruteForceAmountIn = _bruteForceFindBestArbAmountIn(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1);
-		uint256 binarySearchAmountIn = _binarySearch(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1);
+		uint256 binarySearchAmountIn = _bisectionSearch(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1);
 
 		uint256 diff;
 		if ( bruteForceAmountIn > binarySearchAmountIn )
@@ -79,6 +79,6 @@ contract TestUnimodal is ArbitrageSearch, Test
 	function testMaxReserves() public pure
 		{
 		_bruteForceFindBestArbAmountIn(type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max);
-		_binarySearch(type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max);
+		_bisectionSearch(type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max);
 		}
 	}
