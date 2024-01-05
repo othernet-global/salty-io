@@ -12,7 +12,7 @@ import "./interfaces/IPriceAggregator.sol";
 // priceFeed1, priceFeed2, and priceFeed3 are updateable using DAO.proposeSetContractAddress( "priceFeed1" ), etc
 contract PriceAggregator is IPriceAggregator, Ownable
     {
-    event PriceFeedSet(uint256 indexed priceFeedNum, address indexed newPriceFeed);
+    event PriceFeedSet(uint256 indexed priceFeedNum, IPriceFeed indexed newPriceFeed);
     event MaximumPriceFeedPercentDifferenceChanged(uint256 newMaxDifference);
     event SetPriceFeedCooldownChanged(uint256 newCooldown);
 
@@ -58,7 +58,7 @@ contract PriceAggregator is IPriceAggregator, Ownable
 			priceFeed3 = newPriceFeed;
 
 		priceFeedModificationCooldownExpiration = block.timestamp + priceFeedModificationCooldown;
-		emit PriceFeedSet(priceFeedNum, address(newPriceFeed));
+		emit PriceFeedSet(priceFeedNum, newPriceFeed);
 		}
 
 
