@@ -7,6 +7,7 @@ import "../rewards/interfaces/IRewardsConfig.sol";
 import "../pools/interfaces/IPoolsConfig.sol";
 import "../staking/interfaces/IStaking.sol";
 import "../staking/interfaces/IStakingConfig.sol";
+import "../stable/interfaces/IStableConfig.sol";
 import "../pools/interfaces/IPools.sol";
 import "../interfaces/ISalt.sol";
 import "../interfaces/IExchangeConfig.sol";
@@ -124,10 +125,17 @@ contract Utils
 
 
 	// Shortcut for returning the current percentStakedTimes1000 and stakingAPRTimes1000
-	function stakingPercentAndAPR(ISalt salt, IStaking staking, IRewardsConfig rewardsConfig, address stakingRewardsEmitter, address liquidityRewardsEmitter, address emissions, address daoVestingWallet, address teamVestingWallet) public view returns(uint256 percentStakedTimes1000, uint256 stakingAPRTimes1000)
+	function stakingPercentAndAPR(ISalt salt, IStaking staking, IRewardsConfig rewardsConfig, address stakingRewardsEmitter, address liquidityRewardsEmitter, address emissions, address daoVestingWallet, address teamVestingWallet) public view returns (uint256 percentStakedTimes1000, uint256 stakingAPRTimes1000)
 		{
+		// Make sure that the InitDistribution has already happened
+		if ( salt.balanceOf(stakingRewardsEmitter) == 0 )
+			return (0, 0);
+
 		uint256 totalCirculating = circulatingSALT(salt, emissions, daoVestingWallet, teamVestingWallet, stakingRewardsEmitter, liquidityRewardsEmitter);
+
 		uint256 totalStaked = staking.totalShares(PoolUtils.STAKED_SALT);
+		if ( totalStaked == 0 )
+			return (0, 0);
 
 		percentStakedTimes1000 = ( totalStaked * 100 * 1000 ) / totalCirculating;
 
@@ -237,7 +245,7 @@ contract Utils
 		}
 
 
-	function determineZapSwapAmount( uint256 reserveA, uint256 reserveB, uint256 zapAmountA, uint256 zapAmountB ) external view returns (uint256 swapAmountA, uint256 swapAmountB )
+	function determineZapSwapAmount( uint256 reserveA, uint256 reserveB, uint256 zapAmountA, uint256 zapAmountB ) external pure returns (uint256 swapAmountA, uint256 swapAmountB )
 		{
 		return PoolMath._determineZapSwapAmount( reserveA, reserveB, zapAmountA, zapAmountB );
 		}
@@ -337,6 +345,23 @@ contract Utils
 			addedLiquidity = (totalLiquidity * addedAmountA) / reservesA;
 		else
 			addedLiquidity = (totalLiquidity * addedAmountB) / reservesB;
+		}
+
+
+	function stableNonUserData( IStableConfig stableConfig, IStakingConfig stakingConfig, IERC20 usds ) external view returns (uint256 minimumCollateralRatioPercent, uint256 modificationCooldown, uint256 big_minimumCollateralValueForBorrowing, uint256 big_usdsSupply )
+		{
+		minimumCollateralRatioPercent = stableConfig.minimumCollateralRatioPercent();
+		modificationCooldown = stakingConfig.modificationCooldown();
+		big_minimumCollateralValueForBorrowing = stableConfig.minimumCollateralValueForBorrowing();
+		big_usdsSupply = usds.totalSupply();
+		}
+
+
+	function stableUserData( ICollateralAndLiquidity collateralAndLiquidity, address wallet) external view returns (uint256 big_maxBorrowableUSDS, uint256 big_borrowedUSDS, uint256 big_maxWithdrawableCollateral)
+		{
+		big_maxBorrowableUSDS = collateralAndLiquidity.maxBorrowableUSDS(wallet);
+		big_borrowedUSDS = collateralAndLiquidity.usdsBorrowedByUsers(wallet);
+		big_maxWithdrawableCollateral = collateralAndLiquidity.maxWithdrawableCollateral(wallet);
 		}
 	}
 
