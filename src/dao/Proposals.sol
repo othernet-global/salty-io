@@ -159,7 +159,7 @@ contract Proposals is IProposals, ReentrancyGuard
 		}
 
 
-	function proposeTokenWhitelisting( IERC20 token, string calldata tokenIconURL, string calldata description ) external nonReentrant returns (uint256 ballotID)
+	function proposeTokenWhitelisting( IERC20 token, string calldata tokenIconURL, string calldata description ) external nonReentrant returns (uint256 _ballotID)
 		{
 		require( address(token) != address(0), "token cannot be address(0)" );
 		require( token.totalSupply() < type(uint112).max, "Token supply cannot exceed uint112.max" ); // 5 quadrillion max supply with 18 decimals of precision
