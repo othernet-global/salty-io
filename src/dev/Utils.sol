@@ -363,5 +363,17 @@ contract Utils
 		big_borrowedUSDS = collateralAndLiquidity.usdsBorrowedByUsers(wallet);
 		big_maxWithdrawableCollateral = collateralAndLiquidity.maxWithdrawableCollateral(wallet);
 		}
+
+
+
+	function statsData(ISalt salt, address emissions, address daoVestingWallet, address teamVestingWallet, address stakingRewardsEmitter, address liquidityRewardsEmitter, IStaking staking, IRewardsConfig rewardsConfig, IUSDS usds ) external view returns ( uint256 saltSupply, uint256 stakedSALT, uint256 burnedSALT, uint256 liquidityRewardsSalt, uint256 rewardsEmitterDailyPercentTimes1000, uint256 usdsSupply )
+		{
+		saltSupply = circulatingSALT(salt, emissions, daoVestingWallet, teamVestingWallet, stakingRewardsEmitter, liquidityRewardsEmitter);
+		stakedSALT = staking.totalShares(PoolUtils.STAKED_SALT );
+		burnedSALT = salt.totalBurned();
+		liquidityRewardsSalt = salt.balanceOf( liquidityRewardsEmitter );
+		rewardsEmitterDailyPercentTimes1000 = rewardsConfig.rewardsEmitterDailyPercentTimes1000();
+		usdsSupply = usds.totalSupply();
+		}
 	}
 
