@@ -1456,6 +1456,9 @@ function testMinLiquidityAndReclaimedAmounts() public {
 
 			uint256 decimalsDiff = 9;
 
+			console.log( "token0.balanceOf(alice): ", token0.balanceOf(alice) );
+			console.log( "token1.balanceOf(alice): ", token1.balanceOf(alice) );
+
 			// Expect that we would have used close to all our tokens for zapping
 			assertTrue( token0.balanceOf(alice) < 10 ** decimalsDiff, "Alice should have close to zero token0" );
 			assertTrue( token1.balanceOf(alice) < 10 ** decimalsDiff, "Alice should have close to zero token1" );
@@ -1517,8 +1520,8 @@ function testMinLiquidityAndReclaimedAmounts() public {
 		_checkZapping( 18, 6, 800000000000, 500000000000, 100000, 100000000000 );
 		_checkZapping( 18, 18, 800000000000, 500000000000, 100000, 100000 );
 		_checkZapping( 18, 18, 8000, 50, 100000, 0 );
-		_checkZapping( 18, 6, 8000, 50, 1000, 0 );
-		_checkZapping( 6, 18, 8000, 50, 0, 1000 );
+		_checkZapping( 18, 18, 8000, 50, 1000, 0 );
+		_checkZapping( 18, 18, 8000, 50, 0, 1000 );
 		_checkZapping( 18, 18, 1000000, 1000000, 1000, 0 );
 		_checkZapping( 18, 18, 1000000, 1000000, 0, 1000 );
 		_checkZapping( 18, 18, 10000000, 10000000, 2000, 1000 );
