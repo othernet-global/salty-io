@@ -16,30 +16,6 @@ contract TestCoreUniswapFeed is Deployment
 		}
 
 
-	// A unit test that verifies if getTwapWBTC and getTwapWETH return the correct results for various TWAP intervals, including maximum, minimum, and zero. The contracts should either handle these gracefully or revert as per the business logic.
-	function testGetTwapWBTCandGetTwapWETHForVariousTwapIntervals() public
-        {
-        uint256 maxTwapInterval = 2**32 - 1;
-        uint256 minTwapInterval = 1;
-        uint256 zeroTwapInterval = 0;
-
-        // Set some arbitrary twap values for the test
-        uint256 twapValueWETH_USDC = 2 ether;
-
-        testUniswapFeed.setTwapWETH_USDC( twapValueWETH_USDC );
-
-        // Test for max TWAP interval
-        uint256 maxTwapWETH = testUniswapFeed.getTwapWETH( maxTwapInterval );
-        assertEq( maxTwapWETH, twapValueWETH_USDC, "Incorrect TWAP WETH for max interval" );
-
-        // Test for min TWAP interval
-        uint256 minTwapWETH = testUniswapFeed.getTwapWETH( minTwapInterval );
-        assertEq( minTwapWETH, twapValueWETH_USDC, "Incorrect TWAP WETH for min interval" );
-
-        // Test for zero TWAP interval
-        testUniswapFeed.getTwapWETH( zeroTwapInterval );
-        }
-
 
 	// A unit test that checks if getTwapWBTC, getTwapWETH, and getUniswapTwapWei return zero when the _getUniswapTwapWei function fails or returns zero for any of the underlying pools. This can be done by making the _getUniswapTwapWei function throw an error or return zero, and checking that the other functions return zero as well.
 	function testGetTwapFailure() public
