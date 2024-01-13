@@ -50,17 +50,17 @@ contract Deployment is Test
 	address constant public DEPLOYER = 0x73107dA86708c2DAd0D91388fB057EeE3E2581aF;
 
 	// Test addresses on Sepolia for the Price Feeds
-	address public CHAINLINK_BTC_USD = 0x1b44F3514812d835EB1BDB0acB33d3fA3351Ee43;
+	address public CHAINLINK_BTC_USD = 0x65EC417a4C95d6FE6FB11EBFa86FAFEaE2B3bE2F;
 	address public CHAINLINK_ETH_USD = 0x694AA1769357215DE4FAC081bf1f309aDC325306;
-	address public UNISWAP_V3_BTC_ETH = 0xC27D6ACC8560F24681BC475953F27C5F71668448;
-	address public UNISWAP_V3_USDC_ETH = 0x9014aE623A76499A0f9F326e95f66fc800bF651d;
+	address public UNISWAP_V3_BTC_ETH = 0xFb9785B2CA67AF31087945BCCd02D00768208e38;
+	address public UNISWAP_V3_USDC_ETH = 0x3EcF4D43d1C7EC1A609d554BAb2565b223831349;
 	IERC20 public _testBTC = IERC20(0xd4C3cc58E46C99fbA0c4e4d93C82AE32000cc4D4);
-	IERC20 public _testETH = IERC20(0xcEBB1DB86DFc17563385b394CbD968CBd3B46F2A);
+	IERC20 public _testETH = IERC20(0x14edfAb9FAE5fe2396565903763Cb29E0d7be7d9);
 	IERC20 public _testUSDC = IERC20(0x9C65b1773A95d607f41fa205511cd3327cc39D9D);
 	IForcedPriceFeed public forcedPriceFeed = IForcedPriceFeed(address(0x3B0Eb37f26b502bAe83df4eCc54afBDfb90B5d3a));
 
 	// The DAO contract can provide us with all other contract addresses in the protocol
-	IDAO public dao = IDAO(address(0x5441b70de111bAB276A3B6da9f1922896804491c));
+	IDAO public dao = IDAO(address(0x112223db8E32d056170da32FD3Dba90adCa50159));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));
