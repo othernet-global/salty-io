@@ -32,7 +32,11 @@ The Salty.IO codebase is divided up into the following folders:
 \
 **Build Instructions**
 
-forge build
+forge build\
+\
+**To run unit tests**\
+Note - the RPC URL needs to be a Sepolia RPC (e.g. https://rpc.sepolia.org) \
+COVERAGE="yes" NETWORK="sep" forge test -vv --rpc-url https://x.x.x.x:yyy
 
 \
 **Additional Resources**
