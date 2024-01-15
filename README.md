@@ -33,3 +33,10 @@ The Salty.IO codebase is divided up into the following folders:
 **Build Instructions**
 
 forge build
+
+\
+**Additional Resources**
+
+Documentation: https://docs.salty.io \
+In-depth Gitbook Technical Overview: https://tech.salty.io \
+45 minute informal Technical Overview with Daniel Cota (originally for auditors): https://www.youtube.com/watch?v=bmAjm8J3q3Y
