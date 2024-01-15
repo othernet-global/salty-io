@@ -39,4 +39,4 @@ forge build
 
 Documentation: https://docs.salty.io \
 In-depth Gitbook Technical Overview: https://tech.salty.io \
-45 minute informal Technical Wakthrough (originally for auditors): https://www.youtube.com/watch?v=bmAjm8J3q3Y
+45 minute informal Technical Walkthrough (originally for auditors): https://www.youtube.com/watch?v=bmAjm8J3q3Y
