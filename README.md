@@ -41,6 +41,13 @@ COVERAGE="yes" NETWORK="sep" forge test -vv --rpc-url https://x.x.x.x:yyy
 \
 **Additional Resources**
 
-Documentation: https://docs.salty.io \
-In-depth Gitbook Technical Overview: https://tech.salty.io \
-45 minute informal Technical Walkthrough (originally for auditors): https://www.youtube.com/watch?v=bmAjm8J3q3Y
+[Documentation](https://docs.salty.io) \
+[In-depth Gitbook Technical Overview](https://tech.salty.io) \
+[45 minute informal Technical Walkthrough (originally for auditors)](https://www.youtube.com/watch?v=bmAjm8J3q3Y)
+
+\
+**Audits**
+
+[ABDK](https://github.com/abdk-consulting/audits/blob/main/othernet_global_pte_ltd/ABDK_OthernetGlobalPTELTD_SaltyIO_v_2_0.pdf) \
+Trail of Bits: Pending public release \
+Code4rena: In progress
