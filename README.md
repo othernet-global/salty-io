@@ -49,5 +49,5 @@ COVERAGE="yes" NETWORK="sep" forge test -vv --rpc-url https://x.x.x.x:yyy
 **Audits**
 
 [ABDK](https://github.com/abdk-consulting/audits/blob/main/othernet_global_pte_ltd/ABDK_OthernetGlobalPTELTD_SaltyIO_v_2_0.pdf) \
-Trail of Bits: Pending public release \
+[Trail of Bits](https://github.com/trailofbits/publications/blob/master/reviews/2023-10-saltyio-securityreview.pdf) \
 Code4rena: In progress
