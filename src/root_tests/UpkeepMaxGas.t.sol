@@ -29,9 +29,6 @@ contract TestMaxUpkeep is Deployment
 		vm.prank(address(daoVestingWallet));
 		salt.transfer(DEPLOYER, 1000000 ether);
 
-		vm.prank(address(collateralAndLiquidity));
-		usds.mintTo(DEPLOYER, 1000000 ether);
-
 		uint256 totalPools = 100;
 
     	// Create additional whitelisted pools
@@ -54,15 +51,15 @@ contract TestMaxUpkeep is Deployment
     		{
     		(IERC20 tokenA, IERC20 tokenB) = poolsConfig.underlyingTokenPair(poolIDs[i]);
 
-			tokenA.approve(address(collateralAndLiquidity), type(uint256).max);
-			tokenB.approve(address(collateralAndLiquidity), type(uint256).max);
+			tokenA.approve(address(liquidity), type(uint256).max);
+			tokenB.approve(address(liquidity), type(uint256).max);
 			tokenA.approve(address(pools), type(uint256).max);
 			tokenB.approve(address(pools), type(uint256).max);
 
 			if ( ( address(tokenA) == address(wbtc)) && ( address(tokenB) == address(weth)) )
-		        collateralAndLiquidity.depositCollateralAndIncreaseShare(100 * 10**8, 100 ether, 0, block.timestamp, false);
+		        liquidity.depositLiquidityAndIncreaseShare(wbtc, weth, 100 * 10**8, 100 ether, 0, block.timestamp, false);
 			else
-        		collateralAndLiquidity.depositLiquidityAndIncreaseShare(tokenA, tokenB, 100 * 10**ERC20(address(tokenA)).decimals(), 100 * 10**ERC20(address(tokenB)).decimals(), 0, block.timestamp, false);
+        		liquidity.depositLiquidityAndIncreaseShare(tokenA, tokenB, 100 * 10**ERC20(address(tokenA)).decimals(), 100 * 10**ERC20(address(tokenB)).decimals(), 0, block.timestamp, false);
     		}
     	vm.stopPrank();
 		}
@@ -89,16 +86,6 @@ contract TestMaxUpkeep is Deployment
     function _createActivity() internal
     	{
     	_placeTrades();
-
-		vm.startPrank(DEPLOYER);
-
-		weth.transfer(address(liquidizer), 1000 ether);
-		dai.transfer(address(liquidizer), 1000 ether);
-		wbtc.transfer(address(liquidizer), 1000 * 10**8);
-    	vm.stopPrank();
-
-    	vm.prank(address(collateralAndLiquidity));
-    	liquidizer.incrementBurnableUSDS( 100000 ether );
 
     	// Mimic arbitrage profits deposited as WETH for the DAO
     	vm.prank(DEPLOYER);

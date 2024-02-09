@@ -5,8 +5,6 @@ import "forge-std/Test.sol";
 import "../pools/interfaces/IPools.sol";
 import "../pools/interfaces/IPoolsConfig.sol";
 import "../interfaces/IExchangeConfig.sol";
-import "../stable/USDS.sol";
-import "../stable/interfaces/IStableConfig.sol";
 import "../price_feed/interfaces/IPriceAggregator.sol";
 import "../staking/interfaces/IStakingConfig.sol";
 import "../staking/interfaces/IStaking.sol";
@@ -30,14 +28,10 @@ import "../ExchangeConfig.sol";
 import "../price_feed/PriceAggregator.sol";
 import "../pools/Pools.sol";
 import "../staking/Liquidity.sol";
-import "../stable/CollateralAndLiquidity.sol";
 import "../rewards/RewardsEmitter.sol";
 import "../root_tests/TestERC20.sol";
 import "../launch/Airdrop.sol";
 import "../launch/BootstrapBallot.sol";
-import "../stable/interfaces/ILiquidizer.sol";
-import "../stable/Liquidizer.sol";
-import "../stable/StableConfig.sol";
 import "../Salt.sol";
 import "../ManagedWallet.sol";
 import "../dao/DAOConfig.sol";
@@ -55,20 +49,20 @@ contract Deployment is Test
 	address public UNISWAP_V3_BTC_ETH = 0xFb9785B2CA67AF31087945BCCd02D00768208e38;
 	address public UNISWAP_V3_USDC_ETH = 0x3EcF4D43d1C7EC1A609d554BAb2565b223831349;
 	IERC20 public _testBTC = IERC20(0xd4C3cc58E46C99fbA0c4e4d93C82AE32000cc4D4);
-	IERC20 public _testETH = IERC20(0x14edfAb9FAE5fe2396565903763Cb29E0d7be7d9);
+	IERC20 public _testETH = IERC20(0x12e2cA2Cc70f1742EDA01C2980aC43Ca5F12CbFd);
 	IERC20 public _testUSDC = IERC20(0x9C65b1773A95d607f41fa205511cd3327cc39D9D);
+	IERC20 public _testUSDT = IERC20(0xCd58586cC5F0c6c425b99BB94Dc5662cf2A18B84);
 	IForcedPriceFeed public forcedPriceFeed = IForcedPriceFeed(address(0x3B0Eb37f26b502bAe83df4eCc54afBDfb90B5d3a));
 
 	// The DAO contract can provide us with all other contract addresses in the protocol
-	IDAO public dao = IDAO(address(0x112223db8E32d056170da32FD3Dba90adCa50159));
+	IDAO public dao = IDAO(address(0x8D2dfc095467226Fd5692550C443e905a843065D));
+	IPriceAggregator public priceAggregator = IPriceAggregator(address(0xc77AE56994C043DC2B4D420b105Ef1134D7bf4C7));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));
 	IStakingConfig public stakingConfig = IStakingConfig(getContract(address(dao), "stakingConfig()" ));
-	IStableConfig public stableConfig = IStableConfig(getContract(address(dao), "stableConfig()" ));
 	IRewardsConfig public rewardsConfig = IRewardsConfig(getContract(address(dao), "rewardsConfig()" ));
 	IDAOConfig public daoConfig = IDAOConfig(getContract(address(dao), "daoConfig()" ));
-	IPriceAggregator public priceAggregator = IPriceAggregator(getContract(address(dao), "priceAggregator()" ));
 
 	IManagedWallet public managedTeamWallet = exchangeConfig.managedTeamWallet();
 	address public teamWallet = managedTeamWallet.mainWallet();
@@ -80,17 +74,16 @@ contract Deployment is Test
 	ISalt public salt = exchangeConfig.salt();
     IERC20 public wbtc = exchangeConfig.wbtc();
     IERC20 public weth = exchangeConfig.weth();
-    IERC20 public dai = exchangeConfig.dai();
-    USDS public usds = USDS(address(exchangeConfig.usds()));
+    IERC20 public usdc = exchangeConfig.usdc();
+    IERC20 public usdt = _testUSDT;
 
 	ISaltRewards public saltRewards = ISaltRewards(getContract(address(upkeep), "saltRewards()" ));
 	IRewardsEmitter public stakingRewardsEmitter = IRewardsEmitter(getContract(address(saltRewards), "stakingRewardsEmitter()" ));
 	IRewardsEmitter public liquidityRewardsEmitter = IRewardsEmitter(getContract(address(saltRewards), "liquidityRewardsEmitter()" ));
 
 	IStaking public staking = IStaking(getContract(address(stakingRewardsEmitter), "stakingRewards()" ));
-	ICollateralAndLiquidity public collateralAndLiquidity = ICollateralAndLiquidity(getContract(address(usds), "collateralAndLiquidity()" ));
-	ILiquidizer  public liquidizer = ILiquidizer( getContract(address(collateralAndLiquidity), "liquidizer()" ));
-	IPools public pools = IPools(getContract(address(collateralAndLiquidity), "pools()" ));
+	ILiquidity public liquidity = ILiquidity(getContract(address(liquidityRewardsEmitter), "stakingRewards()" ));
+	IPools public pools = IPools(getContract(address(liquidity), "pools()" ));
 
 	IProposals public proposals = IProposals(getContract(address(dao), "proposals()" ));
 
@@ -156,7 +149,7 @@ contract Deployment is Test
 //		console.log( "DEFAULT: ", address(this) );
 
 		vm.startPrank(DEPLOYER);
-		dai = new TestERC20("DAI", 18);
+		usdc = new TestERC20("USDC", 6);
 		weth = new TestERC20("WETH", 18);
 		wbtc = new TestERC20("WBTC", 8);
 		salt = new Salt();
@@ -166,57 +159,51 @@ contract Deployment is Test
 
 		daoConfig = new DAOConfig();
 		poolsConfig = new PoolsConfig();
-		usds = new USDS();
 
 		managedTeamWallet = new ManagedWallet(teamWallet, teamConfirmationWallet);
-		exchangeConfig = new ExchangeConfig(salt, wbtc, weth, dai, usds, managedTeamWallet );
+		exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, managedTeamWallet );
 
 		priceAggregator = new PriceAggregator();
 		priceAggregator.setInitialFeeds( IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)) );
 
-		liquidizer = new Liquidizer(exchangeConfig, poolsConfig);
-
 		pools = new Pools(exchangeConfig, poolsConfig);
 		staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
-		collateralAndLiquidity = new CollateralAndLiquidity(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator, liquidizer);
+		liquidity = new Liquidity(pools, exchangeConfig, poolsConfig, stakingConfig);
 
 		stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig, false );
-		liquidityRewardsEmitter = new RewardsEmitter( collateralAndLiquidity, exchangeConfig, poolsConfig, rewardsConfig, true );
+		liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, rewardsConfig, true );
 
 		saltRewards = new SaltRewards(stakingRewardsEmitter, liquidityRewardsEmitter, exchangeConfig, rewardsConfig);
 		emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
 		poolsConfig.whitelistPool( pools,  salt, wbtc);
 		poolsConfig.whitelistPool( pools,  salt, weth);
-		poolsConfig.whitelistPool( pools,  salt, usds);
-		poolsConfig.whitelistPool( pools,  wbtc, usds);
-		poolsConfig.whitelistPool( pools,  weth, usds);
-		poolsConfig.whitelistPool( pools,  wbtc, dai);
-		poolsConfig.whitelistPool( pools,  weth, dai);
-		poolsConfig.whitelistPool( pools,  usds, dai);
+		poolsConfig.whitelistPool( pools,  salt, usdc);
+		poolsConfig.whitelistPool( pools,  wbtc, usdc);
+		poolsConfig.whitelistPool( pools,  weth, usdc);
+		poolsConfig.whitelistPool( pools,  wbtc, usdt);
+		poolsConfig.whitelistPool( pools,  weth, usdt);
 		poolsConfig.whitelistPool( pools,  wbtc, weth);
+		poolsConfig.whitelistPool( pools,  usdc, usdt);
 
 		proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 
 		address oldDAO = address(dao);
-		dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidityRewardsEmitter, collateralAndLiquidity);
+		dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, daoConfig, liquidityRewardsEmitter, liquidity);
 
 		airdrop = new Airdrop(exchangeConfig, staking);
 
 		accessManager = new AccessManager(dao);
 
-		liquidizer.setContracts(collateralAndLiquidity, pools, dao);
-
-		upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, stableConfig, priceAggregator, saltRewards, collateralAndLiquidity, emissions, dao);
+		upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, saltRewards, emissions, dao);
 
 		daoVestingWallet = new VestingWallet( address(dao), uint64(block.timestamp), 60 * 60 * 24 * 365 * 10 );
 		teamVestingWallet = new VestingWallet( address(upkeep), uint64(block.timestamp), 60 * 60 * 24 * 365 * 10 );
 
 		bootstrapBallot = new BootstrapBallot(exchangeConfig, airdrop, 60 * 60 * 24 * 5 );
-		initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, collateralAndLiquidity);
+		initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards);
 
-		pools.setContracts(dao, collateralAndLiquidity);
-		usds.setCollateralAndLiquidity(collateralAndLiquidity);
+		pools.setContracts(dao, liquidity);
 
 		exchangeConfig.setContracts(dao, upkeep, initialDistribution, airdrop, teamVestingWallet, daoVestingWallet );
 		exchangeConfig.setAccessManager(accessManager);
@@ -231,7 +218,6 @@ contract Deployment is Test
 		vm.startPrank(address(oldDAO));
 		Ownable(address(stakingConfig)).transferOwnership( address(dao) );
 		Ownable(address(rewardsConfig)).transferOwnership( address(dao) );
-		Ownable(address(stableConfig)).transferOwnership( address(dao) );
 		vm.stopPrank();
 
 		// Move the SALT to the new initialDistribution contract

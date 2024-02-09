@@ -34,12 +34,6 @@ contract TestProposals is Deployment
 		salt.transfer( DEPLOYER, 90000000 ether );
 		vm.stopPrank();
 
-		// Mint some USDS to the DEPLOYER and alice
-		vm.startPrank( address(collateralAndLiquidity) );
-		usds.mintTo( DEPLOYER, 2000000 ether );
-		usds.mintTo( alice, 1000000 ether );
-		vm.stopPrank();
-
 		// Allow time for proposals
 		vm.warp( block.timestamp + 45 days );
 		}
@@ -48,17 +42,14 @@ contract TestProposals is Deployment
     function setUp() public
     	{
     	vm.startPrank( DEPLOYER );
-    	usds.approve( address(proposals), type(uint256).max );
     	salt.approve( address(staking), type(uint256).max );
     	vm.stopPrank();
 
     	vm.startPrank( alice );
-    	usds.approve( address(proposals), type(uint256).max );
     	salt.approve( address(staking), type(uint256).max );
     	vm.stopPrank();
 
     	vm.startPrank( bob );
-    	usds.approve( address(proposals), type(uint256).max );
     	salt.approve( address(staking), type(uint256).max );
     	vm.stopPrank();
     	}
@@ -173,10 +164,6 @@ contract TestProposals is Deployment
         string memory exclusionBallotName = "exclude:ca";
         string memory countryName1 = "us";
         string memory countryName2 = "ca";
-
-        // Assert initial balances
-        assertEq(usds.balanceOf(alice), 1000000 ether);
-        assertEq(usds.balanceOf(bob), 0 ether);
 
         // Propose country inclusion
         vm.startPrank(alice);
@@ -707,13 +694,12 @@ staking.stakeSALT(1000 ether);
 	function testUnwhitelistingCoreTokens() public {
 		IERC20 wbtc = exchangeConfig.wbtc();
 		IERC20 weth = exchangeConfig.weth();
-		IERC20 dai = exchangeConfig.dai();
+		IERC20 usdc = exchangeConfig.usdc();
 
 		vm.startPrank(address(dao));
 		poolsConfig.whitelistPool( pools,    wbtc, weth );
-		poolsConfig.whitelistPool( pools,    wbtc, dai );
+		poolsConfig.whitelistPool( pools,    wbtc, usdc );
 		poolsConfig.whitelistPool( pools,    wbtc, salt );
-		poolsConfig.whitelistPool( pools,    wbtc, usds );
 		vm.stopPrank();
 
 		vm.startPrank(DEPLOYER);
@@ -724,14 +710,11 @@ staking.stakeSALT(1000 ether);
         vm.expectRevert("Cannot unwhitelist WETH");
         proposals.proposeTokenUnwhitelisting(weth, "test", "test");
 
-        vm.expectRevert("Cannot unwhitelist DAI");
-        proposals.proposeTokenUnwhitelisting(dai, "test", "test");
-
         vm.expectRevert("Cannot unwhitelist SALT");
         proposals.proposeTokenUnwhitelisting(salt, "test", "test");
 
-        vm.expectRevert("Cannot unwhitelist USDS");
-        proposals.proposeTokenUnwhitelisting(usds, "test", "test");
+        vm.expectRevert("Cannot unwhitelist USDC");
+        proposals.proposeTokenUnwhitelisting(usdc, "test", "test");
         }
 
 

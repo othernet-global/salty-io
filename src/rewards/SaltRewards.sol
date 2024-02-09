@@ -22,7 +22,7 @@ contract SaltRewards is ISaltRewards
 	IRewardsConfig immutable public rewardsConfig;
 	ISalt immutable public salt;
 
-	bytes32 immutable saltUSDSPoolID;
+	bytes32 immutable saltUSDCPoolID;
 
 
     constructor( IRewardsEmitter _stakingRewardsEmitter, IRewardsEmitter _liquidityRewardsEmitter, IExchangeConfig _exchangeConfig, IRewardsConfig _rewardsConfig )
@@ -34,7 +34,7 @@ contract SaltRewards is ISaltRewards
 
 		// Cached for efficiency
 		salt = _exchangeConfig.salt();
-		saltUSDSPoolID = PoolUtils._poolID(salt, _exchangeConfig.usds());
+		saltUSDCPoolID = PoolUtils._poolID(salt, _exchangeConfig.usdc());
 
 		// Gas saving approval for rewards distribution on performUpkeep().
 		// This contract only has a temporary SALT balance during the performUpkeep transaction.
@@ -54,8 +54,8 @@ contract SaltRewards is ISaltRewards
 
 
 	// Transfer SALT rewards to pools in the liquidityRewardsEmitter proportional to each pool's share in generating recent arbitrage profits.
-	// Also send the direct rewards specified by the DAO to the SALT/USDS pool.
-	function _sendLiquidityRewards( uint256 liquidityRewardsAmount, uint256 directRewardsForSaltUSDS, bytes32[] memory poolIDs, uint256[] memory profitsForPools, uint256 totalProfits ) internal
+	// Also send the direct rewards specified by the DAO to the SALT/USDC pool.
+	function _sendLiquidityRewards( uint256 liquidityRewardsAmount, uint256 directRewardsForSaltUSDC, bytes32[] memory poolIDs, uint256[] memory profitsForPools, uint256 totalProfits ) internal
 		{
 		require( poolIDs.length == profitsForPools.length, "Incompatible array lengths" );
 
@@ -66,9 +66,9 @@ contract SaltRewards is ISaltRewards
 			bytes32 poolID = poolIDs[i];
 			uint256 rewardsForPool = ( liquidityRewardsAmount * profitsForPools[i] ) / totalProfits;
 
-			// The SALT/USDS pool is entitled to additional rewards - as specified by RewardsConfig.percentRewardsSaltUSDS
-			if ( poolID == saltUSDSPoolID )
-				rewardsForPool += directRewardsForSaltUSDS;
+			// The SALT/USDC pool is entitled to additional rewards - as specified by RewardsConfig.percentRewardsSaltUSDC
+			if ( poolID == saltUSDCPoolID )
+				rewardsForPool += directRewardsForSaltUSDC;
 
 			addedRewards[i] = AddedReward( poolID, rewardsForPool );
 			}
@@ -134,16 +134,16 @@ contract SaltRewards is ISaltRewards
 		if ( totalProfits == 0 )
 			return;
 
-		// Determine how much of the SALT rewards will be directly awarded to the SALT/USDS pool.
-		// This is because SALT/USDS is important, but not included in other arbitrage trades - which would normally yield additional rewards for the pool by being part of arbitrage swaps.
-		uint256 directRewardsForSaltUSDS = ( saltRewardsToDistribute * rewardsConfig.percentRewardsSaltUSDS() ) / 100;
-		uint256 remainingRewards = saltRewardsToDistribute - directRewardsForSaltUSDS;
+		// Determine how much of the SALT rewards will be directly awarded to the SALT/USDC pool.
+		// This is because SALT/USDC is important, but not included in other arbitrage trades - which would normally yield additional rewards for the pool by being part of arbitrage swaps.
+		uint256 directRewardsForSaltUSDC = ( saltRewardsToDistribute * rewardsConfig.percentRewardsSaltUSDC() ) / 100;
+		uint256 remainingRewards = saltRewardsToDistribute - directRewardsForSaltUSDC;
 
 		// Divide up the remaining rewards between SALT stakers and liquidity providers
 		uint256 stakingRewardsAmount = ( remainingRewards * rewardsConfig.stakingRewardsPercent() ) / 100;
 		uint256 liquidityRewardsAmount = remainingRewards - stakingRewardsAmount;
 
 		_sendStakingRewards(stakingRewardsAmount);
-		_sendLiquidityRewards(liquidityRewardsAmount, directRewardsForSaltUSDS, poolIDs, profitsForPools, totalProfits);
+		_sendLiquidityRewards(liquidityRewardsAmount, directRewardsForSaltUSDC, poolIDs, profitsForPools, totalProfits);
 		}
 	}

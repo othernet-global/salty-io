@@ -8,7 +8,6 @@ import "../DAOConfig.sol";
 import "../../pools/PoolsConfig.sol";
 import "../../staking/StakingConfig.sol";
 import "../../rewards/RewardsConfig.sol";
-import "../../stable/StableConfig.sol";
 import "../../ExchangeConfig.sol";
 import "./TestParameters.sol";
 import "../../price_feed/PriceAggregator.sol";
@@ -21,7 +20,6 @@ contract TestParametersOffchain is Test
 	PoolsConfig public poolsConfig;
 	StakingConfig public stakingConfig;
 	RewardsConfig public rewardsConfig;
-	StableConfig public stableConfig;
 	ExchangeConfig public exchangeConfig;
 	DAOConfig public daoConfig;
 	PriceAggregator public priceAggregator;
@@ -41,10 +39,8 @@ contract TestParametersOffchain is Test
 		poolsConfig = new PoolsConfig();
 		stakingConfig = new StakingConfig();
 		rewardsConfig = new RewardsConfig();
-		stableConfig = new StableConfig();
-		exchangeConfig = new ExchangeConfig(deployment.salt(), deployment.wbtc(), deployment.weth(), deployment.dai(), deployment.usds(), deployment.managedTeamWallet());
+		exchangeConfig = new ExchangeConfig(deployment.salt(), deployment.wbtc(), deployment.weth(), deployment.usdc(), deployment.managedTeamWallet());
 		daoConfig = new DAOConfig();
-		priceAggregator = new PriceAggregator();
 
 		vm.stopPrank();
 		}
@@ -72,21 +68,9 @@ contract TestParametersOffchain is Test
 			return rewardsConfig.emissionsWeeklyPercentTimes1000();
 		else if ( parameter == Parameters.ParameterTypes.stakingRewardsPercent )
 			return rewardsConfig.stakingRewardsPercent();
-		else if ( parameter == Parameters.ParameterTypes.percentRewardsSaltUSDS )
-			return rewardsConfig.percentRewardsSaltUSDS();
+		else if ( parameter == Parameters.ParameterTypes.percentRewardsSaltUSDC )
+			return rewardsConfig.percentRewardsSaltUSDC();
 
-		else if ( parameter == Parameters.ParameterTypes.rewardPercentForCallingLiquidation )
-			return stableConfig.rewardPercentForCallingLiquidation();
-		else if ( parameter == Parameters.ParameterTypes.maxRewardValueForCallingLiquidation )
-			return stableConfig.maxRewardValueForCallingLiquidation();
-		else if ( parameter == Parameters.ParameterTypes.minimumCollateralValueForBorrowing )
-			return stableConfig.minimumCollateralValueForBorrowing();
-		else if ( parameter == Parameters.ParameterTypes.initialCollateralRatioPercent )
-			return stableConfig.initialCollateralRatioPercent();
-		else if ( parameter == Parameters.ParameterTypes.minimumCollateralRatioPercent )
-			return stableConfig.minimumCollateralRatioPercent();
-		else if ( parameter == Parameters.ParameterTypes.percentArbitrageProfitsForStablePOL )
-			return stableConfig.percentArbitrageProfitsForStablePOL();
 
 		else if ( parameter == Parameters.ParameterTypes.bootstrappingRewards )
 			return daoConfig.bootstrappingRewards();
@@ -105,11 +89,6 @@ contract TestParametersOffchain is Test
 		else if ( parameter == Parameters.ParameterTypes.upkeepRewardPercent )
 			return daoConfig.upkeepRewardPercent();
 
-		else if ( parameter == Parameters.ParameterTypes.maximumPriceFeedPercentDifferenceTimes1000 )
-			return priceAggregator.maximumPriceFeedPercentDifferenceTimes1000();
-		else if ( parameter == Parameters.ParameterTypes.setPriceFeedCooldown )
-			return priceAggregator.priceFeedModificationCooldown();
-
 		require(false, "Invalid ParameterType" );
 		return 0;
 		}
@@ -120,7 +99,7 @@ contract TestParametersOffchain is Test
 		assertEq( _parameterValue(parameter), defaultValue, "Default value is not as expected" );
 
 		// Try increasing once
-		parameters.executeParameterChange( parameter, true, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator );
+		parameters.executeParameterChange( parameter, true, poolsConfig, stakingConfig, rewardsConfig, daoConfig );
 
 		uint256 expectedAfterIncrease = defaultValue + change;
 		if ( expectedAfterIncrease > maxValue )
@@ -129,7 +108,7 @@ contract TestParametersOffchain is Test
 		assertEq( _parameterValue(parameter), expectedAfterIncrease, "Increased value is not as expected" );
 
 		// Decrease once
-		parameters.executeParameterChange( parameter, false, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator );
+		parameters.executeParameterChange( parameter, false, poolsConfig, stakingConfig, rewardsConfig, daoConfig );
 
 		uint256 expectedAfterDecrease = expectedAfterIncrease - change;
 		if ( expectedAfterDecrease < minValue )
@@ -141,26 +120,26 @@ contract TestParametersOffchain is Test
 		// Increase until max
 		while( true )
 			{
-			parameters.executeParameterChange( parameter, true, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator );
+			parameters.executeParameterChange( parameter, true, poolsConfig, stakingConfig, rewardsConfig, daoConfig );
 			if ( _parameterValue(parameter) >= maxValue )
 				break;
 			}
 
 		// Increase one more time
-		parameters.executeParameterChange( parameter, true, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator );
+		parameters.executeParameterChange( parameter, true, poolsConfig, stakingConfig, rewardsConfig, daoConfig );
 		assertEq( _parameterValue(parameter), maxValue, "Max value not as expected" );
 
 
 		// Decrease until min
 		while( true )
 			{
-			parameters.executeParameterChange( parameter, false, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator );
+			parameters.executeParameterChange( parameter, false, poolsConfig, stakingConfig, rewardsConfig, daoConfig );
 			if ( _parameterValue(parameter) <= minValue )
 				break;
 			}
 
 		// Decrease one more time
-		parameters.executeParameterChange( parameter, false, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator );
+		parameters.executeParameterChange( parameter, false, poolsConfig, stakingConfig, rewardsConfig, daoConfig );
 		assertEq( _parameterValue(parameter), minValue, "Min value not as expected" );
 		}
 
@@ -192,29 +171,7 @@ contract TestParametersOffchain is Test
 		_checkParameter( Parameters.ParameterTypes.rewardsEmitterDailyPercentTimes1000, 250, 1000, 2500, 250 );
 		_checkParameter( Parameters.ParameterTypes.emissionsWeeklyPercentTimes1000, 250, 500, 1000, 250 );
 		_checkParameter( Parameters.ParameterTypes.stakingRewardsPercent, 25, 50, 75, 5 );
-		_checkParameter( Parameters.ParameterTypes.percentRewardsSaltUSDS, 5, 10, 25, 5 );
-		}
-
-
-	function testStableParameters() public
-		{
-		vm.startPrank(address(parameters));
-
-		// Need to increase minimumCollateralRatioPercent as minimumCollateralRatioPercent - rewardPercentForCallingLiquidation has to be greater than 105
-		for( uint256 i = 0; i < 5; i++ )
-			stableConfig.changeMinimumCollateralRatioPercent(true);
-
-		_checkParameter( Parameters.ParameterTypes.rewardPercentForCallingLiquidation, 5, 5, 10, 1 );
-
-		// Back to the default
-		for( uint256 i = 0; i < 5; i++ )
-			stableConfig.changeMinimumCollateralRatioPercent(false);
-
-		_checkParameter( Parameters.ParameterTypes.maxRewardValueForCallingLiquidation, 100 ether, 500 ether, 1000 ether, 100 ether );
-		_checkParameter( Parameters.ParameterTypes.minimumCollateralValueForBorrowing, 1000 ether, 2500 ether, 5000 ether, 500 ether );
-		_checkParameter( Parameters.ParameterTypes.initialCollateralRatioPercent, 150, 200, 300, 25 );
-		_checkParameter( Parameters.ParameterTypes.minimumCollateralRatioPercent, 110, 110, 120, 1 );
-		_checkParameter( Parameters.ParameterTypes.percentArbitrageProfitsForStablePOL, 1, 5, 10, 1 );
+		_checkParameter( Parameters.ParameterTypes.percentRewardsSaltUSDC, 5, 10, 25, 5 );
 		}
 
 
@@ -229,14 +186,6 @@ contract TestParametersOffchain is Test
 		_checkParameter( Parameters.ParameterTypes.maxPendingTokensForWhitelisting, 3, 5, 12, 1 );
 		_checkParameter( Parameters.ParameterTypes.arbitrageProfitsPercentPOL, 15, 20, 45, 5 );
 		_checkParameter( Parameters.ParameterTypes.upkeepRewardPercent, 1, 5, 10, 1 );
-		}
-
-
-	function testPriceAggregatorParameters() public
-		{
-		vm.startPrank(address(parameters));
-		_checkParameter( Parameters.ParameterTypes.maximumPriceFeedPercentDifferenceTimes1000, 1000, 3000, 7000, 500 );
-		_checkParameter( Parameters.ParameterTypes.setPriceFeedCooldown, 30 days, 35 days, 45 days, 5 days );
 		}
     }
 

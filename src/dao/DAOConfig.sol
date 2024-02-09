@@ -52,7 +52,7 @@ contract DAOConfig is IDAOConfig, Ownable
 	// Range: 3 to 12 with an adjustment of 1
 	uint256 public maxPendingTokensForWhitelisting = 5;
 
-	// The share of the WETH arbitrage profits that are sent to the DAO to form SALT/USDS Protocol Owned Liquidity
+	// The share of the WETH arbitrage profits that are sent to the DAO to form SALT/USDC Protocol Owned Liquidity
 	// Range: 15% to 45% with an adjustment of 5%
 	uint256 public arbitrageProfitsPercentPOL = 20;
 

@@ -27,21 +27,16 @@ contract TestUpkeepEdge is Deployment
 
 	function _setupLiquidity() internal
 		{
-		vm.prank(address(collateralAndLiquidity));
-		usds.mintTo(DEPLOYER, 100000 ether );
-
 		vm.prank(address(teamVestingWallet));
 		salt.transfer(DEPLOYER, 100000 ether );
 
 		vm.startPrank(DEPLOYER);
-		weth.approve( address(collateralAndLiquidity), 300000 ether);
-		usds.approve( address(collateralAndLiquidity), 100000 ether);
-		dai.approve( address(collateralAndLiquidity), 100000 ether);
-		salt.approve( address(collateralAndLiquidity), 100000 ether);
+		weth.approve( address(liquidity), 300000 ether);
+		usdc.approve( address(liquidity), 100000 ether);
+		salt.approve( address(liquidity), 100000 ether);
 
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare(weth, usds, 100000 ether, 100000 ether, 0, block.timestamp, false);
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare(weth, dai, 100000 ether, 100000 ether, 0, block.timestamp, false);
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare(weth, salt, 100000 ether, 100000 ether, 0, block.timestamp, false);
+		liquidity.depositLiquidityAndIncreaseShare(weth, usdc, 100000 ether, 100000 * 10**6, 0, block.timestamp, false);
+		liquidity.depositLiquidityAndIncreaseShare(weth, salt, 100000 ether, 100000 ether, 0, block.timestamp, false);
 
 		vm.stopPrank();
 		}
@@ -57,28 +52,24 @@ contract TestUpkeepEdge is Deployment
 		}
 
 
-	function _generateArbitrageProfits( bool despositSaltUSDS ) internal
+	function _generateArbitrageProfits( bool despositSaltUSDC ) internal
 		{
 		/// Pull some SALT from the daoVestingWallet
     	vm.prank(address(daoVestingWallet));
     	salt.transfer(DEPLOYER, 100000 ether);
 
-		// Mint some USDS
-		vm.prank(address(collateralAndLiquidity));
-		usds.mintTo(DEPLOYER, 1000 ether);
-
 		vm.startPrank(DEPLOYER);
-		salt.approve(address(collateralAndLiquidity), type(uint256).max);
-		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
-		weth.approve(address(collateralAndLiquidity), type(uint256).max);
-		wbtc.approve(address(collateralAndLiquidity), type(uint256).max);
-		weth.approve(address(collateralAndLiquidity), type(uint256).max);
+		salt.approve(address(liquidity), type(uint256).max);
+		wbtc.approve(address(liquidity), type(uint256).max);
+		weth.approve(address(liquidity), type(uint256).max);
+		wbtc.approve(address(liquidity), type(uint256).max);
+		weth.approve(address(liquidity), type(uint256).max);
 
-		if ( despositSaltUSDS )
-			collateralAndLiquidity.depositLiquidityAndIncreaseShare( salt, weth, 1000 ether, 1000 ether, 0, block.timestamp, false );
+		if ( despositSaltUSDC )
+			liquidity.depositLiquidityAndIncreaseShare( salt, weth, 1000 ether, 1000 ether, 0, block.timestamp, false );
 
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( wbtc, salt, 1000 * 10**8, 1000 ether, 0, block.timestamp, false );
-		collateralAndLiquidity.depositCollateralAndIncreaseShare( 1000 * 10**8, 1000 ether, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( wbtc, salt, 1000 * 10**8, 1000 ether, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( wbtc, weth, 1000 * 10**8, 1000 ether, 0, block.timestamp, false );
 
 		salt.approve(address(pools), type(uint256).max);
 		wbtc.approve(address(pools), type(uint256).max);
@@ -95,14 +86,6 @@ contract TestUpkeepEdge is Deployment
 		{
 		_setupLiquidity();
 		_generateArbitrageProfits(false);
-
-    	// Dummy WBTC and WETH to send to Liquidizer
-    	vm.prank(DEPLOYER);
-    	weth.transfer( address(liquidizer), 50 ether );
-
-    	// Indicate that some USDS should be burned
-    	vm.prank( address(collateralAndLiquidity));
-    	liquidizer.incrementBurnableUSDS( 40 ether);
 
     	// Mimic arbitrage profits deposited as WETH for the DAO
     	vm.prank(DEPLOYER);
@@ -134,61 +117,59 @@ contract TestUpkeepEdge is Deployment
 
 
 
-    // A unit test to verify the step2 function when the DAO's WETH balance is zero.
-	function testStep2() public
+    // A unit test to verify the step1 function when the DAO's WETH balance is zero.
+	function testStep1() public
 		{
-		// Step 2. Withdraws existing WETH arbitrage profits from the Pools contract and rewards the caller of performUpkeep() with default 5% of the withdrawn amount.
+		// Step 1. Withdraws existing WETH arbitrage profits from the Pools contract and rewards the caller of performUpkeep() with default 5% of the withdrawn amount.
     	vm.prank(address(upkeep));
-    	ITestUpkeep(address(upkeep)).step2(alice);
+    	ITestUpkeep(address(upkeep)).step1(alice);
 
     	assertEq( weth.balanceOf(alice), 0 ether );
 		}
 
 
-    // A unit test to verify the steps 3-5 function when the remaining WETH balance in the contract is zero.
-	function testStep3Through5() public
+    // A unit test to verify the steps 2-3 function when the remaining WETH balance in the contract is zero.
+	function testStep2Through3() public
 		{
 		vm.startPrank(address(upkeep));
+		ITestUpkeep(address(upkeep)).step2();
 		ITestUpkeep(address(upkeep)).step3();
-		ITestUpkeep(address(upkeep)).step4();
-		ITestUpkeep(address(upkeep)).step5();
 		vm.stopPrank();
 
-		assertEq( collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usds)), 0 );
-		assertEq( collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(usds, dai)), 0 );
+		assertEq( liquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usdc)), 0 );
 		}
 
 
-    // A unit test to verify the step5 function when the Emissions' performUpkeep function does not emit any SALT. Ensure that it does not perform any emission actions.
-	function testStep6() public
+    // A unit test to verify the step4 function when the Emissions' performUpkeep function does not emit any SALT. Ensure that it does not perform any emission actions.
+	function testStep4() public
 		{
 		assertEq( salt.balanceOf(address(emissions)), 52 * 1000000 ether );
 
 		vm.warp( upkeep.lastUpkeepTimeEmissions() );
 
-		// Step 6. Sends SALT Emissions to the SaltRewards contract.
+		// Step 4. Sends SALT Emissions to the SaltRewards contract.
 		vm.prank(address(upkeep));
-		ITestUpkeep(address(upkeep)).step6();
+		ITestUpkeep(address(upkeep)).step4();
 
-		// Emissions initial distribution of 52 million tokens stored in the contract is a default .50% per week.
+		// Emissions initial distribution of 50 million tokens stored in the contract is a default .50% per week.
 		assertEq( salt.balanceOf(address(saltRewards)), 0 );
 		}
 
 
-    // A unit test to verify the step9 function when the profits for pools are zero. Ensure that the function does not perform any actions.
-    function testStep9() public
+    // A unit test to verify the step7 function when the profits for pools are zero. Ensure that the function does not perform any actions.
+    function testStep7() public
     	{
 		bytes32[] memory poolIDs = new bytes32[](4);
 		poolIDs[0] = PoolUtils._poolID(salt,weth);
 		poolIDs[1] = PoolUtils._poolID(salt,wbtc);
 		poolIDs[2] = PoolUtils._poolID(wbtc,weth);
-		poolIDs[3] = PoolUtils._poolID(salt,usds);
+		poolIDs[3] = PoolUtils._poolID(salt,usdc);
 
 		uint256 initialSupply = salt.totalSupply();
 
-		// Step 9. Collects SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDS from formed POL), sends 10% to the initial dev team and burns a default 50% of the remaining - the rest stays in the DAO.
+		// Step 7. Collects SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDC from formed POL), sends 10% to the initial dev team and burns a default 50% of the remaining - the rest stays in the DAO.
     	vm.prank(address(upkeep));
-    	ITestUpkeep(address(upkeep)).step9();
+    	ITestUpkeep(address(upkeep)).step7();
 
 		// Check teamWallet transfer
 		assertEq( salt.balanceOf(teamWallet), 0 ether);
@@ -200,34 +181,34 @@ contract TestUpkeepEdge is Deployment
 	  	}
 
 
-    // A unit test to verify the step11 function when the dao's vesting wallet has no elapsed time
-	function testSuccessStep10() public
+    // A unit test to verify the step8 function when the dao's vesting wallet has no elapsed time
+	function testSuccessStep8() public
 		{
 		// Warp to the start of when the teamVestingWallet starts to emit
 		vm.warp( daoVestingWallet.start() );
 
 		assertEq( salt.balanceOf(address(dao)), 0 );
 
-		// Step 10. Sends SALT from the DAO vesting wallet to the DAO (linear distribution over 10 years).
+		// Step 8. Sends SALT from the DAO vesting wallet to the DAO (linear distribution over 10 years).
 		vm.prank(address(upkeep));
-		ITestUpkeep(address(upkeep)).step10();
+		ITestUpkeep(address(upkeep)).step8();
 
 		// Check that SALT has been sent to DAO.
 		assertEq( salt.balanceOf(address(dao)), 0 );
 		}
 
 
-    // A unit test to verify the step11 function when the team's vesting wallet has no elapsed time
-	function testSuccessStep11() public
+    // A unit test to verify the step9 function when the team's vesting wallet has no elapsed time
+	function testSuccessStep9() public
 		{
 		// Warp to the start of when the teamVestingWallet starts to emit
 		vm.warp( teamVestingWallet.start() );
 
 		assertEq( salt.balanceOf(teamWallet), 0 );
 
-		// Step 11. Sends SALT from the team vesting wallet to the team (linear distribution over 10 years).
+		// Step 9. Sends SALT from the team vesting wallet to the team (linear distribution over 10 years).
 		vm.prank(address(upkeep));
-		ITestUpkeep(address(upkeep)).step11();
+		ITestUpkeep(address(upkeep)).step9();
 
 		// Check that SALT has been sent to DAO.
 		assertEq( salt.balanceOf(teamWallet), 0 );

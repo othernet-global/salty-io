@@ -22,6 +22,8 @@ contract TestPoolStats is Test, PoolStats
 	bytes32 public poolID;
 	bytes32 public poolID2;
 
+	uint256 numInitialTokens;
+
 
 	constructor()
 	PoolStats(deployment.exchangeConfig(), deployment.poolsConfig())
@@ -31,6 +33,8 @@ contract TestPoolStats is Test, PoolStats
 
 		// Same decimals
 		poolID2 = PoolUtils._poolID( tokenB, tokenC );
+
+		numInitialTokens = deployment.poolsConfig().numberOfWhitelistedPools();
 		}
 
 
@@ -105,9 +109,9 @@ contract TestPoolStats is Test, PoolStats
 		vm.prank(address(deployment.upkeep()));
 		uint256[] memory profits = this.profitsForWhitelistedPools();
 
-		assertEq(profits[9], uint256(10 ether) / 3, "Incorrect profit for pool 0a");
-		assertEq(profits[10], uint256(10 ether) / 3, "Incorrect profit for pool 0b");
-		assertEq(profits[11], uint256(10 ether) / 3, "Incorrect profit for pool 0c");
+		assertEq(profits[numInitialTokens+0], uint256(10 ether) / 3, "Incorrect profit for pool 0a");
+		assertEq(profits[numInitialTokens+1], uint256(10 ether) / 3, "Incorrect profit for pool 0b");
+		assertEq(profits[numInitialTokens+2], uint256(10 ether) / 3, "Incorrect profit for pool 0c");
 
 		// Clear the profits
 		vm.prank(address(deployment.upkeep()));
@@ -115,9 +119,9 @@ contract TestPoolStats is Test, PoolStats
 
 		vm.prank(address(deployment.upkeep()));
 		profits = this.profitsForWhitelistedPools();
-		assertEq(profits[9], 0, "Profit for pool 0 not cleared");
-		assertEq(profits[10], 0, "Profit for pool 0 not cleared");
-		assertEq(profits[11], 0, "Profit for pool 0 not cleared");
+		assertEq(profits[numInitialTokens+0], 0, "Profit for pool 0 not cleared");
+		assertEq(profits[numInitialTokens+1], 0, "Profit for pool 0 not cleared");
+		assertEq(profits[numInitialTokens+2], 0, "Profit for pool 0 not cleared");
 	}
 
 
@@ -143,11 +147,11 @@ contract TestPoolStats is Test, PoolStats
 		vm.prank(address(deployment.upkeep()));
 		uint256[] memory profits = this.profitsForWhitelistedPools();
 
-		assertEq(profits[9], uint256(10 ether) / 3, "Incorrect profit for poolIDs[0]");
-		assertEq(profits[10], uint256(10 ether) / 3, "Incorrect profit for poolIDs[1]");
-		assertEq(profits[11], uint256(10 ether) / 3 + uint256(5 ether) / 3, "Incorrect profit for poolIDs[2]");
-		assertEq(profits[12], uint256(5 ether) / 3, "Incorrect profit for poolIDs[3]");
-		assertEq(profits[13], uint256(5 ether) / 3, "Incorrect profit for poolIDs[4]");
+		assertEq(profits[numInitialTokens+0], uint256(10 ether) / 3, "Incorrect profit for poolIDs[0]");
+		assertEq(profits[numInitialTokens+1], uint256(10 ether) / 3, "Incorrect profit for poolIDs[1]");
+		assertEq(profits[numInitialTokens+2], uint256(10 ether) / 3 + uint256(5 ether) / 3, "Incorrect profit for poolIDs[2]");
+		assertEq(profits[numInitialTokens+3], uint256(5 ether) / 3, "Incorrect profit for poolIDs[3]");
+		assertEq(profits[numInitialTokens+4], uint256(5 ether) / 3, "Incorrect profit for poolIDs[4]");
 //
 //		// Clear the profits
 //		vm.prank(address(deployment.upkeep()));
@@ -183,14 +187,14 @@ contract TestPoolStats is Test, PoolStats
 		uint256 index2 = _poolIndex(tokenA, tokenB, whitelistedPoolIDs );
 		uint256 index3 = _poolIndex(tokenB, weth, whitelistedPoolIDs );
 
-		assertEq( index1, 9 );
-		assertEq( index2, 10 );
-		assertEq( index3, 11 );
+		assertEq( index1, numInitialTokens + 0 );
+		assertEq( index2, numInitialTokens + 1 );
+		assertEq( index3, numInitialTokens + 2 );
 
 		ArbitrageIndicies memory indicies = _arbitrageIndicies[poolID];
-		assertEq( indicies.index1, 9 );
-		assertEq( indicies.index2, 10 );
-		assertEq( indicies.index3, 11 );
+		assertEq( indicies.index1, numInitialTokens + 0 );
+		assertEq( indicies.index2, numInitialTokens + 1 );
+		assertEq( indicies.index3, numInitialTokens + 2 );
 		}
 
 	// A unit test for `profitsForPools` that verifies it returns profits correctly for given pool IDs after some pairs have been unwhitelisted (which changes the whitelistedPools order)
@@ -220,10 +224,10 @@ contract TestPoolStats is Test, PoolStats
 		vm.prank(address(deployment.upkeep()));
 		uint256[] memory profits = this.profitsForWhitelistedPools();
 
-		assertEq(profits[10], 0, "Incorrect profit for poolIDs[1]");
-		assertEq(profits[11], uint256(10 ether) / 3, "Incorrect profit for poolIDs[3]");
-		assertEq(profits[12], uint256(10 ether) / 3, "Incorrect profit for poolIDs[4]");
-		assertEq(profits[9], uint256(10 ether) / 3, "Incorrect profit for poolIDs[0]");
+		assertEq(profits[numInitialTokens+1], 0, "Incorrect profit for poolIDs[1]");
+		assertEq(profits[numInitialTokens+2], uint256(10 ether) / 3, "Incorrect profit for poolIDs[3]");
+		assertEq(profits[numInitialTokens+3], uint256(10 ether) / 3, "Incorrect profit for poolIDs[4]");
+		assertEq(profits[numInitialTokens+0], uint256(10 ether) / 3, "Incorrect profit for poolIDs[0]");
 	}
 
 
@@ -240,9 +244,9 @@ contract TestPoolStats is Test, PoolStats
 
         // Given three pools contributing to arbitrage profit
         vm.startPrank(address(deployment.dao()));
-        deployment.poolsConfig().whitelistPool(deployment.pools(), tokenA, weth); // whitelisted index #9
-        deployment.poolsConfig().whitelistPool(deployment.pools(), tokenB, weth); // whitelisted index #10
-        deployment.poolsConfig().whitelistPool(deployment.pools(), tokenA, tokenB); // whitelisted index #11
+        deployment.poolsConfig().whitelistPool(deployment.pools(), tokenA, weth);
+        deployment.poolsConfig().whitelistPool(deployment.pools(), tokenB, weth);
+        deployment.poolsConfig().whitelistPool(deployment.pools(), tokenA, tokenB);
         vm.stopPrank();
 
         // Update arbitrage indicies
@@ -256,9 +260,9 @@ contract TestPoolStats is Test, PoolStats
 
         // Expect profits to be distributed equally to contributing pools
         uint256 expectedProfitPerPool = arbitrageProfit / 3;
-        assertEq(profits[9], expectedProfitPerPool, "Incorrect arbitrage profit distribution for WETH-tokenA pool");
-        assertEq(profits[10], expectedProfitPerPool, "Incorrect arbitrage profit distribution for WETH-tokenB pool");
-        assertEq(profits[11], expectedProfitPerPool, "Incorrect arbitrage profit distribution for tokenA-tokenB pool");
+        assertEq(profits[numInitialTokens+0], expectedProfitPerPool, "Incorrect arbitrage profit distribution for WETH-tokenA pool");
+        assertEq(profits[numInitialTokens+1], expectedProfitPerPool, "Incorrect arbitrage profit distribution for WETH-tokenB pool");
+        assertEq(profits[numInitialTokens+2], expectedProfitPerPool, "Incorrect arbitrage profit distribution for tokenA-tokenB pool");
     }
 
 

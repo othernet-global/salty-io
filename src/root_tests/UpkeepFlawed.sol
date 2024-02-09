@@ -17,31 +17,31 @@ import "../Upkeep.sol";
 contract UpkeepFlawed is Upkeep
     {
 	using SafeERC20 for ISalt;
-	using SafeERC20 for IUSDS;
 	using SafeERC20 for IERC20;
 
 	uint256 public flawedStep;
 
 
-    constructor( IPools _pools, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IDAOConfig _daoConfig, IStableConfig _stableConfig, IPriceAggregator _priceAggregator, ISaltRewards _saltRewards, ICollateralAndLiquidity _collateralAndLiquidity, IEmissions _emissions, IDAO _dao, uint256 _flawedStep )
-    Upkeep(_pools, _exchangeConfig, _poolsConfig, _daoConfig, _stableConfig, _priceAggregator, _saltRewards, _collateralAndLiquidity, _emissions, _dao)
+    constructor( IPools _pools, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IDAOConfig _daoConfig, ISaltRewards _saltRewards, IEmissions _emissions, IDAO _dao, uint256 _flawedStep )
+    Upkeep(_pools, _exchangeConfig, _poolsConfig, _daoConfig, _saltRewards, _emissions, _dao)
 		{
 		flawedStep = _flawedStep;
 		}
 
 
-	function _step1() public onlySameContract
+	function _step1(address receiver) public onlySameContract
 		{
 		require( flawedStep != 1, "Step 1 reverts" );
-		this.step1();
+		this.step1(receiver);
 		}
 
 
-	function _step2(address receiver) public onlySameContract
+	function _step2() public onlySameContract
 		{
 		require( flawedStep != 2, "Step 2 reverts" );
-		this.step2(receiver);
+		this.step2();
 		}
+
 
 
 	function _step3() public onlySameContract
@@ -93,28 +93,14 @@ contract UpkeepFlawed is Upkeep
 		}
 
 
-	function _step10() public onlySameContract
-		{
-		require( flawedStep != 10, "Step 10 reverts" );
-		this.step10();
-		}
-
-
-	function _step11() public onlySameContract
-		{
-		require( flawedStep != 11, "Step 11 reverts" );
-		this.step11();
-		}
-
-
 	function performFlawedUpkeep() public
 		{
 		// Perform the multiple steps to perform upkeep.
 		// Try/catch blocks are used to prevent any of the steps (which are not independent from previous steps) from reverting the transaction.
- 		try this._step1() {}
+ 		try this._step1(msg.sender) {}
 		catch (bytes memory error) { emit UpkeepError("Step 1", error); }
 
- 		try this._step2(msg.sender) {}
+ 		try this._step2() {}
 		catch (bytes memory error) { emit UpkeepError("Step 2", error); }
 
  		try this._step3() {}
@@ -137,11 +123,5 @@ contract UpkeepFlawed is Upkeep
 
  		try this._step9() {}
 		catch (bytes memory error) { emit UpkeepError("Step 9", error); }
-
- 		try this._step10() {}
-		catch (bytes memory error) { emit UpkeepError("Step 10", error); }
-
- 		try this._step11() {}
-		catch (bytes memory error) { emit UpkeepError("Step 11", error); }
 		}
 	}

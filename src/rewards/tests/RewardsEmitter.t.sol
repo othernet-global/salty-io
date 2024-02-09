@@ -70,9 +70,9 @@ contract TestRewardsEmitter is Deployment
         token1.approve(address(liquidityRewardsEmitter), type(uint256).max);
         token2.approve(address(liquidityRewardsEmitter), type(uint256).max);
         token3.approve(address(liquidityRewardsEmitter), type(uint256).max);
-        token1.approve(address(collateralAndLiquidity), type(uint256).max);
-        token2.approve(address(collateralAndLiquidity), type(uint256).max);
-        token3.approve(address(collateralAndLiquidity), type(uint256).max);
+        token1.approve(address(liquidity), type(uint256).max);
+        token2.approve(address(liquidity), type(uint256).max);
+        token3.approve(address(liquidity), type(uint256).max);
 		vm.stopPrank();
 
         // Bob gets some salt and tokens
@@ -86,9 +86,9 @@ contract TestRewardsEmitter is Deployment
         token1.approve(address(liquidityRewardsEmitter), type(uint256).max);
         token2.approve(address(liquidityRewardsEmitter), type(uint256).max);
         token3.approve(address(liquidityRewardsEmitter), type(uint256).max);
-        token1.approve(address(collateralAndLiquidity), type(uint256).max);
-        token2.approve(address(collateralAndLiquidity), type(uint256).max);
-        token3.approve(address(collateralAndLiquidity), type(uint256).max);
+        token1.approve(address(liquidity), type(uint256).max);
+        token2.approve(address(liquidity), type(uint256).max);
+        token3.approve(address(liquidity), type(uint256).max);
 		vm.stopPrank();
 
         // Charlie gets some salt and tokens
@@ -102,9 +102,9 @@ contract TestRewardsEmitter is Deployment
         token1.approve(address(liquidityRewardsEmitter), type(uint256).max);
         token2.approve(address(liquidityRewardsEmitter), type(uint256).max);
         token3.approve(address(liquidityRewardsEmitter), type(uint256).max);
-        token1.approve(address(collateralAndLiquidity), type(uint256).max);
-        token2.approve(address(collateralAndLiquidity), type(uint256).max);
-        token3.approve(address(collateralAndLiquidity), type(uint256).max);
+        token1.approve(address(liquidity), type(uint256).max);
+        token2.approve(address(liquidity), type(uint256).max);
+        token3.approve(address(liquidity), type(uint256).max);
 		vm.stopPrank();
 
 		// Increase rewardsEmitterDailyPercent to 2.5% for testing
@@ -129,7 +129,7 @@ contract TestRewardsEmitter is Deployment
 		bytes32[] memory _pools = new bytes32[](1);
 		_pools[0] = pool;
 
-		return collateralAndLiquidity.totalRewardsForPools( _pools )[0];
+		return liquidity.totalRewardsForPools( _pools )[0];
 		}
 
 
@@ -224,7 +224,7 @@ contract TestRewardsEmitter is Deployment
         assertEq(pendingLiquidityRewardsForPool(poolIDs[1]), 9.75 ether); // 10 ether - 2.5%
 
         // Rewards transferred to the liquidity contract (including from the bootstrapping rewards)
-        assertEq(salt.balanceOf(address(collateralAndLiquidity)), 125000499999999999999992);
+        assertEq(salt.balanceOf(address(liquidity)), 125000499999999999999992);
     }
 
 
@@ -263,13 +263,13 @@ contract TestRewardsEmitter is Deployment
 	function testPerformUpkeep() public {
         // Alice, Bob, and Charlie deposit their LP tokens into pool[1]
         vm.prank(alice);
-        collateralAndLiquidity.depositLiquidityAndIncreaseShare(token1, token2, 100 ether, 100 ether, 0, block.timestamp, false);
+        liquidity.depositLiquidityAndIncreaseShare(token1, token2, 100 ether, 100 ether, 0, block.timestamp, false);
 
         vm.prank(bob);
-        collateralAndLiquidity.depositLiquidityAndIncreaseShare(token1, token2, 100 ether, 100 ether, 0, block.timestamp, false);
+        liquidity.depositLiquidityAndIncreaseShare(token1, token2, 100 ether, 100 ether, 0, block.timestamp, false);
 
         vm.prank(charlie);
-        collateralAndLiquidity.depositLiquidityAndIncreaseShare(token1, token2, 100 ether, 100 ether, 0, block.timestamp, false);
+        liquidity.depositLiquidityAndIncreaseShare(token1, token2, 100 ether, 100 ether, 0, block.timestamp, false);
 
         // Adding rewards to the pools
         AddedReward[] memory addedRewards = new AddedReward[](2);
@@ -294,9 +294,9 @@ contract TestRewardsEmitter is Deployment
 		assertEq( totalRewardsForPools(poolIDs[1]), 2.5 ether, "Incorrect total rewards in pool[1]" );
 
         // Check if the correct amount of rewards was transferred to each user
-        assertEq(collateralAndLiquidity.userRewardForPool(alice, poolIDs[0]), 0.833333333333333333 ether); // 2.5% of 100 ether divided by 3 users
-        assertEq(collateralAndLiquidity.userRewardForPool(bob, poolIDs[0]), 0.833333333333333333 ether);
-        assertEq(collateralAndLiquidity.userRewardForPool(charlie, poolIDs[0]), 0.833333333333333333 ether);
+        assertEq(liquidity.userRewardForPool(alice, poolIDs[0]), 0.833333333333333333 ether); // 2.5% of 100 ether divided by 3 users
+        assertEq(liquidity.userRewardForPool(bob, poolIDs[0]), 0.833333333333333333 ether);
+        assertEq(liquidity.userRewardForPool(charlie, poolIDs[0]), 0.833333333333333333 ether);
     }
 
 
@@ -304,20 +304,20 @@ contract TestRewardsEmitter is Deployment
 	function testPendingRewardsForPools() public {
         // Alice stakes in both pools
         vm.startPrank(alice);
-        collateralAndLiquidity.depositLiquidityAndIncreaseShare(token1, token2, 50 ether, 50 ether, 0, block.timestamp, false);
-        collateralAndLiquidity.depositLiquidityAndIncreaseShare(token2, token3, 50 ether, 50 ether, 0, block.timestamp, false);
+        liquidity.depositLiquidityAndIncreaseShare(token1, token2, 50 ether, 50 ether, 0, block.timestamp, false);
+        liquidity.depositLiquidityAndIncreaseShare(token2, token3, 50 ether, 50 ether, 0, block.timestamp, false);
         vm.stopPrank();
 
         // Bob stakes in both pools
         vm.startPrank(bob);
-        collateralAndLiquidity.depositLiquidityAndIncreaseShare(token1, token2, 30 ether, 30 ether, 0, block.timestamp, false);
-        collateralAndLiquidity.depositLiquidityAndIncreaseShare(token2, token3, 70 ether, 70 ether, 0, block.timestamp, false);
+        liquidity.depositLiquidityAndIncreaseShare(token1, token2, 30 ether, 30 ether, 0, block.timestamp, false);
+        liquidity.depositLiquidityAndIncreaseShare(token2, token3, 70 ether, 70 ether, 0, block.timestamp, false);
         vm.stopPrank();
 
         // Charlie stakes in both pools
         vm.startPrank(charlie);
-        collateralAndLiquidity.depositLiquidityAndIncreaseShare(token1, token2, 20 ether, 20 ether, 0, block.timestamp, false);
-        collateralAndLiquidity.depositLiquidityAndIncreaseShare(token2, token3, 80 ether, 80 ether, 0, block.timestamp, false);
+        liquidity.depositLiquidityAndIncreaseShare(token1, token2, 20 ether, 20 ether, 0, block.timestamp, false);
+        liquidity.depositLiquidityAndIncreaseShare(token2, token3, 80 ether, 80 ether, 0, block.timestamp, false);
         vm.stopPrank();
 
         // Advance the time by 1 day
@@ -537,7 +537,7 @@ contract TestRewardsEmitter is Deployment
 	function testWithdrawnPoolAddSALTRewards() public {
         // Alice deposits some liquidity to the pool1
         vm.prank(alice);
-        collateralAndLiquidity.depositLiquidityAndIncreaseShare(token1, token2, 500 ether, 500 ether, 0, block.timestamp, true );
+        liquidity.depositLiquidityAndIncreaseShare(token1, token2, 500 ether, 500 ether, 0, block.timestamp, true );
 
         AddedReward[] memory addedRewards = new AddedReward[](1);
         addedRewards[0] = AddedReward({poolID: poolIDs[0], amountToAdd: 100 ether});

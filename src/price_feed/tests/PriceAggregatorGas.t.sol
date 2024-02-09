@@ -15,7 +15,7 @@ contract TestPriceAggreagator is PriceAggregator, Deployment
 
 		CoreChainlinkFeed _chainlinkFeed = new CoreChainlinkFeed( CHAINLINK_BTC_USD, CHAINLINK_ETH_USD );
 		CoreUniswapFeed _uniswapFeed = new CoreUniswapFeed( IERC20(_testBTC), IERC20(_testETH), IERC20(_testUSDC), UNISWAP_V3_BTC_ETH, UNISWAP_V3_USDC_ETH );
-		CoreSaltyFeed _saltyFeed = new CoreSaltyFeed( pools, exchangeConfig );
+		CoreSaltyFeed _saltyFeed = new CoreSaltyFeed( pools, wbtc, weth, usdc );
 
 		setInitialFeeds(_chainlinkFeed, _uniswapFeed, _saltyFeed);
 		}

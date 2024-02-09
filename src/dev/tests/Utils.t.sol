@@ -56,16 +56,16 @@ contract TestUtils is Deployment
 		salt.transfer( address(this), 100000 ether );
 
 
-        salt.approve(address(collateralAndLiquidity), type(uint256).max);
+        salt.approve(address(liquidity), type(uint256).max);
 
         // Alice gets some salt and pool lps and approves max to staking
         token1.transfer(alice, 1000 ether);
         token2.transfer(alice, 1000 ether);
         token3.transfer(alice, 1000 ether);
         vm.startPrank(alice);
-        token1.approve(address(collateralAndLiquidity), type(uint256).max);
-        token2.approve(address(collateralAndLiquidity), type(uint256).max);
-        token3.approve(address(collateralAndLiquidity), type(uint256).max);
+        token1.approve(address(liquidity), type(uint256).max);
+        token2.approve(address(liquidity), type(uint256).max);
+        token3.approve(address(liquidity), type(uint256).max);
 		vm.stopPrank();
 
         // Bob gets some salt and pool lps and approves max to staking
@@ -73,9 +73,9 @@ contract TestUtils is Deployment
         token2.transfer(bob, 1000 ether);
         token3.transfer(bob, 1000 ether);
         vm.startPrank(bob);
-        token1.approve(address(collateralAndLiquidity), type(uint256).max);
-        token2.approve(address(collateralAndLiquidity), type(uint256).max);
-        token3.approve(address(collateralAndLiquidity), type(uint256).max);
+        token1.approve(address(liquidity), type(uint256).max);
+        token2.approve(address(liquidity), type(uint256).max);
+        token3.approve(address(liquidity), type(uint256).max);
 		vm.stopPrank();
 
 
@@ -84,9 +84,9 @@ contract TestUtils is Deployment
         token2.transfer(charlie, 1000 ether);
         token3.transfer(charlie, 1000 ether);
         vm.startPrank(charlie);
-        token1.approve(address(collateralAndLiquidity), type(uint256).max);
-        token2.approve(address(collateralAndLiquidity), type(uint256).max);
-        token3.approve(address(collateralAndLiquidity), type(uint256).max);
+        token1.approve(address(liquidity), type(uint256).max);
+        token2.approve(address(liquidity), type(uint256).max);
+        token3.approve(address(liquidity), type(uint256).max);
 		vm.stopPrank();
 
 
@@ -95,9 +95,9 @@ contract TestUtils is Deployment
         token2.transfer(address(dao), 1000 ether);
         token3.transfer(address(dao), 1000 ether);
         vm.startPrank(address(dao));
-        token1.approve(address(collateralAndLiquidity), type(uint256).max);
-        token2.approve(address(collateralAndLiquidity), type(uint256).max);
-        token3.approve(address(collateralAndLiquidity), type(uint256).max);
+        token1.approve(address(liquidity), type(uint256).max);
+        token2.approve(address(liquidity), type(uint256).max);
+        token3.approve(address(liquidity), type(uint256).max);
 		vm.stopPrank();
     	}
 
@@ -108,10 +108,10 @@ contract TestUtils is Deployment
 
 		token1.approve( address(pools), type(uint256).max );
 
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, 100 ether, 200 ether, 0 ether, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( token1, token2, 100 ether, 200 ether, 0 ether, block.timestamp, false );
 		pools.depositSwapWithdraw( token1, token2, 50 ether, 0, block.timestamp );
 
-//		console.log( "INITIAL LIQUIDITY: ", collateralAndLiquidity.totalShares( PoolUtils._poolID( token1, token2 ) ) );
+//		console.log( "INITIAL LIQUIDITY: ", liquidity.totalShares( PoolUtils._poolID( token1, token2 ) ) );
 
 		vm.warp( block.timestamp + 1 hours );
 
@@ -141,7 +141,7 @@ contract TestUtils is Deployment
 	 		addAmount2 = addAmount2 + amountOut;
 
 //			console.log( "ESTIMATED ZAPPED AMOUNTS: ", addAmount1, addAmount2 );
-			estimate = utils.estimateAddedLiquidity(reserves1 + swapAmount1, reserves2 - amountOut, addAmount1, addAmount2, collateralAndLiquidity.totalShares( PoolUtils._poolID( token1, token2 ) ));
+			estimate = utils.estimateAddedLiquidity(reserves1 + swapAmount1, reserves2 - amountOut, addAmount1, addAmount2, liquidity.totalShares( PoolUtils._poolID( token1, token2 ) ));
 //			console.log( "ES: ", estimate );
 	 		}
 
@@ -157,16 +157,16 @@ contract TestUtils is Deployment
 	 		addAmount2 = addAmount2 - swapAmount2;
 
 //			console.log( "ESTIMATED ZAPPED AMOUNTS: ", addAmount1, addAmount2 );
-			estimate = utils.estimateAddedLiquidity(reserves1 - amountOut, reserves2 + swapAmount2, addAmount1, addAmount2, collateralAndLiquidity.totalShares( PoolUtils._poolID( token1, token2 ) ));
+			estimate = utils.estimateAddedLiquidity(reserves1 - amountOut, reserves2 + swapAmount2, addAmount1, addAmount2, liquidity.totalShares( PoolUtils._poolID( token1, token2 ) ));
 //			console.log( "ES: ", estimate );
 	 		}
 
-		(,, uint256 addedLiquidity) = collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, 0, 30 ether, 0, block.timestamp, true );
+		(,, uint256 addedLiquidity) = liquidity.depositLiquidityAndIncreaseShare( token1, token2, 0, 30 ether, 0, block.timestamp, true );
 //		console.log( "AD: ", addedLiquidity );
 
 		assertEq( estimate / 10, addedLiquidity / 10 );
 
-//		(,, addedLiquidity) = collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, 30 ether, 0 ether, 0 ether, block.timestamp, true );
+//		(,, addedLiquidity) = liquidity.depositLiquidityAndIncreaseShare( token1, token2, 30 ether, 0 ether, 0 ether, block.timestamp, true );
 	    }
 
 
@@ -178,10 +178,10 @@ contract TestUtils is Deployment
 
 		token1.approve( address(pools), type(uint256).max );
 
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, 100 ether, 200 ether, 0 ether, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( token1, token2, 100 ether, 200 ether, 0 ether, block.timestamp, false );
 		pools.depositSwapWithdraw( token1, token2, 50 ether, 0, block.timestamp );
 
-//		console.log( "INITIAL LIQUIDITY: ", collateralAndLiquidity.totalShares( PoolUtils._poolID( token1, token2 ) ) );
+//		console.log( "INITIAL LIQUIDITY: ", liquidity.totalShares( PoolUtils._poolID( token1, token2 ) ) );
 
 		vm.warp( block.timestamp + 1 hours );
 
@@ -211,7 +211,7 @@ contract TestUtils is Deployment
 	 		addAmount2 = addAmount2 + amountOut;
 
 //			console.log( "ESTIMATED ZAPPED AMOUNTS: ", addAmount1, addAmount2 );
-			estimate = utils.estimateAddedLiquidity(reserves1 + swapAmount1, reserves2 - amountOut, addAmount1, addAmount2, collateralAndLiquidity.totalShares( PoolUtils._poolID( token1, token2 ) ));
+			estimate = utils.estimateAddedLiquidity(reserves1 + swapAmount1, reserves2 - amountOut, addAmount1, addAmount2, liquidity.totalShares( PoolUtils._poolID( token1, token2 ) ));
 //			console.log( "ES: ", estimate );
 	 		}
 
@@ -227,15 +227,15 @@ contract TestUtils is Deployment
 	 		addAmount2 = addAmount2 - swapAmount2;
 
 //			console.log( "ESTIMATED ZAPPED AMOUNTS: ", addAmount1, addAmount2 );
-			estimate = utils.estimateAddedLiquidity(reserves1 - amountOut, reserves2 + swapAmount2, addAmount1, addAmount2, collateralAndLiquidity.totalShares( PoolUtils._poolID( token1, token2 ) ));
+			estimate = utils.estimateAddedLiquidity(reserves1 - amountOut, reserves2 + swapAmount2, addAmount1, addAmount2, liquidity.totalShares( PoolUtils._poolID( token1, token2 ) ));
 //			console.log( "ES: ", estimate );
 	 		}
 
-		(,, uint256 addedLiquidity) = collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, 30 ether, 0, 0, block.timestamp, true );
+		(,, uint256 addedLiquidity) = liquidity.depositLiquidityAndIncreaseShare( token1, token2, 30 ether, 0, 0, block.timestamp, true );
 //		console.log( "AD: ", addedLiquidity );
 
 		assertEq( estimate / 10, addedLiquidity / 10 );
 
-//		(,, addedLiquidity) = collateralAndLiquidity.depositLiquidityAndIncreaseShare( token1, token2, 30 ether, 0 ether, 0 ether, block.timestamp, true );
+//		(,, addedLiquidity) = liquidity.depositLiquidityAndIncreaseShare( token1, token2, 30 ether, 0 ether, 0 ether, block.timestamp, true );
 	    }
 	}

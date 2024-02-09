@@ -17,8 +17,8 @@ import "./PoolUtils.sol";
 // The Pools contract stores the reserves that are used for swaps within the DEX.
 // It handles deposits, arbitrage, and keeps stats for proportional rewards distribution to the liquidity providers.
 //
-// Only the CollateralAndLiquidity contract can actually call addLiquidity and removeLiquidity.
-// User liquidity accounting is done by CollateralAndLiquidity (via its derivation of StakingRewards).
+// Only the Liquidity contract can actually call addLiquidity and removeLiquidity.
+// User liquidity accounting is done by Liquidity (via its derivation of StakingRewards).
 
 contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	{
@@ -37,7 +37,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		}
 
 	IDAO public dao;
-	ICollateralAndLiquidity public collateralAndLiquidity;
+	ILiquidity public liquidity;
 
 	// Set to true when starting the exchange is approved by the bootstrapBallot
 	bool public exchangeIsLive;
@@ -57,10 +57,10 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 
 	// This will be called only once - at deployment time
-	function setContracts( IDAO _dao, ICollateralAndLiquidity _collateralAndLiquidity ) external onlyOwner
+	function setContracts( IDAO _dao, ILiquidity _liquidity ) external onlyOwner
 		{
 		dao = _dao;
-		collateralAndLiquidity = _collateralAndLiquidity;
+		liquidity = _liquidity;
 
 		// setContracts can only be called once
 		renounceOwnership();
@@ -125,7 +125,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		reserves.reserve0 += uint128(addedAmount0);
 		reserves.reserve1 += uint128(addedAmount1);
 
-		// Determine the amount of liquidity that will be given to the user to reflect their share of the total collateralAndLiquidity.
+		// Determine the amount of liquidity that will be given to the user to reflect their share of the total liquidity.
 		// Use whichever added amount was larger to maintain better numeric resolution.
 		// Rounded down in favor of the protocol.
 		if ( addedAmount0 > addedAmount1)
@@ -136,10 +136,10 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 
 	// Add liquidity to the specified pool (must be a whitelisted pool)
-	// Only callable from the CollateralAndLiquidity contract - so it can specify totalLiquidity with authority
+	// Only callable from the Liquidity contract - so it can specify totalLiquidity with authority
 	function addLiquidity( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 totalLiquidity ) external nonReentrant returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
 		{
-		require( msg.sender == address(collateralAndLiquidity), "Pools.addLiquidity is only callable from the CollateralAndLiquidity contract" );
+		require( msg.sender == address(liquidity), "Pools.addLiquidity is only callable from the Liquidity contract" );
 		require( exchangeIsLive, "The exchange is not yet live" );
 		require( address(tokenA) != address(tokenB), "Cannot add liquidity for duplicate tokens" );
 
@@ -166,10 +166,10 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 
 	// Remove liquidity for the user and reclaim the underlying tokens
-	// Only callable from the CollateralAndLiquidity contract - so it can specify totalLiquidity with authority
+	// Only callable from the Liquidity contract - so it can specify totalLiquidity with authority
 	function removeLiquidity( IERC20 tokenA, IERC20 tokenB, uint256 liquidityToRemove, uint256 minReclaimedA, uint256 minReclaimedB, uint256 totalLiquidity ) external nonReentrant returns (uint256 reclaimedA, uint256 reclaimedB)
 		{
-		require( msg.sender == address(collateralAndLiquidity), "Pools.removeLiquidity is only callable from the CollateralAndLiquidity contract" );
+		require( msg.sender == address(liquidity), "Pools.removeLiquidity is only callable from the Liquidity contract" );
 		require( liquidityToRemove > 0, "The amount of liquidityToRemove cannot be zero" );
 
 		(bytes32 poolID, bool flipped) = PoolUtils._poolIDAndFlipped(tokenA, tokenB);

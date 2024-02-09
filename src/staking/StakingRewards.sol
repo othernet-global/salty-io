@@ -17,6 +17,11 @@ import "../interfaces/ISalt.sol";
 //
 // 1. Staking.sol: shares represent the amount of SALT staked (staked to the STAKED_SALT pool)
 // 2. Liquidity.sol: shares represent the amount of liquidity deposited and staked to specific pools
+//
+// Regarding virtualRewards: the idea is that the ratio of totalRewards/totalShare before the user increases share needs to equal (totalRewards+virtualRewards)/(totalShare+shareIncrease).
+// Namely that the ratio of rewards to shares before and after needs to remain the same. It's akin to a liquidity pool where the two tokens are "rewards" and "shares". When a user want add shares they borrow the rewards needed to create the correct proportion of virtualRewards / addedShares.
+// When rewards are added, it increases the value of the shares, in terms of the rewards.
+// On claim, users pay back any "borrowed" rewards (the virtual rewards).
 
 abstract contract StakingRewards is IStakingRewards, ReentrancyGuard
     {

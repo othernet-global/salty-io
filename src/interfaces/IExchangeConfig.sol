@@ -2,14 +2,13 @@
 pragma solidity =0.8.22;
 
 import "openzeppelin-contracts/contracts/finance/VestingWallet.sol";
-import "../stable/interfaces/ICollateralAndLiquidity.sol";
+import "../staking/interfaces/ILiquidity.sol";
 import "../launch/interfaces/IInitialDistribution.sol";
 import "../rewards/interfaces/IRewardsEmitter.sol";
 import "../rewards/interfaces/ISaltRewards.sol";
 import "../rewards/interfaces/IEmissions.sol";
 import "../interfaces/IAccessManager.sol";
 import "../launch/interfaces/IAirdrop.sol";
-import "../stable/interfaces/IUSDS.sol";
 import "../dao/interfaces/IDAO.sol";
 import "../interfaces/ISalt.sol";
 import "./IUpkeep.sol";
@@ -25,8 +24,7 @@ interface IExchangeConfig
 	function salt() external view returns (ISalt);
 	function wbtc() external view returns (IERC20);
 	function weth() external view returns (IERC20);
-	function dai() external view returns (IERC20);
-	function usds() external view returns (IUSDS);
+	function usdc() external view returns (IERC20);
 
 	function managedTeamWallet() external view returns (IManagedWallet);
 	function daoVestingWallet() external view returns (VestingWallet);

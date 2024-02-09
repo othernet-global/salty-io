@@ -2,7 +2,7 @@
 pragma solidity =0.8.22;
 
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import "../../stable/interfaces/ICollateralAndLiquidity.sol";
+import "../../staking/interfaces/ILiquidity.sol";
 import "../../dao/interfaces/IDAO.sol";
 import "./IPoolStats.sol";
 
@@ -10,7 +10,7 @@ import "./IPoolStats.sol";
 interface IPools is IPoolStats
 	{
 	function startExchangeApproved() external;
-	function setContracts( IDAO _dao, ICollateralAndLiquidity _collateralAndLiquidity ) external; // onlyOwner
+	function setContracts( IDAO _dao, ILiquidity _liquidity ) external; // onlyOwner
 
 	function addLiquidity( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 totalLiquidity ) external returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity);
 	function removeLiquidity( IERC20 tokenA, IERC20 tokenB, uint256 liquidityToRemove, uint256 minReclaimedA, uint256 minReclaimedB, uint256 totalLiquidity ) external returns (uint256 reclaimedA, uint256 reclaimedB);

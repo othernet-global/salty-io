@@ -31,7 +31,7 @@ contract TestPoolUtils is Deployment
 
 		vm.startPrank(address(daoVestingWallet));
 		salt.transfer(DEPLOYER, 1000000 ether);
-		salt.transfer(address(collateralAndLiquidity), 1000000 ether);
+		salt.transfer(address(liquidity), 1000000 ether);
 		vm.stopPrank();
 
 		vm.startPrank( DEPLOYER );
@@ -39,11 +39,11 @@ contract TestPoolUtils is Deployment
 			{
 			tokens[i] = new TestERC20("TEST", 18);
         	tokens[i].approve( address(pools), type(uint256).max );
-        	tokens[i].approve( address(collateralAndLiquidity), type(uint256).max );
+        	tokens[i].approve( address(liquidity), type(uint256).max );
 
         	tokens[i].transfer(address(this), 100000 ether );
         	tokens[i].transfer(address(dao), 100000 ether );
-        	tokens[i].transfer(address(collateralAndLiquidity), 100000 ether );
+        	tokens[i].transfer(address(liquidity), 100000 ether );
 			}
 		vm.stopPrank();
 
@@ -53,7 +53,7 @@ contract TestPoolUtils is Deployment
 			poolsConfig.whitelistPool( pools,    tokens[i], tokens[i + 1] );
 
 			vm.prank(DEPLOYER);
-			collateralAndLiquidity.depositLiquidityAndIncreaseShare( tokens[i], tokens[i + 1], 500 ether, 500 ether, 0, block.timestamp, false );
+			liquidity.depositLiquidityAndIncreaseShare( tokens[i], tokens[i + 1], 500 ether, 500 ether, 0, block.timestamp, false );
 			}
 
 		vm.prank(address(dao));
@@ -62,29 +62,29 @@ contract TestPoolUtils is Deployment
 		poolsConfig.whitelistPool( pools,    tokens[0], tokens[9] );
 
 		vm.startPrank( DEPLOYER );
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( tokens[5], tokens[7], 1000 ether, 1000 ether, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( tokens[5], tokens[7], 1000 ether, 1000 ether, 0, block.timestamp, false );
 
 		pools.deposit( tokens[5], 1000 ether );
 		pools.deposit( tokens[6], 1000 ether );
 		pools.deposit( tokens[7], 1000 ether );
 		pools.deposit( tokens[8], 1000 ether );
 
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( tokens[0], tokens[9], 1000000000 ether, 2000000000 ether, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( tokens[0], tokens[9], 1000000000 ether, 2000000000 ether, 0, block.timestamp, false );
 		vm.stopPrank();
 
 		for( uint256 i = 0; i < 10; i++ )
 			{
         	tokens[i].approve( address(pools), type(uint256).max );
-        	tokens[i].approve( address(collateralAndLiquidity), type(uint256).max );
+        	tokens[i].approve( address(liquidity), type(uint256).max );
         	}
 
 		for( uint256 i = 0; i < 9; i++ )
 			{
 			pools.deposit( tokens[i], 1000 ether );
-			collateralAndLiquidity.depositLiquidityAndIncreaseShare( tokens[i], tokens[i + 1], 500 ether, 500 ether, 0, block.timestamp, false );
+			liquidity.depositLiquidityAndIncreaseShare( tokens[i], tokens[i + 1], 500 ether, 500 ether, 0, block.timestamp, false );
         	}
 
-		vm.startPrank(address(collateralAndLiquidity));
+		vm.startPrank(address(liquidity));
 		for( uint256 i = 0; i < 10; i++ )
 			{
         	tokens[i].approve( address(pools), type(uint256).max );
@@ -113,11 +113,11 @@ contract TestPoolUtils is Deployment
 		poolsConfig.whitelistPool( pools,   token0, token1);
 
 		// Approvals for adding liquidity
-		token0.approve(address(collateralAndLiquidity),type(uint256).max);
-		token1.approve(address(collateralAndLiquidity),type(uint256).max);
+		token0.approve(address(liquidity),type(uint256).max);
+		token1.approve(address(liquidity),type(uint256).max);
 		token0.approve(address(pools),type(uint256).max);
 
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token0, token1, 1000 ether, 1000 ether, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( token0, token1, 1000 ether, 1000 ether, 0, block.timestamp, false );
 
 		(uint256 swapAmountIn, uint256 swapAmountOut) = PoolUtils._placeInternalSwap( pools, token0, token1, 100 ether, 1000 );
 
@@ -138,11 +138,11 @@ contract TestPoolUtils is Deployment
 		poolsConfig.whitelistPool( pools,   token0, token1);
 
 		// Approvals for adding liquidity
-		token0.approve(address(collateralAndLiquidity),type(uint256).max);
-		token1.approve(address(collateralAndLiquidity),type(uint256).max);
+		token0.approve(address(liquidity),type(uint256).max);
+		token1.approve(address(liquidity),type(uint256).max);
 		token0.approve(address(pools),type(uint256).max);
 
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( token0, token1, 1000 ether, 1000 ether, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( token0, token1, 1000 ether, 1000 ether, 0, block.timestamp, false );
 
 		(uint256 swapAmountIn, uint256 swapAmountOut) = PoolUtils._placeInternalSwap( pools, token0, token1, 1 ether, 1000 );
 

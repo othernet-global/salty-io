@@ -2,11 +2,8 @@
 pragma solidity =0.8.22;
 
 import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
-import "../price_feed/interfaces/IPriceAggregator.sol";
 import "../rewards/interfaces/IRewardsEmitter.sol";
 import "../rewards/interfaces/IRewardsConfig.sol";
-import "../stable/interfaces/IStableConfig.sol";
-import "../stable/interfaces/ILiquidizer.sol";
 import "../interfaces/IExchangeConfig.sol";
 import "../staking/interfaces/IStaking.sol";
 import "../interfaces/IAccessManager.sol";
@@ -39,7 +36,6 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 
 	using SafeERC20 for ISalt;
 	using SafeERC20 for IERC20;
-	using SafeERC20 for IUSDS;
 
 	IPools immutable public pools;
 	IProposals immutable public proposals;
@@ -47,16 +43,12 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 	IPoolsConfig immutable public poolsConfig;
 	IStakingConfig immutable public stakingConfig;
 	IRewardsConfig immutable public rewardsConfig;
-	IStableConfig immutable public stableConfig;
 	IDAOConfig immutable public daoConfig;
-	IPriceAggregator immutable public priceAggregator;
 	IRewardsEmitter immutable public liquidityRewardsEmitter;
-	ICollateralAndLiquidity immutable public collateralAndLiquidity;
-	ILiquidizer immutable public liquidizer;
+	ILiquidity immutable public liquidity;
 
 	ISalt immutable public salt;
-    IUSDS immutable public usds;
-	IERC20 immutable public dai;
+	IERC20 immutable public usdc;
 
 
 	// The default IPFS URL for the website content (can be changed with a setWebsiteURL proposal)
@@ -67,7 +59,7 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 	mapping(string=>bool) public excludedCountries;
 
 
-    constructor( IPools _pools, IProposals _proposals, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IRewardsConfig _rewardsConfig, IStableConfig _stableConfig, IDAOConfig _daoConfig, IPriceAggregator _priceAggregator, IRewardsEmitter _liquidityRewardsEmitter, ICollateralAndLiquidity _collateralAndLiquidity )
+    constructor( IPools _pools, IProposals _proposals, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IRewardsConfig _rewardsConfig, IDAOConfig _daoConfig, IRewardsEmitter _liquidityRewardsEmitter, ILiquidity _liquidity )
 		{
 		pools = _pools;
 		proposals = _proposals;
@@ -75,21 +67,16 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		poolsConfig = _poolsConfig;
 		stakingConfig = _stakingConfig;
 		rewardsConfig = _rewardsConfig;
-		stableConfig = _stableConfig;
 		daoConfig = _daoConfig;
-		priceAggregator = _priceAggregator;
         liquidityRewardsEmitter = _liquidityRewardsEmitter;
-        collateralAndLiquidity = _collateralAndLiquidity;
- 		liquidizer = collateralAndLiquidity.liquidizer();
+        liquidity = _liquidity;
 
-        usds = exchangeConfig.usds();
         salt = exchangeConfig.salt();
-        dai = exchangeConfig.dai();
+        usdc = exchangeConfig.usdc();
 
 		// Gas saving approves for eventually forming Protocol Owned Liquidity
-		salt.approve(address(collateralAndLiquidity), type(uint256).max);
-		usds.approve(address(collateralAndLiquidity), type(uint256).max);
-		dai.approve(address(collateralAndLiquidity), type(uint256).max);
+		salt.approve(address(liquidity), type(uint256).max);
+		usdc.approve(address(liquidity), type(uint256).max);
 
 		// Excluded by default: United States, Canada, United Kingdom, China, India, Pakistan, Russia, Afghanistan, Cuba, Iran, North Korea, Syria, Venezuela
 		// Note that the DAO can remove any of these exclusions - or open up access completely to the exchange as it sees fit.
@@ -117,9 +104,9 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		Vote winningVote = proposals.winningParameterVote(ballotID);
 
 		if ( winningVote == Vote.INCREASE )
-			_executeParameterChange( ParameterTypes(ballot.number1), true, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator );
+			_executeParameterChange( ParameterTypes(ballot.number1), true, poolsConfig, stakingConfig, rewardsConfig, daoConfig );
 		else if ( winningVote == Vote.DECREASE )
-			_executeParameterChange( ParameterTypes(ballot.number1), false, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator );
+			_executeParameterChange( ParameterTypes(ballot.number1), false, poolsConfig, stakingConfig, rewardsConfig, daoConfig );
 
 		// Finalize the ballot even if NO_CHANGE won
 		proposals.markBallotAsFinalized(ballotID);
@@ -132,13 +119,7 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		{
 		bytes32 nameHash = keccak256(bytes( ballot.ballotName ) );
 
-		if ( nameHash == keccak256(bytes( "setContract:priceFeed1_confirm" )) )
-			priceAggregator.setPriceFeed( 1, IPriceFeed(ballot.address1) );
-		else if ( nameHash == keccak256(bytes( "setContract:priceFeed2_confirm" )) )
-			priceAggregator.setPriceFeed( 2, IPriceFeed(ballot.address1) );
-		else if ( nameHash == keccak256(bytes( "setContract:priceFeed3_confirm" )) )
-			priceAggregator.setPriceFeed( 3, IPriceFeed(ballot.address1) );
-		else if ( nameHash == keccak256(bytes( "setContract:accessManager_confirm" )) )
+		if ( nameHash == keccak256(bytes( "setContract:accessManager_confirm" )) )
 			exchangeConfig.setAccessManager( IAccessManager(ballot.address1) );
 
 		emit SetContract(ballot.ballotName, ballot.address1);
@@ -311,14 +292,14 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		}
 
 
-	// Form SALT/USDS or USDS/DAI Protocol Owned Liquidity using the given amount of specified tokens.
+	// Form SALT/USDC or USDC/DAI Protocol Owned Liquidity using the given amount of specified tokens.
 	// Assumes that the tokens have already been transferred to this contract.
 	function formPOL( IERC20 tokenA, IERC20 tokenB, uint256 amountA, uint256 amountB ) external
 		{
 		require( msg.sender == address(exchangeConfig.upkeep()), "DAO.formPOL is only callable from the Upkeep contract" );
 
 		// Use zapping to form the liquidity so that all the specified tokens are used
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( tokenA, tokenB, amountA, amountB, 0, block.timestamp, true );
+		liquidity.depositLiquidityAndIncreaseShare( tokenA, tokenB, amountA, amountB, 0, block.timestamp, true );
 
 		emit POLFormed(tokenA, tokenB, amountA, amountB);
 		}
@@ -328,12 +309,11 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		{
 		require( msg.sender == address(exchangeConfig.upkeep()), "DAO.processRewardsFromPOL is only callable from the Upkeep contract" );
 
-		// The DAO owns SALT/USDS and USDS/DAI liquidity.
-		bytes32[] memory poolIDs = new bytes32[](2);
-		poolIDs[0] = PoolUtils._poolID(salt, usds);
-		poolIDs[1] = PoolUtils._poolID(usds, dai);
+		// The DAO owns SALT/USDC liquidity.
+		bytes32[] memory poolIDs = new bytes32[](1);
+		poolIDs[0] = PoolUtils._poolID(salt, usdc);
 
-		uint256 claimedSALT = collateralAndLiquidity.claimAllRewards(poolIDs);
+		uint256 claimedSALT = liquidity.claimAllRewards(poolIDs);
 		if ( claimedSALT == 0 )
 			return;
 
@@ -351,31 +331,6 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		salt.burnTokensInContract();
 
 		emit POLProcessed(claimedSALT);
-		}
-
-
-	// Withdraws the specified amount of the Protocol Owned Liquidity from the DAO and sends the underlying tokens to the Liquidizer to be burned as USDS as needed.
-	// Called when the amount of recovered USDS from liquidating a user's WBTC/WETH collateral is insufficient to cover burning the USDS that they had borrowed.
-	// Only callable from the Liquidizer contract.
-	function withdrawPOL( IERC20 tokenA, IERC20 tokenB, uint256 percentToLiquidate ) external
-		{
-		require(msg.sender == address(liquidizer), "DAO.withdrawProtocolOwnedLiquidity is only callable from the Liquidizer contract" );
-
-		bytes32 poolID = PoolUtils._poolID(tokenA, tokenB);
-		uint256 liquidityHeld = collateralAndLiquidity.userShareForPool( address(this), poolID );
-		if ( liquidityHeld == 0 )
-			return;
-
-		uint256 liquidityToWithdraw = (liquidityHeld * percentToLiquidate) / 100;
-
-		// Withdraw the specified Protocol Owned Liquidity
-		(uint256 reclaimedA, uint256 reclaimedB) = collateralAndLiquidity.withdrawLiquidityAndClaim(tokenA, tokenB, liquidityToWithdraw, 0, 0, block.timestamp );
-
-		// Send the withdrawn tokens to the Liquidizer so that the tokens can be swapped to USDS and burned as needed.
-		tokenA.safeTransfer( address(liquidizer), reclaimedA );
-		tokenB.safeTransfer( address(liquidizer), reclaimedB );
-
-		emit POLWithdrawn(tokenA, tokenB, reclaimedA, reclaimedB);
 		}
 
 

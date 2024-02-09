@@ -14,7 +14,7 @@ contract TestCoreSaltyFeed is Deployment
 		{
 		initializeContracts();
 
-		saltyFeed = new CoreSaltyFeed( pools, exchangeConfig );
+		saltyFeed = new CoreSaltyFeed( pools, wbtc, weth, usdc );
 
 		grantAccessAlice();
 		grantAccessBob();
@@ -25,15 +25,12 @@ contract TestCoreSaltyFeed is Deployment
 		vm.startPrank(DEPLOYER);
        	wbtc.approve( address(pools), type(uint256).max );
        	weth.approve( address(pools), type(uint256).max );
-       	usds.approve( address(pools), type(uint256).max );
-       	wbtc.approve( address(collateralAndLiquidity), type(uint256).max );
-       	weth.approve( address(collateralAndLiquidity), type(uint256).max );
-       	usds.approve( address(collateralAndLiquidity), type(uint256).max );
+       	usdc.approve( address(pools), type(uint256).max );
+       	wbtc.approve( address(liquidity), type(uint256).max );
+       	weth.approve( address(liquidity), type(uint256).max );
+       	usdc.approve( address(liquidity), type(uint256).max );
 
 		vm.stopPrank();
-
-		vm.prank( address(collateralAndLiquidity) );
-		usds.mintTo(DEPLOYER, 1000000000 ether);
 
 		finalizeBootstrap();
 
@@ -46,7 +43,9 @@ contract TestCoreSaltyFeed is Deployment
 	function setPriceInPoolsWBTC( uint256 price ) public
 		{
 		vm.startPrank(DEPLOYER);
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( wbtc, usds, 1000 * 10**8, price * 1000, 0, block.timestamp, false );
+
+		// price has 18 deicmals, USDC has 6 decimals
+		liquidity.depositLiquidityAndIncreaseShare( wbtc, usdc, 1000 * 10**8,(price * 1000) / 10 ** 12, 0, block.timestamp, false );
 		vm.stopPrank();
 		}
 
@@ -55,16 +54,18 @@ contract TestCoreSaltyFeed is Deployment
 	function setPriceInPoolsWETH( uint256 price ) public
 		{
 		vm.startPrank(DEPLOYER);
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( weth, usds, 1000 ether, price * 1000, 0, block.timestamp, false );
+
+		// price has 18 deicmals, USDC has 6 decimals
+		liquidity.depositLiquidityAndIncreaseShare( weth, usdc, 1000 ether, (price * 1000) / 10 ** 12, 0, block.timestamp, false );
 		vm.stopPrank();
 		}
 
 
-	// A unit test that verifies the correct operation of getPriceBTC and getPriceETH functions when the reserves of WBTC/WETH and USDS are above the DUST limit. The test should set the reserves to known values and check that both functions return the expected price. Additionally, this test should cover scenarios where the pool reserves fluctuate or are updated in real-time.
+	// A unit test that verifies the correct operation of getPriceBTC and getPriceETH functions when the reserves of WBTC/WETH and USDC are above the DUST limit. The test should set the reserves to known values and check that both functions return the expected price. Additionally, this test should cover scenarios where the pool reserves fluctuate or are updated in real-time.
 	function testCorrectOperationOfGetPriceBTCAndETHWithSufficientReserves() public
         {
-        uint256 wbtcPrice = 50000 ether; // WBTC price in terms of USDS
-        uint256 wethPrice = 3000 ether;  // WETH price in terms of USDS
+        uint256 wbtcPrice = 50000 ether; // WBTC price in terms of USDC
+        uint256 wethPrice = 3000 ether;  // WETH price in terms of USDC
 
         // Set prices in the pools
         this.setPriceInPoolsWBTC(wbtcPrice);
@@ -76,8 +77,8 @@ contract TestCoreSaltyFeed is Deployment
 
 //		// Remove all liquidity before changing price
 //		vm.startPrank( DEPLOYER );
-//		pools.removeLiquidity( wbtc, usds, pools.getUserLiquidity(DEPLOYER, wbtc, usds), 0, 0, block.timestamp );
-//		pools.removeLiquidity( weth, usds, pools.getUserLiquidity(DEPLOYER, weth, usds), 0, 0, block.timestamp );
+//		pools.removeLiquidity( wbtc, usdc, pools.getUserLiquidity(DEPLOYER, wbtc, usdc), 0, 0, block.timestamp );
+//		pools.removeLiquidity( weth, usdc, pools.getUserLiquidity(DEPLOYER, weth, usdc), 0, 0, block.timestamp );
 //		vm.stopPrank();
 //
 //        // Change reserves to simulate real-time update
@@ -93,7 +94,7 @@ contract TestCoreSaltyFeed is Deployment
         }
 
 
-	// A unit test that confirms that getPriceBTC and getPriceETH functions return zero when the reserves of WBTC/WETH or USDS are equal to or below the DUST limit, regardless of the other's reserves.
+	// A unit test that confirms that getPriceBTC and getPriceETH functions return zero when the reserves of WBTC/WETH or USDC are equal to or below the DUST limit, regardless of the other's reserves.
 	function testGetPriceReturnsZeroWithDustReserves() public
 		{
 		// Prices should be zero due to DUST limit
@@ -106,8 +107,8 @@ contract TestCoreSaltyFeed is Deployment
 //
 //		// Remove all liquidity except for DUST amount
 //		vm.startPrank( DEPLOYER );
-//		pools.removeLiquidity( wbtc, usds, pools.getUserLiquidity(DEPLOYER, wbtc, usds) - PoolUtils.DUST + 1, 0, 0, block.timestamp );
-//		pools.removeLiquidity( weth, usds, pools.getUserLiquidity(DEPLOYER, weth, usds) - PoolUtils.DUST + 1, 0, 0, block.timestamp );
+//		pools.removeLiquidity( wbtc, usdc, pools.getUserLiquidity(DEPLOYER, wbtc, usdc) - PoolUtils.DUST + 1, 0, 0, block.timestamp );
+//		pools.removeLiquidity( weth, usdc, pools.getUserLiquidity(DEPLOYER, weth, usdc) - PoolUtils.DUST + 1, 0, 0, block.timestamp );
 //		vm.stopPrank();
 //
 //		// Prices should be zero due to DUST limit
@@ -116,11 +117,11 @@ contract TestCoreSaltyFeed is Deployment
 		}
 
 
-	// A unit test that checks if the contract behaves as expected when the WBTC, WETH, or USDS token contract addresses are invalid or manipulated. This could include scenarios where the token contracts do not implement the expected ERC20 interface, or when the token contracts behave maliciously.
+	// A unit test that checks if the contract behaves as expected when the WBTC, WETH, or USDC token contract addresses are invalid or manipulated. This could include scenarios where the token contracts do not implement the expected ERC20 interface, or when the token contracts behave maliciously.
 	function testInvalidTokens() public
 		{
-	    exchangeConfig = new ExchangeConfig( ISalt(address(0x1)), IERC20(address(0x1)), IERC20(address(0x1)), IERC20(address(0x1)), IUSDS(address(0x2)), managedTeamWallet);
-		saltyFeed = new CoreSaltyFeed(pools, exchangeConfig );
+	    exchangeConfig = new ExchangeConfig( ISalt(address(0x1)), IERC20(address(0x1)), IERC20(address(0x1)), IERC20(address(0x2)), managedTeamWallet);
+		saltyFeed = new CoreSaltyFeed( pools, wbtc, weth, usdc );
 
 	    // Prices should match those set in the pools
         assertEq(saltyFeed.getPriceBTC(), 0, "Incorrect WBTC price returned");
@@ -129,16 +130,16 @@ contract TestCoreSaltyFeed is Deployment
 
 
 
-	// A unit test that verifies the correct initialization of the pools, WBTC, WETH, and USDS contract addresses in the CoreSaltyFeed constructor.
+	// A unit test that verifies the correct initialization of the pools, WBTC, WETH, and USDC contract addresses in the CoreSaltyFeed constructor.
 	function testCorrectInitializationOfContractAddresses() public
 		{
 		assertEq(address(saltyFeed.pools()), address(pools), "Pools address not correctly initialized");
 		assertEq(address(saltyFeed.wbtc()), address(wbtc), "WBTC address not correctly initialized");
 		assertEq(address(saltyFeed.weth()), address(weth), "WETH address not correctly initialized");
-		assertEq(address(saltyFeed.usds()), address(usds), "USDS address not correctly initialized");
+		assertEq(address(saltyFeed.usdc()), address(usdc), "USDC address not correctly initialized");
 		}
 
-	// A unit test that validates that getPriceBTC function does not revert in case of zero reserves for WBTC and USDS.
+	// A unit test that validates that getPriceBTC function does not revert in case of zero reserves for WBTC and USDC.
 	function testGetPriceBTCDoesNotRevertWithZeroReserves() public
     {
         // Call getPriceBTC, should not revert and should return 0
@@ -146,7 +147,7 @@ contract TestCoreSaltyFeed is Deployment
     }
 
 
-    // A unit test that validates that getPriceETH function does not revert in case of zero reserves for WETH and USDS.
+    // A unit test that validates that getPriceETH function does not revert in case of zero reserves for WETH and USDC.
 	function testGetPriceETHDoesNotRevertWithZeroReserves() public
     {
         // Call getPriceETH, should not revert and should return 0
@@ -154,13 +155,13 @@ contract TestCoreSaltyFeed is Deployment
     }
 
 
-    // A unit test to verify the getPriceBTC functions return a non-zero value when reserves of WBTC/WETH are just above the DUST limit and USDS reserves are substantially high.
-    function testLargeUSDSReservesBTC() public
+    // A unit test to verify the getPriceBTC functions return a non-zero value when reserves of WBTC/WETH are just above the DUST limit and USDC reserves are substantially high.
+    function testLargeUSDCReservesBTC() public
         {
-        uint256 btcPrice = 30000 ether;  // BTC price in terms of USDS
+        uint256 btcPrice = 30000 ether;  // BTC price in terms of USDC
 
 		vm.startPrank(DEPLOYER);
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( wbtc, usds, PoolUtils.DUST + 1, btcPrice * (PoolUtils.DUST + 1), 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( wbtc, usdc, PoolUtils.DUST + 1, btcPrice * (PoolUtils.DUST + 1) / 10 ** 12, 0, block.timestamp, false );
 		vm.stopPrank();
 
         // Prices should match those set in the pools
@@ -168,13 +169,13 @@ contract TestCoreSaltyFeed is Deployment
         }
 
 
-    // A unit test to verify the getPriceETH functions return a non-zero value when reserves of WBTC/WETH are just above the DUST limit and USDS reserves are substantially high.
-    function testLargeUSDSReservesETH() public
+    // A unit test to verify the getPriceETH functions return a non-zero value when reserves of WBTC/WETH are just above the DUST limit and USDC reserves are substantially high.
+    function testLargeUSDCReservesETH() public
         {
-        uint256 ethPrice = 3000 ether;  // ETH price in terms of USDS
+        uint256 ethPrice = 3000 ether;  // ETH price in terms of USDC
 
 		vm.startPrank(DEPLOYER);
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( weth, usds, PoolUtils.DUST + 1, ethPrice * (PoolUtils.DUST + 1), 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( weth, usdc, PoolUtils.DUST + 1, ethPrice * (PoolUtils.DUST + 1) / 10 ** 12, 0, block.timestamp, false );
 		vm.stopPrank();
 
         // Prices should match those set in the pools
@@ -194,8 +195,8 @@ contract TestCoreSaltyFeed is Deployment
 //
 //        // Remove all liquidity except for 1, which is less than DUST
 //        vm.startPrank( DEPLOYER );
-//        pools.removeLiquidity( wbtc, usds, pools.getUserLiquidity(DEPLOYER, wbtc, usds) - 1, 0, 0, block.timestamp );
-//        pools.removeLiquidity( weth, usds, pools.getUserLiquidity(DEPLOYER, weth, usds) - 1, 0, 0, block.timestamp );
+//        pools.removeLiquidity( wbtc, usdc, pools.getUserLiquidity(DEPLOYER, wbtc, usdc) - 1, 0, 0, block.timestamp );
+//        pools.removeLiquidity( weth, usdc, pools.getUserLiquidity(DEPLOYER, weth, usdc) - 1, 0, 0, block.timestamp );
 //        vm.stopPrank();
 //
 //        // Prices should be zero due to DUST limit
@@ -207,9 +208,9 @@ contract TestCoreSaltyFeed is Deployment
     // A unit test to confirm that getPriceBTC and getPriceETH function returns are consistent if reserves do not change.
     function testGetPriceConsistency() public
     		{
-    			// Set known reserves in pools
-    			uint256 wbtcPrice = 40000 ether; // WBTC price in terms of USDS
-            	uint256 wethPrice = 2000 ether;  // WETH price in terms of USDS
+    			// Set known reserves in pools with 18 decimals
+    			uint256 wbtcPrice = 40000 ether; // WBTC price in terms of USDC
+            	uint256 wethPrice = 2000 ether;  // WETH price in terms of USDC
 
     			this.setPriceInPoolsWBTC(wbtcPrice);
     			this.setPriceInPoolsWETH(wethPrice);
@@ -229,7 +230,7 @@ contract TestCoreSaltyFeed is Deployment
     		}
 
 //
-//    // A unit test that verifies if the getPriceBTC and getPriceETH functions handle accurately when reserves of WBTC/WETH or USDS are excessively small.
+//    // A unit test that verifies if the getPriceBTC and getPriceETH functions handle accurately when reserves of WBTC/WETH or USDC are excessively small.
 //    function testGetPriceWithExcessivelySmallReserves() public
 //    		{
 //    		// Set prices in the pools with very small reserve
@@ -238,8 +239,8 @@ contract TestCoreSaltyFeed is Deployment
 //
 //			// Remove all liquidity except for 1, which is less than DUST
 //			vm.startPrank( DEPLOYER );
-//			pools.removeLiquidity( wbtc, usds, pools.getUserLiquidity(DEPLOYER, wbtc, usds) - 1, 0, 0, block.timestamp );
-//			pools.removeLiquidity( weth, usds, pools.getUserLiquidity(DEPLOYER, weth, usds) - 1, 0, 0, block.timestamp );
+//			pools.removeLiquidity( wbtc, usdc, pools.getUserLiquidity(DEPLOYER, wbtc, usdc) - 1, 0, 0, block.timestamp );
+//			pools.removeLiquidity( weth, usdc, pools.getUserLiquidity(DEPLOYER, weth, usdc) - 1, 0, 0, block.timestamp );
 //			vm.stopPrank();
 //
 //    		// Prices should be zero due to small reserves
@@ -248,8 +249,8 @@ contract TestCoreSaltyFeed is Deployment
 //
 //    		// Remove all liquidity
 //    		vm.startPrank( DEPLOYER );
-//    		pools.removeLiquidity( wbtc, usds, pools.getUserLiquidity(DEPLOYER, wbtc, usds), 0, 0, block.timestamp );
-//    		pools.removeLiquidity( weth, usds, pools.getUserLiquidity(DEPLOYER, weth, usds), 0, 0, block.timestamp );
+//    		pools.removeLiquidity( wbtc, usdc, pools.getUserLiquidity(DEPLOYER, wbtc, usdc), 0, 0, block.timestamp );
+//    		pools.removeLiquidity( weth, usdc, pools.getUserLiquidity(DEPLOYER, weth, usdc), 0, 0, block.timestamp );
 //    		vm.stopPrank();
 //
 //    		// Prices should still be zero

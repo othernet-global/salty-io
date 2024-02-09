@@ -16,39 +16,40 @@ contract CoreSaltyFeed is IPriceFeed
 
 	IERC20 immutable public wbtc;
 	IERC20 immutable public weth;
-	IERC20 immutable public usds;
+	IERC20 immutable public usdc;
 
 
-	constructor( IPools _pools, IExchangeConfig _exchangeConfig )
+	constructor( IPools _pools, IERC20 _wbtc, IERC20 _weth, IERC20 _usdc )
 		{
 		pools = _pools;
-		wbtc = _exchangeConfig.wbtc();
-		weth = _exchangeConfig.weth();
-		usds = _exchangeConfig.usds();
+		wbtc = _wbtc;
+		weth = _weth;
+		usdc = _usdc;
 		}
 
 
 	// Returns zero for an invalid price
 	function getPriceBTC() external view returns (uint256)
 		{
-        (uint256 reservesWBTC, uint256 reservesUSDS) = pools.getPoolReserves(wbtc, usds);
+        (uint256 reservesWBTC, uint256 reservesUSDC) = pools.getPoolReserves(wbtc, usdc);
 
-		if ( ( reservesWBTC < PoolUtils.DUST ) || ( reservesUSDS < PoolUtils.DUST ) )
+		if ( ( reservesWBTC < PoolUtils.DUST ) || ( reservesUSDC < PoolUtils.DUST ) )
 			return 0;
 
-		// reservesWBTC has 8 decimals, keep the 18 decimals of reservesUSDS
-		return ( reservesUSDS * 10**8 ) / reservesWBTC;
+		// reservesWBTC has 8 decimals, reservesUSDC has 6 decimals, we want 18 decimals
+		return ( reservesUSDC * 10**20 ) / reservesWBTC;
 		}
 
 
 	// Returns zero for an invalid price
 	function getPriceETH() external view returns (uint256)
 		{
-        (uint256 reservesWETH, uint256 reservesUSDS) = pools.getPoolReserves(weth, usds);
+        (uint256 reservesWETH, uint256 reservesUSDC) = pools.getPoolReserves(weth, usdc);
 
-		if ( ( reservesWETH < PoolUtils.DUST ) || ( reservesUSDS < PoolUtils.DUST ) )
+		if ( ( reservesWETH < PoolUtils.DUST ) || ( reservesUSDC < PoolUtils.DUST ) )
 			return 0;
 
-		return ( reservesUSDS * 10**18 ) / reservesWETH;
+		// reservesWETH has 18 decimals, reservesUSDC has 6 decimals, we want 18 decimals
+		return ( reservesUSDC * 10**30 ) / reservesWETH;
 		}
     }

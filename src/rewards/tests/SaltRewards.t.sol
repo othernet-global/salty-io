@@ -55,7 +55,7 @@ contract TestSaltRewards2 is Deployment
      }
 
 
-    // A unit test to verify the _sendLiquidityRewards function with a non-zero total profits and non-zero pending rewards, ensuring that the correct amount is transferred each pool's liquidityRewardsEmitter and the pendingLiquidityRewards and pendingRewardsSaltUSDS fields are reset to zero.
+    // A unit test to verify the _sendLiquidityRewards function with a non-zero total profits and non-zero pending rewards, ensuring that the correct amount is transferred each pool's liquidityRewardsEmitter and the pendingLiquidityRewards and pendingRewardsSaltUSDC fields are reset to zero.
     function testSendLiquidityRewards() public {
         TestSaltRewards _saltRewards = new TestSaltRewards(stakingRewardsEmitter, liquidityRewardsEmitter, exchangeConfig, rewardsConfig);
 
@@ -69,7 +69,7 @@ contract TestSaltRewards2 is Deployment
 		poolsConfig.whitelistPool( pools,   token1, token2);
 
         bytes32[] memory poolIDs = new bytes32[](2);
-        poolIDs[0] = PoolUtils._poolID(salt,usds);
+        poolIDs[0] = PoolUtils._poolID(salt,usdc);
 		poolIDs[1] = PoolUtils._poolID(token1, token2);
 
         uint256[] memory profitsForPools = new uint256[](2);
@@ -78,7 +78,7 @@ contract TestSaltRewards2 is Deployment
 
         // Initializing the pending rewards
         uint256 initialPendingLiquidityRewards = 40 ether; // for other pools
-        uint256 initialPendingRewardsSaltUSDS = 1 ether; // for SALT/USDS pool
+        uint256 initialPendingRewardsSaltUSDC = 1 ether; // for SALT/USDC pool
 
         // Balance of contract before running sendLiquidityRewards
         uint256 initialSaltContractBalance = salt.balanceOf(address(_saltRewards));
@@ -87,18 +87,18 @@ contract TestSaltRewards2 is Deployment
         uint256 initialLiquidityRewardsEmitterBalance = salt.balanceOf(address(liquidityRewardsEmitter));
 
         // Run _sendLiquidityRewards function
-        _saltRewards.sendLiquidityRewards(initialPendingLiquidityRewards, initialPendingRewardsSaltUSDS, poolIDs, profitsForPools);
+        _saltRewards.sendLiquidityRewards(initialPendingLiquidityRewards, initialPendingRewardsSaltUSDC, poolIDs, profitsForPools);
 
         // Expectations after running the function
-        uint256 expectedLiquidityRewardsEmitterBalance = initialLiquidityRewardsEmitterBalance + initialPendingLiquidityRewards + initialPendingRewardsSaltUSDS;
-        uint256 expectedSaltContractBalance = initialSaltContractBalance - initialPendingLiquidityRewards - initialPendingRewardsSaltUSDS;
+        uint256 expectedLiquidityRewardsEmitterBalance = initialLiquidityRewardsEmitterBalance + initialPendingLiquidityRewards + initialPendingRewardsSaltUSDC;
+        uint256 expectedSaltContractBalance = initialSaltContractBalance - initialPendingLiquidityRewards - initialPendingRewardsSaltUSDC;
 
         // Verifying the changes in the balances and the pending rewards
         assertEq(salt.balanceOf(address(liquidityRewardsEmitter)), expectedLiquidityRewardsEmitterBalance - 1, "LiquidityRewardsEmitter hasn't received the correct amount of Salt");
         assertEq(salt.balanceOf(address(_saltRewards)), expectedSaltContractBalance + 1, "_sendLiquidityRewards hasn't deducted the correct amount of Salt from the contract balance");
 
-        // Should set  pendingRewardsSaltUSDS to the remaining SALT that wasn't sent
-        assertEq(salt.balanceOf(address(_saltRewards)), 9000000000000000001, "_sendLiquidityRewards didn't set pendingRewardsSaltUSDS to 0");
+        // Should set  pendingRewardsSaltUSDC to the remaining SALT that wasn't sent
+        assertEq(salt.balanceOf(address(_saltRewards)), 9000000000000000001, "_sendLiquidityRewards didn't set pendingRewardsSaltUSDC to 0");
 
         uint256[] memory pendingRewards = liquidityRewardsEmitter.pendingRewardsForPools(poolIDs);
         assertEq( pendingRewards[0], initialPendingLiquidityRewards * 1 / 3 + 1 ether );
@@ -132,9 +132,9 @@ contract TestSaltRewards2 is Deployment
             TestSaltRewards _saltRewards = new TestSaltRewards(stakingRewardsEmitter, liquidityRewardsEmitter, exchangeConfig, rewardsConfig);
 
             bytes32[] memory poolIDs = new bytes32[](3);
-            poolIDs[0] = PoolUtils._poolID(salt, usds);
+            poolIDs[0] = PoolUtils._poolID(salt, usdc);
             poolIDs[1] = PoolUtils._poolID(wbtc, weth);
-            poolIDs[2] = PoolUtils._poolID(weth, usds);
+            poolIDs[2] = PoolUtils._poolID(weth, usdc);
 
             uint256 liquidityBootstrapAmount = 900 ether;
 
@@ -199,7 +199,7 @@ contract TestSaltRewards2 is Deployment
         uint256 liquidityBootstrapAmount = 5 ether;
 
         bytes32[] memory poolIDs = new bytes32[](1);
-        poolIDs[0] = PoolUtils._poolID(salt, usds);
+        poolIDs[0] = PoolUtils._poolID(salt, usdc);
 
         // Expect revert because the caller is not the initialDistribution
         vm.expectRevert("SaltRewards.sendInitialRewards is only callable from the InitialDistribution contract");
@@ -229,7 +229,7 @@ contract TestSaltRewards2 is Deployment
 		poolsConfig.whitelistPool( pools,   token1, token2);
 
         bytes32[] memory poolIDs = new bytes32[](2);
-        poolIDs[0] = PoolUtils._poolID(salt,usds);
+        poolIDs[0] = PoolUtils._poolID(salt,usdc);
 		poolIDs[1] = PoolUtils._poolID(token1, token2);
 
         uint256[] memory profitsForPools = new uint256[](2);
@@ -242,9 +242,9 @@ contract TestSaltRewards2 is Deployment
         _saltRewards.performUpkeep(poolIDs, profitsForPools);
 
         // Expectations after running the function
-        uint256 directSaltUSDSRewards = saltRewards / 10;
-        uint256 expectedStakingRewardsEmitterBalance = (saltRewards - directSaltUSDSRewards ) / 2;
-        uint256 expectedLiquidityRewardsEmitterBalance = (saltRewards - directSaltUSDSRewards ) / 2 + directSaltUSDSRewards;
+        uint256 directSaltUSDCRewards = saltRewards / 10;
+        uint256 expectedStakingRewardsEmitterBalance = (saltRewards - directSaltUSDCRewards ) / 2;
+        uint256 expectedLiquidityRewardsEmitterBalance = (saltRewards - directSaltUSDCRewards ) / 2 + directSaltUSDCRewards;
 
         // Verifying the changes in the balances, pending staking rewards and pending liquidity rewards
         assertEq(salt.balanceOf(address(_saltRewards)), 0, "performUpkeep hasn't deducted the correct amount of Salt from the contract balance");
@@ -293,7 +293,7 @@ contract TestSaltRewards2 is Deployment
 		poolsConfig.whitelistPool( pools,   token1, token2);
 
         bytes32[] memory poolIDs = new bytes32[](2);
-        poolIDs[0] = PoolUtils._poolID(salt,usds);
+        poolIDs[0] = PoolUtils._poolID(salt,usdc);
 		poolIDs[1] = PoolUtils._poolID(token1, token2);
 
         uint256[] memory profitsForPools = new uint256[](2);
@@ -317,15 +317,15 @@ contract TestSaltRewards2 is Deployment
     	}
 
 
-	// A unit test to validate that any leftover SALT dust is added to pendingRewardsSaltUSDS after executing the _sendLiquidityRewards function
-	    function testAddDustToPendingRewardsSaltUSDS() public {
+	// A unit test to validate that any leftover SALT dust is added to pendingRewardsSaltUSDC after executing the _sendLiquidityRewards function
+	    function testAddDustToPendingRewardsSaltUSDC() public {
             TestSaltRewards _saltRewards = new TestSaltRewards(stakingRewardsEmitter, liquidityRewardsEmitter, exchangeConfig, rewardsConfig);
 
             vm.prank(DEPLOYER);
             salt.transfer(address(_saltRewards), 50 ether);
 
             bytes32[] memory poolIDs = new bytes32[](1);
-            poolIDs[0] = PoolUtils._poolID(salt,usds);
+            poolIDs[0] = PoolUtils._poolID(salt,usdc);
 
             uint256[] memory profitsForPools = new uint256[](1);
             profitsForPools[0] = 10 ether;
@@ -334,13 +334,13 @@ contract TestSaltRewards2 is Deployment
 			_saltRewards.sendStakingRewards(0 ether);
             _saltRewards.sendLiquidityRewards(40 ether, 1 ether, poolIDs, profitsForPools);
 
-            // It should be equal to the dust remaining in the contract plus the initial pendingRewardsSaltUSDS
-            assertEq(salt.balanceOf(address(_saltRewards)), 9 ether, "The remaining dust was not added to pendingRewardsSaltUSDS");
+            // It should be equal to the dust remaining in the contract plus the initial pendingRewardsSaltUSDC
+            assertEq(salt.balanceOf(address(_saltRewards)), 9 ether, "The remaining dust was not added to pendingRewardsSaltUSDC");
         }
 
 
-    // A unit test that ensures proper amount of direct rewards for the SALT/USDS pool is calculated and sent in _sendLiquidityRewards()
-    function testDirectRewardsForSaltUSDSPool() public {
+    // A unit test that ensures proper amount of direct rewards for the SALT/USDC pool is calculated and sent in _sendLiquidityRewards()
+    function testDirectRewardsForSaltUSDCPool() public {
         TestSaltRewards _saltRewards = new TestSaltRewards(stakingRewardsEmitter, liquidityRewardsEmitter, exchangeConfig, rewardsConfig);
 
         vm.prank(DEPLOYER);
@@ -348,38 +348,38 @@ contract TestSaltRewards2 is Deployment
 
         IERC20 token1 = new TestERC20("TOKEN1", 18);
         IERC20 token2 = new TestERC20("TOKEN2", 18);
-        bytes32 saltUSDSPoolID = PoolUtils._poolID(salt, usds);
+        bytes32 saltUSDCPoolID = PoolUtils._poolID(salt, usdc);
         bytes32 tokenPoolID = PoolUtils._poolID(token1, token2);
 
         vm.prank(address(dao));
         poolsConfig.whitelistPool( pools, token1, token2);
 
         bytes32[] memory poolIDs = new bytes32[](2);
-        poolIDs[0] = saltUSDSPoolID;
+        poolIDs[0] = saltUSDCPoolID;
         poolIDs[1] = tokenPoolID;
 
         uint256[] memory profitsForPools = new uint256[](2);
-        profitsForPools[0] = 0; // SALT/USDS pool doesn't generate profits through this mechanism
+        profitsForPools[0] = 0; // SALT/USDC pool doesn't generate profits through this mechanism
         profitsForPools[1] = 50 ether; // profits generated by TOKEN1/TOKEN2 pool
 
         uint256 liquidityRewardsAmount = 80 ether;
-        uint256 directRewardsForSaltUSDS = 10 ether;
+        uint256 directRewardsForSaltUSDC = 10 ether;
         uint256 totalProfits = profitsForPools[1]; // Only TOKEN1/TOKEN2 pool has profits
 
         vm.prank(address(dao));
-        _saltRewards.sendLiquidityRewards(liquidityRewardsAmount, directRewardsForSaltUSDS, poolIDs, profitsForPools);
+        _saltRewards.sendLiquidityRewards(liquidityRewardsAmount, directRewardsForSaltUSDC, poolIDs, profitsForPools);
 
-        uint256 sentToSaltUSDS = directRewardsForSaltUSDS +
+        uint256 sentToSaltUSDC = directRewardsForSaltUSDC +
                                  (liquidityRewardsAmount * profitsForPools[0] / totalProfits);
         uint256 sentToTokenPool = liquidityRewardsAmount * profitsForPools[1] / totalProfits;
 
         // Total distributed should equal the direct rewards plus calculated rewards based on profits
-        uint256 totalDistributed = sentToSaltUSDS + sentToTokenPool;
+        uint256 totalDistributed = sentToSaltUSDC + sentToTokenPool;
         uint256 balanceAfterDistribution = salt.balanceOf(address(_saltRewards));
 
-        // Total expected distributed equals liquidityRewardsAmount plus directRewardsForSaltUSDS,
+        // Total expected distributed equals liquidityRewardsAmount plus directRewardsForSaltUSDC,
         // and the required balance after distribution is the initial balance minus the total distributed
-        uint256 expectedTotalDistributed = liquidityRewardsAmount + directRewardsForSaltUSDS;
+        uint256 expectedTotalDistributed = liquidityRewardsAmount + directRewardsForSaltUSDC;
         uint256 expectedBalanceAfterDistribution = 100 ether - expectedTotalDistributed;
 
         assertEq(totalDistributed, expectedTotalDistributed, "Incorrect total rewards distributed");
@@ -405,7 +405,7 @@ contract TestSaltRewards2 is Deployment
             vm.prank(address(dao));
             poolsConfig.whitelistPool(pools, tokenA, tokenB);
 
-            bytes32 poolIdA = PoolUtils._poolID(salt,usds);
+            bytes32 poolIdA = PoolUtils._poolID(salt,usdc);
             bytes32 poolIdB = PoolUtils._poolID(tokenA, tokenB);
             bytes32[] memory poolIDs = new bytes32[](2);
             poolIDs[0] = poolIdA;
@@ -419,8 +419,8 @@ contract TestSaltRewards2 is Deployment
             profitsForPools[1] = profitB;
 
             uint256 liquidityRewardsAmount = 10 ether; // total rewards to be distributed
-            uint256 directRewardsForSaltUSDS = 2 ether; // direct rewards to SALT/USDS pool
-            uint256 expectedRewardsForPoolA = (liquidityRewardsAmount * profitA / totalProfits) + directRewardsForSaltUSDS;
+            uint256 directRewardsForSaltUSDC = 2 ether; // direct rewards to SALT/USDC pool
+            uint256 expectedRewardsForPoolA = (liquidityRewardsAmount * profitA / totalProfits) + directRewardsForSaltUSDC;
             uint256 expectedRewardsForPoolB = (liquidityRewardsAmount * profitB / totalProfits);
 
             // Both pools should now have a pending reward that's directly proportional to their profits contribution
@@ -429,7 +429,7 @@ contract TestSaltRewards2 is Deployment
 
             saltRewards.sendLiquidityRewards(
                 liquidityRewardsAmount,
-                directRewardsForSaltUSDS,
+                directRewardsForSaltUSDC,
                 poolIDs,
                 profitsForPools
             );
@@ -479,9 +479,9 @@ contract TestSaltRewards2 is Deployment
 
         uint256 initialPoolsCount = 4;
         bytes32[] memory poolIDs = new bytes32[](initialPoolsCount);
-        poolIDs[0] = PoolUtils._poolID(salt, usds);
+        poolIDs[0] = PoolUtils._poolID(salt, usdc);
         poolIDs[1] = PoolUtils._poolID(wbtc, weth);
-        poolIDs[2] = PoolUtils._poolID(weth, usds);
+        poolIDs[2] = PoolUtils._poolID(weth, usdc);
         poolIDs[3] = PoolUtils._poolID(salt, wbtc);
 
         uint256 liquidityBootstrapAmount = 1000 ether;
@@ -552,8 +552,8 @@ contract TestSaltRewards2 is Deployment
     }
 
 
-    // A unit test for _sendLiquidityRewards to ensure directRewardsForSaltUSDS is not included for other pool IDs except saltUSDSPoolID
-    function testSendLiquidityRewardsExcludesDirectRewardsForNonSaltUSDSPools() public {
+    // A unit test for _sendLiquidityRewards to ensure directRewardsForSaltUSDC is not included for other pool IDs except saltUSDCPoolID
+    function testSendLiquidityRewardsExcludesDirectRewardsForNonSaltUSDCPools() public {
         TestSaltRewards _saltRewards = new TestSaltRewards(stakingRewardsEmitter, liquidityRewardsEmitter, exchangeConfig, rewardsConfig);
 
         vm.prank(DEPLOYER);
@@ -561,39 +561,39 @@ contract TestSaltRewards2 is Deployment
 
 		IERC20 newToken = new TestERC20( "TEST", 18 );
 
-        bytes32 saltUSDSPoolIDTest = PoolUtils._poolID(salt, usds);
-        bytes32 otherPoolIDTest = PoolUtils._poolID(newToken, usds);
+        bytes32 saltUSDCPoolIDTest = PoolUtils._poolID(salt, usdc);
+        bytes32 otherPoolIDTest = PoolUtils._poolID(newToken, usdc);
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool(pools, newToken, usds);
+		poolsConfig.whitelistPool(pools, newToken, usdc);
 
-        // Set pool IDs and profits with one pool being the saltUSDSPoolID and another being any other pool
+        // Set pool IDs and profits with one pool being the saltUSDCPoolID and another being any other pool
         bytes32[] memory poolIDs = new bytes32[](2);
-        poolIDs[0] = saltUSDSPoolIDTest;
+        poolIDs[0] = saltUSDCPoolIDTest;
         poolIDs[1] = otherPoolIDTest;
 
         uint256[] memory profitsForPools = new uint256[](2);
-        profitsForPools[0] = 10 ether; // Profits for saltUSDSPoolID
+        profitsForPools[0] = 10 ether; // Profits for saltUSDCPoolID
         profitsForPools[1] = 20 ether; // Profits for otherPoolIDTest
 
         // Balance of contract before running sendLiquidityRewards
         uint256 initialSaltContractBalance = salt.balanceOf(address(_saltRewards));
 
-        // Call sendLiquidityRewards, which should include directRewardsForSaltUSDSPoolID only for saltUSDSPoolID
+        // Call sendLiquidityRewards, which should include directRewardsForSaltUSDCPoolID only for saltUSDCPoolID
         _saltRewards.sendLiquidityRewards(40 ether, 1 ether, poolIDs, profitsForPools);
 
         // There should be no revert, but let's calculate the rewards we expect to be sent
         uint256 totalProfits = profitsForPools[0] + profitsForPools[1];
-        uint256 saltUSDSPoolRewards = 1 ether + (40 ether * profitsForPools[0]) / totalProfits;
+        uint256 saltUSDCPoolRewards = 1 ether + (40 ether * profitsForPools[0]) / totalProfits;
         uint256 otherPoolRewards = (40 ether * profitsForPools[1]) / totalProfits;
 
         // Retrieve pending rewards from emitter to check correct distribution
         uint256[] memory pendingRewards = liquidityRewardsEmitter.pendingRewardsForPools(poolIDs);
 
-        // Expectations after running the function. Ensure that directRewardsForSaltUSDS is not included for otherPoolIDTest
+        // Expectations after running the function. Ensure that directRewardsForSaltUSDC is not included for otherPoolIDTest
         assertEq(salt.balanceOf(address(_saltRewards)), initialSaltContractBalance - 40 ether - 1 ether + 1, "SendLiquidityRewards did not emit correct SALT from contract balance.");
-        assertEq(pendingRewards[0], saltUSDSPoolRewards, "SendLiquidityRewards did not allocate correct SALT to saltUSDSPoolID with direct rewards.");
-        assertEq(pendingRewards[1], otherPoolRewards, "SendLiquidityRewards incorrectly allocated direct SALT rewards to pools other than saltUSDSPoolID.");
+        assertEq(pendingRewards[0], saltUSDCPoolRewards, "SendLiquidityRewards did not allocate correct SALT to saltUSDCPoolID with direct rewards.");
+        assertEq(pendingRewards[1], otherPoolRewards, "SendLiquidityRewards incorrectly allocated direct SALT rewards to pools other than saltUSDCPoolID.");
     }
 	}
 

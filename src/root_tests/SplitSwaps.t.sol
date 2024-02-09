@@ -19,17 +19,17 @@ contract TestSplitSwaps is Deployment
 
 		vm.startPrank(DEPLOYER);
 
-		dai.approve(address(collateralAndLiquidity), type(uint256).max );
-		weth.approve(address(collateralAndLiquidity), type(uint256).max );
-		wbtc.approve(address(collateralAndLiquidity), type(uint256).max );
+		usdc.approve(address(liquidity), type(uint256).max );
+		weth.approve(address(liquidity), type(uint256).max );
+		wbtc.approve(address(liquidity), type(uint256).max );
 
-		dai.approve(address(pools), type(uint256).max );
+		usdc.approve(address(pools), type(uint256).max );
 		weth.approve(address(pools), type(uint256).max );
 		wbtc.approve(address(pools), type(uint256).max );
 
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( weth, dai, rA0, rA1, 0, block.timestamp, false );
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( wbtc, dai, rB0, rB1, 0, block.timestamp, false );
-		collateralAndLiquidity.depositCollateralAndIncreaseShare(rC0, rC1, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( weth, usdc, rA0, rA1, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( wbtc, usdc, rB0, rB1, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare(wbtc, weth, rC0, rC1, 0, block.timestamp, false );
 		vm.stopPrank();
 		}
 
@@ -38,20 +38,20 @@ contract TestSplitSwaps is Deployment
 	function testLargeVersusSmallSwaps() public
 		{
 //		uint256 wethReserves = 1000 ether;
-//		uint256 daiReserves = 3000000 ether; // $3000 base price for WETH, assume WBTC price of $30000
-//		init(wethReserves, daiReserves, (wethReserves / 2 ) / 10**10 / 10, daiReserves / 2, (wethReserves * 5) / 10**10 / 10, wethReserves *5 );
+//		uint256 usdcReserves = 3000000 ether; // $3000 base price for WETH, assume WBTC price of $30000
+//		init(wethReserves, usdcReserves, (wethReserves / 2 ) / 10**10 / 10, usdcReserves / 2, (wethReserves * 5) / 10**10 / 10, wethReserves *5 );
 //
 //		vm.prank(DEPLOYER);
-//		uint256 amountOut0 = pools.depositSwapWithdraw( weth, dai, 10 ether, 0, block.timestamp, true);
+//		uint256 amountOut0 = pools.depositSwapWithdraw( weth, usdc, 10 ether, 0, block.timestamp, true);
 //		console.log( "amountOut0: ", amountOut0 );
 //
-//		init(wethReserves, daiReserves, (wethReserves / 2 ) / 10**10 / 10, daiReserves / 2, (wethReserves * 5) / 10**10 / 10, wethReserves *5 );
+//		init(wethReserves, usdcReserves, (wethReserves / 2 ) / 10**10 / 10, usdcReserves / 2, (wethReserves * 5) / 10**10 / 10, wethReserves *5 );
 //
 //		uint256 amountOut;
 //
 //		vm.startPrank(DEPLOYER);
 //		for( uint256 i = 0; i < 10; i++ )
-//		 	amountOut += pools.depositSwapWithdraw( weth, dai, 1 ether, 0, block.timestamp, true);
+//		 	amountOut += pools.depositSwapWithdraw( weth, usdc, 1 ether, 0, block.timestamp, true);
 //
 //		console.log( "amountOut: ", amountOut );
 		}

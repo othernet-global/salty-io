@@ -15,7 +15,7 @@ import "../pools/PoolUtils.sol";
 // Allows users to add liquidity and increase their liquidity share in the StakingRewards pool so that they can receive proportional future rewards.
 // Keeps track of the liquidity held by each user via StakingRewards.userShare.
 
-abstract contract Liquidity is ILiquidity, StakingRewards
+contract Liquidity is ILiquidity, StakingRewards
     {
     event LiquidityDeposited(address indexed user, address indexed tokenA, address indexed tokenB, uint256 amountA, uint256 amountB, uint256 addedLiquidity);
     event LiquidityWithdrawn(address indexed user, address indexed tokenA, address indexed tokenB, uint256 amountA, uint256 amountB, uint256 withdrawnLiquidity);
@@ -24,16 +24,12 @@ abstract contract Liquidity is ILiquidity, StakingRewards
 
 	IPools immutable public pools;
 
-	// The poolID of WBTC/WETH collateral - which should not be withdrawable from this contract directly.
-    bytes32 immutable public collateralPoolID;
-
 
 	constructor( IPools _pools, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig )
 		StakingRewards( _exchangeConfig, _poolsConfig, _stakingConfig )
 		{
 		pools = _pools;
 
-		collateralPoolID = PoolUtils._poolID( exchangeConfig.wbtc(), exchangeConfig.weth() );
 		}
 
 
@@ -80,7 +76,7 @@ abstract contract Liquidity is ILiquidity, StakingRewards
 	// With zapping, all the tokens specified by the user are added to the liquidity pool regardless of their ratio.
 	// If one of the tokens has excess in regards to the reserves token ratio, then some of it is first swapped for the other before the liquidity is added. (See PoolMath.sol for details)
 	// Requires exchange access for the user.
-	function _depositLiquidityAndIncreaseShare( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, bool useZapping ) internal returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
+	function depositLiquidityAndIncreaseShare( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 deadline, bool useZapping ) external nonReentrant ensureNotExpired(deadline) returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
 		{
 		require( exchangeConfig.walletHasAccess(msg.sender), "Sender does not have exchange access" );
 
@@ -118,7 +114,7 @@ abstract contract Liquidity is ILiquidity, StakingRewards
 
 
 	// Withdraw specified liquidity, decrease the user's liquidity share and claim any pending rewards.
-    function _withdrawLiquidityAndClaim( IERC20 tokenA, IERC20 tokenB, uint256 liquidityToWithdraw, uint256 minReclaimedA, uint256 minReclaimedB ) internal returns (uint256 reclaimedA, uint256 reclaimedB)
+    function withdrawLiquidityAndClaim( IERC20 tokenA, IERC20 tokenB, uint256 liquidityToWithdraw, uint256 minReclaimedA, uint256 minReclaimedB, uint256 deadline ) external nonReentrant ensureNotExpired(deadline) returns (uint256 reclaimedA, uint256 reclaimedB)
 		{
 		bytes32 poolID = PoolUtils._poolID( tokenA, tokenB );
 		require( userShareForPool(msg.sender, poolID) >= liquidityToWithdraw, "Cannot withdraw more than existing user share" );
@@ -138,26 +134,4 @@ abstract contract Liquidity is ILiquidity, StakingRewards
 
 		emit LiquidityWithdrawn(msg.sender, address(tokenA), address(tokenB), reclaimedA, reclaimedB, liquidityToWithdraw);
 		}
-
-
-	// Public wrapper for adding liquidity which prevents direct deposits to the collateral pool.
-	// CollateralAndLiquidity::depositCollateralAndIncreaseShare bypasses this and calls _depositLiquidityAndIncreaseShare directly.
-	// Requires exchange access for the sending wallet.
-	function depositLiquidityAndIncreaseShare( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 deadline, bool useZapping ) external nonReentrant ensureNotExpired(deadline) returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
-		{
-		require( PoolUtils._poolID( tokenA, tokenB ) != collateralPoolID, "Stablecoin collateral cannot be deposited via Liquidity.depositLiquidityAndIncreaseShare" );
-
-    	return _depositLiquidityAndIncreaseShare(tokenA, tokenB, maxAmountA, maxAmountB, minLiquidityReceived, useZapping);
-		}
-
-
-	// Public wrapper for withdrawing liquidity which prevents the direct withdrawal from the collateral pool.
-	// CollateralAndLiquidity.withdrawCollateralAndClaim bypasses this and calls _withdrawLiquidityAndClaim directly.
-	// No exchange access required for withdrawals.
-    function withdrawLiquidityAndClaim( IERC20 tokenA, IERC20 tokenB, uint256 liquidityToWithdraw, uint256 minReclaimedA, uint256 minReclaimedB, uint256 deadline ) external nonReentrant ensureNotExpired(deadline) returns (uint256 reclaimedA, uint256 reclaimedB)
-    	{
-		require( PoolUtils._poolID( tokenA, tokenB ) != collateralPoolID, "Stablecoin collateral cannot be withdrawn via Liquidity.withdrawLiquidityAndClaim" );
-
-    	return _withdrawLiquidityAndClaim(tokenA, tokenB, liquidityToWithdraw, minReclaimedA, minReclaimedB);
-    	}
 	}

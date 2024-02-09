@@ -28,10 +28,9 @@ contract InitialDistribution is IInitialDistribution
 	VestingWallet immutable public teamVestingWallet;
 	IAirdrop immutable public airdrop;
 	ISaltRewards immutable public saltRewards;
-	ICollateralAndLiquidity immutable public collateralAndLiquidity;
 
 
-	constructor( ISalt _salt, IPoolsConfig _poolsConfig, IEmissions _emissions, IBootstrapBallot _bootstrapBallot, IDAO _dao, VestingWallet _daoVestingWallet, VestingWallet _teamVestingWallet, IAirdrop _airdrop, ISaltRewards _saltRewards, ICollateralAndLiquidity _collateralAndLiquidity  )
+	constructor( ISalt _salt, IPoolsConfig _poolsConfig, IEmissions _emissions, IBootstrapBallot _bootstrapBallot, IDAO _dao, VestingWallet _daoVestingWallet, VestingWallet _teamVestingWallet, IAirdrop _airdrop, ISaltRewards _saltRewards  )
 		{
 		salt = _salt;
 		poolsConfig = _poolsConfig;
@@ -42,7 +41,6 @@ contract InitialDistribution is IInitialDistribution
 		teamVestingWallet = _teamVestingWallet;
 		airdrop = _airdrop;
 		saltRewards = _saltRewards;
-		collateralAndLiquidity = _collateralAndLiquidity;
         }
 
 

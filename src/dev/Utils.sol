@@ -7,7 +7,6 @@ import "../rewards/interfaces/IRewardsConfig.sol";
 import "../pools/interfaces/IPoolsConfig.sol";
 import "../staking/interfaces/IStaking.sol";
 import "../staking/interfaces/IStakingConfig.sol";
-import "../stable/interfaces/IStableConfig.sol";
 import "../pools/interfaces/IPools.sol";
 import "../interfaces/ISalt.sol";
 import "../interfaces/IExchangeConfig.sol";
@@ -163,7 +162,7 @@ contract Utils
 
 
 	// Returns prices with 18 decimals
-	function corePrices(IPools pools, IExchangeConfig exchangeConfig, IPriceAggregator priceAggregator) public view returns (uint256 btcPrice, uint256 ethPrice, uint256 saltPrice, uint256 usdsPrice)
+	function corePrices(IPools pools, IExchangeConfig exchangeConfig, IPriceAggregator priceAggregator) public view returns (uint256 btcPrice, uint256 ethPrice, uint256 saltPrice)
 		{
 		btcPrice =  priceAggregator.getPriceBTC();
 		ethPrice =  priceAggregator.getPriceETH();
@@ -171,7 +170,6 @@ contract Utils
 		IERC20 wbtc = exchangeConfig.wbtc();
 		IERC20 weth = exchangeConfig.weth();
 		ISalt salt = exchangeConfig.salt();
-		IUSDS usds = exchangeConfig.usds();
 
 		// Use SALT/WBTC and SALT/WETH as the basis for the SALT price
 		(uint256 reservesA1, uint256 reservesB1) = pools.getPoolReserves(salt, wbtc);
@@ -187,41 +185,26 @@ contract Utils
 			// Price proportional to the reserves of each pool
 			saltPrice = ( price1 * reservesA1 + price2 * reservesA2 ) / ( reservesA1 + reservesA2 );
 			}
-
-		// Use WBTC/USDS and WETH/USDS as the basis for the USDS price
-		(reservesA1, reservesB1) = pools.getPoolReserves(usds, wbtc);
-		(reservesA2, reservesB2) = pools.getPoolReserves(usds, weth);
-
-		if ( reservesA1 > PoolUtils.DUST )
-		if ( reservesA2 > PoolUtils.DUST )
-			{
-			// Bitcoin reserves have 8 decimals so convert to 18 decimals
-			uint256 price1 = reservesB1 * btcPrice * 10**10 / reservesA1;
-			uint256 price2 = reservesB2 * ethPrice / reservesA2;
-
-			// Price proportional to the reserves of each pool
-			usdsPrice = ( price1 * reservesA1 + price2 * reservesA2 ) / ( reservesA1 + reservesA2 );
-			}
 		}
 
 
-	function nonUserPoolInfo(ICollateralAndLiquidity collateralAndLiquidity, IRewardsEmitter liquidityRewardsEmitter, IPools pools, IPoolsConfig poolsConfig, IRewardsConfig rewardsConfig, bytes32[] memory poolIDs) public view returns ( address[] memory tokens, string[] memory names, uint256[] memory decimals, uint256[] memory reserves, uint256[] memory totalShares, uint256[] memory pendingRewards, uint256 rewardsEmitterDailyPercentTimes1000 )
+	function nonUserPoolInfo(ILiquidity liquidity, IRewardsEmitter liquidityRewardsEmitter, IPools pools, IPoolsConfig poolsConfig, IRewardsConfig rewardsConfig, bytes32[] memory poolIDs) public view returns ( address[] memory tokens, string[] memory names, uint256[] memory decimals, uint256[] memory reserves, uint256[] memory totalShares, uint256[] memory pendingRewards, uint256 rewardsEmitterDailyPercentTimes1000 )
 		{
 		tokens = underlyingTokens(poolsConfig, poolIDs);
 		names = tokenNames(tokens);
 		decimals = tokenDecimals(tokens);
 		reserves = poolReserves(pools, poolsConfig, poolIDs);
-		totalShares = collateralAndLiquidity.totalSharesForPools(poolIDs);
+		totalShares = liquidity.totalSharesForPools(poolIDs);
 		pendingRewards = liquidityRewardsEmitter.pendingRewardsForPools(poolIDs);
 		rewardsEmitterDailyPercentTimes1000 = rewardsConfig.rewardsEmitterDailyPercentTimes1000();
 		}
 
 
-	function userPoolInfo(address wallet, ICollateralAndLiquidity collateralAndLiquidity, bytes32[] memory poolIDs, address[] memory tokens) public view returns ( uint256[] memory userCooldowns, uint256[] memory userPoolShares, uint256[] memory userRewardsForPools, uint256[] memory userTokenBalances )
+	function userPoolInfo(address wallet, ILiquidity liquidity, bytes32[] memory poolIDs, address[] memory tokens) public view returns ( uint256[] memory userCooldowns, uint256[] memory userPoolShares, uint256[] memory userRewardsForPools, uint256[] memory userTokenBalances )
 		{
-		userCooldowns = collateralAndLiquidity.userCooldowns( wallet, poolIDs );
-		userPoolShares = collateralAndLiquidity.userShareForPools( wallet, poolIDs );
-   		userRewardsForPools = collateralAndLiquidity.userRewardsForPools( wallet, poolIDs );
+		userCooldowns = liquidity.userCooldowns( wallet, poolIDs );
+		userPoolShares = liquidity.userShareForPools( wallet, poolIDs );
+   		userRewardsForPools = liquidity.userRewardsForPools( wallet, poolIDs );
 		userTokenBalances = userBalances( wallet, tokens );
 		}
 
@@ -340,7 +323,7 @@ contract Utils
 			addedAmountB = proportionalB;
 			}
 
-		// Determine the amount of liquidity that will be given to the user to reflect their share of the total collateralAndLiquidity.
+		// Determine the amount of liquidity that will be given to the user to reflect their share of the total liquidity.
 		if ( addedAmountA > addedAmountB)
 			addedLiquidity = (totalLiquidity * addedAmountA) / reservesA;
 		else
@@ -348,32 +331,13 @@ contract Utils
 		}
 
 
-	function stableNonUserData( IStableConfig stableConfig, IStakingConfig stakingConfig, IERC20 usds ) external view returns (uint256 minimumCollateralRatioPercent, uint256 modificationCooldown, uint256 big_minimumCollateralValueForBorrowing, uint256 big_usdsSupply )
-		{
-		minimumCollateralRatioPercent = stableConfig.minimumCollateralRatioPercent();
-		modificationCooldown = stakingConfig.modificationCooldown();
-		big_minimumCollateralValueForBorrowing = stableConfig.minimumCollateralValueForBorrowing();
-		big_usdsSupply = usds.totalSupply();
-		}
-
-
-	function stableUserData( ICollateralAndLiquidity collateralAndLiquidity, address wallet) external view returns (uint256 big_maxBorrowableUSDS, uint256 big_borrowedUSDS, uint256 big_maxWithdrawableCollateral)
-		{
-		big_maxBorrowableUSDS = collateralAndLiquidity.maxBorrowableUSDS(wallet);
-		big_borrowedUSDS = collateralAndLiquidity.usdsBorrowedByUsers(wallet);
-		big_maxWithdrawableCollateral = collateralAndLiquidity.maxWithdrawableCollateral(wallet);
-		}
-
-
-
-	function statsData(ISalt salt, address emissions, address daoVestingWallet, address teamVestingWallet, address stakingRewardsEmitter, address liquidityRewardsEmitter, IStaking staking, IRewardsConfig rewardsConfig, IUSDS usds ) external view returns ( uint256 saltSupply, uint256 stakedSALT, uint256 burnedSALT, uint256 liquidityRewardsSalt, uint256 rewardsEmitterDailyPercentTimes1000, uint256 usdsSupply )
+	function statsData(ISalt salt, address emissions, address daoVestingWallet, address teamVestingWallet, address stakingRewardsEmitter, address liquidityRewardsEmitter, IStaking staking, IRewardsConfig rewardsConfig ) external view returns ( uint256 saltSupply, uint256 stakedSALT, uint256 burnedSALT, uint256 liquidityRewardsSalt, uint256 rewardsEmitterDailyPercentTimes1000 )
 		{
 		saltSupply = circulatingSALT(salt, emissions, daoVestingWallet, teamVestingWallet, stakingRewardsEmitter, liquidityRewardsEmitter);
 		stakedSALT = staking.totalShares(PoolUtils.STAKED_SALT );
 		burnedSALT = salt.totalBurned();
 		liquidityRewardsSalt = salt.balanceOf( liquidityRewardsEmitter );
 		rewardsEmitterDailyPercentTimes1000 = rewardsConfig.rewardsEmitterDailyPercentTimes1000();
-		usdsSupply = usds.totalSupply();
 		}
 	}
 

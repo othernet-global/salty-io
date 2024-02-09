@@ -19,17 +19,17 @@ contract TestSandwichAttacks is Deployment
 
 		vm.startPrank(DEPLOYER);
 
-		dai.approve(address(collateralAndLiquidity), type(uint256).max );
-		weth.approve(address(collateralAndLiquidity), type(uint256).max );
-		wbtc.approve(address(collateralAndLiquidity), type(uint256).max );
+		usdc.approve(address(liquidity), type(uint256).max );
+		weth.approve(address(liquidity), type(uint256).max );
+		wbtc.approve(address(liquidity), type(uint256).max );
 
-		dai.approve(address(pools), type(uint256).max );
+		usdc.approve(address(pools), type(uint256).max );
 		weth.approve(address(pools), type(uint256).max );
 		wbtc.approve(address(pools), type(uint256).max );
 
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( weth, dai, rA0, rA1, 0, block.timestamp, false );
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( wbtc, dai, rB0, rB1, 0, block.timestamp, false );
-		collateralAndLiquidity.depositCollateralAndIncreaseShare(rC0, rC1, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( weth, usdc, rA0, rA1, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( wbtc, usdc, rB0, rB1, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare(wbtc, weth, rC0, rC1, 0, block.timestamp, false );
 		vm.stopPrank();
 		}
 
@@ -41,13 +41,13 @@ contract TestSandwichAttacks is Deployment
 		vm.startPrank(DEPLOYER);
 
 		// Frontrun
-		uint256 frontrunOut = pools.depositSwapWithdraw( weth, dai, sandwichSize * 1 ether, 0, block.timestamp );
+		uint256 frontrunOut = pools.depositSwapWithdraw( weth, usdc, sandwichSize * 1 ether, 0, block.timestamp );
 
 		// User swap
-		amountOut = pools.depositSwapWithdraw( weth, dai, 10 ether, 0, block.timestamp );
+		amountOut = pools.depositSwapWithdraw( weth, usdc, 10 ether, 0, block.timestamp );
 
 		// Backrun
-		backrunOut = pools.depositSwapWithdraw( dai, weth, frontrunOut, 0, block.timestamp );
+		backrunOut = pools.depositSwapWithdraw( usdc, weth, frontrunOut, 0, block.timestamp );
 
 		arbProfit = pools.depositedUserBalance(address(dao), weth );
 
@@ -105,44 +105,44 @@ contract TestSandwichAttacks is Deployment
 		{
 //		console.log( "\n1% of reserves being swapped by user" );
 //		console.log( "WBTC/DAI reserves 1/2 the size of WETH/DAI" );
-//		console.log( "WBTC/WETH reserves 2x the size of WETH/DAI" ); // WBTC/WETH should generally be larger due to it acting as collateral for USDS
+//		console.log( "WBTC/WETH reserves 2x the size of WETH/DAI" ); // WBTC/WETH should generally be larger due to it acting as collateral for USDC
 //		uint256 wethReserves = 1000 ether;
-//		uint256 daiReserves = 3000000 ether; // $3000 base price for WETH, assume WBTC price of $30000
-//		_simulate(wethReserves, daiReserves, (wethReserves / 2 ) / 10**10 / 10, daiReserves / 2, (wethReserves * 2) / 10**10 / 10, wethReserves *2 );
+//		uint256 usdcReserves = 3000000 ether; // $3000 base price for WETH, assume WBTC price of $30000
+//		_simulate(wethReserves, usdcReserves, (wethReserves / 2 ) / 10**10 / 10, usdcReserves / 2, (wethReserves * 2) / 10**10 / 10, wethReserves *2 );
 //
 //		console.log( "\n.5% of reserves being swapped by user" );
 //		console.log( "WBTC/DAI reserves 1/2 the size of WETH/DAI" );
-//		console.log( "WBTC/WETH reserves 2x the size of WETH/DAI" ); // WBTC/WETH should generally be larger due to it acting as collateral for USDS
+//		console.log( "WBTC/WETH reserves 2x the size of WETH/DAI" ); // WBTC/WETH should generally be larger due to it acting as collateral for USDC
 //		wethReserves = 2000 ether;
-//		daiReserves = 6000000 ether; // $3000 base price for WETH, assume WBTC price of $30000
-//		_simulate(wethReserves, daiReserves, (wethReserves / 2 ) / 10**10 / 10, daiReserves / 2, (wethReserves * 2) / 10**10 / 10, wethReserves *2 );
+//		usdcReserves = 6000000 ether; // $3000 base price for WETH, assume WBTC price of $30000
+//		_simulate(wethReserves, usdcReserves, (wethReserves / 2 ) / 10**10 / 10, usdcReserves / 2, (wethReserves * 2) / 10**10 / 10, wethReserves *2 );
 //
 //		console.log( "\n1% of reserves being swapped by user" );
 //		console.log( "WBTC/DAI reserves 1/2 the size of WETH/DAI" );
-//		console.log( "WBTC/WETH reserves 5x the size of WETH/DAI" ); // WBTC/WETH should generally be larger due to it acting as collateral for USDS
+//		console.log( "WBTC/WETH reserves 5x the size of WETH/DAI" ); // WBTC/WETH should generally be larger due to it acting as collateral for USDC
 //		wethReserves = 1000 ether;
-//		daiReserves = 3000000 ether; // $3000 base price for WETH, assume WBTC price of $30000
-//		_simulate(wethReserves, daiReserves, (wethReserves / 2 ) / 10**10 / 10, daiReserves / 2, (wethReserves * 5) / 10**10 / 10, wethReserves *5 );
+//		usdcReserves = 3000000 ether; // $3000 base price for WETH, assume WBTC price of $30000
+//		_simulate(wethReserves, usdcReserves, (wethReserves / 2 ) / 10**10 / 10, usdcReserves / 2, (wethReserves * 5) / 10**10 / 10, wethReserves *5 );
 //
 //		console.log( "\n1% of reserves being swapped by user" );
 //		console.log( "WBTC/DAI reserves 1x the size of WETH/DAI" );
-//		console.log( "WBTC/WETH reserves 5x the size of WETH/DAI" ); // WBTC/WETH should generally be larger due to it acting as collateral for USDS
+//		console.log( "WBTC/WETH reserves 5x the size of WETH/DAI" ); // WBTC/WETH should generally be larger due to it acting as collateral for USDC
 //		wethReserves = 1000 ether;
-//		daiReserves = 3000000 ether; // $3000 base price for WETH, assume WBTC price of $30000
-//		_simulate(wethReserves, daiReserves, (wethReserves / 1 ) / 10**10 / 10, daiReserves / 1, (wethReserves * 5) / 10**10 / 10, wethReserves *5 );
+//		usdcReserves = 3000000 ether; // $3000 base price for WETH, assume WBTC price of $30000
+//		_simulate(wethReserves, usdcReserves, (wethReserves / 1 ) / 10**10 / 10, usdcReserves / 1, (wethReserves * 5) / 10**10 / 10, wethReserves *5 );
 //
 //		console.log( "\n1% of reserves being swapped by user" );
 //		console.log( "WBTC/DAI reserves 1/4 the size of WETH/DAI" );
-//		console.log( "WBTC/WETH reserves 1x the size of WETH/DAI" ); // WBTC/WETH should generally be larger due to it acting as collateral for USDS
+//		console.log( "WBTC/WETH reserves 1x the size of WETH/DAI" ); // WBTC/WETH should generally be larger due to it acting as collateral for USDC
 //		wethReserves = 1000 ether;
-//		daiReserves = 3000000 ether; // $3000 base price for WETH, assume WBTC price of $30000
-//		_simulate(wethReserves, daiReserves, (wethReserves / 4 ) / 10**10 / 10, daiReserves / 4, (wethReserves * 1) / 10**10 / 10, wethReserves * 1 );
+//		usdcReserves = 3000000 ether; // $3000 base price for WETH, assume WBTC price of $30000
+//		_simulate(wethReserves, usdcReserves, (wethReserves / 4 ) / 10**10 / 10, usdcReserves / 4, (wethReserves * 1) / 10**10 / 10, wethReserves * 1 );
 //
 //		console.log( "\n1% of reserves being swapped by user" );
 //		console.log( "WBTC/DAI reserves 1/2 the size of WETH/DAI" );
-//		console.log( "WBTC/WETH reserves 10x the size of WETH/DAI" ); // WBTC/WETH should generally be larger due to it acting as collateral for USDS
+//		console.log( "WBTC/WETH reserves 10x the size of WETH/DAI" ); // WBTC/WETH should generally be larger due to it acting as collateral for USDC
 //		wethReserves = 1000 ether;
-//		daiReserves = 3000000 ether; // $3000 base price for WETH, assume WBTC price of $30000
-//		_simulate(wethReserves, daiReserves, (wethReserves / 2 ) / 10**10 / 10, daiReserves / 2, (wethReserves * 10) / 10**10 / 10, wethReserves * 10 );
+//		usdcReserves = 3000000 ether; // $3000 base price for WETH, assume WBTC price of $30000
+//		_simulate(wethReserves, usdcReserves, (wethReserves / 2 ) / 10**10 / 10, usdcReserves / 2, (wethReserves * 10) / 10**10 / 10, wethReserves * 10 );
 		}
     }

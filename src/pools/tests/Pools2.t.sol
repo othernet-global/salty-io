@@ -31,7 +31,7 @@ contract TestPools2 is Deployment
 
 		vm.startPrank(address(daoVestingWallet));
 		salt.transfer(DEPLOYER, 1000000 ether);
-		salt.transfer(address(collateralAndLiquidity), 1000000 ether);
+		salt.transfer(address(liquidity), 1000000 ether);
 		vm.stopPrank();
 
 		vm.startPrank( DEPLOYER );
@@ -39,11 +39,11 @@ contract TestPools2 is Deployment
 			{
 			tokens[i] = new TestERC20("TEST", 18);
         	tokens[i].approve( address(pools), type(uint256).max );
-        	tokens[i].approve( address(collateralAndLiquidity), type(uint256).max );
+        	tokens[i].approve( address(liquidity), type(uint256).max );
 
         	tokens[i].transfer(address(this), 100000 ether );
         	tokens[i].transfer(address(dao), 100000 ether );
-        	tokens[i].transfer(address(collateralAndLiquidity), 100000 ether );
+        	tokens[i].transfer(address(liquidity), 100000 ether );
 			}
 		vm.stopPrank();
 
@@ -53,7 +53,7 @@ contract TestPools2 is Deployment
 			poolsConfig.whitelistPool( pools,    tokens[i], tokens[i + 1] );
 
 			vm.prank(DEPLOYER);
-			collateralAndLiquidity.depositLiquidityAndIncreaseShare( tokens[i], tokens[i + 1], 500 ether, 500 ether, 0, block.timestamp, false );
+			liquidity.depositLiquidityAndIncreaseShare( tokens[i], tokens[i + 1], 500 ether, 500 ether, 0, block.timestamp, false );
 			}
 
 		vm.prank(address(dao));
@@ -62,29 +62,29 @@ contract TestPools2 is Deployment
 		poolsConfig.whitelistPool( pools,    tokens[0], tokens[9] );
 
 		vm.startPrank( DEPLOYER );
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( tokens[5], tokens[7], 1000 ether, 1000 ether, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( tokens[5], tokens[7], 1000 ether, 1000 ether, 0, block.timestamp, false );
 
 		pools.deposit( tokens[5], 1000 ether );
 		pools.deposit( tokens[6], 1000 ether );
 		pools.deposit( tokens[7], 1000 ether );
 		pools.deposit( tokens[8], 1000 ether );
 
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( tokens[0], tokens[9], 1000000000 ether, 2000000000 ether, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( tokens[0], tokens[9], 1000000000 ether, 2000000000 ether, 0, block.timestamp, false );
 		vm.stopPrank();
 
 		for( uint256 i = 0; i < 10; i++ )
 			{
         	tokens[i].approve( address(pools), type(uint256).max );
-        	tokens[i].approve( address(collateralAndLiquidity), type(uint256).max );
+        	tokens[i].approve( address(liquidity), type(uint256).max );
         	}
 
 		for( uint256 i = 0; i < 9; i++ )
 			{
 			pools.deposit( tokens[i], 1000 ether );
-			collateralAndLiquidity.depositLiquidityAndIncreaseShare( tokens[i], tokens[i + 1], 500 ether, 500 ether, 0, block.timestamp, false );
+			liquidity.depositLiquidityAndIncreaseShare( tokens[i], tokens[i + 1], 500 ether, 500 ether, 0, block.timestamp, false );
         	}
 
-		vm.startPrank(address(collateralAndLiquidity));
+		vm.startPrank(address(liquidity));
 		for( uint256 i = 0; i < 10; i++ )
 			{
         	tokens[i].approve( address(pools), type(uint256).max );
@@ -107,7 +107,7 @@ contract TestPools2 is Deployment
 	function testAddLiquidityWithReversedTokenOrder() public {
 
         // Create two new tokens
-		vm.startPrank(address(collateralAndLiquidity));
+		vm.startPrank(address(liquidity));
         IERC20 tokenA = new TestERC20( "TEST", 18 );
         IERC20 tokenB = new TestERC20( "TEST", 18 );
         vm.stopPrank();
@@ -115,7 +115,7 @@ contract TestPools2 is Deployment
 		vm.prank(address(dao));
 		poolsConfig.whitelistPool( pools, tokenA, tokenB);
 
-		vm.startPrank(address(collateralAndLiquidity));
+		vm.startPrank(address(liquidity));
 		tokenA.approve(address(pools), type(uint256).max);
 		tokenB.approve(address(pools), type(uint256).max);
 
@@ -123,9 +123,9 @@ contract TestPools2 is Deployment
 		// Add in the order that will require flipping within addLiquidity
 		(bytes32 poolID, bool flipped) = PoolUtils._poolIDAndFlipped(tokenA, tokenB);
 		if ( flipped)
-	        pools.addLiquidity(tokenA, tokenB, 100 ether, 1000 ether, 0, collateralAndLiquidity.totalShares(poolID));
+	        pools.addLiquidity(tokenA, tokenB, 100 ether, 1000 ether, 0, liquidity.totalShares(poolID));
 		else
-	        pools.addLiquidity(tokenB, tokenA, 1000 ether, 100 ether, 0, collateralAndLiquidity.totalShares(poolID));
+	        pools.addLiquidity(tokenB, tokenA, 1000 ether, 100 ether, 0, liquidity.totalShares(poolID));
 
         // Get the new reserves after adding liquidity
         (uint256 reservesA, uint256 reservesB) = pools.getPoolReserves(tokenA, tokenB);
@@ -158,7 +158,7 @@ contract TestPools2 is Deployment
     // A unit test that verifies that `addLiquidity` respects the deposited token ratio when reserves are non-zero.
     function testAddLiquidityRespectsTokenRatioWithNonZeroReserves() public {
         // Create two new tokens
-		vm.startPrank(address(collateralAndLiquidity));
+		vm.startPrank(address(liquidity));
         IERC20 tokenA = new TestERC20( "TEST", 18 );
         IERC20 tokenB = new TestERC20( "TEST", 18 );
         vm.stopPrank();
@@ -166,12 +166,12 @@ contract TestPools2 is Deployment
 		vm.prank(address(dao));
 		poolsConfig.whitelistPool( pools, tokenA, tokenB);
 
-		vm.startPrank(address(collateralAndLiquidity));
+		vm.startPrank(address(liquidity));
 		tokenA.approve(address(pools), type(uint256).max);
 		tokenB.approve(address(pools), type(uint256).max);
 
-		pools.addLiquidity(tokenA, tokenB, 1000 ether, 2000 ether, 0, collateralAndLiquidity.totalShares(PoolUtils._poolID(tokenA, tokenB)));
-		pools.addLiquidity(tokenA, tokenB, 500 ether, 500 ether, 0, collateralAndLiquidity.totalShares(PoolUtils._poolID(tokenA, tokenB)));
+		pools.addLiquidity(tokenA, tokenB, 1000 ether, 2000 ether, 0, liquidity.totalShares(PoolUtils._poolID(tokenA, tokenB)));
+		pools.addLiquidity(tokenA, tokenB, 500 ether, 500 ether, 0, liquidity.totalShares(PoolUtils._poolID(tokenA, tokenB)));
 
         // Get the new reserves after adding liquidity
         (uint256 reservesA, uint256 reservesB) = pools.getPoolReserves(tokenA, tokenB);
@@ -188,7 +188,7 @@ function testSequentialLiquidityAdjustment() public {
 	bytes32[] memory poolIDs = new bytes32[](1);
 	poolIDs[0] = PoolUtils._poolID( tokens[1], tokens[2] );
 
-    uint256 initialTotalLiquidity = collateralAndLiquidity.totalSharesForPools(poolIDs)[0];
+    uint256 initialTotalLiquidity = liquidity.totalSharesForPools(poolIDs)[0];
     uint256 liquidityAddedByAlice;
     uint256 liquidityAddedByBob;
     uint256 liquidityAddedByCharlie;
@@ -203,42 +203,42 @@ function testSequentialLiquidityAdjustment() public {
 	vm.stopPrank();
 
 	vm.startPrank(alice);
-	tokens[1].approve(address(collateralAndLiquidity), type(uint256).max);
-	tokens[2].approve(address(collateralAndLiquidity), type(uint256).max);
+	tokens[1].approve(address(liquidity), type(uint256).max);
+	tokens[2].approve(address(liquidity), type(uint256).max);
 	vm.stopPrank();
 
 	vm.startPrank(bob);
-	tokens[1].approve(address(collateralAndLiquidity), type(uint256).max);
-	tokens[2].approve(address(collateralAndLiquidity), type(uint256).max);
+	tokens[1].approve(address(liquidity), type(uint256).max);
+	tokens[2].approve(address(liquidity), type(uint256).max);
 	vm.stopPrank();
 
 	vm.startPrank(charlie);
-	tokens[1].approve(address(collateralAndLiquidity), type(uint256).max);
-	tokens[2].approve(address(collateralAndLiquidity), type(uint256).max);
+	tokens[1].approve(address(liquidity), type(uint256).max);
+	tokens[2].approve(address(liquidity), type(uint256).max);
 	vm.stopPrank();
 
     // Alice adds liquidity
     vm.prank(alice);
-    (,,liquidityAddedByAlice) = collateralAndLiquidity.depositLiquidityAndIncreaseShare(tokens[1], tokens[2], 5 ether, 5 ether, 0, block.timestamp, false);
+    (,,liquidityAddedByAlice) = liquidity.depositLiquidityAndIncreaseShare(tokens[1], tokens[2], 5 ether, 5 ether, 0, block.timestamp, false);
 
     // Check liquidity adjustment for Alice
-    uint256 newTotalLiquidity = collateralAndLiquidity.totalSharesForPools(poolIDs)[0];
+    uint256 newTotalLiquidity = liquidity.totalSharesForPools(poolIDs)[0];
     assertEq(newTotalLiquidity, initialTotalLiquidity + liquidityAddedByAlice, "Total liquidity does not match after Alice adds liquidity");
 
     // Bob adds liquidity
     vm.prank(bob);
-    (,,liquidityAddedByBob) =collateralAndLiquidity.depositLiquidityAndIncreaseShare(tokens[1], tokens[2], 3 ether, 3 ether, 0, block.timestamp, false);
+    (,,liquidityAddedByBob) =liquidity.depositLiquidityAndIncreaseShare(tokens[1], tokens[2], 3 ether, 3 ether, 0, block.timestamp, false);
 
     // Check liquidity adjustment for Bob
-    newTotalLiquidity = collateralAndLiquidity.totalSharesForPools(poolIDs)[0];
+    newTotalLiquidity = liquidity.totalSharesForPools(poolIDs)[0];
     assertEq(newTotalLiquidity, initialTotalLiquidity + liquidityAddedByAlice + liquidityAddedByBob, "Total liquidity does not match after Bob adds liquidity");
 
     // Charlie adds liquidity
     vm.prank(charlie);
-    (,,liquidityAddedByCharlie) = collateralAndLiquidity.depositLiquidityAndIncreaseShare(tokens[1], tokens[2], 2 ether, 2 ether, 0, block.timestamp, false);
+    (,,liquidityAddedByCharlie) = liquidity.depositLiquidityAndIncreaseShare(tokens[1], tokens[2], 2 ether, 2 ether, 0, block.timestamp, false);
 
     // Check liquidity adjustment for Charlie
-    newTotalLiquidity = collateralAndLiquidity.totalSharesForPools(poolIDs)[0];
+    newTotalLiquidity = liquidity.totalSharesForPools(poolIDs)[0];
     assertEq(newTotalLiquidity, initialTotalLiquidity + liquidityAddedByAlice + liquidityAddedByBob + liquidityAddedByCharlie, "Total liquidity does not match after Charlie adds liquidity");
 
 	vm.warp( block.timestamp + 1 hours );
@@ -246,27 +246,27 @@ function testSequentialLiquidityAdjustment() public {
     // Alice removes liquidity
     vm.prank(alice);
     uint256 liquidityToRemoveByAlice = liquidityAddedByAlice / 2;
-    collateralAndLiquidity.withdrawLiquidityAndClaim(tokens[1], tokens[2], liquidityToRemoveByAlice, 0, 0, block.timestamp);
+    liquidity.withdrawLiquidityAndClaim(tokens[1], tokens[2], liquidityToRemoveByAlice, 0, 0, block.timestamp);
 
     // Check liquidity adjustment for Alice removing liquidity
-    newTotalLiquidity = collateralAndLiquidity.totalSharesForPools(poolIDs)[0];
+    newTotalLiquidity = liquidity.totalSharesForPools(poolIDs)[0];
     assertEq(newTotalLiquidity, initialTotalLiquidity + liquidityAddedByAlice / 2 + liquidityAddedByBob + liquidityAddedByCharlie, "Total liquidity does not match after Alice removes liquidity");
 
     // Bob removes liquidity
     vm.prank(bob);
     uint256 liquidityToRemoveByBob = liquidityAddedByBob / 2;
-    collateralAndLiquidity.withdrawLiquidityAndClaim(tokens[1], tokens[2], liquidityToRemoveByBob, 0, 0, block.timestamp);
+    liquidity.withdrawLiquidityAndClaim(tokens[1], tokens[2], liquidityToRemoveByBob, 0, 0, block.timestamp);
 
     // Check liquidity adjustment for Bob removing liquidity
-    newTotalLiquidity = collateralAndLiquidity.totalSharesForPools(poolIDs)[0];
+    newTotalLiquidity = liquidity.totalSharesForPools(poolIDs)[0];
     assertEq(newTotalLiquidity, initialTotalLiquidity + liquidityAddedByAlice / 2 + liquidityAddedByBob / 2 + liquidityAddedByCharlie, "Total liquidity does not match after Bob removes liquidity");
 
     // Charlie removes all liquidity
     vm.prank(charlie);
-    collateralAndLiquidity.withdrawLiquidityAndClaim(tokens[1], tokens[2], liquidityAddedByCharlie, 0, 0, block.timestamp);
+    liquidity.withdrawLiquidityAndClaim(tokens[1], tokens[2], liquidityAddedByCharlie, 0, 0, block.timestamp);
 
     // Check liquidity adjustment for Charlie removing all liquidity
-    newTotalLiquidity = collateralAndLiquidity.totalSharesForPools(poolIDs)[0];
+    newTotalLiquidity = liquidity.totalSharesForPools(poolIDs)[0];
     assertEq(newTotalLiquidity, initialTotalLiquidity + liquidityAddedByAlice / 2 + liquidityAddedByBob / 2, "Total liquidity does not match after Charlie removes all liquidity");
 }
 
@@ -305,13 +305,13 @@ function testSequentialLiquidityAdjustment() public {
     // A unit test that ensures `addLiquidity` reverts if called before the exchange is live (`_startExchangeApproved` set to true).
 	function testAddRemoveLiquidityBeforeExchangeLive() public {
 		pools = new Pools(exchangeConfig, poolsConfig);
-		pools.setContracts(dao, collateralAndLiquidity);
+		pools.setContracts(dao, liquidity);
 
         // Starting with `addLiquidity` call
-        vm.startPrank(address(collateralAndLiquidity));
+        vm.startPrank(address(liquidity));
 
         // Expect revert when calling `addLiquidity` before exchange is live
-        uint256 totalShares = collateralAndLiquidity.totalShares(PoolUtils._poolID(tokens[0], tokens[1]));
+        uint256 totalShares = liquidity.totalShares(PoolUtils._poolID(tokens[0], tokens[1]));
         vm.expectRevert("The exchange is not yet live");
         pools.addLiquidity(tokens[0], tokens[1], 1 ether, 1 ether, 0, totalShares);
     }
@@ -444,7 +444,7 @@ function testSequentialLiquidityAdjustment() public {
 
     // A unit test that confirms the swap function properly reverts when the deadline is set in the past.
     function testSwapRevertsWhenDeadlinePast() public {
-        vm.startPrank(address(collateralAndLiquidity));
+        vm.startPrank(address(liquidity));
         IERC20 tokenIn = tokens[2];
         IERC20 tokenOut = tokens[3];
         uint256 swapAmountIn = 10 ether;
@@ -525,16 +525,16 @@ function testSequentialLiquidityAdjustment() public {
         IERC20 testTokenIn = tokens[2];
         IERC20 testTokenOut = tokens[3];
         uint256 amountIn = 10 ether;
-        uint256 depositedBalanceBefore = pools.depositedUserBalance(address(collateralAndLiquidity), IERC20(testTokenOut));
+        uint256 depositedBalanceBefore = pools.depositedUserBalance(address(liquidity), IERC20(testTokenOut));
 
-        vm.startPrank(address(collateralAndLiquidity));
+        vm.startPrank(address(liquidity));
         testTokenIn.approve(address(pools), type(uint256).max);
         pools.deposit(IERC20(testTokenIn), amountIn);
         vm.expectRevert("Insufficient resulting token amount");
         pools.swap(IERC20(testTokenIn), IERC20(testTokenOut), amountIn, amountIn, block.timestamp + 1 minutes);
         vm.stopPrank();
 
-        uint256 depositedBalanceAfter = pools.depositedUserBalance(address(collateralAndLiquidity), IERC20(testTokenOut));
+        uint256 depositedBalanceAfter = pools.depositedUserBalance(address(liquidity), IERC20(testTokenOut));
         assertEq(depositedBalanceBefore, depositedBalanceAfter, "Balance should not change due to failed swap");
     }
 
@@ -547,7 +547,7 @@ function testSequentialLiquidityAdjustment() public {
         uint256 expectedAmountOut = 166.666666666666666666 ether;
 
         // Deposit `initialAmount` of `tokenIn` by the user
-        vm.startPrank(address(collateralAndLiquidity));
+        vm.startPrank(address(liquidity));
         tokenIn.approve(address(pools), initialAmount);
         pools.deposit(tokenIn, initialAmount);
 
@@ -596,14 +596,14 @@ function testSequentialLiquidityAdjustment() public {
 
     // A unit test that confirms successful token withdrawal decrements user's deposit balance.
     function testSuccessfulTokenWithdrawalDecrementsDepositBalance() public {
-        vm.startPrank(address(collateralAndLiquidity));
+        vm.startPrank(address(liquidity));
 
         // Initial deposit
         uint256 depositAmount = 500 ether;
         pools.deposit(tokens[2], depositAmount);
 
         // Check initial deposit balance
-        uint256 initialDepositBalance = pools.depositedUserBalance(address(collateralAndLiquidity), tokens[2]);
+        uint256 initialDepositBalance = pools.depositedUserBalance(address(liquidity), tokens[2]);
         assertEq(initialDepositBalance, depositAmount, "Initial deposit balance incorrect");
 
         // Withdraw tokens
@@ -611,7 +611,7 @@ function testSequentialLiquidityAdjustment() public {
         pools.withdraw(tokens[2], withdrawalAmount);
 
         // Check deposit balance after withdrawal
-        uint256 afterWithdrawalDepositBalance = pools.depositedUserBalance(address(collateralAndLiquidity), tokens[2]);
+        uint256 afterWithdrawalDepositBalance = pools.depositedUserBalance(address(liquidity), tokens[2]);
         assertEq(afterWithdrawalDepositBalance, depositAmount - withdrawalAmount, "Deposit balance after withdrawal incorrect");
 
         vm.stopPrank();
@@ -621,7 +621,7 @@ function testSequentialLiquidityAdjustment() public {
     // A unit test to confirm that a swap resulting in reserves falling below PoolUtils.DUST reverts.
     function testSwapReserveBelowDust() public {
         // Create two new tokens
-		vm.startPrank(address(collateralAndLiquidity));
+		vm.startPrank(address(liquidity));
         IERC20 tokenA = new TestERC20( "TEST", 18 );
         IERC20 tokenB = new TestERC20( "TEST", 18 );
         vm.stopPrank();
@@ -629,11 +629,11 @@ function testSequentialLiquidityAdjustment() public {
 		vm.prank(address(dao));
 		poolsConfig.whitelistPool( pools, tokenA, tokenB);
 
-		vm.startPrank(address(collateralAndLiquidity));
+		vm.startPrank(address(liquidity));
 		tokenA.approve(address(pools), type(uint256).max);
 		tokenB.approve(address(pools), type(uint256).max);
 
-		pools.addLiquidity(tokenA, tokenB, PoolUtils.DUST + 1, PoolUtils.DUST + 1, 0, collateralAndLiquidity.totalShares(PoolUtils._poolID(tokenA, tokenB)));
+		pools.addLiquidity(tokenA, tokenB, PoolUtils.DUST + 1, PoolUtils.DUST + 1, 0, liquidity.totalShares(PoolUtils._poolID(tokenA, tokenB)));
 
         vm.expectRevert("Insufficient reserves after swap");
         pools.depositSwapWithdraw(tokenA, tokenB, 50, 0, block.timestamp + 1 minutes);
@@ -658,7 +658,7 @@ function testSequentialLiquidityAdjustment() public {
 
     // A unit test to check for proper handling of maximum liquidity removal in removeLiquidity.
     function testMaximumLiquidityRemoval() public {
-		vm.startPrank(address(collateralAndLiquidity));
+		vm.startPrank(address(liquidity));
 		IERC20 tokenA = new TestERC20( "TEST", 18 );
 		IERC20 tokenB = new TestERC20( "TEST", 18 );
 		vm.stopPrank();
@@ -666,7 +666,7 @@ function testSequentialLiquidityAdjustment() public {
 		vm.prank(address(dao));
 		poolsConfig.whitelistPool( pools, tokenA, tokenB);
 
-		vm.startPrank(address(collateralAndLiquidity));
+		vm.startPrank(address(liquidity));
 		tokenA.approve(address(pools), type(uint256).max);
 		tokenB.approve(address(pools), type(uint256).max);
 

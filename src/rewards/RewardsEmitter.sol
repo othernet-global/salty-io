@@ -16,7 +16,7 @@ import "../pools/PoolUtils.sol";
 // This also creates an easy mechanism to see what the current yield is for any pool as the emitter acts like an exponential average of the incoming SALT rewards.
 // There will be two deplyed RewardsEmitters:
 // Staking.sol - allows users to stake SALT to acquire xSALT and distributes rewards to Staking.sol
-// Liquidity.sol - allows liquidity providers to deposit and stake collateralAndLiquidity and distributes rewards to CollateralAndLiquidity.sol.
+// Liquidity.sol - allows liquidity providers to deposit liquidity and distributes rewards to Liquidity.sol.
 contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
     {
 	using SafeERC20 for ISalt;
@@ -26,7 +26,7 @@ contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
 	IPoolsConfig immutable public poolsConfig;
 	IRewardsConfig immutable public rewardsConfig;
 	ISalt immutable public salt;
-   	bool immutable isForCollateralAndLiquidity;
+   	bool immutable isForLiquidity;
 
 	uint256 constant public MAX_TIME_SINCE_LAST_UPKEEP = 1 days;
 
@@ -36,13 +36,13 @@ contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
 
 
 
-    constructor( IStakingRewards _stakingRewards, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IRewardsConfig _rewardsConfig, bool _isForCollateralAndLiquidity )
+    constructor( IStakingRewards _stakingRewards, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IRewardsConfig _rewardsConfig, bool _isForLiquidity )
 		{
 		stakingRewards = _stakingRewards;
 		exchangeConfig = _exchangeConfig;
 		poolsConfig = _poolsConfig;
 		rewardsConfig = _rewardsConfig;
-		isForCollateralAndLiquidity = _isForCollateralAndLiquidity;
+		isForLiquidity = _isForLiquidity;
 
 		salt = _exchangeConfig.salt();
 
@@ -88,7 +88,7 @@ contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
 
 		bytes32[] memory poolIDs;
 
-		 if ( isForCollateralAndLiquidity )
+		 if ( isForLiquidity )
 		 	{
 		 	// For the liquidityRewardsEmitter, all pools can receive rewards
 			poolIDs = poolsConfig.whitelistedPools();

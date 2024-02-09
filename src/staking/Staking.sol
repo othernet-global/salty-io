@@ -146,7 +146,7 @@ contract Staking is IStaking, StakingRewards
 		}
 
 
-	// Retrieve all pending unstakes associated with a user within a specific range.
+	// Retrieve all unstakes associated with a user within a specific range.
 	function unstakesForUser( address user, uint256 start, uint256 end ) public view returns (Unstake[] memory)
 		{
         // Check if start and end are within the bounds of the array
@@ -167,7 +167,7 @@ contract Staking is IStaking, StakingRewards
     }
 
 
-	// Retrieve all pending unstakes associated with a user.
+	// Retrieve all unstakes associated with a user.
 	function unstakesForUser( address user ) external view returns (Unstake[] memory)
 		{
 		// Check to see how many unstakes the user has

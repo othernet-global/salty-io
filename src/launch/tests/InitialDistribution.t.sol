@@ -8,7 +8,7 @@ import "../../ExchangeConfig.sol";
 import "../../pools/Pools.sol";
 import "../../staking/Liquidity.sol";
 import "../../staking/Staking.sol";
-import "../../stable/CollateralAndLiquidity.sol";
+import "../../staking/Liquidity.sol";
 import "../../rewards/RewardsEmitter.sol";
 import "../../price_feed/tests/IForcedPriceFeed.sol";
 import "../../pools/PoolsConfig.sol";
@@ -43,38 +43,33 @@ contract TestInitialDistribution is Deployment
 			vm.startPrank(DEPLOYER);
 
 			poolsConfig = new PoolsConfig();
-			usds = new USDS();
 
-			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, dai, usds, managedTeamWallet );
+			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, managedTeamWallet );
 
-			priceAggregator = new PriceAggregator();
-			priceAggregator.setInitialFeeds( IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)) );
-
-		liquidizer = new Liquidizer(exchangeConfig, poolsConfig);
 		pools = new Pools(exchangeConfig, poolsConfig);
 		staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
-		collateralAndLiquidity = new CollateralAndLiquidity(pools, exchangeConfig, poolsConfig, stakingConfig, stableConfig, priceAggregator, liquidizer);
-		liquidizer.setContracts(collateralAndLiquidity, pools, dao);
+		liquidity = new Liquidity(pools, exchangeConfig, poolsConfig, stakingConfig);
 
 			stakingRewardsEmitter = new RewardsEmitter( staking, exchangeConfig, poolsConfig, rewardsConfig, false );
-			liquidityRewardsEmitter = new RewardsEmitter( collateralAndLiquidity, exchangeConfig, poolsConfig, rewardsConfig, true );
+			liquidityRewardsEmitter = new RewardsEmitter( liquidity, exchangeConfig, poolsConfig, rewardsConfig, true );
 
 			emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
 			poolsConfig.whitelistPool( pools,   salt, wbtc);
 			poolsConfig.whitelistPool( pools,   salt, weth);
-			poolsConfig.whitelistPool( pools,   salt, usds);
-			poolsConfig.whitelistPool( pools,   wbtc, usds);
-			poolsConfig.whitelistPool( pools,   weth, usds);
-			poolsConfig.whitelistPool( pools,   wbtc, dai);
-			poolsConfig.whitelistPool( pools,   weth, dai);
-			poolsConfig.whitelistPool( pools,   usds, dai);
+			poolsConfig.whitelistPool( pools,   salt, usdc);
+			poolsConfig.whitelistPool( pools,   wbtc, usdc);
+			poolsConfig.whitelistPool( pools,   weth, usdc);
 			poolsConfig.whitelistPool( pools,   wbtc, weth);
+
+			poolsConfig.whitelistPool( pools,   wbtc, usdt);
+			poolsConfig.whitelistPool( pools,   weth, usdt);
+			poolsConfig.whitelistPool( pools,   usdc, usdt);
 
 			proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 
 			address oldDAO = address(dao);
-			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidityRewardsEmitter, collateralAndLiquidity);
+			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, daoConfig, liquidityRewardsEmitter, liquidity);
 
 			airdrop = new Airdrop(exchangeConfig, staking);
 
@@ -82,13 +77,11 @@ contract TestInitialDistribution is Deployment
 
 			saltRewards = new SaltRewards(stakingRewardsEmitter, liquidityRewardsEmitter, exchangeConfig, rewardsConfig);
 
-			upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, stableConfig, priceAggregator, saltRewards, collateralAndLiquidity, emissions, dao);
+			upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, saltRewards, emissions, dao);
 
-			initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, collateralAndLiquidity);
+			initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards);
 
-			pools.setContracts(dao, collateralAndLiquidity);
-
-			usds.setCollateralAndLiquidity(collateralAndLiquidity);
+			pools.setContracts(dao, liquidity);
 
 			exchangeConfig.setContracts(dao, upkeep, initialDistribution, airdrop, teamVestingWallet, daoVestingWallet );
 			exchangeConfig.setAccessManager(accessManager);
@@ -96,13 +89,11 @@ contract TestInitialDistribution is Deployment
 			// Transfer ownership of the newly created config files to the DAO
 			Ownable(address(exchangeConfig)).transferOwnership( address(dao) );
 			Ownable(address(poolsConfig)).transferOwnership( address(dao) );
-			Ownable(address(priceAggregator)).transferOwnership(address(dao));
 			vm.stopPrank();
 
 			vm.startPrank(address(oldDAO));
 			Ownable(address(stakingConfig)).transferOwnership( address(dao) );
 			Ownable(address(rewardsConfig)).transferOwnership( address(dao) );
-			Ownable(address(stableConfig)).transferOwnership( address(dao) );
 			Ownable(address(daoConfig)).transferOwnership( address(dao) );
 			vm.stopPrank();
 
@@ -119,7 +110,7 @@ contract TestInitialDistribution is Deployment
 	// A unit test to ensure the constructor has correctly set the input parameters.
 	function testInitial_distribution_constructor() public
     {
-    	InitialDistribution initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, collateralAndLiquidity);
+    	InitialDistribution initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards);
 
     	assertEq(address(initialDistribution.salt()), address(salt), "error in initialDistribution.salt()");
     	assertEq(address(initialDistribution.poolsConfig()), address(poolsConfig), "error in initialDistribution.poolsConfig()");
@@ -130,13 +121,12 @@ contract TestInitialDistribution is Deployment
     	assertEq(address(initialDistribution.teamVestingWallet()), address(teamVestingWallet), "error in initialDistribution.teamVestingWallet()");
     	assertEq(address(initialDistribution.airdrop()), address(airdrop), "error in initialDistribution.airdrop()");
     	assertEq(address(initialDistribution.saltRewards()), address(saltRewards), "error in initialDistribution.saltRewards()");
-    	assertEq(address(initialDistribution.collateralAndLiquidity()), address(collateralAndLiquidity), "error in initialDistribution.collateralAndLiquidity()");
     }
 
 
 	// A unit test to verify that the `distributionApproved` function can only be called from the BootstrapBallot contract.
 	function testCannotCallDistributionApprovedFromInvalidAddress() public {
-        InitialDistribution id = new InitialDistribution( salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards, collateralAndLiquidity );
+        InitialDistribution id = new InitialDistribution( salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards );
 
         vm.expectRevert("InitialDistribution.distributionApproved can only be called from the BootstrapBallot contract");
         id.distributionApproved();

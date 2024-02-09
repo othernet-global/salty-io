@@ -48,22 +48,19 @@ contract TestCoreFeeds is Deployment
 
 		chainlinkFeed = new CoreChainlinkFeed( CHAINLINK_BTC_USD, CHAINLINK_ETH_USD );
 		uniswapFeed = new CoreUniswapFeed( IERC20(_testBTC), IERC20(_testETH), IERC20(_testUSDC), UNISWAP_V3_BTC_ETH, UNISWAP_V3_USDC_ETH );
-		saltyFeed = new CoreSaltyFeed( pools, exchangeConfig );
+		saltyFeed = new CoreSaltyFeed( pools, wbtc, weth, usdc );
 		}
 
 
 	function testSaltyFeed() public
 		{
-		vm.prank(address(collateralAndLiquidity));
-		usds.mintTo(DEPLOYER, 100000000 ether );
-
 		vm.startPrank(DEPLOYER);
-		usds.approve( address(collateralAndLiquidity), type(uint256).max );
-		weth.approve( address(collateralAndLiquidity), type(uint256).max );
-		wbtc.approve( address(collateralAndLiquidity), type(uint256).max );
+		usdc.approve( address(liquidity), type(uint256).max );
+		weth.approve( address(liquidity), type(uint256).max );
+		wbtc.approve( address(liquidity), type(uint256).max );
 
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare(weth, usds, 1000 ether, 1850000 ether, 0, block.timestamp, false );
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare(wbtc, usds, 100 * 10**8, 2919100 ether, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare(weth, usdc, 1000 ether, 1850000 * 10**6, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare(wbtc, usdc, 100 * 10**8, 2919100 * 10**6, 0, block.timestamp, false );
 
 		vm.stopPrank();
 

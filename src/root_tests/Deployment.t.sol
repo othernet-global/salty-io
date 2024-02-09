@@ -40,15 +40,13 @@ contract TestDeployment is Deployment
     	// Check token decimals
 		assertTrue( ERC20(address(wbtc)).decimals() == 8, "WBTC should have 8 decimals" );
 		assertTrue( ERC20(address(weth)).decimals() == 18, "WETH should have 18 decimals" );
-		assertTrue( ERC20(address(dai)).decimals() == 18, "DAI should have 18 decimals" );
+		assertTrue( ERC20(address(usdc)).decimals() == 6, "USDC should have 6 decimals" );
 		assertTrue( ERC20(address(salt)).decimals() == 18, "SALT should have 18 decimals" );
-		assertTrue( ERC20(address(usds)).decimals() == 18, "USDS should have 18 decimals" );
 
         assertEq( getContract(address(exchangeConfig), "salt()"), address(salt), "Incorrect exchangeConfig.salt" );
         assertEq( getContract(address(exchangeConfig), "wbtc()"), address(wbtc), "Incorrect exchangeConfig.wbtc" );
         assertEq( getContract(address(exchangeConfig), "weth()"), address(weth), "Incorrect exchangeConfig.weth" );
-        assertEq( getContract(address(exchangeConfig), "dai()"), address(dai), "Incorrect exchangeConfig.dai" );
-        assertEq( getContract(address(exchangeConfig), "usds()"), address(usds), "Incorrect exchangeConfig.usds" );
+        assertEq( getContract(address(exchangeConfig), "usdc()"), address(usdc), "Incorrect exchangeConfig.usdc" );
 
         assertEq( getContract(address(exchangeConfig), "dao()"), address(dao), "Incorrect exchangeConfig.dao" );
         assertEq( getContract(address(exchangeConfig), "upkeep()"), address(upkeep), "Incorrect exchangeConfig.upkeep" );
@@ -76,33 +74,19 @@ contract TestDeployment is Deployment
         assertEq( getContract(address(pools), "exchangeConfig()"), address(exchangeConfig), "Incorrect pools.exchangeConfig" );
         assertEq( getContract(address(pools), "poolsConfig()"), address(poolsConfig), "Incorrect pools.poolsConfig" );
         assertEq( getContract(address(pools), "dao()"), address(dao), "Incorrect pools.dao" );
-        assertEq( getContract(address(pools), "collateralAndLiquidity()"), address(collateralAndLiquidity), "Incorrect pools.collateralAndLiquidity" );
+        assertEq( getContract(address(pools), "liquidity()"), address(liquidity), "Incorrect pools.liquidity" );
 
         assertEq( getContract(address(staking), "exchangeConfig()"), address(exchangeConfig), "Incorrect staking.exchangeConfig" );
         assertEq( getContract(address(staking), "poolsConfig()"), address(poolsConfig), "Incorrect staking.poolsConfig" );
         assertEq( getContract(address(staking), "stakingConfig()"), address(stakingConfig), "Incorrect staking.stakingConfig" );
 
-        assertEq( getContract(address(collateralAndLiquidity), "pools()"), address(pools), "Incorrect collateralAndLiquidity.pools" );
-        assertEq( getContract(address(collateralAndLiquidity), "exchangeConfig()"), address(exchangeConfig), "Incorrect collateralAndLiquidity.exchangeConfig" );
-        assertEq( getContract(address(collateralAndLiquidity), "poolsConfig()"), address(poolsConfig), "Incorrect collateralAndLiquidity.poolsConfig" );
-        assertEq( getContract(address(collateralAndLiquidity), "stakingConfig()"), address(stakingConfig), "Incorrect collateralAndLiquidity.stakingConfig" );
-        assertEq( getContract(address(collateralAndLiquidity), "stableConfig()"), address(stableConfig), "Incorrect collateral.stableConfig" );
-        assertEq( getContract(address(collateralAndLiquidity), "priceAggregator()"), address(priceAggregator), "Incorrect collateral.priceAggregator" );
-    	assertEq( getContract(address(collateralAndLiquidity), "wbtc()"), address(wbtc), "Incorrect collateral.wbtc" );
-        assertEq( getContract(address(collateralAndLiquidity), "weth()"), address(weth), "Incorrect collateral.weth" );
-        assertEq( getContract(address(collateralAndLiquidity), "usds()"), address(usds), "Incorrect collateral.usds" );
-        assertEq( getContract(address(collateralAndLiquidity), "pools()"), address(pools), "Incorrect collateral.pools" );
-        assertEq( getContract(address(collateralAndLiquidity), "exchangeConfig()"), address(exchangeConfig), "Incorrect collateral.exchangeConfig" );
-        assertEq( getContract(address(collateralAndLiquidity), "poolsConfig()"), address(poolsConfig), "Incorrect collateral.poolsConfig" );
-        assertEq( getContract(address(collateralAndLiquidity), "stakingConfig()"), address(stakingConfig), "Incorrect collateral.stakingConfig" );
-        assertEq( getContract(address(collateralAndLiquidity), "liquidizer()"), address(liquidizer), "Incorrect collateral.liquidizer" );
-
-		assertEq( getContract(address(liquidizer), "wbtc()"), address(wbtc), "Incorrect liquidizer.wbtc" );
-		assertEq( getContract(address(liquidizer), "weth()"), address(weth), "Incorrect liquidizer.weth" );
-		assertEq( getContract(address(liquidizer), "collateralAndLiquidity()"), address(collateralAndLiquidity), "Incorrect liquidizer.collateral" );
-		assertEq( getContract(address(liquidizer), "pools()"), address(pools), "Incorrect liquidizer.pools" );
-		assertEq( getContract(address(liquidizer), "exchangeConfig()"), address(exchangeConfig), "Incorrect liquidizer.exchangeConfig" );
-		assertEq( getContract(address(liquidizer), "poolsConfig()"), address(poolsConfig), "Incorrect liquidizer.poolsConfig" );
+        assertEq( getContract(address(liquidity), "pools()"), address(pools), "Incorrect liquidity.pools" );
+        assertEq( getContract(address(liquidity), "exchangeConfig()"), address(exchangeConfig), "Incorrect liquidity.exchangeConfig" );
+        assertEq( getContract(address(liquidity), "poolsConfig()"), address(poolsConfig), "Incorrect liquidity.poolsConfig" );
+        assertEq( getContract(address(liquidity), "stakingConfig()"), address(stakingConfig), "Incorrect liquidity.stakingConfig" );
+        assertEq( getContract(address(liquidity), "pools()"), address(pools), "Incorrect liquidity.pools" );
+        assertEq( getContract(address(liquidity), "exchangeConfig()"), address(exchangeConfig), "Incorrect liquidity.exchangeConfig" );
+        assertEq( getContract(address(liquidity), "stakingConfig()"), address(stakingConfig), "Incorrect liquidity.stakingConfig" );
 
 		assertEq( getContract(address(stakingRewardsEmitter), "stakingRewards()"), address(staking), "Incorrect stakingRewardsEmitter.stakingRewards" );
         assertEq( getContract(address(stakingRewardsEmitter), "exchangeConfig()"), address(exchangeConfig), "Incorrect stakingRewardsEmitter.exchangeConfig" );
@@ -110,7 +94,7 @@ contract TestDeployment is Deployment
 		assertEq( getContract(address(stakingRewardsEmitter), "rewardsConfig()"), address(rewardsConfig), "Incorrect stakingRewardsEmitter.rewardsConfig" );
 		assertEq( getContract(address(stakingRewardsEmitter), "salt()"), address(salt), "Incorrect stakingRewardsEmitter.salt" );
 
-		assertEq( getContract(address(liquidityRewardsEmitter), "stakingRewards()"), address(collateralAndLiquidity), "Incorrect liquidityRewardsEmitter.stakingRewards" );
+		assertEq( getContract(address(liquidityRewardsEmitter), "stakingRewards()"), address(liquidity), "Incorrect liquidityRewardsEmitter.stakingRewards" );
 		assertEq( getContract(address(liquidityRewardsEmitter), "exchangeConfig()"), address(exchangeConfig), "Incorrect liquidityRewardsEmitter.exchangeConfig" );
         assertEq( getContract(address(liquidityRewardsEmitter), "poolsConfig()"), address(poolsConfig), "Incorrect liquidityRewardsEmitter.poolsConfig" );
 		assertEq( getContract(address(liquidityRewardsEmitter), "rewardsConfig()"), address(rewardsConfig), "Incorrect liquidityRewardsEmitter.rewardsConfig" );
@@ -127,25 +111,20 @@ contract TestDeployment is Deployment
         assertEq( getContract(address(dao), "poolsConfig()"), address(poolsConfig), "Incorrect dao.poolsConfig" );
 		assertEq( getContract(address(dao), "stakingConfig()"), address(stakingConfig), "Incorrect dao.stakingConfig" );
         assertEq( getContract(address(dao), "rewardsConfig()"), address(rewardsConfig), "Incorrect dao.rewardsConfig" );
-        assertEq( getContract(address(dao), "stableConfig()"), address(stableConfig), "Incorrect dao.stableConfig" );
 		assertEq( getContract(address(dao), "daoConfig()"), address(daoConfig), "Incorrect dao.daoConfig" );
-		assertEq( getContract(address(dao), "priceAggregator()"), address(priceAggregator), "Incorrect dao.priceAggregator" );
         assertEq( getContract(address(dao), "liquidityRewardsEmitter()"), address(liquidityRewardsEmitter), "Incorrect dao.liquidityRewardsEmitter" );
 
         assertEq( getContract(address(upkeep), "pools()"), address(pools), "Incorrect upkeep.pools" );
         assertEq( getContract(address(upkeep), "exchangeConfig()"), address(exchangeConfig), "Incorrect upkeep.exchangeConfig" );
         assertEq( getContract(address(upkeep), "poolsConfig()"), address(poolsConfig), "Incorrect upkeep.poolsConfig" );
         assertEq( getContract(address(upkeep), "daoConfig()"), address(daoConfig), "Incorrect upkeep.daoConfig" );
-        assertEq( getContract(address(upkeep), "priceAggregator()"), address(priceAggregator), "Incorrect upkeep.priceAggregator" );
         assertEq( getContract(address(upkeep), "saltRewards()"), address(saltRewards), "Incorrect upkeep.saltRewards" );
-        assertEq( getContract(address(upkeep), "collateralAndLiquidity()"), address(collateralAndLiquidity), "Incorrect upkeep.collateralAndLiquidity" );
         assertEq( getContract(address(upkeep), "emissions()"), address(emissions), "Incorrect upkeep.emissions" );
-        assertEq( getContract(address(upkeep), "stableConfig()"), address(stableConfig), "Incorrect upkeep.stableConfig" );
         assertEq( getContract(address(upkeep), "dao()"), address(dao), "Incorrect upkeep.dao" );
 
         assertEq( getContract(address(upkeep), "weth()"), address(weth), "Incorrect upkeep.weth" );
         assertEq( getContract(address(upkeep), "salt()"), address(salt), "Incorrect upkeep.salt" );
-        assertEq( getContract(address(upkeep), "usds()"), address(usds), "Incorrect upkeep.usds" );
+        assertEq( getContract(address(upkeep), "usdc()"), address(usdc), "Incorrect upkeep.usdc" );
 
 		assertEq( getContract(address(proposals), "staking()"), address(staking), "Incorrect proposals.staking" );
         assertEq( getContract(address(proposals), "exchangeConfig()"), address(exchangeConfig), "Incorrect proposals.exchangeConfig" );
@@ -164,7 +143,6 @@ contract TestDeployment is Deployment
 		assertEq( getContract( address(poolsConfig), "owner()" ), address(dao), "poolsConfig owner is not dao" );
 		assertEq( getContract( address(stakingConfig), "owner()" ), address(dao), "stakingConfig owner is not dao" );
 		assertEq( getContract( address(rewardsConfig), "owner()" ), address(dao), "rewardsConfig owner is not dao" );
-		assertEq( getContract( address(stableConfig), "owner()" ), address(dao), "stableConfig owner is not dao" );
 		assertEq( getContract( address(daoConfig), "owner()" ), address(dao), "daoConfig owner is not dao" );
 		assertEq( getContract( address(priceAggregator), "owner()" ), address(dao), "priceAggregator owner is not dao" );
 
@@ -180,7 +158,6 @@ contract TestDeployment is Deployment
 		assertEq( getContract(address(initialDistribution), "teamVestingWallet()"), address(teamVestingWallet), "Incorrect initialDistribution.teamVestingWallet" );
 		assertEq( getContract(address(initialDistribution), "airdrop()"), address(airdrop), "Incorrect initialDistribution.airdrop" );
 		assertEq( getContract(address(initialDistribution), "saltRewards()"), address(saltRewards), "Incorrect initialDistribution.saltRewards" );
-		assertEq( getContract(address(initialDistribution), "collateralAndLiquidity()"), address(collateralAndLiquidity), "Incorrect initialDistribution.collateralAndLiquidity" );
 
 		assertEq( salt.balanceOf(address(initialDistribution)), 100000000 ether, "The InitialDistribution contract should start with a SALT balance of 100 million SALT" );
 
@@ -205,14 +182,12 @@ contract TestDeployment is Deployment
 			assertEq( getContract( address(priceAggregator.priceFeed3()), "pools()" ), address(pools), "Invalid priceAggregator.saltyFeed.pools" );
 			assertEq( getContract( address(priceAggregator.priceFeed3()), "wbtc()" ), address(wbtc), "Invalid priceAggregator.saltyFeed.wbtc" );
 			assertEq( getContract( address(priceAggregator.priceFeed3()), "weth()" ), address(weth), "Invalid priceAggregator.saltyFeed.weth" );
-			assertEq( getContract( address(priceAggregator.priceFeed3()), "usds()" ), address(usds), "Invalid priceAggregator.saltyFeed.usds" );
+			assertEq( getContract( address(priceAggregator.priceFeed3()), "usdc()" ), address(usdc), "Invalid priceAggregator.saltyFeed.usdc" );
 
 			assertEq( address(wbtc), 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599, "Invalid WBTC" );
 			assertEq( address(weth), 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2, "Invalid WETH" );
-			assertEq( address(dai), 0x6B175474E89094C44Da98b954EedeAC495271d0F, "Invalid DAI" );
+			assertEq( address(usdc), 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, "Invalid USDC" );
         	}
-
-        assertEq( getContract(address(usds), "collateralAndLiquidity()"), address(collateralAndLiquidity), "Incorrect usds.collateral" );
 
         assertEq( exchangeConfig.managedTeamWallet().mainWallet(), teamWallet, "Incorrect teamWallet" );
 
@@ -240,19 +215,18 @@ contract TestDeployment is Deployment
    		{
    		console.log( "wbtc: ", address(wbtc) );
    		console.log( "weth: ", address(weth) );
-   		console.log( "dai: ", address(dai) );
+   		console.log( "usdc: ", address(usdc) );
    		console.log( "accessManager: ", address(accessManager) );
 		console.log( "" );
 	   	console.log( "airdrop: ", address(airdrop) );
    		console.log( "bootstrapBallot: ", address(bootstrapBallot) );
-   		console.log( "collateralAndLiquidity: ", address(collateralAndLiquidity) );
 	   	console.log( "dao: ", address(dao) );
    		console.log( "daoConfig: ", address(daoConfig) );
    		console.log( "emissions: ", address(emissions) );
 		console.log( "exchangeConfig: ", address(exchangeConfig) );
    		console.log( "initialDistribution: ", address(initialDistribution) );
+   		console.log( "liquidity: ", address(liquidity) );
    		console.log( "liquidityRewardsEmitter: ", address(liquidityRewardsEmitter) );
-   		console.log( "liquidizer: ", address(liquidizer) );
    		console.log( "managedTeamWallet: ", address(managedTeamWallet) );
    		console.log( "pools: ", address(pools) );
    		console.log( "poolsConfig: ", address(poolsConfig) );
@@ -261,13 +235,11 @@ contract TestDeployment is Deployment
    		console.log( "rewardsConfig: ", address(rewardsConfig) );
    		console.log( "salt: ", address(salt) );
    		console.log( "saltRewards: ", address(saltRewards) );
-   		console.log( "stableConfig: ", address(stableConfig) );
    		console.log( "staking: ", address(staking) );
 		console.log( "stakingConfig: ", address(stakingConfig) );
    		console.log( "stakingRewardsEmitter: ", address(stakingRewardsEmitter) );
 		console.log( "teamVestingWallet: ", address(teamVestingWallet) );
    		console.log( "upkeep: ", address(upkeep) );
-   		console.log( "usds: ", address(usds) );
 		console.log( "" );
    		console.log( "priceFeed1: ", address(priceAggregator.priceFeed1()) );
    		console.log( "priceFeed2: ", address(priceAggregator.priceFeed2()) );

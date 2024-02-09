@@ -24,7 +24,7 @@ contract TestArbitrage is Deployment
 		vm.prank(address(daoVestingWallet));
 		salt.transfer(DEPLOYER, 1000000 ether);
 
-			uint256 priceBTC = priceAggregator.getPriceBTC();
+		uint256 priceBTC = priceAggregator.getPriceBTC();
 		uint256 priceETH = priceAggregator.getPriceETH();
 
 		tokenE = new TestERC20("TEST", 18);
@@ -47,13 +47,13 @@ contract TestArbitrage is Deployment
    		wbtc.approve( address(pools), type(uint256).max );
    		weth.approve( address(pools), type(uint256).max );
 
-		tokenE.approve( address(collateralAndLiquidity), type(uint256).max );
-   		wbtc.approve( address(collateralAndLiquidity), type(uint256).max );
-   		weth.approve( address(collateralAndLiquidity), type(uint256).max );
+		tokenE.approve( address(liquidity), type(uint256).max );
+   		wbtc.approve( address(liquidity), type(uint256).max );
+   		weth.approve( address(liquidity), type(uint256).max );
 
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( tokenE, wbtc, 100 ether * priceBTC / priceETH, 100 *10**8, 0, block.timestamp, false );
-		collateralAndLiquidity.depositLiquidityAndIncreaseShare( tokenE, weth, 1000 ether, 1000 ether, 0, block.timestamp, false );
-		collateralAndLiquidity.depositCollateralAndIncreaseShare( 1000 *10**8, 1000 ether * priceBTC / priceETH, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( tokenE, wbtc, 100 ether * priceBTC / priceETH, 100 *10**8, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( tokenE, weth, 1000 ether, 1000 ether, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( wbtc, weth, 1000 *10**8, 1000 ether * priceBTC / priceETH, 0, block.timestamp, false );
 
 		pools.deposit( tokenE, 100 ether );
 
@@ -86,8 +86,8 @@ contract TestArbitrage is Deployment
 //		console.log( "amountOut: ", amountOut );
 //		console.log( "ending pools balance: ", pools.depositedUserBalance( address(pools), weth ) );
 
-		assertEq( amountOut, 9900435969090386410 );
-		assertEq( pools.depositedUserBalance( address(dao), weth ), 175267603798507364 );
+		assertEq( amountOut, 9900215472932886712 );
+		assertEq( pools.depositedUserBalance( address(dao), weth ), 187075641938255467 );
 		}
 	}
 

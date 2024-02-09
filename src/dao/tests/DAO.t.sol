@@ -30,14 +30,11 @@ contract TestDAO is Deployment
 		vm.prank(address(daoVestingWallet));
 		salt.transfer(DEPLOYER, 15000000 ether);
 
-		// Mint some USDS to the DEPLOYER and alice
-		vm.startPrank( address(collateralAndLiquidity) );
-		usds.mintTo( DEPLOYER, 2000000 ether );
-		usds.mintTo( alice, 1000000 ether );
-		vm.stopPrank();
-
-		vm.prank( DEPLOYER );
+		vm.startPrank( DEPLOYER );
 		salt.transfer( alice, 10000000 ether );
+		usdc.transfer( DEPLOYER, 2000000 * 10**6 );
+		usdc.transfer( alice, 1000000 * 10**6 );
+		vm.stopPrank();
 
 		// Allow time for proposals
 		vm.warp( block.timestamp + 45 days );
@@ -47,15 +44,15 @@ contract TestDAO is Deployment
     function setUp() public
     	{
     	vm.startPrank( DEPLOYER );
-    	usds.approve( address(dao), type(uint256).max );
+    	usdc.approve( address(dao), type(uint256).max );
     	salt.approve( address(staking), type(uint256).max );
-    	usds.approve( address(proposals), type(uint256).max );
+    	usdc.approve( address(proposals), type(uint256).max );
     	vm.stopPrank();
 
     	vm.startPrank( alice );
-    	usds.approve( address(dao), type(uint256).max );
+    	usdc.approve( address(dao), type(uint256).max );
     	salt.approve( address(staking), type(uint256).max );
-    	usds.approve( address(proposals), type(uint256).max );
+    	usdc.approve( address(proposals), type(uint256).max );
     	vm.stopPrank();
     	}
 
@@ -83,21 +80,8 @@ contract TestDAO is Deployment
 			return rewardsConfig.emissionsWeeklyPercentTimes1000();
 		else if ( parameter == Parameters.ParameterTypes.stakingRewardsPercent )
 			return rewardsConfig.stakingRewardsPercent();
-		else if ( parameter == Parameters.ParameterTypes.percentRewardsSaltUSDS )
-			return rewardsConfig.percentRewardsSaltUSDS();
-
-		else if ( parameter == Parameters.ParameterTypes.rewardPercentForCallingLiquidation )
-			return stableConfig.rewardPercentForCallingLiquidation();
-		else if ( parameter == Parameters.ParameterTypes.maxRewardValueForCallingLiquidation )
-			return stableConfig.maxRewardValueForCallingLiquidation();
-		else if ( parameter == Parameters.ParameterTypes.minimumCollateralValueForBorrowing )
-			return stableConfig.minimumCollateralValueForBorrowing();
-		else if ( parameter == Parameters.ParameterTypes.initialCollateralRatioPercent )
-			return stableConfig.initialCollateralRatioPercent();
-		else if ( parameter == Parameters.ParameterTypes.minimumCollateralRatioPercent )
-			return stableConfig.minimumCollateralRatioPercent();
-		else if ( parameter == Parameters.ParameterTypes.percentArbitrageProfitsForStablePOL )
-			return stableConfig.percentArbitrageProfitsForStablePOL();
+		else if ( parameter == Parameters.ParameterTypes.percentRewardsSaltUSDC )
+			return rewardsConfig.percentRewardsSaltUSDC();
 
 		else if ( parameter == Parameters.ParameterTypes.bootstrappingRewards )
 			return daoConfig.bootstrappingRewards();
@@ -115,11 +99,6 @@ contract TestDAO is Deployment
 			return daoConfig.arbitrageProfitsPercentPOL();
 		else if ( parameter == Parameters.ParameterTypes.upkeepRewardPercent )
 			return daoConfig.upkeepRewardPercent();
-
-		else if ( parameter == Parameters.ParameterTypes.maximumPriceFeedPercentDifferenceTimes1000 )
-			return priceAggregator.maximumPriceFeedPercentDifferenceTimes1000();
-		else if ( parameter == Parameters.ParameterTypes.setPriceFeedCooldown )
-			return priceAggregator.priceFeedModificationCooldown();
 
 		require(false, "Invalid ParameterType" );
 		return 0;
@@ -145,9 +124,7 @@ contract TestDAO is Deployment
 
 		uint256 newValue = _parameterValue( Parameters.ParameterTypes( parameterNum ) );
 
-		if ( parameterNum != 10 )
-		if ( parameterNum != 14 )
-			assert( newValue > originalValue );
+		assert( newValue > originalValue );
     }
 
 
@@ -198,9 +175,7 @@ contract TestDAO is Deployment
 //		console.log( "\td" );
 		uint256 newValue = _parameterValue( Parameters.ParameterTypes( parameterNum ) );
 
-		if ( parameterNum != 10 )
-		if ( parameterNum != 14 )
-			assert( newValue < originalValue );
+		assert( newValue < originalValue );
     }
 
 
@@ -210,7 +185,7 @@ contract TestDAO is Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 5000000 ether );
 
-    	for( uint256 i = 0; i < 26; i++ )
+    	for( uint256 i = 0; i < 18; i++ )
 	 		_checkFinalizeIncreaseParameterBallot( i );
     	}
 
@@ -221,7 +196,7 @@ contract TestDAO is Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 5000000 ether );
 
-    	for( uint256 i = 0; i < 26; i++ )
+    	for( uint256 i = 0; i < 18; i++ )
 	 		_checkFinalizeDecreaseParameterBallot( i );
     	}
 
@@ -232,7 +207,7 @@ contract TestDAO is Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 5000000 ether );
 
-    	for( uint256 i = 0; i < 26; i++ )
+    	for( uint256 i = 0; i < 18; i++ )
 	 		_checkFinalizeNoChangeParameterBallot( i );
     	}
 
@@ -532,14 +507,8 @@ contract TestDAO is Deployment
 	// A unit test to test that finalizing an approved setContract ballot works with all possible contract options
 	function testSetContractApproved() public
 		{
-		_checkSetContractApproved( 1, "priceFeed1", address(0x1231236 ) );
-		vm.warp(block.timestamp + 60 days);
-		_checkSetContractApproved( 3, "priceFeed2", address(0x1231237 ) );
-		vm.warp(block.timestamp + 60 days);
-		_checkSetContractApproved( 5, "priceFeed3", address(0x1231238 ) );
-
 		// Done last to prevent access issues
-		_checkSetContractApproved( 7, "accessManager", address( new AccessManager(dao) ) );
+		_checkSetContractApproved( 1, "accessManager", address( new AccessManager(dao) ) );
 		}
 
 
@@ -649,7 +618,7 @@ contract TestDAO is Deployment
 	function testDAOConstructor() public {
 
         vm.startPrank(DEPLOYER);
-        DAO testDAO = new DAO(pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, stableConfig, daoConfig, priceAggregator, liquidityRewardsEmitter, collateralAndLiquidity );
+        DAO testDAO = new DAO(pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, daoConfig, liquidityRewardsEmitter, liquidity );
 
         assertEq(address(testDAO.pools()), address(pools), "Pools contract address mismatch");
         assertEq(address(testDAO.proposals()), address(proposals), "Proposals contract address mismatch");
@@ -657,11 +626,9 @@ contract TestDAO is Deployment
         assertEq(address(testDAO.poolsConfig()), address(poolsConfig), "PoolsConfig contract address mismatch");
         assertEq(address(testDAO.stakingConfig()), address(stakingConfig), "StakingConfig contract address mismatch");
         assertEq(address(testDAO.rewardsConfig()), address(rewardsConfig), "RewardsConfig contract address mismatch");
-        assertEq(address(testDAO.stableConfig()), address(stableConfig), "StableConfig contract address mismatch");
         assertEq(address(testDAO.daoConfig()), address(daoConfig), "DAOConfig contract address mismatch");
-        assertEq(address(testDAO.priceAggregator()), address(priceAggregator), "PriceAggregator contract address mismatch");
         assertEq(address(testDAO.liquidityRewardsEmitter()), address(liquidityRewardsEmitter), "LiquidityRewardsEmitter contract address mismatch");
-        assertEq(address(testDAO.collateralAndLiquidity()), address(collateralAndLiquidity), "CollateralAndLiquidity contract address mismatch");
+        assertEq(address(testDAO.liquidity()), address(liquidity), "Liquidity contract address mismatch");
 
         vm.stopPrank();
     }
@@ -758,34 +725,34 @@ contract TestDAO is Deployment
 	// A unit test to validate that formPOL works correctly and changes balances as expected
 	function testFormPOL() public {
 
-		assertEq( collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usds)), 0 );
+		assertEq( liquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usdc)), 0 );
 
 		uint256 saltAmount = 10 ether;
-        uint256 usdsAmount = 5 ether;
+        uint256 usdcAmount = 5 * 10**6;
 
         uint256 initialDaoSaltBalance = salt.balanceOf(address(dao));
-        uint256 initialDaoUsdsBalance = usds.balanceOf(address(dao));
+        uint256 initialDaoUsdsBalance = usdc.balanceOf(address(dao));
 
 		assertEq( initialDaoSaltBalance, 0 );
 		assertEq( initialDaoUsdsBalance, 0 );
 
 		vm.startPrank(DEPLOYER);
         salt.transfer(address(dao), saltAmount);
-        usds.transfer(address(dao), usdsAmount);
+        usdc.transfer(address(dao), usdcAmount);
         vm.stopPrank();
 
         vm.expectRevert( "DAO.formPOL is only callable from the Upkeep contract" );
-        dao.formPOL(salt, usds, saltAmount, usdsAmount);
+        dao.formPOL(salt, usdc, saltAmount, usdcAmount);
 
         vm.prank(address(upkeep));
-        dao.formPOL(salt, usds, saltAmount, usdsAmount);
+        dao.formPOL(salt, usdc, saltAmount, usdcAmount);
 
         assertEq(salt.balanceOf(address(dao)), 0, "DAO SALT balance incorrect after formPOL");
-        assertEq(usds.balanceOf(address(dao)), 0, "DAO USDS balance incorrect after formPOL");
+        assertEq(usdc.balanceOf(address(dao)), 0, "DAO USDC balance incorrect after formPOL");
 
-		bytes32 poolID = PoolUtils._poolID(salt,usds);
-		assertTrue( collateralAndLiquidity.userShareForPool(address(dao), poolID) > 0 );
-		assertEq( collateralAndLiquidity.userShareForPool(address(dao), poolID), collateralAndLiquidity.totalShares(poolID) );
+		bytes32 poolID = PoolUtils._poolID(salt,usdc);
+		assertTrue( liquidity.userShareForPool(address(dao), poolID) > 0 );
+		assertEq( liquidity.userShareForPool(address(dao), poolID), liquidity.totalShares(poolID) );
     }
 
 
@@ -798,13 +765,10 @@ contract TestDAO is Deployment
     	dao.withdrawArbitrageProfits( weth );
 
     	vm.expectRevert("DAO.formPOL is only callable from the Upkeep contract");
-    	dao.formPOL(salt, usds, 0, 0);
+    	dao.formPOL(salt, usdc, 0, 0);
 
     	vm.expectRevert("DAO.processRewardsFromPOL is only callable from the Upkeep contract");
     	dao.processRewardsFromPOL();
-
-    	vm.expectRevert("DAO.withdrawProtocolOwnedLiquidity is only callable from the Liquidizer contract");
-    	dao.withdrawPOL(salt, usds, 1);
 
     	vm.stopPrank();
     	}
@@ -820,99 +784,6 @@ contract TestDAO is Deployment
 
         assertEq(result, false, "The country should not be excluded");
         }
-
-
-    // A unit test to validate that SALT tokens are burned as expected by the processRewardsFromPOL function
-    function testProcessRewardsFromPOL() public {
-
-		// Don't proceed with the test if using the live contracts
-		if ( keccak256(bytes(vm.envString("COVERAGE" ))) == keccak256(bytes("no" )))
-			return;
-
-		vm.warp( block.timestamp - 45 days );
-
-		// DAO needs to form some SALT/USDS and USDS/DAI liquidity to receive some rewards
-		vm.prank(address(daoVestingWallet));
-		salt.transfer(address(dao), 1000 ether);
-
-		vm.prank(address(collateralAndLiquidity));
-		usds.mintTo(address(dao), 2000 ether);
-
-		vm.prank(DEPLOYER);
-		dai.transfer(address(dao), 1000 ether);
-
-		assertEq( salt.balanceOf(address(dao)), 1000 ether );
-		assertEq( usds.balanceOf(address(dao)), 2000 ether );
-		assertEq( dai.balanceOf(address(dao)), 1000 ether );
-
-		// Have the DAO form SALT/USDS and USDS/DAI liquidity
-		vm.startPrank(address(upkeep));
-		dao.formPOL(salt, usds, 1000 ether, 1000 ether);
-		dao.formPOL(usds, dai, 1000 ether, 1000 ether);
-		vm.stopPrank();
-
-		// Pass time to allow the liquidityRewardsEmitter to emit rewards
-    	vm.warp( block.timestamp + 1 days );
-
-		bytes32[] memory poolIDs = new bytes32[](2);
-		poolIDs[0] = PoolUtils._poolID(salt, usds);
-		poolIDs[1] = PoolUtils._poolID(usds, dai);
-
-		// Check balances before performUpkeep()
-		assertEq( salt.balanceOf( address(teamWallet)), 0 );
-
-   		upkeep.performUpkeep();
-
-		uint256 expectedPOLRewards = 5555555555555555555555 * 2;
-
-		// Team receives 10% of the POL + 16439 from the teamVestingWallet after 6 days
-		assertEq( salt.balanceOf(teamWallet), expectedPOLRewards / 10 + 16438387874175545408422 );
-
-		// Burn 50% of the remaining
-		assertEq( salt.totalBurned(), expectedPOLRewards * 45 / 100 );
-
-		// DAO balance should be the remaining + 41096 from the daoVestingWallet after 6 days
-		// but 15 million SALT were transferred from it for testing so it only emits 16437
-		assertEq( salt.balanceOf(address(dao)), expectedPOLRewards * 45 / 100 + 16436744035388127853882 );
-   		}
-
-
-	// A unit test to check that the withdrawPOL function works correctly
-	function testWithdrawPOLProperlyWithdrawsLiquidity() public {
-
-		// Have the DAO form some SALT/USDS liquidity for testing
-		vm.prank(address(daoVestingWallet));
-		salt.transfer(address(dao), 1000 ether);
-
-		vm.prank(address(collateralAndLiquidity));
-		usds.mintTo(address(dao), 1000 ether);
-
-		assertEq( salt.balanceOf(address(dao)), 1000 ether );
-		assertEq( usds.balanceOf(address(dao)), 1000 ether );
-
-		// Have the DAO form SALT/USDS and USDS/DAI liquidity
-		vm.prank(address(upkeep));
-		dao.formPOL(salt, usds, 1000 ether, 1000 ether);
-
-		uint256 daoShare = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usds) );
-
-		// Starting liquidator balances
-		assertEq( salt.balanceOf(address(liquidizer)), 0);
-		assertEq( usds.balanceOf(address(liquidizer)), 0);
-
-        // Assign Liquidizer role to some address (mocking the real Liquidizer contract calling the DAO's withdrawPOL)
-		// Check that the DAO doesn't have to obey the liquidity cooldown
-        vm.prank(address(liquidizer));
-        dao.withdrawPOL(salt, usds, 10);
-
-		// Check that 10% of the share has been removed
-		uint256 daoShare2 = collateralAndLiquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usds) );
-		assertEq( daoShare2, daoShare * 90 / 100);
-
-        // Verify tokens are sent to the Liquidizer
-		assertEq( salt.balanceOf(address(liquidizer)), 100 ether);
-		assertEq( usds.balanceOf(address(liquidizer)), 100 ether);
-    }
 
 
 	// A unit test that validates that a ballot ID is correctly incremented after each proposal to ensure unique references to different ballots.
@@ -1061,60 +932,33 @@ contract TestDAO is Deployment
 
         // Forming POL amounts
         uint256 saltAmount = 500 ether;
-        uint256 usdsAmount = 500 ether;
+        uint256 usdcAmount = 500 * 10**6;
 
         // Transferring tokens to DAO before POL formation
         vm.prank(address(daoVestingWallet));
         salt.transfer(address(dao), saltAmount);
 
-        vm.prank(address(collateralAndLiquidity));
-        usds.mintTo(address(dao), usdsAmount);
+        vm.prank(address(DEPLOYER));
+        usdc.transfer(address(dao), usdcAmount);
 
         // Capture the initial POL state
-        bytes32 saltUsdsPoolID = PoolUtils._poolID(salt, usds);
+        bytes32 saltUsdsPoolID = PoolUtils._poolID(salt, usdc);
         uint256 initialSaltBalanceDAO = salt.balanceOf(address(dao));
-        uint256 initialUsdsBalanceDAO = usds.balanceOf(address(dao));
+        uint256 initialUsdsBalanceDAO = usdc.balanceOf(address(dao));
 
         // Forming POL
         vm.prank(address(upkeep));
-        dao.formPOL(salt, usds, saltAmount, usdsAmount);
+        dao.formPOL(salt, usdc, saltAmount, usdcAmount);
 
         // Capture the post-POL state
         uint256 finalSaltBalanceDAO = salt.balanceOf(address(dao));
-        uint256 finalUsdsBalanceDAO = usds.balanceOf(address(dao));
-        uint256 finalPoolShareDAO = collateralAndLiquidity.userShareForPool(address(dao), saltUsdsPoolID);
+        uint256 finalUsdsBalanceDAO = usdc.balanceOf(address(dao));
+        uint256 finalPoolShareDAO = liquidity.userShareForPool(address(dao), saltUsdsPoolID);
 
         // Assert POL formation and distribution correctness
         assertEq(finalSaltBalanceDAO, initialSaltBalanceDAO - saltAmount, "Incorrect final SALT balance in DAO");
-        assertEq(finalUsdsBalanceDAO, initialUsdsBalanceDAO - usdsAmount, "Incorrect final USDS balance in DAO");
-        assertEq(finalPoolShareDAO, 1000 ether, "DAO did not receive pool share tokens");
+        assertEq(finalUsdsBalanceDAO, initialUsdsBalanceDAO - usdcAmount, "Incorrect final USDC balance in DAO");
+        assertEq(finalPoolShareDAO, 500 ether + 500 * 10**6, "DAO did not receive pool share tokens");
     }
-
-
-	// A unit test that ensures DAO can withdraw the correct expected amount of liquidity via `withdrawPOL`, and that the withdrawn amount is correctly routed to the specified beneficiary address.
-	function testDAOWithdrawPOL() public {
-
-		// Form 500/500 SALT/USDS POL
-		testCorrectPOLFormationAndDistribution();
-
-        // Act
-        vm.startPrank(address(liquidizer));
-        dao.withdrawPOL(salt, usds, 10);
-        vm.stopPrank();
-
-        // Assert
-        uint256 finalBalanceA = salt.balanceOf(address(liquidizer));
-        uint256 finalBalanceB = usds.balanceOf(address(liquidizer));
-
-        assertEq( finalBalanceA, 50 ether);
-        assertEq( finalBalanceB, 50 ether);
-
-		(uint256 reservesA, uint256 reservesB) = pools.getPoolReserves(salt, usds);
-
-        // Beneficiary should have received the correct amounts of tokenA and tokenB
-        assertEq(reservesA, 450 ether);
-        assertEq(reservesB, 450 ether);
-    }
-
     }
 

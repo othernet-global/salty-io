@@ -21,13 +21,13 @@ contract TestSaltRewards is SaltRewards
 
 
 	// Transfer SALT rewards to the liquidityRewardsEmitter proportional to pool shares in generating recent arb profits.
-	function sendLiquidityRewards( uint256 liquidityRewardsAmount, uint256 directSaltUSDSRewardsAmount, bytes32[] memory poolIDs, uint256[] memory profitsForPools ) public
+	function sendLiquidityRewards( uint256 liquidityRewardsAmount, uint256 directSaltUSDCRewardsAmount, bytes32[] memory poolIDs, uint256[] memory profitsForPools ) public
 		{
 		uint256 totalProfits = 0;
 		for( uint256 i = 0; i < poolIDs.length; i++ )
 			totalProfits += profitsForPools[i];
 
-		_sendLiquidityRewards( liquidityRewardsAmount, directSaltUSDSRewardsAmount, poolIDs, profitsForPools, totalProfits );
+		_sendLiquidityRewards( liquidityRewardsAmount, directSaltUSDCRewardsAmount, poolIDs, profitsForPools, totalProfits );
 		}
 
 
