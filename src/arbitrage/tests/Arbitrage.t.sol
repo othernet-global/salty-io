@@ -435,7 +435,7 @@ contract TestArbitrage is Deployment
 		assertTrue( reservesC1 < 100000000, "reservesC1 incorrect" );
 
 //		console.log( "profit: ", pools.depositedUserBalance( address(dao), weth ) );
-		assertEq( pools.depositedUserBalance( address(dao), weth ), 17176, "arbitrage profit incorrect" );
+		assertEq( pools.depositedUserBalance( address(dao), weth ), 283797, "arbitrage profit incorrect" );
 		}
 	}
 

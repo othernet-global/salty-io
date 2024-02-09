@@ -21,11 +21,11 @@ contract TestArbitrageSearch is ArbitrageSearch, Test
 		if ( reservesA0 <= PoolUtils.DUST || reservesA1 <= PoolUtils.DUST || reservesB0 <= PoolUtils.DUST || reservesB1 <= PoolUtils.DUST || reservesC0 <= PoolUtils.DUST || reservesC1 <= PoolUtils.DUST )
 			return 0;
 
-		// Brute force search from 1/1000 to 125 of swapAmountInValueInETH
+		// Brute force search from 1/100 to 10x of swapAmountInValueInETH
 		int256 bestProfit = 0;
-		for (uint256 i = 0; i < 1250; i++ )
+		for (uint256 i = 0; i < 1000; i++ )
 			{
-			uint256 amountIn = 	swapAmountInValueInETH * ( i + 1 ) / 1000;
+			uint256 amountIn = 	swapAmountInValueInETH * ( i + 1 ) / 100;
 
 			uint256 amountOut = (reservesA1 * amountIn) / (reservesA0 + amountIn);
 			amountOut = (reservesB1 * amountOut) / (reservesB0 + amountOut);
@@ -42,87 +42,35 @@ contract TestArbitrageSearch is ArbitrageSearch, Test
 
 
 
-//
-//	// Fuzzes reserves and swapAmountInValueInETH with uint112s
-//	function testSearchMethods(uint256 swapAmountInValueInETH, uint256 reservesA0, uint256 reservesA1, uint256 reservesB0, uint256 reservesB1, uint256 reservesC0, uint256 reservesC1) public
-//		{
-//		swapAmountInValueInETH = swapAmountInValueInETH % type(uint112).max;
-//		reservesA0 = reservesA0 % type(uint112).max;
-//		reservesA1 = reservesA1 % type(uint112).max;
-//		reservesB0 = reservesB0 % type(uint112).max;
-//		reservesB1 = reservesB1 % type(uint112).max;
-//		reservesC0 = reservesC0 % type(uint112).max;
-//		reservesC1 = reservesC1 % type(uint112).max;
-//
-//		uint256 bruteForceAmountIn = _bruteForceFindBestArbAmountIn(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1);
-//		uint256 binarySearchAmountIn = _bisectionSearch(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1);
-////		uint256 bestAmountIn = _computeBestArbitrage(reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1);
-//
-//		uint256 diff;
-//		if ( bruteForceAmountIn > binarySearchAmountIn )
-//			diff = bruteForceAmountIn - binarySearchAmountIn;
-//		else
-//			diff = binarySearchAmountIn - bruteForceAmountIn;
-//
-////		uint256 diff2;
-////		if ( bruteForceAmountIn > bestAmountIn )
-////			diff2 = bruteForceAmountIn - bestAmountIn;
-////		else
-////			diff2 = bestAmountIn - bruteForceAmountIn;
-//
-//		if ( bruteForceAmountIn == 0 )
-//		if ( binarySearchAmountIn == 0 )
-//			return;
-//
-//		uint256 percentDiffTimes1000 = diff * 100000 / ( bruteForceAmountIn + binarySearchAmountIn ) / 2;
-//
-//		// Less than a 1% difference between answers
-//		assertTrue( percentDiffTimes1000 < 100000, "Divergent results" );
-//
-//
-//
-////		if ( bruteForceAmountIn == 0 )
-////		if ( bestAmountIn == 0 )
-////			return;
-////
-////		percentDiffTimes1000 = diff2 * 100000 / ( bruteForceAmountIn + bestAmountIn ) / 2;
-////
-////		// Less than a 1% difference between answers
-////		assertTrue( percentDiffTimes1000 < 100000, "Divergent results 2" );
-//		}
 
-
-
-	function _computeBestArbitrage( uint256 A0, uint256 A1, uint256 B0, uint256 B1, uint256 C0, uint256 C1 ) public pure returns (uint256 bestArbAmountIn)
+	// Fuzzes reserves and swapAmountInValueInETH with uint112s
+	function testSearchMethods(uint256 swapAmountInValueInETH, uint256 reservesA0, uint256 reservesA1, uint256 reservesB0, uint256 reservesB1, uint256 reservesC0, uint256 reservesC1) public
 		{
-		// Original derivation: https://github.com/code-423n4/2024-01-salty-findings/issues/419
-		// n0 = A0 * B0 * C0
-		// n1 = A1 * B1 * C1
-		//
-		// m = A1 * B1 + C0 * B0 + C0 * A1
-		// z = sqrt(A0 * C1) * sqrt(A1 * B0) * sqrt(B1 * C0)
-		//
-		// bestArbAmountIn = ( z - n0 ) / m;
+		swapAmountInValueInETH = swapAmountInValueInETH % type(uint112).max;
+		reservesA0 = reservesA0 % type(uint112).max;
+		reservesA1 = reservesA1 % type(uint112).max;
+		reservesB0 = reservesB0 % type(uint112).max;
+		reservesB1 = reservesB1 % type(uint112).max;
+		reservesC0 = reservesC0 % type(uint112).max;
+		reservesC1 = reservesC1 % type(uint112).max;
 
-		// Prevent A0*B0*C0 and A1*B1*C1 full calculations to reduce overflow risk
-		uint256 sqrt_n0 = Math.sqrt(A0 * B0) * Math.sqrt(C0);
-		uint256 sqrt_n1 = Math.sqrt(A1 * B1) * Math.sqrt(C1);
-		if (sqrt_n1 <= sqrt_n0)
-			return 0;
+		uint256 bruteForceAmountIn = _bruteForceFindBestArbAmountIn(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1);
+		uint256 bestAmountIn = _bestArbitrageIn(reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1);
 
-		uint256 m = A1 * ( B1 + C0 ) + C0 * B0;
-		uint256 z = sqrt_n0 * sqrt_n1;
-		uint256 sqrt_k = sqrt_n0 / Math.sqrt(m);
+		uint256 diff;
+		if ( bruteForceAmountIn > bestAmountIn )
+			diff = bruteForceAmountIn - bestAmountIn;
+		else
+			diff = bestAmountIn - bruteForceAmountIn;
 
-		bestArbAmountIn = z / m - sqrt_k * sqrt_k;
+		if ( bruteForceAmountIn == 0 )
+		if ( bestAmountIn == 0 )
+			return;
 
-		// Make sure bestArbAmountIn is actually profitable
-		uint256 amountOut = (A1 * bestArbAmountIn) / (A0 + bestArbAmountIn);
-		amountOut = (B1 * amountOut) / (B0 + amountOut);
-		amountOut = (C1 * amountOut) / (C0 + amountOut);
+		uint256 percentDiffTimes1000 = diff * 100000 / ( bruteForceAmountIn + bestAmountIn ) / 2;
 
-		if ( ( int256(amountOut) - int256(bestArbAmountIn) ) < int256(PoolUtils.DUST) )
-			return 0;
+		// Ensure less than a 1% difference between answers
+		assertTrue( percentDiffTimes1000 < 100000, "Divergent results" );
 		}
 
 
@@ -167,21 +115,13 @@ contract TestArbitrageSearch is ArbitrageSearch, Test
                     console.log("Original brute arbitrage estimation: ", bestBrute);
                     bestApproxProfit = getArbitrageProfit(bestBrute, reservesA0, reservesA1, auxReservesB0, auxReservesB1, reservesC0, reservesC1);
                     console.log("Brute arbitrage profit: ", bestApproxProfit);
-
-					gas0 = gasleft();
-                    uint256 bisectionEstimate = _bisectionSearch(swapAmountInValueInBTC / 18, reservesA0, reservesA1, auxReservesB0, auxReservesB1, reservesC0, reservesC1);
-					console.log( "BISECTION GAS: ", gas0 - gasleft() );
-
-                    console.log("Bisection arbitrage estimation: ", bisectionEstimate);
-                    bestApproxProfit = getArbitrageProfit(bisectionEstimate, reservesA0, reservesA1, auxReservesB0, auxReservesB1, reservesC0, reservesC1);
-                    console.log("Bisection arbitrage profit: ", bestApproxProfit);
                 }
 
 				uint256 bestExact;
 				unchecked
 					{
 					uint256 gas0 = gasleft();
-                	bestExact = _computeBestArbitrage(reservesA0, reservesA1, auxReservesB0, auxReservesB1, reservesC0, reservesC1);
+                	bestExact = _bestArbitrageIn(reservesA0, reservesA1, auxReservesB0, auxReservesB1, reservesC0, reservesC1);
 					console.log( "BEST GAS: ", gas0 - gasleft() );
 					}
 
@@ -195,6 +135,37 @@ contract TestArbitrageSearch is ArbitrageSearch, Test
         }
 
 
+	function testArbitrageMethodsLarge() public {
+			uint256 mult = 1000000000; // 1 billion mult
+
+            // Initial, roughly balanced pools
+            // 18 ETH ~ 1 BTC ~ 40k TOKEN A
+            uint256 reservesA0 = mult * 900 ether; // 900 billion ETH
+            uint256 reservesA1 = mult * 2000000 ether; // 2 quintillion TOKEN A
+            uint256 reservesB0 = mult * 4000000 ether; // 4 quintillion TOKEN A
+            uint256 reservesB1 = mult * 100 *10**8; // 100 billion BTC
+            uint256 reservesC0 = mult * 500 *10**8; // 500 billion BTC
+            uint256 reservesC1 = mult * 9000 ether; // 9 trillion ETH
+
+            for (uint256 i = 0; i < 4; i++) {
+
+                uint256 auxReservesB1;
+                uint256 auxReservesB0;
+
+				// Swap BTC for TOKEN A
+				uint256 swapAmountInValueInBTC = 1000 *10**8 * (i + 1);  // Arbitrary value for test
+				auxReservesB1 = reservesB1 + swapAmountInValueInBTC;
+				auxReservesB0 = reservesB0 - reservesB0 * swapAmountInValueInBTC / auxReservesB1;
+
+				uint256 bestExact = _bestArbitrageIn(reservesA0, reservesA1, auxReservesB0, auxReservesB1, reservesC0, reservesC1);
+				assertTrue( bestExact != 0, "Arbitrage calculation overflow" );
+
+//                uint256 bestExactProfit = getArbitrageProfit(bestExact, reservesA0, reservesA1, auxReservesB0, auxReservesB1, reservesC0, reservesC1);
+//                console.log( "BEST PROFIT: ", bestExactProfit );
+            }
+        }
+
+
 
 
 	// Test binarysearch at max reserves
@@ -203,13 +174,6 @@ contract TestArbitrageSearch is ArbitrageSearch, Test
 	function testMaxReserves() public pure
 		{
 		_bruteForceFindBestArbAmountIn(type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max);
-		_bisectionSearch(type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max);
-
-		// check _computeBestArbitrage for overflow
-		_computeBestArbitrage(type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max);
+		_bestArbitrageIn(type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max);
 		}
-
-
-
-
 	}

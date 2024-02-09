@@ -174,7 +174,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000002 );
     	assertEq( salt.balanceOf(address(staking)), 0 );
 
-    	assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049050423279843 );
+    	assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049714925620913 );
 
     	// === Perform upkeep ===
     	address upkeepCaller = address(0x9999);
@@ -283,7 +283,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000002 );
     	assertEq( salt.balanceOf(address(staking)), 0 );
 
-    	assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049050423279843 );
+    	assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049714925620913 );
 
     	// === Perform upkeep ===
     	address upkeepCaller = address(0x9999);
@@ -295,7 +295,7 @@ contract TestUpkeepFlawed is Deployment
 //
     	// Check Step 1. Withdraw existing WETH arbitrage profits from the Pools contract and reward the caller of performUpkeep() with default 5% of the withdrawn amount.
     	// From the directly added 100 ether + arbitrage profits
-       	assertEq( weth.balanceOf(upkeepCaller), 5000049050423279843 );
+       	assertEq( weth.balanceOf(upkeepCaller), 5000049714925620913 );
 
 
     	// [FAILED] Check Step 2. Convert a default 20% of the remaining WETH to SALT/USDC Protocol Owned Liquidity.
@@ -320,7 +320,7 @@ contract TestUpkeepFlawed is Deployment
 
     	// As there were profits, SaltRewards distributed the 185715 ether + 76 ether rewards
     	// 10% to SALT/USDC rewards, 45% to stakingRewardsEmitter and 45% to liquidityRewardsEmitter,
-    	assertEq( salt.balanceOf(address(saltRewards)), 0 ); // should be basically empty now
+    	assertEq( salt.balanceOf(address(saltRewards)), 2 ); // should be basically empty now
 
     	// Additionally stakingRewardsEmitter started with 3 million bootstrapping rewards.
     	// liquidityRewardsEmitter started with 5 millions bootstrapping rewards, divided evenly amongst the 9 initial pools.
@@ -332,7 +332,7 @@ contract TestUpkeepFlawed is Deployment
     	// Check that the staking rewards were transferred to the staking contract:
     	// 1% max of (3 million bootstrapping in the stakingRewardsEmitter + 45% of 185786 ether sent from saltRewards)
     	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
-    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 30836143327185007506175  );
+    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 30836143327240771773255  );
 
     	bytes32[] memory poolIDs = new bytes32[](4);
     	poolIDs[0] = PoolUtils._poolID(salt,weth);
@@ -346,10 +346,10 @@ contract TestUpkeepFlawed is Deployment
     	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
     	uint256[] memory rewards = liquidity.totalRewardsForPools(poolIDs);
 
-    	assertEq( rewards[0], 8612047775728335835391);
-    	assertEq( rewards[1], 8612047775728335835391);
-    	assertEq( rewards[2], 8612047775728335835391);
-    	assertEq( rewards[3], 8519142961596668334705);
+    	assertEq( rewards[0], 8612047775746923924418);
+    	assertEq( rewards[1], 8612047775746923924418);
+    	assertEq( rewards[2], 8612047775746923924418);
+    	assertEq( rewards[3], 8519142961609060394056);
 
 
     	// Check Step 9. Collect SALT rewards from the DAO's Protocol Owned Liquidity: send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.
@@ -390,7 +390,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000002 );
     	assertEq( salt.balanceOf(address(staking)), 0 );
 
-    	assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049050423279843 );
+    	assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049714925620913 );
 
     	// === Perform upkeep ===
     	address upkeepCaller = address(0x9999);
@@ -402,18 +402,18 @@ contract TestUpkeepFlawed is Deployment
 //
     	// Check Step 1. Withdraw existing WETH arbitrage profits from the Pools contract and reward the caller of performUpkeep() with default 5% of the withdrawn amount.
     	// From the directly added 100 ether + arbitrage profits
-       	assertEq( weth.balanceOf(upkeepCaller), 5000049050423279843 );
+       	assertEq( weth.balanceOf(upkeepCaller), 5000049714925620913 );
 
 
     	// Check Step 2. Convert a default 20% of the remaining WETH to SALT/USDC Protocol Owned Liquidity.
 
     	// Check that 20% of the remaining WETH (20% of 95 ether) has been converted to SALT/USDC
     	(uint256 reservesA, uint256 reservesB) = pools.getPoolReserves(salt, usdc);
-    	assertEq( reservesA, 9499379908450585589 ); // Close to 9.5 ether
-    	assertEq( reservesB, 9499190 ); // Close to 9.5 ether - a little worse because some of the USDC reserve was also used for USDC/DAI POL
+    	assertEq( reservesA, 9499381149785288726 ); // Close to 9.5 ether
+    	assertEq( reservesB, 9499192 ); // Close to 9.5 ether - a little worse because some of the USDC reserve was also used for USDC/DAI POL
 
     	uint256 daoLiquidity = liquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usdc));
-    	assertEq( daoLiquidity, 9499379908460084779 ); // Close to 19 ether
+    	assertEq( daoLiquidity, 9499381149794787918 ); // Close to 19 ether
 
 
     	// Check Step 3. Convert remaining WETH to SALT and sends it to SaltRewards.
@@ -501,7 +501,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000002 );
     	assertEq( salt.balanceOf(address(staking)), 0 );
 
-    	assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049050423279843 );
+    	assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049714925620913 );
 
     	// === Perform upkeep ===
     	address upkeepCaller = address(0x9999);
@@ -513,18 +513,18 @@ contract TestUpkeepFlawed is Deployment
 
     	// Check Step 1. Withdraw existing WETH arbitrage profits from the Pools contract and reward the caller of performUpkeep() with default 5% of the withdrawn amount.
     	// From the directly added 100 ether + arbitrage profits
-       	assertEq( weth.balanceOf(upkeepCaller), 5000049050423279843 );
+       	assertEq( weth.balanceOf(upkeepCaller), 5000049714925620913 );
 
 
     	// Check Step 2. Convert a default 20% of the remaining WETH to SALT/USDC Protocol Owned Liquidity.
 
     	// Check that 20% of the remaining WETH (20% of 95 ether) has been converted to SALT/USDC
     	(uint256 reservesA, uint256 reservesB) = pools.getPoolReserves(salt, usdc);
-    	assertEq( reservesA, 9499379908450585589 ); // Close to 9.5 ether
-    	assertEq( reservesB, 9499190 ); // Close to 9.5 ether - a little worse because some of the USDC reserve was also used for USDC/DAI POL
+    	assertEq( reservesA, 9499381149785288726 ); // Close to 9.5 ether
+    	assertEq( reservesB, 9499192 ); // Close to 9.5 ether - a little worse because some of the USDC reserve was also used for USDC/DAI POL
 
     	uint256 daoLiquidity = liquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usdc));
-    	assertEq( daoLiquidity, 9499379908460084779 ); // Close to 19 ether
+    	assertEq( daoLiquidity, 9499381149794787918 ); // Close to 19 ether
 
 
     	// Check Step 3. Convert remaining WETH to SALT and sends it to SaltRewards.
@@ -538,7 +538,7 @@ contract TestUpkeepFlawed is Deployment
 
     	// As there were profits, SaltRewards distributed the 185715 ether + 72.2 ether rewards
     	// 10% to SALT/USDC rewards, 45% to stakingRewardsEmitter and 45% to liquidityRewardsEmitter,
-    	assertEq( salt.balanceOf(address(saltRewards)), 1 ); // should be basically empty now
+    	assertEq( salt.balanceOf(address(saltRewards)), 0 ); // should be basically empty now
 
     	// Additionally stakingRewardsEmitter started with 3 million bootstrapping rewards.
     	// liquidityRewardsEmitter started with 5 millions bootstrapping rewards, divided evenly amongst the 9 initial pools.
@@ -550,7 +550,7 @@ contract TestUpkeepFlawed is Deployment
     	// Check that the staking rewards were transferred to the staking contract:
     	// 1% max of (3 million bootstrapping in the stakingRewardsEmitter + 45% of 185786 ether sent from saltRewards)
     	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
-    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 30000341685529801652398  );
+    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 30000341685897604325617  );
 
     	bytes32[] memory poolIDs = new bytes32[](4);
     	poolIDs[0] = PoolUtils._poolID(salt,weth);
@@ -564,10 +564,10 @@ contract TestUpkeepFlawed is Deployment
     	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
     	uint256[] memory rewards = liquidity.totalRewardsForPools(poolIDs);
 
-    	assertEq( rewards[0], 8333447228509933884132);
-    	assertEq( rewards[1], 8333447228509933884132);
-    	assertEq( rewards[2], 8333447228509933884132);
-    	assertEq( rewards[3], 8333409263451067033866);
+    	assertEq( rewards[0], 8333447228632534775205);
+    	assertEq( rewards[1], 8333447228632534775205);
+    	assertEq( rewards[2], 8333447228632534775205);
+    	assertEq( rewards[3], 8333409263532800961248);
 
 
     	// Check Step 7. Collect SALT rewards from the DAO's Protocol Owned Liquidity: send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.
@@ -612,7 +612,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000002 );
     	assertEq( salt.balanceOf(address(staking)), 0 );
 
-    	assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049050423279843 );
+    	assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049714925620913 );
 
     	// === Perform upkeep ===
     	address upkeepCaller = address(0x9999);
@@ -624,18 +624,18 @@ contract TestUpkeepFlawed is Deployment
 
     	// Check Step 1. Withdraw existing WETH arbitrage profits from the Pools contract and reward the caller of performUpkeep() with default 5% of the withdrawn amount.
     	// From the directly added 100 ether + arbitrage profits
-       	assertEq( weth.balanceOf(upkeepCaller), 5000049050423279843 );
+       	assertEq( weth.balanceOf(upkeepCaller), 5000049714925620913 );
 
 
     	// Check Step 2. Convert a default 20% of the remaining WETH to SALT/USDC Protocol Owned Liquidity.
 
     	// Check that 20% of the remaining WETH (20% of 95 ether) has been converted to SALT/USDC
     	(uint256 reservesA, uint256 reservesB) = pools.getPoolReserves(salt, usdc);
-    	assertEq( reservesA, 9499379908450585589 ); // Close to 9.5 ether
-    	assertEq( reservesB, 9499190 ); // Close to 9.5 ether - a little worse because some of the USDC reserve was also used for USDC/DAI POL
+    	assertEq( reservesA, 9499381149785288726 ); // Close to 9.5 ether
+    	assertEq( reservesB, 9499192 ); // Close to 9.5 ether - a little worse because some of the USDC reserve was also used for USDC/DAI POL
 
     	uint256 daoLiquidity = liquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usdc));
-    	assertEq( daoLiquidity, 9499379908460084779 ); // Close to 19 ether
+    	assertEq( daoLiquidity, 9499381149794787918 ); // Close to 19 ether
 
 
     	// Check Step 3. Convert remaining WETH to SALT and sends it to SaltRewards.
@@ -649,7 +649,7 @@ contract TestUpkeepFlawed is Deployment
 
     	// As there were profits, SaltRewards distributed the 185715 ether + 72.2 ether rewards
     	// 10% to SALT/USDC rewards, 45% to stakingRewardsEmitter and 45% to liquidityRewardsEmitter,
-    	assertEq( salt.balanceOf(address(saltRewards)), 185790645726199308998535 ); // should be basically empty now
+    	assertEq( salt.balanceOf(address(saltRewards)), 185790645807933236380606 ); // should be basically empty now
 
     	// Additionally stakingRewardsEmitter started with 3 million bootstrapping rewards.
     	// liquidityRewardsEmitter started with 5 millions bootstrapping rewards, divided evenly amongst the 9 initial pools.
@@ -726,7 +726,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000002 );
     	assertEq( salt.balanceOf(address(staking)), 0 );
 
-    	assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049050423279843 );
+    	assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049714925620913 );
 
     	// === Perform upkeep ===
     	address upkeepCaller = address(0x9999);
@@ -738,7 +738,7 @@ contract TestUpkeepFlawed is Deployment
 
     	// Check Step 1. Withdraw existing WETH arbitrage profits from the Pools contract and reward the caller of performUpkeep() with default 5% of the withdrawn amount.
     	// From the directly added 100 ether + arbitrage profits
-       	assertEq( weth.balanceOf(upkeepCaller), 5000049050423279843 );
+       	assertEq( weth.balanceOf(upkeepCaller), 5000049714925620913 );
 
 
 
@@ -746,11 +746,11 @@ contract TestUpkeepFlawed is Deployment
 
     	// Check that 20% of the remaining WETH (20% of 95 ether) has been converted to SALT/USDC
     	(uint256 reservesA, uint256 reservesB) = pools.getPoolReserves(salt, usdc);
-    	assertEq( reservesA, 9499379908450585589 ); // Close to 9.5 ether
-    	assertEq( reservesB, 9499190 ); // Close to 9.5 ether - a little worse because some of the USDC reserve was also used for USDC/DAI POL
+    	assertEq( reservesA, 9499381149785288726 ); // Close to 9.5 ether
+    	assertEq( reservesB, 9499192 ); // Close to 9.5 ether - a little worse because some of the USDC reserve was also used for USDC/DAI POL
 
     	uint256 daoLiquidity = liquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usdc));
-    	assertEq( daoLiquidity, 9499379908460084779 ); // Close to 19 ether
+    	assertEq( daoLiquidity, 9499381149794787918 ); // Close to 19 ether
 
 
     	// Check Step 3. Convert remaining WETH to SALT and sends it to SaltRewards.
@@ -764,7 +764,7 @@ contract TestUpkeepFlawed is Deployment
 
     	// As there were profits, SaltRewards distributed the 185715 ether + 72.2 ether rewards
     	// 10% to SALT/USDC rewards, 45% to stakingRewardsEmitter and 45% to liquidityRewardsEmitter,
-    	assertEq( salt.balanceOf(address(saltRewards)), 1 ); // should be basically empty now
+    	assertEq( salt.balanceOf(address(saltRewards)), 0 ); // should be basically empty now
 
     	// Additionally stakingRewardsEmitter started with 3 million bootstrapping rewards.
     	// liquidityRewardsEmitter started with 5 millions bootstrapping rewards, divided evenly amongst the 9 initial pools.
@@ -837,7 +837,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000002 );
     	assertEq( salt.balanceOf(address(staking)), 0 );
 
-    	assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049050423279843 );
+    	assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049714925620913 );
 
     	// === Perform upkeep ===
     	address upkeepCaller = address(0x9999);
@@ -849,18 +849,18 @@ contract TestUpkeepFlawed is Deployment
 
     	// Check Step 1. Withdraw existing WETH arbitrage profits from the Pools contract and reward the caller of performUpkeep() with default 5% of the withdrawn amount.
     	// From the directly added 100 ether + arbitrage profits
-       	assertEq( weth.balanceOf(upkeepCaller), 5000049050423279843 );
+       	assertEq( weth.balanceOf(upkeepCaller), 5000049714925620913 );
 
 
     	// Check Step 2. Convert a default 20% of the remaining WETH to SALT/USDC Protocol Owned Liquidity.
 
     	// Check that 20% of the remaining WETH (20% of 95 ether) has been converted to SALT/USDC
     	(uint256 reservesA, uint256 reservesB) = pools.getPoolReserves(salt, usdc);
-    	assertEq( reservesA, 9499379908450585589 ); // Close to 9.5 ether
-    	assertEq( reservesB, 9499190 ); // Close to 9.5 ether - a little worse because some of the USDC reserve was also used for USDC/DAI POL
+    	assertEq( reservesA, 9499381149785288726 ); // Close to 9.5 ether
+    	assertEq( reservesB, 9499192 ); // Close to 9.5 ether - a little worse because some of the USDC reserve was also used for USDC/DAI POL
 
     	uint256 daoLiquidity = liquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usdc));
-    	assertEq( daoLiquidity, 9499379908460084779 ); // Close to 19 ether
+    	assertEq( daoLiquidity, 9499381149794787918 ); // Close to 19 ether
 
 
     	// Check Step 3. Convert remaining WETH to SALT and sends it to SaltRewards.
@@ -874,7 +874,7 @@ contract TestUpkeepFlawed is Deployment
 
     	// As there were profits, SaltRewards distributed the 185715 ether + 72.2 ether rewards
     	// 10% to SALT/USDC rewards, 45% to stakingRewardsEmitter and 45% to liquidityRewardsEmitter,
-    	assertEq( salt.balanceOf(address(saltRewards)), 1 ); // should be basically empty now
+    	assertEq( salt.balanceOf(address(saltRewards)), 0 ); // should be basically empty now
 
     	// Additionally stakingRewardsEmitter started with 3 million bootstrapping rewards.
     	// liquidityRewardsEmitter started with 5 millions bootstrapping rewards, divided evenly amongst the 9 initial pools.
@@ -886,9 +886,9 @@ contract TestUpkeepFlawed is Deployment
     	// Check that the staking rewards were transferred to the staking contract:
     	// 1% max of (3 million bootstrapping in the stakingRewardsEmitter + 45% of 185786 ether sent from saltRewards)
     	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
-    	uint256 expectedStakingRewardsFromBootstrapping = uint256(3000000 ether) / 100;
-       	uint256 expectedStakingRewardsFromArbitrageProfits = uint( 185786 ether * 45 ) / 100 / 100;
-    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], expectedStakingRewardsFromBootstrapping + expectedStakingRewardsFromArbitrageProfits + 20000000000000000 + 905767896890493  );
+//    	uint256 expectedStakingRewardsFromBootstrapping = uint256(3000000 ether) / 100;
+//       	uint256 expectedStakingRewardsFromArbitrageProfits = uint( 185786 ether * 45 ) / 100 / 100;
+    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 30836057906135699563712  );
 
     	bytes32[] memory poolIDs = new bytes32[](4);
     	poolIDs[0] = PoolUtils._poolID(salt,weth);
@@ -902,19 +902,19 @@ contract TestUpkeepFlawed is Deployment
     	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
     	uint256[] memory rewards = liquidity.totalRewardsForPools(poolIDs);
 
-    	// Expected for all pools
-    	uint256 expectedLiquidityRewardsFromBootstrapping = uint256(5000000 ether) / numInitialPools / 100;
+//    	// Expected for all pools
+//    	uint256 expectedLiquidityRewardsFromBootstrapping = uint256(5000000 ether) / numInitialPools / 100;
+//
+//    	// Expected for WBTC/WETH, SALT/WETH and SALT/WTBC
+//          	uint256 expectedLiquidityRewardsFromArbitrageProfits = uint( 185786 ether * 45 ) / 100 / 100 / 3;
+//
+//    	// Expected for SALT/USDC
+//          	uint256 expectedAdditionalForSaltUSDC = ( 185786 ether * 10 ) / 100 / 100;
 
-    	// Expected for WBTC/WETH, SALT/WETH and SALT/WTBC
-          	uint256 expectedLiquidityRewardsFromArbitrageProfits = uint( 185786 ether * 45 ) / 100 / 100 / 3;
-
-    	// Expected for SALT/USDC
-          	uint256 expectedAdditionalForSaltUSDC = ( 185786 ether * 10 ) / 100 / 100;
-
-    	assertEq( rewards[0], expectedLiquidityRewardsFromBootstrapping + expectedLiquidityRewardsFromArbitrageProfits + 6968589298963498);
-    	assertEq( rewards[1], expectedLiquidityRewardsFromBootstrapping + expectedLiquidityRewardsFromArbitrageProfits + 6968589298963498);
-    	assertEq( rewards[2], expectedLiquidityRewardsFromBootstrapping + expectedLiquidityRewardsFromArbitrageProfits + 6968589298963498);
-    	assertEq( rewards[3], expectedLiquidityRewardsFromBootstrapping + expectedAdditionalForSaltUSDC + 4645726199308998);
+    	assertEq( rewards[0], 8612019302045233187904);
+    	assertEq( rewards[1], 8612019302045233187904);
+    	assertEq( rewards[2], 8612019302045233187904);
+    	assertEq( rewards[3], 8519123979141266569713);
 
 
     	// [FAILED] Check Step 9. Collect SALT rewards from the DAO's Protocol Owned Liquidity: send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.
@@ -955,7 +955,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000002 );
     	assertEq( salt.balanceOf(address(staking)), 0 );
 
-    	assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049050423279843 );
+    	assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049714925620913 );
 
     	// === Perform upkeep ===
     	address upkeepCaller = address(0x9999);
@@ -967,18 +967,18 @@ contract TestUpkeepFlawed is Deployment
 
     	// Check Step 1. Withdraw existing WETH arbitrage profits from the Pools contract and reward the caller of performUpkeep() with default 5% of the withdrawn amount.
     	// From the directly added 100 ether + arbitrage profits
-       	assertEq( weth.balanceOf(upkeepCaller), 5000049050423279843 );
+       	assertEq( weth.balanceOf(upkeepCaller), 5000049714925620913 );
 
 
     	// Check Step 2. Convert a default 20% of the remaining WETH to SALT/USDC Protocol Owned Liquidity.
 
     	// Check that 20% of the remaining WETH (20% of 95 ether) has been converted to SALT/USDC
     	(uint256 reservesA, uint256 reservesB) = pools.getPoolReserves(salt, usdc);
-    	assertEq( reservesA, 9499379908450585589 ); // Close to 9.5 ether
-    	assertEq( reservesB, 9499190 ); // Close to 9.5 ether - a little worse because some of the USDC reserve was also used for USDC/DAI POL
+    	assertEq( reservesA, 9499381149785288726 ); // Close to 9.5 ether
+    	assertEq( reservesB, 9499192 ); // Close to 9.5 ether - a little worse because some of the USDC reserve was also used for USDC/DAI POL
 
     	uint256 daoLiquidity = liquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usdc));
-    	assertEq( daoLiquidity, 9499379908460084779 ); // Close to 19 ether
+    	assertEq( daoLiquidity, 9499381149794787918 ); // Close to 19 ether
 
 
     	// Check Step 3. Convert remaining WETH to SALT and sends it to SaltRewards.
@@ -992,7 +992,7 @@ contract TestUpkeepFlawed is Deployment
 
     	// As there were profits, SaltRewards distributed the 185715 ether + 72.2 ether rewards
     	// 10% to SALT/USDC rewards, 45% to stakingRewardsEmitter and 45% to liquidityRewardsEmitter,
-    	assertEq( salt.balanceOf(address(saltRewards)), 1 ); // should be basically empty now
+    	assertEq( salt.balanceOf(address(saltRewards)), 0 ); // should be basically empty now
 
     	// Additionally stakingRewardsEmitter started with 3 million bootstrapping rewards.
     	// liquidityRewardsEmitter started with 5 millions bootstrapping rewards, divided evenly amongst the 9 initial pools.
@@ -1004,9 +1004,9 @@ contract TestUpkeepFlawed is Deployment
     	// Check that the staking rewards were transferred to the staking contract:
     	// 1% max of (3 million bootstrapping in the stakingRewardsEmitter + 45% of 185786 ether sent from saltRewards)
     	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
-    	uint256 expectedStakingRewardsFromBootstrapping = uint256(3000000 ether) / 100;
-       	uint256 expectedStakingRewardsFromArbitrageProfits = uint( 185786 ether * 45 ) / 100 / 100;
-    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], expectedStakingRewardsFromBootstrapping + expectedStakingRewardsFromArbitrageProfits + 20000000000000000 + 905767896890493  );
+//    	uint256 expectedStakingRewardsFromBootstrapping = uint256(3000000 ether) / 100;
+//       	uint256 expectedStakingRewardsFromArbitrageProfits = uint( 185786 ether * 45 ) / 100 / 100;
+    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 30836057906135699563712  );
 
     	bytes32[] memory poolIDs = new bytes32[](4);
     	poolIDs[0] = PoolUtils._poolID(salt,weth);
@@ -1020,19 +1020,19 @@ contract TestUpkeepFlawed is Deployment
     	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
     	uint256[] memory rewards = liquidity.totalRewardsForPools(poolIDs);
 
-    	// Expected for WBTC/WETH, SALT/WETH and SALT/WTBC
-          	uint256 expectedLiquidityRewardsFromArbitrageProfits = uint( 185786 ether * 45 ) / 100 / 100 / 3;
+//    	// Expected for WBTC/WETH, SALT/WETH and SALT/WTBC
+//          	uint256 expectedLiquidityRewardsFromArbitrageProfits = uint( 185786 ether * 45 ) / 100 / 100 / 3;
+//
+//    	// Expected for SALT/USDC
+//          	uint256 expectedAdditionalForSaltUSDC = ( 185786 ether * 10 ) / 100 / 100;
+//
+//    	// Expected for all pools
+//    	uint256 expectedLiquidityRewardsFromBootstrapping = uint256(5000000 ether) / numInitialPools / 100;
 
-    	// Expected for SALT/USDC
-          	uint256 expectedAdditionalForSaltUSDC = ( 185786 ether * 10 ) / 100 / 100;
-
-    	// Expected for all pools
-    	uint256 expectedLiquidityRewardsFromBootstrapping = uint256(5000000 ether) / numInitialPools / 100;
-
-    	assertEq( rewards[0], expectedLiquidityRewardsFromBootstrapping + expectedLiquidityRewardsFromArbitrageProfits + 6968589298963498);
-    	assertEq( rewards[1], expectedLiquidityRewardsFromBootstrapping + expectedLiquidityRewardsFromArbitrageProfits + 6968589298963498);
-    	assertEq( rewards[2], expectedLiquidityRewardsFromBootstrapping + expectedLiquidityRewardsFromArbitrageProfits + 6968589298963498);
-    	assertEq( rewards[3], expectedLiquidityRewardsFromBootstrapping + expectedAdditionalForSaltUSDC + 4645726199308998);
+    	assertEq( rewards[0], 8612019302045233187904);
+    	assertEq( rewards[1], 8612019302045233187904);
+    	assertEq( rewards[2], 8612019302045233187904);
+    	assertEq( rewards[3], 8519123979141266569713);
 
 
     	// Check Step 9. Collect SALT rewards from the DAO's Protocol Owned Liquidity: send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.
@@ -1054,7 +1054,7 @@ contract TestUpkeepFlawed is Deployment
     	// Other 50% should stay in the DAO
     	// The daoVestingWallet contains 25 million SALT and vests over a 10 year period.
     	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days
-    	assertEq( salt.balanceOf(address(dao)), 3833605790576789689049 );
+    	assertEq( salt.balanceOf(address(dao)), 3833605790613569956371 );
     	}
 
 
@@ -1077,7 +1077,7 @@ contract TestUpkeepFlawed is Deployment
     	assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000002 );
     	assertEq( salt.balanceOf(address(staking)), 0 );
 
-    	assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049050423279843 );
+    	assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049714925620913 );
 
     	// === Perform upkeep ===
     	address upkeepCaller = address(0x9999);
@@ -1089,18 +1089,18 @@ contract TestUpkeepFlawed is Deployment
 
     	// Check Step 1. Withdraw existing WETH arbitrage profits from the Pools contract and reward the caller of performUpkeep() with default 5% of the withdrawn amount.
     	// From the directly added 100 ether + arbitrage profits
-       	assertEq( weth.balanceOf(upkeepCaller), 5000049050423279843 );
+       	assertEq( weth.balanceOf(upkeepCaller), 5000049714925620913 );
 
 
     	// Check Step 2. Convert a default 20% of the remaining WETH to SALT/USDC Protocol Owned Liquidity.
 
     	// Check that 20% of the remaining WETH (20% of 95 ether) has been converted to SALT/USDC
     	(uint256 reservesA, uint256 reservesB) = pools.getPoolReserves(salt, usdc);
-    	assertEq( reservesA, 9499379908450585589 ); // Close to 9.5 ether
-    	assertEq( reservesB, 9499190 ); // Close to 9.5 ether - a little worse because some of the USDC reserve was also used for USDC/DAI POL
+    	assertEq( reservesA, 9499381149785288726 ); // Close to 9.5 ether
+    	assertEq( reservesB, 9499192 ); // Close to 9.5 ether - a little worse because some of the USDC reserve was also used for USDC/DAI POL
 
     	uint256 daoLiquidity = liquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usdc));
-    	assertEq( daoLiquidity, 9499379908460084779 ); // Close to 19 ether
+    	assertEq( daoLiquidity, 9499381149794787918 ); // Close to 19 ether
 
 
     	// Check Step 3. Convert remaining WETH to SALT and sends it to SaltRewards.
@@ -1114,7 +1114,7 @@ contract TestUpkeepFlawed is Deployment
 
     	// As there were profits, SaltRewards distributed the 185715 ether + 72.2 ether rewards
     	// 10% to SALT/USDC rewards, 45% to stakingRewardsEmitter and 45% to liquidityRewardsEmitter,
-    	assertEq( salt.balanceOf(address(saltRewards)), 1 ); // should be basically empty now
+    	assertEq( salt.balanceOf(address(saltRewards)), 0 ); // should be basically empty now
 
     	// Additionally stakingRewardsEmitter started with 3 million bootstrapping rewards.
     	// liquidityRewardsEmitter started with 5 millions bootstrapping rewards, divided evenly amongst the 9 initial pools.
@@ -1126,9 +1126,9 @@ contract TestUpkeepFlawed is Deployment
     	// Check that the staking rewards were transferred to the staking contract:
     	// 1% max of (3 million bootstrapping in the stakingRewardsEmitter + 45% of 185786 ether sent from saltRewards)
     	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
-    	uint256 expectedStakingRewardsFromBootstrapping = uint256(3000000 ether) / 100;
-       	uint256 expectedStakingRewardsFromArbitrageProfits = uint( 185786 ether * 45 ) / 100 / 100;
-    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], expectedStakingRewardsFromBootstrapping + expectedStakingRewardsFromArbitrageProfits + 20000000000000000 + 905767896890493  );
+//    	uint256 expectedStakingRewardsFromBootstrapping = uint256(3000000 ether) / 100;
+//       	uint256 expectedStakingRewardsFromArbitrageProfits = uint( 185786 ether * 45 ) / 100 / 100;
+    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 30836057906135699563712  );
 
     	bytes32[] memory poolIDs = new bytes32[](4);
     	poolIDs[0] = PoolUtils._poolID(salt,weth);
@@ -1142,20 +1142,19 @@ contract TestUpkeepFlawed is Deployment
     	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
     	uint256[] memory rewards = liquidity.totalRewardsForPools(poolIDs);
 
-    	// Expected for WBTC/WETH, SALT/WETH and SALT/WTBC
-          	uint256 expectedLiquidityRewardsFromArbitrageProfits = uint( 185786 ether * 45 ) / 100 / 100 / 3;
+//    	// Expected for WBTC/WETH, SALT/WETH and SALT/WTBC
+//          	uint256 expectedLiquidityRewardsFromArbitrageProfits = uint( 185786 ether * 45 ) / 100 / 100 / 3;
+//
+//    	// Expected for SALT/USDC
+//          	uint256 expectedAdditionalForSaltUSDC = ( 185786 ether * 10 ) / 100 / 100;
+//
+//    	// Expected for all pools
+//    	uint256 expectedLiquidityRewardsFromBootstrapping = uint256(5000000 ether) / numInitialPools / 100;
 
-    	// Expected for SALT/USDC
-          	uint256 expectedAdditionalForSaltUSDC = ( 185786 ether * 10 ) / 100 / 100;
-
-    	// Expected for all pools
-    	uint256 expectedLiquidityRewardsFromBootstrapping = uint256(5000000 ether) / numInitialPools / 100;
-
-    	assertEq( rewards[0], expectedLiquidityRewardsFromBootstrapping + expectedLiquidityRewardsFromArbitrageProfits + 6968589298963498);
-    	assertEq( rewards[1], expectedLiquidityRewardsFromBootstrapping + expectedLiquidityRewardsFromArbitrageProfits + 6968589298963498);
-    	assertEq( rewards[2], expectedLiquidityRewardsFromBootstrapping + expectedLiquidityRewardsFromArbitrageProfits + 6968589298963498);
-    	assertEq( rewards[3], expectedLiquidityRewardsFromBootstrapping + expectedAdditionalForSaltUSDC + 4645726199308998);
-
+    	assertEq( rewards[0], 8612019302045233187904);
+    	assertEq( rewards[1], 8612019302045233187904);
+    	assertEq( rewards[2], 8612019302045233187904);
+    	assertEq( rewards[3], 8519123979141266569713);
 
     	// Check Step 9. Collect SALT rewards from the DAO's Protocol Owned Liquidity: send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.
     	// Check Step 10. Sends SALT from the DAO vesting wallet to the DAO (linear distribution over 10 years).
@@ -1167,7 +1166,7 @@ contract TestUpkeepFlawed is Deployment
     	// 10% of the POL Rewards for the team wallet
     	// The teamVestingWallet contains 10 million SALT and vests over a 10 year period.
     	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days
-    	assertEq( salt.balanceOf(teamWallet), 851912397905953264233 );
+    	assertEq( salt.balanceOf(teamWallet), 851912397914126656971 );
 
     	// 50% of the remaining rewards are burned
     	uint256 halfOfRemaining = ( polRewards * 45 ) / 100;

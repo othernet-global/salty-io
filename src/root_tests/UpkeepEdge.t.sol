@@ -99,7 +99,7 @@ contract TestUpkeepEdge is Deployment
 		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
 		assertEq( salt.balanceOf(address(staking)), 0 );
 
-		assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049050423279843 );
+		assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049714925620913 );
 
 		// Set a new price
 		vm.startPrank(DEPLOYER);

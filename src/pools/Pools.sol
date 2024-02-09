@@ -298,33 +298,9 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		}
 
 
-	// Determine the WETH equivalent of swapAmountIn of swapTokenIn
-	function _determineSwapAmountInValueInETH(IERC20 swapTokenIn, uint256 swapAmountIn) internal view returns (uint256 swapAmountInValueInETH)
-		{
-		if ( address(swapTokenIn) == address(weth) )
-			return swapAmountIn;
-
-		// All tokens within the DEX are paired with WETH (and WBTC) - so this pool will exist.
-		(uint256 reservesWETH, uint256 reservesTokenIn) = getPoolReserves(weth, swapTokenIn);
-
-		if ( (reservesWETH < PoolUtils.DUST) || (reservesTokenIn < PoolUtils.DUST) )
-			return 0; // can't arbitrage as there are not enough reserves to determine swapAmountInValueInETH
-
-		swapAmountInValueInETH = ( swapAmountIn * reservesWETH ) / reservesTokenIn;
-
-		if ( swapAmountInValueInETH <= PoolUtils.DUST )
-			return 0;
-		}
-
-
 	// Check to see if profitable arbitrage is possible after the user swap that was just made
-	function _attemptArbitrage( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn ) internal returns (uint256 arbitrageProfit )
+	function _attemptArbitrage( IERC20 swapTokenIn, IERC20 swapTokenOut ) internal returns (uint256 arbitrageProfit )
 		{
-		// Determine the value of swapTokenIn (in WETH) that the user has specified as it will impact the arbitrage trade size
-		uint256 swapAmountInValueInETH = _determineSwapAmountInValueInETH(swapTokenIn, swapAmountIn);
-		if ( swapAmountInValueInETH == 0 )
-			return 0;
-
 		// Determine the arbitrage path for the given user swap.
 		// Arbitrage path returned as: weth->arbToken2->arbToken3->weth
    		(IERC20 arbToken2, IERC20 arbToken3) = _arbitragePath( swapTokenIn, swapTokenOut );
@@ -334,7 +310,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		(uint256 reservesC0, uint256 reservesC1) = getPoolReserves( arbToken3, weth);
 
 		// Determine the best amount of WETH to start the arbitrage with
-		uint256 arbitrageAmountIn = _bisectionSearch(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1 );
+		uint256 arbitrageAmountIn = _bestArbitrageIn(reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1 );
 
 		// If arbitrage is viable, then perform it
 		if (arbitrageAmountIn > 0)
@@ -353,7 +329,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		require( swapAmountOut >= minAmountOut, "Insufficient resulting token amount" );
 
 		// The user's swap has just been made - attempt atomic arbitrage to rebalance the pool and yield arbitrage profit
-		uint256 arbitrageProfit = _attemptArbitrage( swapTokenIn, swapTokenOut, swapAmountIn );
+		uint256 arbitrageProfit = _attemptArbitrage( swapTokenIn, swapTokenOut );
 
 		emit SwapAndArbitrage(msg.sender, swapTokenIn, swapTokenOut, swapAmountIn, swapAmountOut, arbitrageProfit);
 		}

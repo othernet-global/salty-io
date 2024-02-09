@@ -91,7 +91,6 @@ contract TestArbitrageSearch2 is Deployment
 
 	// A unit test that validates that binarySearch returns zero when pool reserves are at or below the threshold of PoolUtils.DUST.
 	function testBinarySearchReturnsZeroWhenReservesBelowDUST() public {
-        uint256 swapAmountInValueInETH = 1 ether; // Just an arbitrary value
 
         // Case where all reserves are below or at DUST
         uint256 reservesA0 = PoolUtils.DUST;
@@ -101,7 +100,7 @@ contract TestArbitrageSearch2 is Deployment
         uint256 reservesC0 = PoolUtils.DUST;
         uint256 reservesC1 = PoolUtils.DUST;
 
-        uint256 bestArbAmountIn = testArbitrageSearch.bisectionSearch(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1);
+        uint256 bestArbAmountIn = testArbitrageSearch.bestArbitrageIn( reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1);
         assertEq(bestArbAmountIn, 0);
 
         // Case where some reserves are above DUST
@@ -110,14 +109,13 @@ contract TestArbitrageSearch2 is Deployment
         reservesB0 = PoolUtils.DUST + 1;
         reservesC1 = PoolUtils.DUST + 1;
 
-        bestArbAmountIn = testArbitrageSearch.bisectionSearch(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1);
+        bestArbAmountIn = testArbitrageSearch.bestArbitrageIn( reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1);
         assertEq(bestArbAmountIn, 0);
     }
 
 
 	// A unit test that simulates failed or reverted transactions within the arbitrage paths.
 	function testFailArbitragePaths() public {
-        uint256 swapAmountInValueInETH = 5 ether;  // Arbitrary value for test
         uint256 reservesA0 = 1000 ether; // Also arbitrary
         uint256 reservesA1 = 2000 ether;
         uint256 reservesB0 = 1500 ether;
@@ -128,7 +126,7 @@ contract TestArbitrageSearch2 is Deployment
         // Simulating other reverts
         reservesA0 = 0;
         vm.expectRevert("reservesA0 or reservesA1 should be more than DUST");
-        testArbitrageSearch.bisectionSearch(swapAmountInValueInETH, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1);
+        testArbitrageSearch.bestArbitrageIn( reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1);
     }
 
 

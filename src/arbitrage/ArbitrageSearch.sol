@@ -3,6 +3,7 @@ pragma solidity =0.8.22;
 
 import "../interfaces/IExchangeConfig.sol";
 import "../pools/PoolUtils.sol";
+import "../pools/PoolMath.sol";
 
 
 // Finds a circular path after a user's swap has occurred (from WETH to WETH in this case) that results in an arbitrage profit.
@@ -11,9 +12,6 @@ abstract contract ArbitrageSearch
 	IERC20 immutable public wbtc;
 	IERC20 immutable public weth;
 	ISalt immutable public salt;
-
-	// Used to estimate the point just to the right of the midpoint
-   	uint256 constant public MIDPOINT_PRECISION = 0.001e18; // .001 ETH precision for arb search
 
 
     constructor( IExchangeConfig _exchangeConfig )
@@ -58,79 +56,45 @@ abstract contract ArbitrageSearch
 		}
 
 
-	// Given the reserves for the arbitrage swap, determine if right of the midpoint looks to be more profitable than the midpoint itself.
-	// Used as a substitution for the overly complex derivative in order to determine which direction the optimal arbitrage amountIn is more likely to be.
-	function _rightMoreProfitable( uint256 midpoint, uint256 reservesA0, uint256 reservesA1, uint256 reservesB0, uint256 reservesB1, uint256 reservesC0, uint256 reservesC1 ) internal pure returns (bool rightMoreProfitable)
+	function _bestArbitrageIn( uint256 A0, uint256 A1, uint256 B0, uint256 B1, uint256 C0, uint256 C1 ) public pure returns (uint256 bestArbAmountIn)
 		{
+		// Actual swaps using the arbitrage path will fail with insufficient reserves
+		if ( A0 <= PoolUtils.DUST || A1 <= PoolUtils.DUST || B0 <= PoolUtils.DUST || B1 <= PoolUtils.DUST || C0 <= PoolUtils.DUST || C1 <= PoolUtils.DUST )
+			return 0;
+
+		// Original derivation: https://github.com/code-423n4/2024-01-salty-findings/issues/419
+		// n0 = A0 * B0 * C0
+		// n1 = A1 * B1 * C1
+		//
+		// m = A1 * B1 + C0 * B0 + C0 * A1
+		// z = sqrt(A0 * C1) * sqrt(A1 * B0) * sqrt(B1 * C0)
+		//
+		// bestArbAmountIn = ( z - n0 ) / m;
+
+		// This can be unchecked as the actual arbitrage that is performed when this is non-zero is checked and duplicates the check for profitability.
+		// testArbitrageMethodsLarge() checks for proper behavior with extremely large reserves
 		unchecked
 			{
-			// Calculate the AMM output of the midpoint
-			uint256 amountOut = (reservesA1 * midpoint) / (reservesA0 + midpoint);
-			amountOut = (reservesB1 * amountOut) / (reservesB0 + amountOut);
-			amountOut = (reservesC1 * amountOut) / (reservesC0 + amountOut);
+			uint256 n0 = A0 * B0 * C0;
+			uint256 n1 = A1 * B1 * C1;
 
-			int256 profitMidpoint = int256(amountOut) - int256(midpoint);
-
-			// If the midpoint isn't profitable then we can remove the right half the range as nothing there will be profitable there either.
-			if ( profitMidpoint < int256(PoolUtils.DUST) )
-				return false;
-
-
-			// Calculate the AMM output of a point just to the right of the midpoint
-			midpoint += MIDPOINT_PRECISION;
-
-			amountOut = (reservesA1 * midpoint) / (reservesA0 + midpoint);
-			amountOut = (reservesB1 * amountOut) / (reservesB0 + amountOut);
-			amountOut = (reservesC1 * amountOut) / (reservesC0 + amountOut);
-
-			int256 profitRightOfMidpoint = int256(amountOut) - int256(midpoint);
-
-			return profitRightOfMidpoint > profitMidpoint;
-			}
-		}
-
-
-	// Perform iterative bisection to search for the bestArbAmountIn in a range of 1/128th to 125% of swapAmountInValueInETH.
-	// The search loop determines profits at the midpoint of the current range, and also just to the right of the midpoint.
-	// Assuming that the profit function is unimodal (has only one peak), the two profit calculations can show us which half of the range the maximum profit is in (where to keep looking).
-	//
-	// The unimodal assumption has been tested with fuzzing (see ArbitrageSearch.t.sol) and looks to return optimum bestArbAmountIn within 1% of a brute force search method for fuzzed uint112 size reserves.
-	// Additionally, fuzzing and testing reveal that the non-overflow assumptions are valid if the assumption is made that reserves do not exceed uint112.max.
-   	// The uint112 size would allow tokens with 18 decimals of precision and a 5 quadrillion max supply - which is excluded from the whitelist process.
-   	// Additionally, for tokens that may increase total supply over time, these calculations are duplicated with overflow checking intact within Pools._arbitrage() when arbitrage actually occurs.
-	function _bisectionSearch( uint256 swapAmountInValueInETH, uint256 reservesA0, uint256 reservesA1, uint256 reservesB0, uint256 reservesB1, uint256 reservesC0, uint256 reservesC1 ) internal pure returns (uint256 bestArbAmountIn)
-		{
-		// This code can safely be made unchecked as the functionality for the found bestArbAmountIn is duplicated exactly in Pools._arbitrage with overflow checks kept in place.
-		// If any overflows occur as a result of the calculations here they will happen in the Pools._arbitrage code.
-		unchecked
-			{
-			if ( reservesA0 <= PoolUtils.DUST || reservesA1 <= PoolUtils.DUST || reservesB0 <= PoolUtils.DUST || reservesB1 <= PoolUtils.DUST || reservesC0 <= PoolUtils.DUST || reservesC1 <= PoolUtils.DUST )
+			if (n1 <= n0)
 				return 0;
 
-			// Search bestArbAmountIn in a range from 1/128th to 125% of swapAmountInValueInETH.
-			uint256 leftPoint = swapAmountInValueInETH >> 7;
-			uint256 rightPoint = swapAmountInValueInETH + (swapAmountInValueInETH >> 2); // 100% + 25% of swapAmountInValueInETH
+			uint256 m = A1 * ( B1 + C0 ) + C0 * B0;
+			uint256 n0_div_m = n0 / m;
 
-			// Cost is about 492 gas per loop iteration
-			for( uint256 i = 0; i < 8; i++ )
-				{
-				uint256 midpoint = (leftPoint + rightPoint) >> 1;
+			// Division by m before multiply to reduce overflow risk
+			uint256 z_div_m = PoolMath._sqrt( n0_div_m * (n1 / m));
 
-				// Right of midpoint is more profitable?
-				if ( _rightMoreProfitable( midpoint, reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1 ) )
-					leftPoint = midpoint;
-				else
-					rightPoint = midpoint;
-				}
+			bestArbAmountIn = z_div_m - n0_div_m;
 
-			bestArbAmountIn = (leftPoint + rightPoint) >> 1;
+			// Make sure bestArbAmountIn is actually profitable
+			uint256 amountOut = (A1 * bestArbAmountIn) / (A0 + bestArbAmountIn);
+			amountOut = (B1 * amountOut) / (B0 + amountOut);
+			amountOut = (C1 * amountOut) / (C0 + amountOut);
 
-			// Make sure bestArbAmountIn is actually profitable (taking into account precision errors)
-			uint256 amountOut = (reservesA1 * bestArbAmountIn) / (reservesA0 + bestArbAmountIn);
-			amountOut = (reservesB1 * amountOut) / (reservesB0 + amountOut);
-			amountOut = (reservesC1 * amountOut) / (reservesC0 + amountOut);
-
-			if ( ( int256(amountOut) - int256(bestArbAmountIn) ) < int256(PoolUtils.DUST) )
+			if ( amountOut < bestArbAmountIn )
 				return 0;
 			}
 		}
