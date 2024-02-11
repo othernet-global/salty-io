@@ -133,19 +133,18 @@ library PoolMath
 	// Determine the maximum msb across the given values
 	function _maximumMSB( uint256 r0, uint256 r1, uint256 z0, uint256 z1 ) internal pure returns (uint256 msb)
 		{
-		msb = _mostSignificantBit(r0);
+		uint256 max = r0;
+		
+		if ( r1 > max )
+			max = r1;
 
-		uint256 m = _mostSignificantBit(r1);
-		if ( m > msb )
-			msb = m;
+		if ( z0 > max )
+			max = z0;
 
-		m = _mostSignificantBit(z0);
-		if ( m > msb )
-			msb = m;
+		if ( z1 > max )
+			max = z1;
 
-		m = _mostSignificantBit(z1);
-		if ( m > msb )
-			msb = m;
+		return _mostSignificantBit(max);
 		}
 
 
