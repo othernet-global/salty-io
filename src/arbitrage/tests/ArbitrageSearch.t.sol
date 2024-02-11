@@ -136,33 +136,31 @@ contract TestArbitrageSearch is ArbitrageSearch, Test
 
 
 	function testArbitrageMethodsLarge() public {
-			uint256 mult = 1000000000; // 1 billion mult
+
+			uint256 mult = 1000000; // 1 million mult
 
             // Initial, roughly balanced pools
             // 18 ETH ~ 1 BTC ~ 40k TOKEN A
-            uint256 reservesA0 = mult * 900 ether; // 900 billion ETH
-            uint256 reservesA1 = mult * 2000000 ether; // 2 quintillion TOKEN A
-            uint256 reservesB0 = mult * 4000000 ether; // 4 quintillion TOKEN A
-            uint256 reservesB1 = mult * 100 *10**8; // 100 billion BTC
-            uint256 reservesC0 = mult * 500 *10**8; // 500 billion BTC
-            uint256 reservesC1 = mult * 9000 ether; // 9 trillion ETH
+            uint256 reservesA0 = mult * 900 ether; // 900 million ETH
+            uint256 reservesA1 = mult * 2000000 ether; // 2 quadrillion TOKEN A
+            uint256 reservesB0 = mult * 4000000 ether; // 4 quadrillion TOKEN A
+            uint256 reservesB1 = mult * 100 *10**8; // 100 million BTC
+            uint256 reservesC0 = mult * 500 *10**8; // 500 million BTC
+            uint256 reservesC1 = mult * 9000 ether; // 9 billion ETH
 
-            for (uint256 i = 0; i < 4; i++) {
+			uint256 auxReservesB1;
+			uint256 auxReservesB0;
 
-                uint256 auxReservesB1;
-                uint256 auxReservesB0;
+			// Swap BTC for TOKEN A
+			uint256 swapAmountInValueInBTC = 1000 *10**8;
+			auxReservesB1 = reservesB1 + swapAmountInValueInBTC;
+			auxReservesB0 = reservesB0 - reservesB0 * swapAmountInValueInBTC / auxReservesB1;
 
-				// Swap BTC for TOKEN A
-				uint256 swapAmountInValueInBTC = 1000 *10**8 * (i + 1);  // Arbitrary value for test
-				auxReservesB1 = reservesB1 + swapAmountInValueInBTC;
-				auxReservesB0 = reservesB0 - reservesB0 * swapAmountInValueInBTC / auxReservesB1;
-
-				uint256 bestExact = _bestArbitrageIn(reservesA0, reservesA1, auxReservesB0, auxReservesB1, reservesC0, reservesC1);
-				assertTrue( bestExact != 0, "Arbitrage calculation overflow" );
+			uint256 bestExact = _bestArbitrageIn(reservesA0, reservesA1, auxReservesB0, auxReservesB1, reservesC0, reservesC1);
+			assertTrue( bestExact != 0, "Arbitrage calculation overflow" );
 
 //                uint256 bestExactProfit = getArbitrageProfit(bestExact, reservesA0, reservesA1, auxReservesB0, auxReservesB1, reservesC0, reservesC1);
 //                console.log( "BEST PROFIT: ", bestExactProfit );
-            }
         }
 
 

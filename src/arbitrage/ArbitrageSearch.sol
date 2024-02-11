@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.22;
 
+import "openzeppelin-contracts/contracts/utils/math/Math.sol";
 import "../interfaces/IExchangeConfig.sol";
 import "../pools/PoolUtils.sol";
 import "../pools/PoolMath.sol";
-
 
 // Finds a circular path after a user's swap has occurred (from WETH to WETH in this case) that results in an arbitrage profit.
 abstract contract ArbitrageSearch
@@ -56,46 +56,91 @@ abstract contract ArbitrageSearch
 		}
 
 
+	// Determine the maximum msb across the given values
+	function _maximumReservesMSB( uint256 A0, uint256 A1, uint256 B0, uint256 B1, uint256 C0, uint256 C1 ) internal pure returns (uint256 msb)
+		{
+		uint256 max = A0;
+		if ( A1 > max )
+			max = A1;
+		if ( B0 > max )
+			max = B0;
+		if ( B1 > max )
+			max = B1;
+		if ( C0 > max )
+			max = C0;
+		if ( C1 > max )
+			max = C1;
+
+		return  PoolMath._mostSignificantBit(max);
+		}
+
+
 	function _bestArbitrageIn( uint256 A0, uint256 A1, uint256 B0, uint256 B1, uint256 C0, uint256 C1 ) public pure returns (uint256 bestArbAmountIn)
 		{
-		// Actual swaps using the arbitrage path will fail with insufficient reserves
+		// When actual swaps along the arbitrage path are executed - they can fail with insufficient reserves
 		if ( A0 <= PoolUtils.DUST || A1 <= PoolUtils.DUST || B0 <= PoolUtils.DUST || B1 <= PoolUtils.DUST || C0 <= PoolUtils.DUST || C1 <= PoolUtils.DUST )
 			return 0;
 
-		// Original derivation: https://github.com/code-423n4/2024-01-salty-findings/issues/419
-		// n0 = A0 * B0 * C0
-		// n1 = A1 * B1 * C1
-		//
-		// m = A1 * B1 + C0 * B0 + C0 * A1
-		// z = sqrt(A0 * C1) * sqrt(A1 * B0) * sqrt(B1 * C0)
-		//
-		// bestArbAmountIn = ( z - n0 ) / m;
-
-		// This can be unchecked as the actual arbitrage that is performed when this is non-zero is checked and duplicates the check for profitability.
-		// testArbitrageMethodsLarge() checks for proper behavior with extremely large reserves
+		// This can be unchecked as the actual arbitrage that is performed when this is non-zero is checked and duplicates the check for profitability (at increased scale).
+		// testArbitrageMethodsLarge() checks for proper behavior with extremely large reserves as well.
 		unchecked
 			{
+			// Original derivation: https://github.com/code-423n4/2024-01-salty-findings/issues/419
+			// uint256 n0 = A0 * B0 * C0;
+			//	uint256 n1 = A1 * B1 * C1;
+			//	if (n1 <= n0) return 0;
+			//
+			//	uint256 m = A1 * B1 + C0 * B0 + C0 * A1;
+			//	uint256 z = Math.sqrt(A0 * C1);
+			//	z *= Math.sqrt(A1 * B0);
+			//	z *= Math.sqrt(B1 * C0);
+			//	bestArbAmountIn = (z - n0) / m;
+
+			uint256 maximumMSB = _maximumReservesMSB( A0, A1, B0, B1, C0, C1 );
+
+			// Assumes the largest number should use no more than 80 bits.
+			// Multiplying three 80 bit numbers will yield 240 bits - within the 256 bit limit.
+			uint256 shift = 0;
+			if ( maximumMSB > 80 )
+				{
+				shift = maximumMSB - 80;
+
+				A0 = A0 >> shift;
+				A1 = A1 >> shift;
+				B0 = B0 >> shift;
+				B1 = B1 >> shift;
+				C0 = C0 >> shift;
+				C1 = C1 >> shift;
+				}
+
+			// Each variable will use less than 80 bits
 			uint256 n0 = A0 * B0 * C0;
 			uint256 n1 = A1 * B1 * C1;
 
 			if (n1 <= n0)
 				return 0;
 
-			uint256 m = A1 * ( B1 + C0 ) + C0 * B0;
-			uint256 n0_div_m = n0 / m;
+			uint256 m = A1 *  B1 + C0 * ( B0 + A1 );
 
-			// Division by m before multiply to reduce overflow risk
-			uint256 z_div_m = PoolMath._sqrt( n0_div_m * (n1 / m));
+			// Calculating n0 * n1 directly would overflow under some situations.
+			// Multiply the sqrt's instead - effectively keeping the max size the same
+			uint256 z = Math.sqrt(n0) * Math.sqrt(n1);
 
-			bestArbAmountIn = z_div_m - n0_div_m;
+			bestArbAmountIn = ( z - n0 ) / m;
+			if ( bestArbAmountIn == 0 )
+				return 0;
 
 			// Make sure bestArbAmountIn is actually profitable
 			uint256 amountOut = (A1 * bestArbAmountIn) / (A0 + bestArbAmountIn);
 			amountOut = (B1 * amountOut) / (B0 + amountOut);
 			amountOut = (C1 * amountOut) / (C0 + amountOut);
 
+			// This calculation is done shifted but should still be valid
 			if ( amountOut < bestArbAmountIn )
 				return 0;
+
+			// Convert back to normal scaling
+			bestArbAmountIn = bestArbAmountIn << shift;
 			}
 		}
 	}
