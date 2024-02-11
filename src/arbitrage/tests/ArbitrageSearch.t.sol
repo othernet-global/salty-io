@@ -43,7 +43,8 @@ contract TestArbitrageSearch is ArbitrageSearch, Test
 
 
 
-	// Fuzzes reserves and swapAmountInValueInETH with uint112s
+	// Fuzzes reserves and swapAmountInValueInETH with uint112s to check brute force method of determine best arbitrage amount in
+	// versus _bestArbitrageIn
 	function testSearchMethods(uint256 swapAmountInValueInETH, uint256 reservesA0, uint256 reservesA1, uint256 reservesB0, uint256 reservesB1, uint256 reservesC0, uint256 reservesC1) public
 		{
 		swapAmountInValueInETH = swapAmountInValueInETH % type(uint112).max;
