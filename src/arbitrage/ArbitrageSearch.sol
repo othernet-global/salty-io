@@ -81,7 +81,7 @@ abstract contract ArbitrageSearch
 		if ( A0 <= PoolUtils.DUST || A1 <= PoolUtils.DUST || B0 <= PoolUtils.DUST || B1 <= PoolUtils.DUST || C0 <= PoolUtils.DUST || C1 <= PoolUtils.DUST )
 			return 0;
 
-		// This can be unchecked as the actual arbitrage that is performed when this is non-zero is checked and duplicates the check for profitability (at increased scale).
+		// This can be unchecked as the actual arbitrage that is performed when this is non-zero is checked and duplicates the check for profitability.
 		// testArbitrageMethodsLarge() checks for proper behavior with extremely large reserves as well.
 		unchecked
 			{
@@ -130,17 +130,24 @@ abstract contract ArbitrageSearch
 			if ( bestArbAmountIn == 0 )
 				return 0;
 
-			// Make sure bestArbAmountIn is actually profitable
+			// Convert back to normal scaling
+			bestArbAmountIn = bestArbAmountIn << shift;
+
+			// Needed for arbitrage profit testing
+			A0 = A0 << shift;
+			A1 = A1 << shift;
+			B0 = B0 << shift;
+			B1 = B1 << shift;
+			C0 = C0 << shift;
+			C1 = C1 << shift;
+
 			uint256 amountOut = (A1 * bestArbAmountIn) / (A0 + bestArbAmountIn);
 			amountOut = (B1 * amountOut) / (B0 + amountOut);
 			amountOut = (C1 * amountOut) / (C0 + amountOut);
 
-			// This calculation is done shifted but should still be valid
+			// Make sure bestArbAmountIn arbitrage is actually profitable
 			if ( amountOut < bestArbAmountIn )
 				return 0;
-
-			// Convert back to normal scaling
-			bestArbAmountIn = bestArbAmountIn << shift;
 			}
 		}
 	}
