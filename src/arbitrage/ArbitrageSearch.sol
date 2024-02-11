@@ -133,7 +133,7 @@ abstract contract ArbitrageSearch
 			// Convert back to normal scaling
 			bestArbAmountIn = bestArbAmountIn << shift;
 
-			// Needed for arbitrage profit testing
+			// Needed for the below arbitrage profit testing
 			A0 = A0 << shift;
 			A1 = A1 << shift;
 			B0 = B0 << shift;
@@ -141,11 +141,11 @@ abstract contract ArbitrageSearch
 			C0 = C0 << shift;
 			C1 = C1 << shift;
 
+			// Make sure bestArbAmountIn arbitrage is actually profitable (or else it will revert when actually performed in Pools.sol)
 			uint256 amountOut = (A1 * bestArbAmountIn) / (A0 + bestArbAmountIn);
 			amountOut = (B1 * amountOut) / (B0 + amountOut);
 			amountOut = (C1 * amountOut) / (C0 + amountOut);
 
-			// Make sure bestArbAmountIn arbitrage is actually profitable
 			if ( amountOut < bestArbAmountIn )
 				return 0;
 			}
