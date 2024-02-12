@@ -4,7 +4,6 @@ pragma solidity =0.8.22;
 import "openzeppelin-contracts/contracts/utils/math/Math.sol";
 import "../interfaces/IExchangeConfig.sol";
 import "../pools/PoolUtils.sol";
-import "../pools/PoolMath.sol";
 
 // Finds a circular path after a user's swap has occurred (from WETH to WETH in this case) that results in an arbitrage profit.
 abstract contract ArbitrageSearch
@@ -56,6 +55,23 @@ abstract contract ArbitrageSearch
 		}
 
 
+	// Determine the most significant bit of a non-zero number
+    function _mostSignificantBit(uint256 x) internal pure returns (uint256 msb)
+    	{
+    	unchecked
+    		{
+			if (x >= 2**128) { x >>= 128; msb += 128; }
+			if (x >= 2**64) { x >>= 64; msb += 64; }
+			if (x >= 2**32) { x >>= 32; msb += 32; }
+			if (x >= 2**16) { x >>= 16; msb += 16; }
+			if (x >= 2**8) { x >>= 8; msb += 8; }
+			if (x >= 2**4) { x >>= 4; msb += 4; }
+			if (x >= 2**2) { x >>= 2; msb += 2; }
+			if (x >= 2**1) { x >>= 1; msb += 1; }
+			}
+	    }
+
+
 	// Determine the maximum msb across the given values
 	function _maximumReservesMSB( uint256 A0, uint256 A1, uint256 B0, uint256 B1, uint256 C0, uint256 C1 ) internal pure returns (uint256 msb)
 		{
@@ -71,7 +87,7 @@ abstract contract ArbitrageSearch
 		if ( C1 > max )
 			max = C1;
 
-		return  PoolMath._mostSignificantBit(max);
+		return  _mostSignificantBit(max);
 		}
 
 
