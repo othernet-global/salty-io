@@ -113,65 +113,12 @@ import "./PoolUtils.sol";
 
 library PoolMath
 	{
-	// Determine the most significant bit of a non-zero number
-    function _mostSignificantBit(uint256 x) internal pure returns (uint256 msb)
-    	{
-    	unchecked
-    		{
-			if (x >= 2**128) { x >>= 128; msb += 128; }
-			if (x >= 2**64) { x >>= 64; msb += 64; }
-			if (x >= 2**32) { x >>= 32; msb += 32; }
-			if (x >= 2**16) { x >>= 16; msb += 16; }
-			if (x >= 2**8) { x >>= 8; msb += 8; }
-			if (x >= 2**4) { x >>= 4; msb += 4; }
-			if (x >= 2**2) { x >>= 2; msb += 2; }
-			if (x >= 2**1) { x >>= 1; msb += 1; }
-			}
-	    }
-
-
-	// Determine the maximum msb across the given values
-	function _maximumMSB( uint256 r0, uint256 r1, uint256 z0, uint256 z1 ) internal pure returns (uint256 msb)
-		{
-		uint256 max = r0;
-		
-		if ( r1 > max )
-			max = r1;
-
-		if ( z0 > max )
-			max = z0;
-
-		if ( z1 > max )
-			max = z1;
-
-		return _mostSignificantBit(max);
-		}
-
-
 	// Given initial reserves, and that the user wants to zap specified token amounts into the pool as liquidity,
 	// determine how much of token0 needs to be swapped to token1 such that the liquidity added has the same proportion as the reserves in the pool after that swap.
 	// Assumes that token0 is in excess (in regards to the current reserve ratio).
     function _zapSwapAmount( uint256 r0, uint256 r1, uint256 z0, uint256 z1 ) internal pure returns (uint256 swapAmount)
     	{
-    	uint256 maximumMSB = _maximumMSB( r0, r1, z0, z1);
-
-    	// Assumes the largest number has more than 80 bits.
-    	// C will be calculated as: C = r0 * ( r1 * z0 - r0 * z1 ) / ( r1 + z1 );
-    	// Multiplying three 80 bit numbers will yield 240 bits - within the 256 bit limit.
-		uint256 shift = 0;
-		if ( maximumMSB > 80 )
-			{
-			shift = maximumMSB - 80;
-
-			// Normalize the inputs to 80 bits.
-			r0 = r0 >> shift;
-			r1 = r1 >> shift;
-			z0 = z0 >> shift;
-			z1 = z1 >> shift;
-			}
-
-		// In order to swap and zap, require that the reduced precision reserves and one of the zapAmounts exceed DUST.
-		// Otherwise their value was too small and was crushed by the above precision reduction and we should just return swapAmounts of zero so that default addLiquidity will be attempted without a preceding swap.
+		// In order to swap and zap, require that the reduced reserves and one of the zapAmounts exceed DUST.
         if ( r0 < PoolUtils.DUST)
         	return 0;
 
@@ -192,7 +139,8 @@ library PoolMath
 
 		// Negate C (from above) and add instead of subtract.
 		// r1 * z0 guaranteed to be greater than r0 * z1 per the conditional check in _determineZapSwapAmount
-        uint256 C = r0 * ( r1 * z0 - r0 * z1 ) / ( r1 + z1 );
+		// Divide by (r1 + z1) before multiplying by r0 to keep the max value within uint256
+        uint256 C = r0 * ( ( r1 * z0 - r0 * z1 ) / ( r1 + z1 ) );
         uint256 discriminant = B * B + 4 * A * C;
 
         // Compute the square root of the discriminant.
@@ -204,9 +152,6 @@ library PoolMath
 
         // Only use the positive sqrt of the discriminant from: x = (-B +/- sqrtDiscriminant) / 2A
 		swapAmount = ( sqrtDiscriminant - B ) / ( 2 * A );
-
-		// Convert back to normal scaling
-		swapAmount <<= shift;
     	}
 
 

@@ -684,4 +684,19 @@ function testSequentialLiquidityAdjustment() public {
 		// Ensure that liquidity can be added back in
 		pools.addLiquidity(tokenA, tokenB, 100 ether, 100 ether, 0, 0);
 		}
+
+
+// https://github.com/code-423n4/2024-01-salty-findings/issues/707
+function testUnderflowZapping() public {
+		vm.startPrank(DEPLOYER);
+		weth.approve(address(liquidity), type(uint256).max );
+		wbtc.approve(address(liquidity), type(uint256).max);
+
+    	liquidity.depositLiquidityAndIncreaseShare(wbtc, weth, 1_000 * 10**6, 20_000_000 ether, 0, block.timestamp, false);
+
+		vm.expectRevert();		// this reverts now due to amount A too small
+		liquidity.depositLiquidityAndIncreaseShare(wbtc, weth, 15, 1 ether, 0, block.timestamp, true);
+		vm.stopPrank();
+	}
+
     }

@@ -597,10 +597,10 @@ contract TestUpkeep2 is Deployment
 		// Check that 20% of the remaining WETH (20% of 95 ether) has been converted to SALT/USDC
 		(uint256 reservesA, uint256 reservesB) = pools.getPoolReserves(salt, usdc);
 		assertEq( reservesA, 18982837084300280125 ); // Close to 19
-		assertEq( reservesB, 18996605 ); // Close to 19
+		assertEq( reservesB, 18996601 ); // Close to 19
 
 		uint256 daoLiquidity = liquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usdc));
-		assertEq( daoLiquidity, 18989909292191406432 ); // Close to 19
+		assertEq( daoLiquidity, 18989907293828063073 ); // Close to 19
 
 
 		// Check Step 3. Convert remaining WETH to SALT and sends it to SaltRewards.
@@ -643,7 +643,7 @@ contract TestUpkeep2 is Deployment
 		assertEq( rewards[0], 5854297793624899168178);
 		assertEq( rewards[1], 5854297793624899168178);
 		assertEq( rewards[2], 5854297793624899168178);
-		assertEq( rewards[3], 11497078306372582406464);
+		assertEq( rewards[3], 11497077098578557783492);
 
 
 		// Check Step 7. Collect SALT rewards from the DAO's Protocol Owned Liquidity: send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.

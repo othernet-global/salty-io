@@ -1454,14 +1454,15 @@ function testMinLiquidityAndReclaimedAmounts() public {
 //			console.log( "token0: ", token0.balanceOf(alice ));
 //			console.log( "token1: ", token1.balanceOf(alice ));
 
-			uint256 decimalsDiff = 9;
+			// See that only .00001 of the specified tokens or less remain
+			uint256 decimalPrecisionReduction = 5;
 
-//			console.log( "token0.balanceOf(alice): ", token0.balanceOf(alice) );
-//			console.log( "token1.balanceOf(alice): ", token1.balanceOf(alice) );
+//			console.log( "token0.balanceOf(alice): ", token0.balanceOf(alice), 10 ** (decimals0 - decimalPrecisionReduction) );
+//			console.log( "token1.balanceOf(alice): ", token1.balanceOf(alice), 10 ** (decimals1 - decimalPrecisionReduction) );
 
 			// Expect that we would have used close to all our tokens for zapping
-			assertTrue( token0.balanceOf(alice) < 10 ** decimalsDiff, "Alice should have close to zero token0" );
-			assertTrue( token1.balanceOf(alice) < 10 ** decimalsDiff, "Alice should have close to zero token1" );
+			assertTrue( token0.balanceOf(alice) < 10 ** (decimals0 - decimalPrecisionReduction), "Alice should have close to zero token0" );
+			assertTrue( token1.balanceOf(alice) < 10 ** (decimals1 - decimalPrecisionReduction), "Alice should have close to zero token1" );
 
 			vm.warp( block.timestamp + 1 hours );
 
