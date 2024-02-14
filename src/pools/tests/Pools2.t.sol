@@ -699,4 +699,88 @@ function testUnderflowZapping() public {
 		vm.stopPrank();
 	}
 
+
+// https://github.com/code-423n4/2024-01-salty-findings/issues/723
+// Final claimAllRewards is not reverting as mentioned.
+function testRounding() public {
+    address charlie = address(0x3333);
+
+    vm.startPrank(DEPLOYER);
+    weth.transfer(alice, 10100);
+    salt.transfer(alice, 10100);
+
+    weth.transfer(bob, 10100);
+    salt.transfer(bob, 10100);
+
+    weth.transfer(charlie, 19800);
+    salt.transfer(charlie, 19800);
+
+    bytes32 poolID = PoolUtils._poolID(weth, salt);
+
+    vm.startPrank(alice);
+    weth.approve(address(liquidity), 10100);
+    salt.approve(address(liquidity), 10100);
+    liquidity.depositLiquidityAndIncreaseShare(weth, salt, 10100, 10100, 0, block.timestamp, false);
+	vm.stopPrank();
+
+	vm.startPrank(DEPLOYER);
+    AddedReward[] memory addedRewards = new AddedReward[](1);
+    addedRewards[0] = AddedReward(poolID, 20000);
+    salt.approve(address(liquidity), 20000);
+    liquidity.addSALTRewards(addedRewards);
+	vm.stopPrank();
+
+    bytes32[] memory poolIDs = new bytes32[](1);
+    poolIDs[0] = poolID;
+    uint256[] memory totalRewards = new uint256[](1);
+    totalRewards = liquidity.totalRewardsForPools(poolIDs);
+
+    console.log('Shares for Alice             ===>   ', liquidity.userShareForPool(alice, poolID));
+    console.log('Total Rewards                ===>   ', totalRewards[0]);
+    console.log('Rewards for Alice            ===>   ', liquidity.userRewardForPool(alice, poolID));
+
+    vm.startPrank(bob);
+    weth.approve(address(liquidity), 10100);
+    salt.approve(address(liquidity), 10100);
+    liquidity.depositLiquidityAndIncreaseShare(weth, salt, 10100, 10100, 0, block.timestamp, false);
+
+    console.log('');
+    console.log('Shares for Bob               ===>   ', liquidity.userShareForPool(bob, poolID));
+
+    totalRewards = liquidity.totalRewardsForPools(poolIDs);
+
+    console.log('Total Rewards                ===>   ', totalRewards[0]);
+    console.log('Virtual Rewards for Bob      ===>   ', liquidity.userVirtualRewardsForPool(bob, poolID));
+
+    vm.startPrank(charlie);
+    weth.approve(address(liquidity), 19800);
+    salt.approve(address(liquidity), 19800);
+    liquidity.depositLiquidityAndIncreaseShare(weth, salt, 19800, 19800, 0, block.timestamp, false);
+
+    console.log('');
+    console.log('Shares for Charlie           ===>   ', liquidity.userShareForPool(charlie, poolID));
+
+    totalRewards = liquidity.totalRewardsForPools(poolIDs);
+    console.log('Total Rewards                ===>   ', totalRewards[0]);
+    console.log('Virtual Rewards for Charlie  ===>   ', liquidity.userVirtualRewardsForPool(charlie, poolID));
+
+    vm.startPrank(bob);
+    vm.warp(block.timestamp + 7 days);
+    uint256 saltBalanceBefore = salt.balanceOf(bob);
+    liquidity.withdrawLiquidityAndClaim(weth, salt, 20000, 0, 0, block.timestamp);
+    uint256 saltBalanceAfter = salt.balanceOf(bob);
+
+    console.log('');
+    console.log('SALT Balance for Bob Before    ===>    ', saltBalanceBefore);
+    console.log('SALT Balance for Bob After     ===>    ', saltBalanceAfter);
+
+    vm.startPrank(alice);
+
+    console.log('');
+    console.log('Claimable Rewards for Alice  ===>   ', liquidity.userRewardForPool(alice, poolID));
+    console.log('Available SALT Balance       ===>   ', salt.balanceOf(address(liquidity)));
+
+//    vm.expectRevert("ERC20: transfer amount exceeds balance");
+    liquidity.claimAllRewards(poolIDs);
+}
     }
