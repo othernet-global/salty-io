@@ -100,7 +100,7 @@ contract Proposals is IProposals, ReentrancyGuard
 
 		// Make sure that a proposal of the same name is not already open for the ballot
 		require( openBallotsByName[ballotName] == 0, "Cannot create a proposal similar to a ballot that is still open" );
-		require( openBallotsByName[ string.concat(ballotName, "_confirm")] == 0, "Cannot create a proposal for a ballot with a secondary confirmation" );
+		require( openBallotsByName[ string.concat("confirm_", ballotName)] == 0, "Cannot create a proposal for a ballot with a secondary confirmation" );
 
 		uint256 ballotMinimumEndTime = block.timestamp + daoConfig.ballotMinimumDuration();
 

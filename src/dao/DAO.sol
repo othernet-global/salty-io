@@ -119,7 +119,7 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		{
 		bytes32 nameHash = keccak256(bytes( ballot.ballotName ) );
 
-		if ( nameHash == keccak256(bytes( "setContract:accessManager_confirm" )) )
+		if ( nameHash == keccak256(bytes( "confirm_setContract:accessManager" )) )
 			exchangeConfig.setAccessManager( IAccessManager(ballot.address1) );
 
 		emit SetContract(ballot.ballotName, ballot.address1);
@@ -182,11 +182,11 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 
 		// Once an initial setContract proposal passes, it automatically starts a second confirmation ballot (to prevent last minute approvals)
 		else if ( ballot.ballotType == BallotType.SET_CONTRACT )
-			proposals.createConfirmationProposal( string.concat(ballot.ballotName, "_confirm"), BallotType.CONFIRM_SET_CONTRACT, ballot.address1, "", ballot.description );
+			proposals.createConfirmationProposal( string.concat("confirm_", ballot.ballotName), BallotType.CONFIRM_SET_CONTRACT, ballot.address1, "", ballot.description );
 
 		// Once an initial setWebsiteURL proposal passes, it automatically starts a second confirmation ballot (to prevent last minute approvals)
 		else if ( ballot.ballotType == BallotType.SET_WEBSITE_URL )
-			proposals.createConfirmationProposal( string.concat(ballot.ballotName, "_confirm"), BallotType.CONFIRM_SET_WEBSITE_URL, address(0), ballot.string1, ballot.description );
+			proposals.createConfirmationProposal( string.concat("confirm_", ballot.ballotName), BallotType.CONFIRM_SET_WEBSITE_URL, address(0), ballot.string1, ballot.description );
 
 		else if ( ballot.ballotType == BallotType.CONFIRM_SET_CONTRACT )
 			_executeSetContract( ballot );
