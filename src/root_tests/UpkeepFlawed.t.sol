@@ -97,6 +97,9 @@ contract TestUpkeepFlawed is Deployment
 		grantAccessDefault();
 
 		numInitialPools = poolsConfig.numberOfWhitelistedPools();
+
+    	// Wait an hour to generate some emissions
+       	skip( 1 hours );
 		}
 
 
@@ -158,6 +161,9 @@ contract TestUpkeepFlawed is Deployment
 	// A unit test to revert step1 and ensure other steps continue functioning
     function testRevertStep1() public
     	{
+    	// Wait an hour to generate some emissions
+       	skip( 1 hours );
+
     	_initFlawed(1);
     	_setupLiquidity();
     	_generateArbitrageProfits(false);
@@ -206,7 +212,7 @@ contract TestUpkeepFlawed is Deployment
     	// Check Step 6. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
     	// Check that about 72.2 ether of WETH has been converted to SALT and sent to SaltRewards.
-    	// Emissions also emit about 185715 SALT as 5 days have gone by since the deployment (delay for the bootstrap ballot to complete).
+    	// Emissions also emit about 185715 SALT as 5 days (changed to one hour) have gone by since the deployment (delay for the bootstrap ballot to complete).
     	// This is due to Emissions holding 52 million SALT and emitting at a default rate of .50% / week.
 
     	// As there were profits, SaltRewards distributed the 185715 ether + 72.2 ether rewards
@@ -223,7 +229,7 @@ contract TestUpkeepFlawed is Deployment
     	// Check that the staking rewards were transferred to the staking contract:
     	// 1% max of (3 million bootstrapping in the stakingRewardsEmitter + 45% of 185786 ether sent from saltRewards)
     	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
-    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 30835716220238095238095  );
+    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 1250290178571428571428  );
 
     	bytes32[] memory poolIDs = new bytes32[](4);
     	poolIDs[0] = PoolUtils._poolID(salt,weth);
@@ -238,10 +244,10 @@ contract TestUpkeepFlawed is Deployment
     	uint256[] memory rewards = liquidity.totalRewardsForPools(poolIDs);
 
     	// Expected for all pools
-    	assertEq( rewards[0], 8611905406746031746031);
-    	assertEq( rewards[1], 8611905406746031746031);
-    	assertEq( rewards[2], 8611905406746031746031);
-    	assertEq( rewards[3], 8519048048941798941798);
+    	assertEq( rewards[0], 347318948412698412698);
+    	assertEq( rewards[1], 347318948412698412698);
+    	assertEq( rewards[2], 347318948412698412698);
+    	assertEq( rewards[3], 347286706349206349206);
 
 
     	// Check Step 7. Collect SALT rewards from the DAO's Protocol Owned Liquidity: send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.
@@ -250,16 +256,16 @@ contract TestUpkeepFlawed is Deployment
 
     	// 10% of the POL Rewards for the team wallet
     	// The teamVestingWallet contains 10 million SALT and vests over a 10 year period.
-    	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days
-    	assertEq( salt.balanceOf(teamWallet), 13561675228310502283105 );
+    	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days (changed to one hour)
+    	assertEq( salt.balanceOf(teamWallet), 13674688926940639269406 );
 
     	// 50% of the remaining rewards are burned
     	assertEq( salt.totalBurned(), 0 );
 
     	// Other 50% should stay in the DAO
     	// The daoVestingWallet contains 25 million SALT and vests over a 10 year period.
-    	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days
-    	assertEq( salt.balanceOf(address(dao)), 34109667998477929984779 );
+    	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days (changed to one hour)
+    	assertEq( salt.balanceOf(address(dao)), 34393914573820395738203 );
     	}
 
 
@@ -315,7 +321,7 @@ contract TestUpkeepFlawed is Deployment
     	// Check Step 6. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
     	// Check that about 76 ether of WETH has been converted to SALT and sent to SaltRewards.
-    	// Emissions also emit about 185715 SALT as 5 days have gone by since the deployment (delay for the bootstrap ballot to complete).
+    	// Emissions also emit about 185715 SALT as 5 days (changed to one hour) have gone by since the deployment (delay for the bootstrap ballot to complete).
     	// This is due to Emissions holding 52 million SALT and emitting at a default rate of .50% / week.
 
     	// As there were profits, SaltRewards distributed the 185715 ether + 76 ether rewards
@@ -332,7 +338,7 @@ contract TestUpkeepFlawed is Deployment
     	// Check that the staking rewards were transferred to the staking contract:
     	// 1% max of (3 million bootstrapping in the stakingRewardsEmitter + 45% of 185786 ether sent from saltRewards)
     	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
-    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 30836143327240771773255  );
+    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 1250307974696540093726  );
 
     	bytes32[] memory poolIDs = new bytes32[](4);
     	poolIDs[0] = PoolUtils._poolID(salt,weth);
@@ -346,10 +352,10 @@ contract TestUpkeepFlawed is Deployment
     	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
     	uint256[] memory rewards = liquidity.totalRewardsForPools(poolIDs);
 
-    	assertEq( rewards[0], 8612047775746923924418);
-    	assertEq( rewards[1], 8612047775746923924418);
-    	assertEq( rewards[2], 8612047775746923924418);
-    	assertEq( rewards[3], 8519142961609060394056);
+    	assertEq( rewards[0], 347324880454402253464);
+    	assertEq( rewards[1], 347324880454402253464);
+    	assertEq( rewards[2], 347324880454402253464);
+    	assertEq( rewards[3], 347290661043675576383);
 
 
     	// Check Step 9. Collect SALT rewards from the DAO's Protocol Owned Liquidity: send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.
@@ -358,16 +364,16 @@ contract TestUpkeepFlawed is Deployment
 
     	// 10% of the POL Rewards for the team wallet
     	// The teamVestingWallet contains 10 million SALT and vests over a 10 year period.
-    	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days
-    	assertEq( salt.balanceOf(teamWallet), 13561675228310502283105 );
+    	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days (changed to one hour)
+    	assertEq( salt.balanceOf(teamWallet), 13674688926940639269406 );
 
     	// 50% of the remaining rewards are burned
     	assertEq( salt.totalBurned(), 0 );
 
     	// Other 50% should stay in the DAO
     	// The daoVestingWallet contains 25 million SALT and vests over a 10 year period.
-    	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days
-    	assertEq( salt.balanceOf(address(dao)), 34109667998477929984779 );
+    	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days (changed to one hour)
+    	assertEq( salt.balanceOf(address(dao)), 34393914573820395738203 );
     	}
 
 
@@ -422,7 +428,7 @@ contract TestUpkeepFlawed is Deployment
     	// Check Step 6. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
     	// Check that about 72.2 ether of WETH has been converted to SALT and sent to SaltRewards.
-    	// Emissions also emit about 185715 SALT as 5 days have gone by since the deployment (delay for the bootstrap ballot to complete).
+    	// Emissions also emit about 185715 SALT as 5 days (changed to one hour) have gone by since the deployment (delay for the bootstrap ballot to complete).
     	// This is due to Emissions holding 52 million SALT and emitting at a default rate of .50% / week.
 
     	// As there were profits, SaltRewards distributed the 185715 ether + 72.2 ether rewards
@@ -439,7 +445,7 @@ contract TestUpkeepFlawed is Deployment
     	// Check that the staking rewards were transferred to the staking contract:
     	// 1% max of (3 million bootstrapping in the stakingRewardsEmitter + 45% of 185786 ether sent from saltRewards)
     	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
-    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 30835716220238095238095  );
+    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 1250290178571428571428  );
 
     	bytes32[] memory poolIDs = new bytes32[](4);
     	poolIDs[0] = PoolUtils._poolID(salt,weth);
@@ -453,10 +459,10 @@ contract TestUpkeepFlawed is Deployment
     	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
     	uint256[] memory rewards = liquidity.totalRewardsForPools(poolIDs);
 
-    	assertEq( rewards[0], 8611905406746031746031);
-    	assertEq( rewards[1], 8611905406746031746031);
-    	assertEq( rewards[2], 8611905406746031746031);
-    	assertEq( rewards[3], 8519048048941798941798);
+    	assertEq( rewards[0], 347318948412698412698);
+    	assertEq( rewards[1], 347318948412698412698);
+    	assertEq( rewards[2], 347318948412698412698);
+    	assertEq( rewards[3], 347286706349206349206);
 
 
     	// Check Step 7. Collect SALT rewards from the DAO's Protocol Owned Liquidity: send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.
@@ -468,17 +474,17 @@ contract TestUpkeepFlawed is Deployment
 
     	// 10% of the POL Rewards for the team wallet
     	// The teamVestingWallet contains 10 million SALT and vests over a 10 year period.
-    	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days
-    	assertEq( salt.balanceOf(teamWallet), polRewards / 10 + 13561675228310502283105 );
+    	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days (changed to one hour)
+    	assertEq( salt.balanceOf(teamWallet), polRewards / 10 + 13674688926940639269406 );
 
     	// 50% of the remaining rewards are burned
     	uint256 halfOfRemaining = ( polRewards * 45 ) / 100;
-    	assertEq( salt.totalBurned(), halfOfRemaining );
+    	assertEq( salt.totalBurned(), halfOfRemaining + 1 );
 
     	// Other 50% should stay in the DAO
     	// The daoVestingWallet contains 25 million SALT and vests over a 10 year period.
-    	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days
-    	assertEq( salt.balanceOf(address(dao)), halfOfRemaining + 1 + 34109667998477929984779 );
+    	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days (changed to one hour)
+    	assertEq( salt.balanceOf(address(dao)), halfOfRemaining + 1 + 34393914573820395738203 );
     	}
 
 
@@ -533,7 +539,7 @@ contract TestUpkeepFlawed is Deployment
     	// Check Step 6. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
     	// Check that about 72.2 ether of WETH has been converted to SALT and sent to SaltRewards.
-    	// Emissions also emit about 185715 SALT as 5 days have gone by since the deployment (delay for the bootstrap ballot to complete).
+    	// Emissions also emit about 185715 SALT as 5 days (changed to one hour) have gone by since the deployment (delay for the bootstrap ballot to complete).
     	// This is due to Emissions holding 52 million SALT and emitting at a default rate of .50% / week.
 
     	// As there were profits, SaltRewards distributed the 185715 ether + 72.2 ether rewards
@@ -550,7 +556,7 @@ contract TestUpkeepFlawed is Deployment
     	// Check that the staking rewards were transferred to the staking contract:
     	// 1% max of (3 million bootstrapping in the stakingRewardsEmitter + 45% of 185786 ether sent from saltRewards)
     	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
-    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 30000341685897604325617  );
+    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 1250014236912400180234  );
 
     	bytes32[] memory poolIDs = new bytes32[](4);
     	poolIDs[0] = PoolUtils._poolID(salt,weth);
@@ -564,10 +570,10 @@ contract TestUpkeepFlawed is Deployment
     	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
     	uint256[] memory rewards = liquidity.totalRewardsForPools(poolIDs);
 
-    	assertEq( rewards[0], 8333447228632534775205);
-    	assertEq( rewards[1], 8333447228632534775205);
-    	assertEq( rewards[2], 8333447228632534775205);
-    	assertEq( rewards[3], 8333409263532800961248);
+    	assertEq( rewards[0], 347226967859688948966);
+    	assertEq( rewards[1], 347226967859688948966);
+    	assertEq( rewards[2], 347226967859688948966);
+    	assertEq( rewards[3], 347225385980533373385);
 
 
     	// Check Step 7. Collect SALT rewards from the DAO's Protocol Owned Liquidity: send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.
@@ -579,17 +585,17 @@ contract TestUpkeepFlawed is Deployment
 
     	// 10% of the POL Rewards for the team wallet
     	// The teamVestingWallet contains 10 million SALT and vests over a 10 year period.
-    	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days
-    	assertEq( salt.balanceOf(teamWallet), polRewards / 10 + 13561675228310502283105 );
+    	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days (changed to one hour)
+    	assertEq( salt.balanceOf(teamWallet), polRewards / 10 + 13674688926940639269406 );
 
     	// 50% of the remaining rewards are burned
     	uint256 halfOfRemaining = ( polRewards * 45 ) / 100;
-    	assertEq( salt.totalBurned(), halfOfRemaining + 1 );
+    	assertEq( salt.totalBurned(), halfOfRemaining );
 
     	// Other 50% should stay in the DAO
     	// The daoVestingWallet contains 25 million SALT and vests over a 10 year period.
-    	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days
-    	assertEq( salt.balanceOf(address(dao)), halfOfRemaining + 1 + 34109667998477929984779 );
+    	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days (changed to one hour)
+    	assertEq( salt.balanceOf(address(dao)), halfOfRemaining + 1 + 34393914573820395738203 );
     	}
 
 
@@ -644,12 +650,12 @@ contract TestUpkeepFlawed is Deployment
     	// Check Step 5. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
     	// Check that about 72.2 ether of WETH has been converted to SALT and sent to SaltRewards.
-    	// Emissions also emit about 185715 SALT as 5 days have gone by since the deployment (delay for the bootstrap ballot to complete).
+    	// Emissions also emit about 185715 SALT as 5 days (changed to one hour) have gone by since the deployment (delay for the bootstrap ballot to complete).
     	// This is due to Emissions holding 52 million SALT and emitting at a default rate of .50% / week.
 
     	// As there were profits, SaltRewards distributed the 185715 ether + 72.2 ether rewards
     	// 10% to SALT/USDC rewards, 45% to stakingRewardsEmitter and 45% to liquidityRewardsEmitter,
-    	assertEq( salt.balanceOf(address(saltRewards)), 185790645807933236380606 ); // should be basically empty now
+    	assertEq( salt.balanceOf(address(saltRewards)), 1623549247086675534045 ); // should be basically empty now
 
     	// Additionally stakingRewardsEmitter started with 3 million bootstrapping rewards.
     	// liquidityRewardsEmitter started with 5 millions bootstrapping rewards, divided evenly amongst the 9 initial pools.
@@ -661,7 +667,7 @@ contract TestUpkeepFlawed is Deployment
     	// Check that the staking rewards were transferred to the staking contract:
     	// 1% max of (3 million bootstrapping in the stakingRewardsEmitter + 45% of 185786 ether sent from saltRewards)
     	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
-    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 30000000000000000000000 );
+    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 1250000000000000000000 );
 
     	bytes32[] memory poolIDs = new bytes32[](4);
     	poolIDs[0] = PoolUtils._poolID(salt,weth);
@@ -676,7 +682,7 @@ contract TestUpkeepFlawed is Deployment
     	uint256[] memory rewards = liquidity.totalRewardsForPools(poolIDs);
 
     	// Expected for all pools
-    	uint256 expectedLiquidityRewardsFromBootstrapping = uint256(5000000 ether) / numInitialPools / 100;
+    	uint256 expectedLiquidityRewardsFromBootstrapping = uint256(5000000 ether) / numInitialPools / 100 / 24;
 
     	assertEq( rewards[0], expectedLiquidityRewardsFromBootstrapping);
     	assertEq( rewards[1], expectedLiquidityRewardsFromBootstrapping);
@@ -693,8 +699,8 @@ contract TestUpkeepFlawed is Deployment
 
     	// 10% of the POL Rewards for the team wallet
     	// The teamVestingWallet contains 10 million SALT and vests over a 10 year period.
-    	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days
-    	assertEq( salt.balanceOf(teamWallet), polRewards / 10 + 13561675228310502283105 );
+    	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days (changed to one hour)
+    	assertEq( salt.balanceOf(teamWallet), polRewards / 10 + 13674688926940639269406 );
 
     	// 50% of the remaining rewards are burned
     	uint256 halfOfRemaining = ( polRewards * 45 ) / 100;
@@ -702,8 +708,8 @@ contract TestUpkeepFlawed is Deployment
 
     	// Other 50% should stay in the DAO
     	// The daoVestingWallet contains 25 million SALT and vests over a 10 year period.
-    	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days
-    	assertEq( salt.balanceOf(address(dao)), halfOfRemaining + 1 + 34109667998477929984779 );
+    	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days (changed to one hour)
+    	assertEq( salt.balanceOf(address(dao)), halfOfRemaining + 1 + 34393914573820395738203 );
     	}
 
 
@@ -759,7 +765,7 @@ contract TestUpkeepFlawed is Deployment
     	// [FAILED] Check Step 6. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
     	// Check that about 72.2 ether of WETH has been converted to SALT and sent to SaltRewards.
-    	// Emissions also emit about 185715 SALT as 5 days have gone by since the deployment (delay for the bootstrap ballot to complete).
+    	// Emissions also emit about 185715 SALT as 5 days (changed to one hour) have gone by since the deployment (delay for the bootstrap ballot to complete).
     	// This is due to Emissions holding 52 million SALT and emitting at a default rate of .50% / week.
 
     	// As there were profits, SaltRewards distributed the 185715 ether + 72.2 ether rewards
@@ -805,16 +811,16 @@ contract TestUpkeepFlawed is Deployment
 
     	// 10% of the POL Rewards for the team wallet
     	// The teamVestingWallet contains 10 million SALT and vests over a 10 year period.
-    	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days
-    	assertEq( salt.balanceOf(teamWallet), polRewards / 10 + 13561675228310502283105 );
+    	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days (changed to one hour)
+    	assertEq( salt.balanceOf(teamWallet), polRewards / 10 + 13674688926940639269406 );
 
     	// 50% of the remaining rewards are burned
     	assertEq( salt.totalBurned(), 0 );
 
     	// Other 50% should stay in the DAO
     	// The daoVestingWallet contains 25 million SALT and vests over a 10 year period.
-    	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days
-    	assertEq( salt.balanceOf(address(dao)), 34109667998477929984779 );
+    	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days (changed to one hour)
+    	assertEq( salt.balanceOf(address(dao)), 34393914573820395738203 );
     	}
 
 
@@ -869,7 +875,7 @@ contract TestUpkeepFlawed is Deployment
     	// Check Step 6. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
     	// Check that about 72.2 ether of WETH has been converted to SALT and sent to SaltRewards.
-    	// Emissions also emit about 185715 SALT as 5 days have gone by since the deployment (delay for the bootstrap ballot to complete).
+    	// Emissions also emit about 185715 SALT as 5 days (changed to one hour) have gone by since the deployment (delay for the bootstrap ballot to complete).
     	// This is due to Emissions holding 52 million SALT and emitting at a default rate of .50% / week.
 
     	// As there were profits, SaltRewards distributed the 185715 ether + 72.2 ether rewards
@@ -888,7 +894,7 @@ contract TestUpkeepFlawed is Deployment
     	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
 //    	uint256 expectedStakingRewardsFromBootstrapping = uint256(3000000 ether) / 100;
 //       	uint256 expectedStakingRewardsFromArbitrageProfits = uint( 185786 ether * 45 ) / 100 / 100;
-    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 30836057906135699563712  );
+    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 1250304415483828751662  );
 
     	bytes32[] memory poolIDs = new bytes32[](4);
     	poolIDs[0] = PoolUtils._poolID(salt,weth);
@@ -903,7 +909,7 @@ contract TestUpkeepFlawed is Deployment
     	uint256[] memory rewards = liquidity.totalRewardsForPools(poolIDs);
 
 //    	// Expected for all pools
-//    	uint256 expectedLiquidityRewardsFromBootstrapping = uint256(5000000 ether) / numInitialPools / 100;
+//    	uint256 expectedLiquidityRewardsFromBootstrapping = uint256(5000000 ether) / numInitialPools / 100 / 24;
 //
 //    	// Expected for WBTC/WETH, SALT/WETH and SALT/WTBC
 //          	uint256 expectedLiquidityRewardsFromArbitrageProfits = uint( 185786 ether * 45 ) / 100 / 100 / 3;
@@ -911,10 +917,10 @@ contract TestUpkeepFlawed is Deployment
 //    	// Expected for SALT/USDC
 //          	uint256 expectedAdditionalForSaltUSDC = ( 185786 ether * 10 ) / 100 / 100;
 
-    	assertEq( rewards[0], 8612019302045233187904);
-    	assertEq( rewards[1], 8612019302045233187904);
-    	assertEq( rewards[2], 8612019302045233187904);
-    	assertEq( rewards[3], 8519123979141266569713);
+    	assertEq( rewards[0], 347323694050165139443);
+    	assertEq( rewards[1], 347323694050165139443);
+    	assertEq( rewards[2], 347323694050165139443);
+    	assertEq( rewards[3], 347289870107517500369);
 
 
     	// [FAILED] Check Step 9. Collect SALT rewards from the DAO's Protocol Owned Liquidity: send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.
@@ -923,16 +929,16 @@ contract TestUpkeepFlawed is Deployment
 
     	// 10% of the POL Rewards for the team wallet
     	// The teamVestingWallet contains 10 million SALT and vests over a 10 year period.
-    	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days
-    	assertEq( salt.balanceOf(teamWallet), 13561675228310502283105 );
+    	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days (changed to one hour)
+    	assertEq( salt.balanceOf(teamWallet), 13674688926940639269406 );
 
     	// 50% of the remaining rewards are burned
     	assertEq( salt.totalBurned(), 0 );
 
     	// Other 50% should stay in the DAO
     	// The daoVestingWallet contains 25 million SALT and vests over a 10 year period.
-    	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days
-    	assertEq( salt.balanceOf(address(dao)), 34109667998477929984779 );
+    	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days (changed to one hour)
+    	assertEq( salt.balanceOf(address(dao)), 34393914573820395738203 );
     	}
 
 
@@ -987,7 +993,7 @@ contract TestUpkeepFlawed is Deployment
     	// Check Step 6. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
     	// Check that about 72.2 ether of WETH has been converted to SALT and sent to SaltRewards.
-    	// Emissions also emit about 185715 SALT as 5 days have gone by since the deployment (delay for the bootstrap ballot to complete).
+    	// Emissions also emit about 185715 SALT as 5 days (changed to one hour) have gone by since the deployment (delay for the bootstrap ballot to complete).
     	// This is due to Emissions holding 52 million SALT and emitting at a default rate of .50% / week.
 
     	// As there were profits, SaltRewards distributed the 185715 ether + 72.2 ether rewards
@@ -1006,7 +1012,7 @@ contract TestUpkeepFlawed is Deployment
     	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
 //    	uint256 expectedStakingRewardsFromBootstrapping = uint256(3000000 ether) / 100;
 //       	uint256 expectedStakingRewardsFromArbitrageProfits = uint( 185786 ether * 45 ) / 100 / 100;
-    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 30836057906135699563712  );
+    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 1250304415483828751662  );
 
     	bytes32[] memory poolIDs = new bytes32[](4);
     	poolIDs[0] = PoolUtils._poolID(salt,weth);
@@ -1027,12 +1033,12 @@ contract TestUpkeepFlawed is Deployment
 //          	uint256 expectedAdditionalForSaltUSDC = ( 185786 ether * 10 ) / 100 / 100;
 //
 //    	// Expected for all pools
-//    	uint256 expectedLiquidityRewardsFromBootstrapping = uint256(5000000 ether) / numInitialPools / 100;
+//    	uint256 expectedLiquidityRewardsFromBootstrapping = uint256(5000000 ether) / numInitialPools / 100 / 24;
 
-    	assertEq( rewards[0], 8612019302045233187904);
-    	assertEq( rewards[1], 8612019302045233187904);
-    	assertEq( rewards[2], 8612019302045233187904);
-    	assertEq( rewards[3], 8519123979141266569713);
+    	assertEq( rewards[0], 347323694050165139443);
+    	assertEq( rewards[1], 347323694050165139443);
+    	assertEq( rewards[2], 347323694050165139443);
+    	assertEq( rewards[3], 347289870107517500369);
 
 
     	// Check Step 9. Collect SALT rewards from the DAO's Protocol Owned Liquidity: send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.
@@ -1044,17 +1050,17 @@ contract TestUpkeepFlawed is Deployment
 
     	// 10% of the POL Rewards for the team wallet
     	// The teamVestingWallet contains 10 million SALT and vests over a 10 year period.
-    	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days
-    	assertEq( salt.balanceOf(teamWallet), polRewards / 10 + 13561675228310502283105 );
+    	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days (changed to one hour)
+    	assertEq( salt.balanceOf(teamWallet), polRewards / 10 + 13674688926940639269406 );
 
     	// 50% of the remaining rewards are burned
     	uint256 halfOfRemaining = ( polRewards * 45 ) / 100;
-    	assertEq( salt.totalBurned(), halfOfRemaining + 1 );
+    	assertEq( salt.totalBurned(), halfOfRemaining );
 
     	// Other 50% should stay in the DAO
     	// The daoVestingWallet contains 25 million SALT and vests over a 10 year period.
-    	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days
-    	assertEq( salt.balanceOf(address(dao)), 3833605790613569956371 );
+    	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days (changed to one hour)
+    	assertEq( salt.balanceOf(address(dao)), 156280441548382875167 );
     	}
 
 
@@ -1109,7 +1115,7 @@ contract TestUpkeepFlawed is Deployment
     	// Check Step 6. Distribute SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
     	// Check that about 72.2 ether of WETH has been converted to SALT and sent to SaltRewards.
-    	// Emissions also emit about 185715 SALT as 5 days have gone by since the deployment (delay for the bootstrap ballot to complete).
+    	// Emissions also emit about 185715 SALT as 5 days (changed to one hour) have gone by since the deployment (delay for the bootstrap ballot to complete).
     	// This is due to Emissions holding 52 million SALT and emitting at a default rate of .50% / week.
 
     	// As there were profits, SaltRewards distributed the 185715 ether + 72.2 ether rewards
@@ -1128,7 +1134,7 @@ contract TestUpkeepFlawed is Deployment
     	// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
 //    	uint256 expectedStakingRewardsFromBootstrapping = uint256(3000000 ether) / 100;
 //       	uint256 expectedStakingRewardsFromArbitrageProfits = uint( 185786 ether * 45 ) / 100 / 100;
-    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 30836057906135699563712  );
+    	assertEq( staking.totalRewardsForPools(poolIDsA)[0], 1250304415483828751662  );
 
     	bytes32[] memory poolIDs = new bytes32[](4);
     	poolIDs[0] = PoolUtils._poolID(salt,weth);
@@ -1149,12 +1155,12 @@ contract TestUpkeepFlawed is Deployment
 //          	uint256 expectedAdditionalForSaltUSDC = ( 185786 ether * 10 ) / 100 / 100;
 //
 //    	// Expected for all pools
-//    	uint256 expectedLiquidityRewardsFromBootstrapping = uint256(5000000 ether) / numInitialPools / 100;
+//    	uint256 expectedLiquidityRewardsFromBootstrapping = uint256(5000000 ether) / numInitialPools / 100 / 24;
 
-    	assertEq( rewards[0], 8612019302045233187904);
-    	assertEq( rewards[1], 8612019302045233187904);
-    	assertEq( rewards[2], 8612019302045233187904);
-    	assertEq( rewards[3], 8519123979141266569713);
+    	assertEq( rewards[0], 347323694050165139443);
+    	assertEq( rewards[1], 347323694050165139443);
+    	assertEq( rewards[2], 347323694050165139443);
+    	assertEq( rewards[3], 347289870107517500369);
 
     	// Check Step 9. Collect SALT rewards from the DAO's Protocol Owned Liquidity: send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.
     	// Check Step 10. Sends SALT from the DAO vesting wallet to the DAO (linear distribution over 10 years).
@@ -1165,17 +1171,17 @@ contract TestUpkeepFlawed is Deployment
 
     	// 10% of the POL Rewards for the team wallet
     	// The teamVestingWallet contains 10 million SALT and vests over a 10 year period.
-    	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days
-    	assertEq( salt.balanceOf(teamWallet), 851912397914126656971 );
+    	// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days (changed to one hour)
+    	assertEq( salt.balanceOf(teamWallet), 34728987010751750036 );
 
     	// 50% of the remaining rewards are burned
     	uint256 halfOfRemaining = ( polRewards * 45 ) / 100;
-    	assertEq( salt.totalBurned(), halfOfRemaining + 1 );
+    	assertEq( salt.totalBurned(), halfOfRemaining );
 
     	// Other 50% should stay in the DAO
     	// The daoVestingWallet contains 25 million SALT and vests over a 10 year period.
-    	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days
-    	assertEq( salt.balanceOf(address(dao)), halfOfRemaining + 1 + 34109667998477929984779 );
+    	// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days (changed to one hour)
+    	assertEq( salt.balanceOf(address(dao)), halfOfRemaining + 1 + 34393914573820395738203 );
     	}
 
 

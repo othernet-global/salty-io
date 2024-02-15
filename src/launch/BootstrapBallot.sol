@@ -73,6 +73,9 @@ contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
 
 		if ( startExchangeYes > startExchangeNo )
 			{
+			// First call performUpkeep() to reset the emissions timers so the first liquidity rewards claimers don't claim a full days worth of the bootstrap rewards
+			exchangeConfig.upkeep().performUpkeep();
+
 			exchangeConfig.initialDistribution().distributionApproved();
 			exchangeConfig.dao().pools().startExchangeApproved();
 
