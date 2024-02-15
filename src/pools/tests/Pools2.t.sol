@@ -854,7 +854,7 @@ function testNeoCraoDepositOnlyReserve0Tokens() public {
         PoolUtils._poolID(testTokens[0], testTokens[1])
     );
 
-	// After fix
+	// Fixed in: https://github.com/othernet-global/salty-io/commit/0bb763cc67e6a30a97d8b157f7e5954692b3dd68
 	vm.expectRevert( "Added liquidity for token 1 less than DUST" );
     pools.addLiquidity(
         testTokens[0],

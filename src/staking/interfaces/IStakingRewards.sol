@@ -10,8 +10,8 @@ struct AddedReward
 
 struct UserShareInfo
 	{
-	uint128 userShare;					// A user's share for a given poolID
-	uint128 virtualRewards;				// The amount of rewards that were added to maintain proper rewards/share ratio - and will be deducted from a user's pending rewards.
+	uint256 userShare;					// A user's share for a given poolID
+	uint256 virtualRewards;				// The amount of rewards that were added to maintain proper rewards/share ratio - and will be deducted from a user's pending rewards.
 	uint256 cooldownExpiration;		// The timestamp when the user can modify their share
 	}
 

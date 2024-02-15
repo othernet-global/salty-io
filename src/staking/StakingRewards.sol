@@ -85,12 +85,12 @@ abstract contract StakingRewards is IStakingRewards, ReentrancyGuard
 			// Round up in favor of the protocol.
 			uint256 virtualRewardsToAdd = Math.ceilDiv( totalRewards[poolID] * increaseShareAmount, existingTotalShares );
 
-			user.virtualRewards += uint128(virtualRewardsToAdd);
-	        totalRewards[poolID] += uint128(virtualRewardsToAdd);
+			user.virtualRewards += virtualRewardsToAdd;
+	        totalRewards[poolID] += virtualRewardsToAdd;
 	        }
 
 		// Update the deposit balances
-		user.userShare += uint128(increaseShareAmount);
+		user.userShare += increaseShareAmount;
 		totalShares[poolID] = existingTotalShares + increaseShareAmount;
 
 		emit UserShareIncreased(wallet, poolID, increaseShareAmount);
@@ -127,8 +127,8 @@ abstract contract StakingRewards is IStakingRewards, ReentrancyGuard
 		totalShares[poolID] -= decreaseShareAmount;
 
 		// Update the user's share and virtual rewards
-		user.userShare -= uint128(decreaseShareAmount);
-		user.virtualRewards -= uint128(virtualRewardsToRemove);
+		user.userShare -= decreaseShareAmount;
+		user.virtualRewards -= virtualRewardsToRemove;
 
 		uint256 claimableRewards = 0;
 
@@ -161,7 +161,7 @@ abstract contract StakingRewards is IStakingRewards, ReentrancyGuard
 			uint256 pendingRewards = userRewardForPool( msg.sender, poolID );
 
 			// Increase the virtualRewards balance for the user to account for them receiving the rewards without withdrawing
-			userInfo[poolID].virtualRewards += uint128(pendingRewards);
+			userInfo[poolID].virtualRewards += pendingRewards;
 
 			claimableRewards += pendingRewards;
 			}

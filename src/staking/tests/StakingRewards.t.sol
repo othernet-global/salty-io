@@ -951,4 +951,67 @@ contract SharedRewardsTest is Deployment
 
         vm.stopPrank();
     }
+
+
+	// From: https://github.com/code-423n4/2024-01-salty-findings/issues/341
+    function testUserCanBrickRewards() public {
+            vm.startPrank(DEPLOYER);
+            // Alice is the first depositor to poolIDs[1] and she deposited the minimum amounts 101 and 101 of both tokens.
+            // Hence, alice will get 202 shares.
+            stakingRewards.externalIncreaseUserShare(alice, poolIDs[1], 202, true);
+            assertEq(stakingRewards.userShareForPool(alice, poolIDs[1]), 202);
+            vm.stopPrank();
+
+            // Alice adds 100 SALT as rewards to the pool.
+            AddedReward[] memory addedRewards = new AddedReward[](1);
+            addedRewards[0] = AddedReward(poolIDs[1], 100 ether);
+            stakingRewards.addSALTRewards(addedRewards);
+
+
+            // Bob deposits 100 DAI and 100 USDS he will receive (202 * 100e8) / 101 = 200e18 shares.
+            vm.startPrank(DEPLOYER);
+            stakingRewards.externalIncreaseUserShare(bob, poolIDs[1], 200e18, true);
+            assertEq(stakingRewards.userShareForPool(bob, poolIDs[1]), 200e18);
+            vm.stopPrank();
+
+            // Charlie deposits 10000 DAI and 10000 USDS he will receive (202 * 10000e8) / 101 = 20000e18 shares.
+            vm.startPrank(DEPLOYER);
+            stakingRewards.externalIncreaseUserShare(charlie, poolIDs[1], 20000e18, true);
+            assertEq(stakingRewards.userShareForPool(charlie, poolIDs[1]), 20000e18);
+            vm.stopPrank();
+
+            // Observe how virtual rewards are broken.
+            uint256 virtualRewardsAlice = stakingRewards.userVirtualRewardsForPool(alice, poolIDs[1]);
+            uint256 virtualRewardsBob = stakingRewards.userVirtualRewardsForPool(bob, poolIDs[1]);
+            uint256 virtualRewardsCharlie = stakingRewards.userVirtualRewardsForPool(charlie, poolIDs[1]);
+
+            console.log("Alice virtual rewards %s", virtualRewardsAlice);
+            console.log("Bob virtual rewards %s", virtualRewardsBob);
+            console.log("Charlie virtual rewards %s", virtualRewardsCharlie);
+
+            // Observe the amount of claimable rewards.
+            uint256 aliceRewardAfter = stakingRewards.userRewardForPool(alice, poolIDs[1]);
+            uint256 bobRewardAfter = stakingRewards.userRewardForPool(bob, poolIDs[1]);
+            uint256 charlieRewardAfter = stakingRewards.userRewardForPool(charlie, poolIDs[1]);
+
+            console.log("Alice rewards %s", aliceRewardAfter);
+            console.log("Bob rewards %s", bobRewardAfter);
+            console.log("Charlie rewards %s", charlieRewardAfter);
+
+            // The sum of claimable rewards is greater than 1000e18 SALT.
+            uint256 sumOfRewards = aliceRewardAfter + bobRewardAfter + charlieRewardAfter;
+            console.log("All rewards &s", sumOfRewards);
+
+            bytes32[] memory poolIDs2;
+
+            poolIDs2 = new bytes32[](1);
+
+            poolIDs2[0] = poolIDs[1];
+
+            // Fixed in: https://github.com/othernet-global/salty-io/commit/0bb763cc67e6a30a97d8b157f7e5954692b3dd68
+//            vm.expectRevert("ERC20: transfer amount exceeds balance");
+            vm.startPrank(charlie);
+            stakingRewards.claimAllRewards(poolIDs2);
+            vm.stopPrank();
+                           }
 	}
