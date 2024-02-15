@@ -299,7 +299,7 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		require( msg.sender == address(exchangeConfig.upkeep()), "DAO.formPOL is only callable from the Upkeep contract" );
 
 		// Use zapping to form the liquidity so that all the specified tokens are used
-		liquidity.depositLiquidityAndIncreaseShare( tokenA, tokenB, amountA, amountB, 0, block.timestamp, true );
+		liquidity.depositLiquidityAndIncreaseShare( tokenA, tokenB, amountA, amountB, 0, 0, 0, block.timestamp, true );
 
 		emit POLFormed(tokenA, tokenB, amountA, amountB);
 		}

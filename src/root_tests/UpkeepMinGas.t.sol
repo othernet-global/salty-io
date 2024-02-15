@@ -35,7 +35,7 @@ contract TestMinUpkeep is Deployment
 			tokenA.approve(address(pools), type(uint256).max);
 			tokenB.approve(address(pools), type(uint256).max);
 
-			liquidity.depositLiquidityAndIncreaseShare(tokenA, tokenB, 100 * 10**ERC20(address(tokenA)).decimals(), 100 * 10**ERC20(address(tokenB)).decimals(), 0, block.timestamp, false);
+			liquidity.depositLiquidityAndIncreaseShare(tokenA, tokenB, 100 * 10**ERC20(address(tokenA)).decimals(), 100 * 10**ERC20(address(tokenB)).decimals(), 0, 0, 0, block.timestamp, false);
     		}
     	vm.stopPrank();
 		}

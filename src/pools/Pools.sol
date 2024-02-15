@@ -121,23 +121,22 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 			addedAmount1 = proportionalB;
 			}
 
+		// Ensure that the added amounts are at least DUST
+		require( addedAmount0 > PoolUtils.DUST, "Added liquidity for token 0 less than DUST" );
+		require( addedAmount1 > PoolUtils.DUST, "Added liquidity for token 1 less than DUST" );
+
 		// Update the reserves
 		reserves.reserve0 += uint128(addedAmount0);
 		reserves.reserve1 += uint128(addedAmount1);
 
 		// Determine the amount of liquidity that will be given to the user to reflect their share of the total liquidity.
-		// Use whichever added amount was larger to maintain better numeric resolution.
-		// Rounded down in favor of the protocol.
-		if ( addedAmount0 > addedAmount1)
-			addedLiquidity = (totalLiquidity * addedAmount0) / reserve0;
-		else
-			addedLiquidity = (totalLiquidity * addedAmount1) / reserve1;
+		addedLiquidity = (totalLiquidity * (addedAmount0+addedAmount1) ) / (reserve0+reserve1);
 		}
 
 
 	// Add liquidity to the specified pool (must be a whitelisted pool)
 	// Only callable from the Liquidity contract - so it can specify totalLiquidity with authority
-	function addLiquidity( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 totalLiquidity ) external nonReentrant returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
+	function addLiquidity( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minAddedAmountA, uint256 minAddedAmountB, uint256 totalLiquidity ) external nonReentrant returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
 		{
 		require( msg.sender == address(liquidity), "Pools.addLiquidity is only callable from the Liquidity contract" );
 		require( exchangeIsLive, "The exchange is not yet live" );
@@ -155,7 +154,8 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 			(addedAmountA, addedAmountB, addedLiquidity) = _addLiquidity( poolID, maxAmountA, maxAmountB, totalLiquidity );
 
 		// Make sure the minimum liquidity has been added
-		require( addedLiquidity >= minLiquidityReceived, "Too little liquidity received" );
+		require( addedAmountA >= minAddedAmountA, "Insufficient tokenA added to liquidity" );
+		require( addedAmountB >= minAddedAmountB, "Insufficient tokenB added to liquidity" );
 
 		// Transfer the tokens from the sender - only tokens without fees should be whitelisted on the DEX
 		tokenA.safeTransferFrom(msg.sender, address(this), addedAmountA );

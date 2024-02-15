@@ -53,7 +53,7 @@ contract TestPoolUtils is Deployment
 			poolsConfig.whitelistPool( pools,    tokens[i], tokens[i + 1] );
 
 			vm.prank(DEPLOYER);
-			liquidity.depositLiquidityAndIncreaseShare( tokens[i], tokens[i + 1], 500 ether, 500 ether, 0, block.timestamp, false );
+			liquidity.depositLiquidityAndIncreaseShare( tokens[i], tokens[i + 1], 500 ether, 500 ether, 0, 0, 0, block.timestamp, false );
 			}
 
 		vm.prank(address(dao));
@@ -62,14 +62,14 @@ contract TestPoolUtils is Deployment
 		poolsConfig.whitelistPool( pools,    tokens[0], tokens[9] );
 
 		vm.startPrank( DEPLOYER );
-		liquidity.depositLiquidityAndIncreaseShare( tokens[5], tokens[7], 1000 ether, 1000 ether, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( tokens[5], tokens[7], 1000 ether, 1000 ether, 0, 0, 0, block.timestamp, false );
 
 		pools.deposit( tokens[5], 1000 ether );
 		pools.deposit( tokens[6], 1000 ether );
 		pools.deposit( tokens[7], 1000 ether );
 		pools.deposit( tokens[8], 1000 ether );
 
-		liquidity.depositLiquidityAndIncreaseShare( tokens[0], tokens[9], 1000000000 ether, 2000000000 ether, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( tokens[0], tokens[9], 1000000000 ether, 2000000000 ether, 0, 0, 0, block.timestamp, false );
 		vm.stopPrank();
 
 		for( uint256 i = 0; i < 10; i++ )
@@ -81,7 +81,7 @@ contract TestPoolUtils is Deployment
 		for( uint256 i = 0; i < 9; i++ )
 			{
 			pools.deposit( tokens[i], 1000 ether );
-			liquidity.depositLiquidityAndIncreaseShare( tokens[i], tokens[i + 1], 500 ether, 500 ether, 0, block.timestamp, false );
+			liquidity.depositLiquidityAndIncreaseShare( tokens[i], tokens[i + 1], 500 ether, 500 ether, 0, 0, 0, block.timestamp, false );
         	}
 
 		vm.startPrank(address(liquidity));
@@ -117,7 +117,7 @@ contract TestPoolUtils is Deployment
 		token1.approve(address(liquidity),type(uint256).max);
 		token0.approve(address(pools),type(uint256).max);
 
-		liquidity.depositLiquidityAndIncreaseShare( token0, token1, 1000 ether, 1000 ether, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( token0, token1, 1000 ether, 1000 ether, 0, 0, 0, block.timestamp, false );
 
 		(uint256 swapAmountIn, uint256 swapAmountOut) = PoolUtils._placeInternalSwap( pools, token0, token1, 100 ether, 1000 );
 
@@ -142,7 +142,7 @@ contract TestPoolUtils is Deployment
 		token1.approve(address(liquidity),type(uint256).max);
 		token0.approve(address(pools),type(uint256).max);
 
-		liquidity.depositLiquidityAndIncreaseShare( token0, token1, 1000 ether, 1000 ether, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( token0, token1, 1000 ether, 1000 ether, 0, 0, 0, block.timestamp, false );
 
 		(uint256 swapAmountIn, uint256 swapAmountOut) = PoolUtils._placeInternalSwap( pools, token0, token1, 1 ether, 1000 );
 

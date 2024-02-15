@@ -263,13 +263,13 @@ contract TestRewardsEmitter is Deployment
 	function testPerformUpkeep() public {
         // Alice, Bob, and Charlie deposit their LP tokens into pool[1]
         vm.prank(alice);
-        liquidity.depositLiquidityAndIncreaseShare(token1, token2, 100 ether, 100 ether, 0, block.timestamp, false);
+        liquidity.depositLiquidityAndIncreaseShare(token1, token2, 100 ether, 100 ether, 0, 0, 0, block.timestamp, false);
 
         vm.prank(bob);
-        liquidity.depositLiquidityAndIncreaseShare(token1, token2, 100 ether, 100 ether, 0, block.timestamp, false);
+        liquidity.depositLiquidityAndIncreaseShare(token1, token2, 100 ether, 100 ether, 0, 0, 0, block.timestamp, false);
 
         vm.prank(charlie);
-        liquidity.depositLiquidityAndIncreaseShare(token1, token2, 100 ether, 100 ether, 0, block.timestamp, false);
+        liquidity.depositLiquidityAndIncreaseShare(token1, token2, 100 ether, 100 ether, 0, 0, 0, block.timestamp, false);
 
         // Adding rewards to the pools
         AddedReward[] memory addedRewards = new AddedReward[](2);
@@ -304,20 +304,20 @@ contract TestRewardsEmitter is Deployment
 	function testPendingRewardsForPools() public {
         // Alice stakes in both pools
         vm.startPrank(alice);
-        liquidity.depositLiquidityAndIncreaseShare(token1, token2, 50 ether, 50 ether, 0, block.timestamp, false);
-        liquidity.depositLiquidityAndIncreaseShare(token2, token3, 50 ether, 50 ether, 0, block.timestamp, false);
+        liquidity.depositLiquidityAndIncreaseShare(token1, token2, 50 ether, 50 ether, 0, 0, 0, block.timestamp, false);
+        liquidity.depositLiquidityAndIncreaseShare(token2, token3, 50 ether, 50 ether, 0, 0, 0, block.timestamp, false);
         vm.stopPrank();
 
         // Bob stakes in both pools
         vm.startPrank(bob);
-        liquidity.depositLiquidityAndIncreaseShare(token1, token2, 30 ether, 30 ether, 0, block.timestamp, false);
-        liquidity.depositLiquidityAndIncreaseShare(token2, token3, 70 ether, 70 ether, 0, block.timestamp, false);
+        liquidity.depositLiquidityAndIncreaseShare(token1, token2, 30 ether, 30 ether, 0, 0, 0, block.timestamp, false);
+        liquidity.depositLiquidityAndIncreaseShare(token2, token3, 70 ether, 70 ether, 0, 0, 0, block.timestamp, false);
         vm.stopPrank();
 
         // Charlie stakes in both pools
         vm.startPrank(charlie);
-        liquidity.depositLiquidityAndIncreaseShare(token1, token2, 20 ether, 20 ether, 0, block.timestamp, false);
-        liquidity.depositLiquidityAndIncreaseShare(token2, token3, 80 ether, 80 ether, 0, block.timestamp, false);
+        liquidity.depositLiquidityAndIncreaseShare(token1, token2, 20 ether, 20 ether, 0, 0, 0, block.timestamp, false);
+        liquidity.depositLiquidityAndIncreaseShare(token2, token3, 80 ether, 80 ether, 0, 0, 0, block.timestamp, false);
         vm.stopPrank();
 
         // Advance the time by 1 day
@@ -537,7 +537,7 @@ contract TestRewardsEmitter is Deployment
 	function testWithdrawnPoolAddSALTRewards() public {
         // Alice deposits some liquidity to the pool1
         vm.prank(alice);
-        liquidity.depositLiquidityAndIncreaseShare(token1, token2, 500 ether, 500 ether, 0, block.timestamp, true );
+        liquidity.depositLiquidityAndIncreaseShare(token1, token2, 500 ether, 500 ether, 0, 0, 0, block.timestamp, true );
 
         AddedReward[] memory addedRewards = new AddedReward[](1);
         addedRewards[0] = AddedReward({poolID: poolIDs[0], amountToAdd: 100 ether});

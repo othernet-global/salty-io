@@ -118,8 +118,8 @@ contract TestUpkeep2 is Deployment
 		usdc.approve( address(liquidity), 100000 ether);
 		salt.approve( address(liquidity), 100000 ether);
 
-		liquidity.depositLiquidityAndIncreaseShare(weth, usdc, 100000 ether, 100000 * 10**6, 0, block.timestamp, false);
-		liquidity.depositLiquidityAndIncreaseShare(weth, salt, 100000 ether, 100000 ether, 0, block.timestamp, false);
+		liquidity.depositLiquidityAndIncreaseShare(weth, usdc, 100000 ether, 100000 * 10**6, 0, 0, 0, block.timestamp, false);
+		liquidity.depositLiquidityAndIncreaseShare(weth, salt, 100000 ether, 100000 ether, 0, 0, 0, block.timestamp, false);
 
 		vm.stopPrank();
 		}
@@ -227,10 +227,10 @@ contract TestUpkeep2 is Deployment
 		weth.approve(address(liquidity), type(uint256).max);
 
 		if ( despositSaltUSDC )
-			liquidity.depositLiquidityAndIncreaseShare( salt, weth, 1000 ether, 1000 ether, 0, block.timestamp, false );
+			liquidity.depositLiquidityAndIncreaseShare( salt, weth, 1000 ether, 1000 ether, 0, 0, 0, block.timestamp, false );
 
-		liquidity.depositLiquidityAndIncreaseShare( wbtc, salt, 1000 * 10**8, 1000 ether, 0, block.timestamp, false );
-		liquidity.depositLiquidityAndIncreaseShare( wbtc, weth, 1000 * 10**8, 1000 ether, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( wbtc, salt, 1000 * 10**8, 1000 ether, 0, 0, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( wbtc, weth, 1000 * 10**8, 1000 ether, 0, 0, 0, block.timestamp, false );
 
 		salt.approve(address(pools), type(uint256).max);
 		wbtc.approve(address(pools), type(uint256).max);
@@ -600,7 +600,7 @@ contract TestUpkeep2 is Deployment
 		assertEq( reservesB, 18996601 ); // Close to 19
 
 		uint256 daoLiquidity = liquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usdc));
-		assertEq( daoLiquidity, 18989907293828063073 ); // Close to 19
+		assertEq( daoLiquidity, 18989907293828063072 ); // Close to 19
 
 
 		// Check Step 3. Convert remaining WETH to SALT and sends it to SaltRewards.
@@ -643,7 +643,7 @@ contract TestUpkeep2 is Deployment
 		assertEq( rewards[0], 5854297793624899168178);
 		assertEq( rewards[1], 5854297793624899168178);
 		assertEq( rewards[2], 5854297793624899168178);
-		assertEq( rewards[3], 11497077098578557783492);
+		assertEq( rewards[3], 11497077098578557782888);
 
 
 		// Check Step 7. Collect SALT rewards from the DAO's Protocol Owned Liquidity: send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.

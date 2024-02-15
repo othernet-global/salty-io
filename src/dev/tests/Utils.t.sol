@@ -108,7 +108,7 @@ contract TestUtils is Deployment
 
 		token1.approve( address(pools), type(uint256).max );
 
-		liquidity.depositLiquidityAndIncreaseShare( token1, token2, 100 ether, 200 ether, 0 ether, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( token1, token2, 100 ether, 200 ether, 0, 0, 0, block.timestamp, false );
 		pools.depositSwapWithdraw( token1, token2, 50 ether, 0, block.timestamp );
 
 //		console.log( "INITIAL LIQUIDITY: ", liquidity.totalShares( PoolUtils._poolID( token1, token2 ) ) );
@@ -161,12 +161,12 @@ contract TestUtils is Deployment
 //			console.log( "ES: ", estimate );
 	 		}
 
-		(,, uint256 addedLiquidity) = liquidity.depositLiquidityAndIncreaseShare( token1, token2, 0, 30 ether, 0, block.timestamp, true );
+		uint256 addedLiquidity = liquidity.depositLiquidityAndIncreaseShare( token1, token2, 0, 30 ether, 0, 0, 0, block.timestamp, true );
 //		console.log( "AD: ", addedLiquidity );
 
 		assertEq( estimate / 10, addedLiquidity / 10 );
 
-//		(,, addedLiquidity) = liquidity.depositLiquidityAndIncreaseShare( token1, token2, 30 ether, 0 ether, 0 ether, block.timestamp, true );
+		//addedLiquidity = liquidity.depositLiquidityAndIncreaseShare( token1, token2, 30 ether, 0 ether, 0 ether, 0, block.timestamp, true );
 	    }
 
 
@@ -178,7 +178,7 @@ contract TestUtils is Deployment
 
 		token1.approve( address(pools), type(uint256).max );
 
-		liquidity.depositLiquidityAndIncreaseShare( token1, token2, 100 ether, 200 ether, 0 ether, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( token1, token2, 100 ether, 200 ether, 0, 0, 0, block.timestamp, false );
 		pools.depositSwapWithdraw( token1, token2, 50 ether, 0, block.timestamp );
 
 //		console.log( "INITIAL LIQUIDITY: ", liquidity.totalShares( PoolUtils._poolID( token1, token2 ) ) );
@@ -231,11 +231,11 @@ contract TestUtils is Deployment
 //			console.log( "ES: ", estimate );
 	 		}
 
-		(,, uint256 addedLiquidity) = liquidity.depositLiquidityAndIncreaseShare( token1, token2, 30 ether, 0, 0, block.timestamp, true );
+		uint256 addedLiquidity = liquidity.depositLiquidityAndIncreaseShare( token1, token2, 30 ether, 0, 0, 0, 0, block.timestamp, true );
 //		console.log( "AD: ", addedLiquidity );
 
 		assertEq( estimate / 10, addedLiquidity / 10 );
 
-//		(,, addedLiquidity) = liquidity.depositLiquidityAndIncreaseShare( token1, token2, 30 ether, 0 ether, 0 ether, block.timestamp, true );
+//		addedLiquidity = liquidity.depositLiquidityAndIncreaseShare( token1, token2, 30 ether, 0 ether, 0 ether, 0, block.timestamp, true );
 	    }
 	}

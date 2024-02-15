@@ -51,9 +51,9 @@ contract TestArbitrage is Deployment
    		wbtc.approve( address(liquidity), type(uint256).max );
    		weth.approve( address(liquidity), type(uint256).max );
 
-		liquidity.depositLiquidityAndIncreaseShare( tokenE, wbtc, 100 ether * priceBTC / priceETH, 100 *10**8, 0, block.timestamp, false );
-		liquidity.depositLiquidityAndIncreaseShare( tokenE, weth, 1000 ether, 1000 ether, 0, block.timestamp, false );
-		liquidity.depositLiquidityAndIncreaseShare( wbtc, weth, 1000 *10**8, 1000 ether * priceBTC / priceETH, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( tokenE, wbtc, 100 ether * priceBTC / priceETH, 100 *10**8, 0, 0, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( tokenE, weth, 1000 ether, 1000 ether, 0, 0, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( wbtc, weth, 1000 *10**8, 1000 ether * priceBTC / priceETH, 0, 0, 0, block.timestamp, false );
 
 		pools.deposit( tokenE, 100 ether );
 

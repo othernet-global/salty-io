@@ -57,9 +57,9 @@ contract TestMaxUpkeep is Deployment
 			tokenB.approve(address(pools), type(uint256).max);
 
 			if ( ( address(tokenA) == address(wbtc)) && ( address(tokenB) == address(weth)) )
-		        liquidity.depositLiquidityAndIncreaseShare(wbtc, weth, 100 * 10**8, 100 ether, 0, block.timestamp, false);
+		        liquidity.depositLiquidityAndIncreaseShare(wbtc, weth, 100 * 10**8, 100 ether, 0, 0, 0, block.timestamp, false);
 			else
-        		liquidity.depositLiquidityAndIncreaseShare(tokenA, tokenB, 100 * 10**ERC20(address(tokenA)).decimals(), 100 * 10**ERC20(address(tokenB)).decimals(), 0, block.timestamp, false);
+        		liquidity.depositLiquidityAndIncreaseShare(tokenA, tokenB, 100 * 10**ERC20(address(tokenA)).decimals(), 100 * 10**ERC20(address(tokenB)).decimals(), 0, 0, 0, block.timestamp, false);
     		}
     	vm.stopPrank();
 		}

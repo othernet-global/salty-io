@@ -129,8 +129,8 @@ contract TestComprehensive1 is Deployment
 		weth.approve(address(liquidity), type(uint256).max);
 		wbtc.approve(address(liquidity), type(uint256).max);
 
-		liquidity.depositLiquidityAndIncreaseShare(salt, weth, 1000 ether, 10 ether, 0, block.timestamp, false);
-		liquidity.depositLiquidityAndIncreaseShare(salt, wbtc, 1000 ether, 10 * 10**8, 0, block.timestamp, false);
+		liquidity.depositLiquidityAndIncreaseShare(salt, weth, 1000 ether, 10 ether, 0, 0, 0, block.timestamp, false);
+		liquidity.depositLiquidityAndIncreaseShare(salt, wbtc, 1000 ether, 10 * 10**8, 0, 0, 0, block.timestamp, false);
 		vm.stopPrank();
 
 		// Bob adds some WBTC/WETH liquidity and borrows some USDC
@@ -139,7 +139,7 @@ contract TestComprehensive1 is Deployment
 		weth.approve(address(liquidity), type(uint256).max);
 		wbtc.approve(address(liquidity), type(uint256).max);
 
-    	liquidity.depositLiquidityAndIncreaseShare(wbtc, weth, 1000 * 10**8, 1000 ether, 0, block.timestamp, false);
+    	liquidity.depositLiquidityAndIncreaseShare(wbtc, weth, 1000 * 10**8, 1000 ether, 0, 0, 0, block.timestamp, false);
     	vm.stopPrank();
 
     	console.log( "bob USDC: ", usdc.balanceOf(bob) );

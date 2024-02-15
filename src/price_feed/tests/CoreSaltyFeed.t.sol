@@ -45,7 +45,7 @@ contract TestCoreSaltyFeed is Deployment
 		vm.startPrank(DEPLOYER);
 
 		// price has 18 deicmals, USDC has 6 decimals
-		liquidity.depositLiquidityAndIncreaseShare( wbtc, usdc, 1000 * 10**8,(price * 1000) / 10 ** 12, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( wbtc, usdc, 1000 * 10**8,(price * 1000) / 10 ** 12, 0, 0, 0, block.timestamp, false );
 		vm.stopPrank();
 		}
 
@@ -56,7 +56,7 @@ contract TestCoreSaltyFeed is Deployment
 		vm.startPrank(DEPLOYER);
 
 		// price has 18 deicmals, USDC has 6 decimals
-		liquidity.depositLiquidityAndIncreaseShare( weth, usdc, 1000 ether, (price * 1000) / 10 ** 12, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( weth, usdc, 1000 ether, (price * 1000) / 10 ** 12, 0, 0, 0, block.timestamp, false );
 		vm.stopPrank();
 		}
 
@@ -161,7 +161,7 @@ contract TestCoreSaltyFeed is Deployment
         uint256 btcPrice = 30000 ether;  // BTC price in terms of USDC
 
 		vm.startPrank(DEPLOYER);
-		liquidity.depositLiquidityAndIncreaseShare( wbtc, usdc, PoolUtils.DUST + 1, btcPrice * (PoolUtils.DUST + 1) / 10 ** 12, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( wbtc, usdc, PoolUtils.DUST + 1, btcPrice * (PoolUtils.DUST + 1) / 10 ** 12, 0, 0, 0, block.timestamp, false );
 		vm.stopPrank();
 
         // Prices should match those set in the pools
@@ -175,7 +175,7 @@ contract TestCoreSaltyFeed is Deployment
         uint256 ethPrice = 3000 ether;  // ETH price in terms of USDC
 
 		vm.startPrank(DEPLOYER);
-		liquidity.depositLiquidityAndIncreaseShare( weth, usdc, PoolUtils.DUST + 1, ethPrice * (PoolUtils.DUST + 1) / 10 ** 12, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( weth, usdc, PoolUtils.DUST + 1, ethPrice * (PoolUtils.DUST + 1) / 10 ** 12, 0, 0, 0, block.timestamp, false );
 		vm.stopPrank();
 
         // Prices should match those set in the pools

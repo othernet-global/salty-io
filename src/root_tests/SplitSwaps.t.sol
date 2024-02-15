@@ -27,9 +27,9 @@ contract TestSplitSwaps is Deployment
 		weth.approve(address(pools), type(uint256).max );
 		wbtc.approve(address(pools), type(uint256).max );
 
-		liquidity.depositLiquidityAndIncreaseShare( weth, usdc, rA0, rA1, 0, block.timestamp, false );
-		liquidity.depositLiquidityAndIncreaseShare( wbtc, usdc, rB0, rB1, 0, block.timestamp, false );
-		liquidity.depositLiquidityAndIncreaseShare(wbtc, weth, rC0, rC1, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( weth, usdc, rA0, rA1, 0, 0, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( wbtc, usdc, rB0, rB1, 0, 0, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare(wbtc, weth, rC0, rC1, 0, 0, 0, block.timestamp, false );
 		vm.stopPrank();
 		}
 

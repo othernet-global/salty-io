@@ -17,9 +17,6 @@ import "../pools/PoolUtils.sol";
 
 contract Liquidity is ILiquidity, StakingRewards
     {
-    event LiquidityDeposited(address indexed user, address indexed tokenA, address indexed tokenB, uint256 amountA, uint256 amountB, uint256 addedLiquidity);
-    event LiquidityWithdrawn(address indexed user, address indexed tokenA, address indexed tokenB, uint256 amountA, uint256 amountB, uint256 withdrawnLiquidity);
-
 	using SafeERC20 for IERC20;
 
 	IPools immutable public pools;
@@ -76,7 +73,7 @@ contract Liquidity is ILiquidity, StakingRewards
 	// With zapping, all the tokens specified by the user are added to the liquidity pool regardless of their ratio.
 	// If one of the tokens has excess in regards to the reserves token ratio, then some of it is first swapped for the other before the liquidity is added. (See PoolMath.sol for details)
 	// Requires exchange access for the user.
-	function depositLiquidityAndIncreaseShare( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 deadline, bool useZapping ) external nonReentrant ensureNotExpired(deadline) returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
+	function depositLiquidityAndIncreaseShare( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minAddedAmountA, uint256 minAddedAmountB, uint256 minAddedLiquidity, uint256 deadline, bool useZapping ) external nonReentrant ensureNotExpired(deadline) returns (uint256 addedLiquidity)
 		{
 		require( exchangeConfig.walletHasAccess(msg.sender), "Sender does not have exchange access" );
 
@@ -92,15 +89,24 @@ contract Liquidity is ILiquidity, StakingRewards
 		tokenA.approve( address(pools), maxAmountA );
 		tokenB.approve( address(pools), maxAmountB );
 
-		// Deposit the specified liquidity into the Pools contract
-		// The added liquidity will be owned by this contract. (external call to Pools contract)
-		bytes32 poolID = PoolUtils._poolID( tokenA, tokenB );
-		(addedAmountA, addedAmountB, addedLiquidity) = pools.addLiquidity( tokenA, tokenB, maxAmountA, maxAmountB, minLiquidityReceived, totalShares[poolID]);
+		uint256 addedAmountA;
+		uint256 addedAmountB;
 
-		// Increase the user's liquidity share by the amount of addedLiquidity.
-		// Cooldown is specified to prevent reward hunting (ie - quickly depositing and withdrawing large amounts of liquidity to snipe rewards as they arrive)
-		// _increaseUserShare confirms the pool as whitelisted as well.
-		_increaseUserShare( msg.sender, poolID, addedLiquidity, true );
+			{
+			// Deposit the specified liquidity into the Pools contract
+			// The added liquidity will be owned by this contract. (external call to Pools contract)
+			bytes32 poolID = PoolUtils._poolID( tokenA, tokenB );
+
+			(addedAmountA, addedAmountB, addedLiquidity) = pools.addLiquidity( tokenA, tokenB, maxAmountA, maxAmountB, minAddedAmountA, minAddedAmountB, totalShares[poolID]);
+
+			// Make sure the user receives a sufficient share of liquidity
+			require( addedLiquidity >= minAddedLiquidity, "Insufficient liquidity added" );
+
+			// Increase the user's liquidity share by the amount of addedLiquidity.
+			// Cooldown is specified to prevent reward hunting (ie - quickly depositing and withdrawing large amounts of liquidity to snipe rewards as they arrive)
+			// _increaseUserShare confirms the pool as whitelisted as well.
+			_increaseUserShare( msg.sender, poolID, addedLiquidity, true );
+			}
 
 		// If any of the user's tokens were not used, then send them back
 		if ( addedAmountA < maxAmountA )
@@ -108,8 +114,6 @@ contract Liquidity is ILiquidity, StakingRewards
 
 		if ( addedAmountB < maxAmountB )
 			tokenB.safeTransfer( msg.sender, maxAmountB - addedAmountB );
-
-		emit LiquidityDeposited(msg.sender, address(tokenA), address(tokenB), addedAmountA, addedAmountB, addedLiquidity);
 		}
 
 
@@ -131,7 +135,5 @@ contract Liquidity is ILiquidity, StakingRewards
 		// Cooldown is specified to prevent reward hunting (ie - quickly depositing and withdrawing large amounts of liquidity to snipe rewards)
 		// This call will send any pending SALT rewards to msg.sender as well.
 		_decreaseUserShare( msg.sender, poolID, liquidityToWithdraw, true );
-
-		emit LiquidityWithdrawn(msg.sender, address(tokenA), address(tokenB), reclaimedA, reclaimedB, liquidityToWithdraw);
 		}
 	}

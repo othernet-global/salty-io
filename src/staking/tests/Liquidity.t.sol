@@ -127,8 +127,13 @@ contract LiquidityTest is Deployment
 		uint256 addedAmount2 = 20 ether;
 
 		// Have alice add liquidity
+		uint256 balanceA = token1.balanceOf(alice);
+		uint256 balanceB = token2.balanceOf(alice);
 		vm.prank(alice);
-		(uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity) = liquidity.depositLiquidityAndIncreaseShare( token1, token2, addedAmount1, addedAmount2, 0 ether, block.timestamp, false );
+		uint256 addedLiquidity = liquidity.depositLiquidityAndIncreaseShare( token1, token2, addedAmount1, addedAmount2, 0, 0, 0, block.timestamp, false );
+		uint256 addedAmountA = balanceA - token1.balanceOf(alice);
+		uint256 addedAmountB = balanceB - token2.balanceOf(alice);
+
 		assertEq( addedAmountA, addedAmount1, "Tokens were not deposited into the pool as expected" );
 		assertEq( addedAmountB, addedAmount2, "Tokens were not deposited into the pool as expected" );
 
@@ -156,8 +161,12 @@ contract LiquidityTest is Deployment
 		uint256 addedAmount2 = 20 ether;
 
 		// Have alice add liquidity
+		uint256 balanceA = token1.balanceOf(alice);
+		uint256 balanceB = token2.balanceOf(alice);
 		vm.prank(alice);
-		(uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity) = liquidity.depositLiquidityAndIncreaseShare( token1, token2, addedAmount1, addedAmount2, 0 ether, block.timestamp, false );
+		uint256 addedLiquidity = liquidity.depositLiquidityAndIncreaseShare( token1, token2, addedAmount1, addedAmount2, 0, 0, 0, block.timestamp, false );
+		uint256 addedAmountA = balanceA - token1.balanceOf(alice);
+		uint256 addedAmountB = balanceB - token2.balanceOf(alice);
 		assertEq(liquidity.userShareForPool(alice, pool1), addedLiquidity, "Alice's share should have increased" );
 
 		// Check that the contract balance has increased by the amount of the added tokens
@@ -189,7 +198,7 @@ contract LiquidityTest is Deployment
 		{
 		vm.expectRevert( "Sender does not have exchange access" );
 		vm.prank(address(0xDEAD));
-		liquidity.depositLiquidityAndIncreaseShare( token1, token2, 10 ether, 10 ether, 0 ether, block.timestamp, true );
+		liquidity.depositLiquidityAndIncreaseShare( token1, token2, 10 ether, 10 ether, 0 ether, 0, 0, block.timestamp, true );
 		}
 
 
@@ -199,7 +208,7 @@ contract LiquidityTest is Deployment
 	function testWithdrawingMoreThanDeposited() public {
 		// Have alice add liquidity
 		vm.startPrank(alice);
-		(,, uint256 addedLiquidity) = liquidity.depositLiquidityAndIncreaseShare( token2, token3, 10 ether, 20 ether, 0 ether, block.timestamp, true );
+		uint256 addedLiquidity = liquidity.depositLiquidityAndIncreaseShare( token2, token3, 10 ether, 20 ether, 0, 0, 0, block.timestamp, true );
 
 		// Alice attempts to withdraw more than she deposited
 		vm.expectRevert("Cannot withdraw more than existing user share" );
@@ -213,7 +222,7 @@ contract LiquidityTest is Deployment
 	function testUnstakeBeforeCooldown() public {
 		// Have alice add liquidity
 		vm.startPrank(alice);
-		(,, uint256 addedLiquidity) = liquidity.depositLiquidityAndIncreaseShare( token1, token2, 10 ether, 20 ether, 0 ether, block.timestamp, true );
+		uint256 addedLiquidity = liquidity.depositLiquidityAndIncreaseShare( token1, token2, 10 ether, 20 ether, 0, 0, 0, block.timestamp, true );
 
 		// Alice attempts to withdraw more than she deposited
 		vm.expectRevert("Must wait for the cooldown to expire" );
@@ -257,7 +266,7 @@ contract LiquidityTest is Deployment
 
 		// Alice adds 50 ether of token2 and token3
 		vm.prank(alice);
-		liquidity.depositLiquidityAndIncreaseShare( token2, token3, 50 ether, 50 ether, 0, block.timestamp, true );
+		liquidity.depositLiquidityAndIncreaseShare( token2, token3, 50 ether, 50 ether, 0, 0, 0, block.timestamp, true );
 		check1( 100 ether, 0 ether, 0 ether, 0 ether, 0 ether, 0 ether );
 		check2( 0 ether, 0 ether, 0 ether );
 		AddedReward[] memory rewards = new AddedReward[](1);
@@ -269,7 +278,7 @@ contract LiquidityTest is Deployment
 
 		// Bob adds 10/10 ether
 		vm.prank(bob);
-		liquidity.depositLiquidityAndIncreaseShare( token2, token3, 10 ether, 10 ether, 0, block.timestamp, true );
+		liquidity.depositLiquidityAndIncreaseShare( token2, token3, 10 ether, 10 ether, 0, 0, 0, block.timestamp, true );
 		check1( 100 ether, 20 ether, 0 ether, 50 ether, 0 ether, 0 ether );
 		check2( 0 ether, 0 ether, 0 ether );
 		rewards[0] = AddedReward(pool2, 30 ether);
@@ -291,7 +300,7 @@ contract LiquidityTest is Deployment
 
 		// Charlie adds 40/40 ether
 		vm.prank(charlie);
-		liquidity.depositLiquidityAndIncreaseShare( token2, token3, 40 ether, 40 ether, 0, block.timestamp, true );
+		liquidity.depositLiquidityAndIncreaseShare( token2, token3, 40 ether, 40 ether, 0, 0, 0, block.timestamp, true );
 		check1( 100 ether, 20 ether, 80 ether, 25 ether, 10 ether, 0 ether );
 		check2( 75 ether, 0 ether, 0 ether );
 		rewards[0] = AddedReward(pool2, 100 ether);
@@ -335,7 +344,7 @@ contract LiquidityTest is Deployment
 
 		// Alice adds 100/100 ether
 		vm.prank(alice);
-		liquidity.depositLiquidityAndIncreaseShare( token2, token3, 100 ether, 100 ether, 0, block.timestamp, true );
+		liquidity.depositLiquidityAndIncreaseShare( token2, token3, 100 ether, 100 ether, 0, 0, 0, block.timestamp, true );
 		check1( 280 ether, 20 ether, 80 ether, 220 ether, 30 ether, 80 ether );
 		check2( 90 ether, 30 ether, 120 ether );
 		rewards[0] = AddedReward(pool2, 190 ether);
@@ -368,7 +377,7 @@ contract LiquidityTest is Deployment
 
 		// Bob adds 148
 		vm.prank(bob);
-		liquidity.depositLiquidityAndIncreaseShare( token2, token3, 148 ether, 148 ether, 0, block.timestamp, true );
+		liquidity.depositLiquidityAndIncreaseShare( token2, token3, 148 ether, 148 ether, 0, 0, 0, block.timestamp, true );
 		check1( 280 ether, 312 ether, 0 ether, 500 ether, 40 ether, 0 ether );
 		check2( 90 ether, 39 ether, 240 ether );
 		rewards[0] = AddedReward(pool2, 592 ether);
@@ -396,7 +405,7 @@ contract LiquidityTest is Deployment
 
         // Attempt to add liquidity to the non-whitelisted pool
         vm.expectRevert("Invalid pool");
-        liquidity.depositLiquidityAndIncreaseShare(token4, token5, addedAmount1, addedAmount2, 0 ether, block.timestamp, false);
+        liquidity.depositLiquidityAndIncreaseShare(token4, token5, addedAmount1, addedAmount2, 0, 0, 0, block.timestamp, false);
     }
 
 
@@ -408,7 +417,7 @@ contract LiquidityTest is Deployment
 
         vm.expectRevert("ERC20: transfer amount exceeds balance");
         vm.prank(alice);
-        liquidity.depositLiquidityAndIncreaseShare(token1, token2, addedAmount1, addedAmount2, 0 ether, block.timestamp, false);
+        liquidity.depositLiquidityAndIncreaseShare(token1, token2, addedAmount1, addedAmount2, 0, 0, 0, block.timestamp, false);
     }
 
 
@@ -429,9 +438,9 @@ contract LiquidityTest is Deployment
         uint256 addedAmount2 = 20 ether;
         uint256 minLiquidityReceived = 1000 ether; // Unattainable minimum liquidity
 
-        vm.expectRevert("Too little liquidity received");
+        vm.expectRevert("Insufficient liquidity added");
         vm.prank(alice);
-        liquidity.depositLiquidityAndIncreaseShare(token1, token2, addedAmount1, addedAmount2, minLiquidityReceived, block.timestamp, false);
+        liquidity.depositLiquidityAndIncreaseShare(token1, token2, addedAmount1, addedAmount2, 0, 0, minLiquidityReceived, block.timestamp, false);
     }
 
 
@@ -439,23 +448,28 @@ contract LiquidityTest is Deployment
 	function testAddLiquidityWithoutZapping() public {
 		// Have alice add liquidity
 		vm.startPrank(alice);
-		(,, uint256 addedLiquidity) = liquidity.depositLiquidityAndIncreaseShare( token1, token2, 10 ether, 20 ether, 0 ether, block.timestamp, false );
-
-		uint256 addedAmountA;
-		uint256 addedAmountB;
+		uint256 addedLiquidity = liquidity.depositLiquidityAndIncreaseShare( token1, token2, 10 ether, 20 ether, 0, 0, 0, block.timestamp, false );
 
 		vm.expectRevert( "Must wait for the cooldown to expire" );
-		(addedAmountA, addedAmountB, addedLiquidity) = liquidity.depositLiquidityAndIncreaseShare( token1, token2, 10 ether, 50 ether, 0 ether, block.timestamp, false );
+		addedLiquidity = liquidity.depositLiquidityAndIncreaseShare( token1, token2, 10 ether, 50 ether, 0, 0, 0, block.timestamp, false );
 
 		vm.warp( block.timestamp + 1 hours );
 
-		(addedAmountA, addedAmountB, addedLiquidity) = liquidity.depositLiquidityAndIncreaseShare( token1, token2, 10 ether, 50 ether, 0 ether, block.timestamp, false );
+		uint256 balanceA = token1.balanceOf(alice);
+		uint256 balanceB = token2.balanceOf(alice);
+		addedLiquidity = liquidity.depositLiquidityAndIncreaseShare( token1, token2, 10 ether, 50 ether, 0, 0, 0, block.timestamp, false );
+		uint256 addedAmountA = balanceA - token1.balanceOf(alice);
+		uint256 addedAmountB = balanceB - token2.balanceOf(alice);
 		assertEq( addedAmountA, 10 ether );
 		assertEq( addedAmountB, 20 ether );
 
 		vm.warp( block.timestamp + 1 hours );
 
-		( addedAmountA, addedAmountB, addedLiquidity) = liquidity.depositLiquidityAndIncreaseShare( token1, token2, 50 ether, 20 ether, 0 ether, block.timestamp, false );
+		balanceA = token1.balanceOf(alice);
+		balanceB = token2.balanceOf(alice);
+		addedLiquidity = liquidity.depositLiquidityAndIncreaseShare( token1, token2, 50 ether, 20 ether, 0, 0, 0, block.timestamp, false );
+		addedAmountA = balanceA - token1.balanceOf(alice);
+		addedAmountB = balanceB - token2.balanceOf(alice);
 		assertEq( addedAmountA, 10 ether );
 		assertEq( addedAmountB, 20 ether );
     }
@@ -486,7 +500,7 @@ contract LiquidityTest is Deployment
 
     	// Should revert while trying to depositLiquidityAndIncreaseShare
     	vm.expectRevert("Invalid pool");
-    	liquidity.depositLiquidityAndIncreaseShare( token4, token5, amountA, amountB, 0 ether, block.timestamp, true );
+    	liquidity.depositLiquidityAndIncreaseShare( token4, token5, amountA, amountB, 0, 0, 0, block.timestamp, true );
     }
 
 
@@ -496,7 +510,7 @@ contract LiquidityTest is Deployment
     	// Create the initial reserve ratio
         token1.approve(address(liquidity), type(uint256).max);
         token2.approve(address(liquidity), type(uint256).max);
-    	liquidity.depositLiquidityAndIncreaseShare(token1, token2, 100 ether, 100 ether, 0, block.timestamp, true);
+    	liquidity.depositLiquidityAndIncreaseShare(token1, token2, 100 ether, 100 ether, 0, 0, 0, block.timestamp, true);
 
         uint256 initialBalanceToken1Alice = token1.balanceOf( alice );
         uint256 initialBalanceToken2Alice = token2.balanceOf( alice );
@@ -507,7 +521,13 @@ contract LiquidityTest is Deployment
         vm.startPrank(alice);
         token1.approve(address(liquidity), type(uint256).max);
         token2.approve(address(liquidity), type(uint256).max);
-        ( uint256 addedAmountA, uint256 addedAmountB,) = liquidity.depositLiquidityAndIncreaseShare( token1, token2, addedAmount1, addedAmount2, 0 ether, block.timestamp, false );
+
+		uint256 balanceA = token1.balanceOf(alice);
+		uint256 balanceB = token2.balanceOf(alice);
+        liquidity.depositLiquidityAndIncreaseShare( token1, token2, addedAmount1, addedAmount2, 0, 0, 0, block.timestamp, false );
+		uint256 addedAmountA = balanceA - token1.balanceOf(alice);
+		uint256 addedAmountB = balanceB - token2.balanceOf(alice);
+
 		vm.stopPrank();
 
         // The exact amount of tokens should be deposited in the pool
@@ -559,13 +579,13 @@ contract LiquidityTest is Deployment
 
 		// Alice deposits liquidity
 		vm.prank(alice);
-		liquidity.depositLiquidityAndIncreaseShare( tokenA, tokenB, depositedA, depositedB, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( tokenA, tokenB, depositedA, depositedB, 0, 0, 0, block.timestamp, false );
 
 		vm.warp( block.timestamp + 1 hours);
 
 		// Deposit extra so alice can withdraw all liquidity without having to worry about DUST reserve limit
 		vm.prank(bob);
-		liquidity.depositLiquidityAndIncreaseShare( tokenA, tokenB, 1 * 10**8, 1 ether, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( tokenA, tokenB, 1 * 10**8, 1 ether, 0, 0, 0, block.timestamp, false );
 
 		uint256 aliceCollateral = liquidity.userShareForPool(alice, poolID);
 		vm.prank(alice);
@@ -591,7 +611,7 @@ contract LiquidityTest is Deployment
         uint256 addedAmount2 = 200 ether;
 
         // Add liquidity first to ensure Alice has some liquidity in the pool
-        liquidity.depositLiquidityAndIncreaseShare(token1, token2, addedAmount1, addedAmount2, 0 ether, block.timestamp, false);
+        liquidity.depositLiquidityAndIncreaseShare(token1, token2, addedAmount1, addedAmount2, 0, 0, 0, block.timestamp, false);
         vm.stopPrank();
 
         uint256 expectedLiquidity = liquidity.userShareForPool(alice, pool1);
@@ -630,7 +650,7 @@ contract LiquidityTest is Deployment
 
         // Try to add liquidity with zero amounts
         vm.expectRevert("The amount of tokenA to add is too small");
-        liquidity.depositLiquidityAndIncreaseShare(token1, token2, 0, 0, 0, block.timestamp, false);
+        liquidity.depositLiquidityAndIncreaseShare(token1, token2, 0, 0, 0, 0, 0, block.timestamp, false);
 
         // Verify that the contract balance has not changed
         assertEq(token1.balanceOf(address(this)), startingBalanceToken1, "Token1 balance should not change");
@@ -647,7 +667,7 @@ contract LiquidityTest is Deployment
         uint256 addedAmount2 = 20 ether;
 
         vm.expectRevert("TX EXPIRED");
-        liquidity.depositLiquidityAndIncreaseShare(token1, token2, addedAmount1, addedAmount2, 0 ether, deadline, false);
+        liquidity.depositLiquidityAndIncreaseShare(token1, token2, addedAmount1, addedAmount2, 0, 0, 0, deadline, false);
         vm.stopPrank();
     }
 
@@ -657,7 +677,7 @@ contract LiquidityTest is Deployment
         // Set up liquidity
         vm.startPrank(alice);
         uint256 liquidityAmount = 10 ether;
-        liquidity.depositLiquidityAndIncreaseShare(token1, token2, liquidityAmount, liquidityAmount, 0, block.timestamp, true);
+        liquidity.depositLiquidityAndIncreaseShare(token1, token2, liquidityAmount, liquidityAmount, 0, 0, 0, block.timestamp, true);
         vm.stopPrank();
 
         // Increase block timestamp past the withdraw deadline
@@ -688,7 +708,7 @@ contract LiquidityTest is Deployment
         badToken2.approve(address(liquidity), amount2);
 
         vm.expectRevert("Invalid pool");
-        liquidity.depositLiquidityAndIncreaseShare(badToken1, badToken2, amount1, amount2, 0 ether, block.timestamp + 1 hours, false);
+        liquidity.depositLiquidityAndIncreaseShare(badToken1, badToken2, amount1, amount2, 0, 0, 0, block.timestamp + 1 hours, false);
     }
 
 
@@ -730,7 +750,7 @@ contract LiquidityTest is Deployment
 
 		// Alice deposits liquidity
 		vm.startPrank(alice);
-		liquidity.depositLiquidityAndIncreaseShare( tokenA, tokenB, depositedA, depositedB, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( tokenA, tokenB, depositedA, depositedB, 0, 0, 0, block.timestamp, false );
 
 		vm.warp( block.timestamp + 1 hours);
 
@@ -743,7 +763,7 @@ contract LiquidityTest is Deployment
 		vm.warp( block.timestamp + 1 hours );
 
 		// Make sure liquidity can be added again
-		liquidity.depositLiquidityAndIncreaseShare( tokenA, tokenB, depositedA, depositedB, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( tokenA, tokenB, depositedA, depositedB, 0, 0, 0, block.timestamp, false );
 
 //		console.log( "depositedA: ", depositedA );
 //		console.log( "removedA: ", removedA );
