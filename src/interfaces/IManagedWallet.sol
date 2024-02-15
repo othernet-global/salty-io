@@ -13,4 +13,5 @@ interface IManagedWallet
 	function proposedMainWallet() external view returns (address wallet);
 	function proposedConfirmationWallet() external view returns (address wallet);
     function activeTimelock() external view returns (uint256);
+	function release(address token) external;
 	}

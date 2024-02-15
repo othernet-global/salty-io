@@ -197,12 +197,9 @@ contract Upkeep is IUpkeep, ReentrancyGuard
 	// 9. Sends SALT from the team vesting wallet to the team (linear distribution over 10 years).
 	function step9() public onlySameContract
 		{
-		uint256 releaseableAmount = VestingWallet(payable(exchangeConfig.teamVestingWallet())).releasable(address(salt));
+		exchangeConfig.teamVestingWallet().release(address(salt));
 
-		// teamVestingWallet actually sends the vested SALT to this contract - which will then need to be sent to the active teamWallet
-		VestingWallet(payable(exchangeConfig.teamVestingWallet())).release(address(salt));
-
-		salt.safeTransfer( exchangeConfig.managedTeamWallet().mainWallet(), releaseableAmount );
+		exchangeConfig.managedTeamWallet().release(address(salt));
 		}
 
 

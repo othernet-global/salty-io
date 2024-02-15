@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.22;
 
+import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IManagedWallet.sol";
 
 
@@ -11,6 +13,8 @@ import "./interfaces/IManagedWallet.sol";
 
 contract ManagedWallet is IManagedWallet
     {
+	using SafeERC20 for IERC20;
+
     event WalletProposal(address proposedMainWallet, address proposedConfirmationWallet);
     event WalletChange(address mainWallet, address confirmationWallet);
 
@@ -86,5 +90,14 @@ contract ManagedWallet is IManagedWallet
 		activeTimelock = type(uint256).max;
 		proposedMainWallet = address(0);
 		proposedConfirmationWallet = address(0);
+		}
+
+
+	function release(address token) external
+		{
+        uint balance = IERC20(token).balanceOf(address(this));
+
+        if (balance != 0)
+          IERC20(token).safeTransfer(mainWallet, balance);
 		}
 	}
