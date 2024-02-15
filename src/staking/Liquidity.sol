@@ -48,6 +48,8 @@ contract Liquidity is ILiquidity, StakingRewards
 		// tokenA is in excess so swap some of it to tokenB?
 		if ( swapAmountA > 0)
 			{
+			// https://github.com/code-423n4/2024-01-salty/blob/main/bot-report.md#l-02
+			tokenA.approve( address(pools), 0 );
 			tokenA.approve( address(pools), swapAmountA );
 
 			// Swap from tokenA to tokenB and adjust the zapAmounts
@@ -58,6 +60,8 @@ contract Liquidity is ILiquidity, StakingRewards
 		// tokenB is in excess so swap some of it to tokenA?
 		else if ( swapAmountB > 0)
 			{
+			// https://github.com/code-423n4/2024-01-salty/blob/main/bot-report.md#l-02
+			tokenB.approve( address(pools), 0 );
 			tokenB.approve( address(pools), swapAmountB );
 
 			// Swap from tokenB to tokenA and adjust the zapAmounts
@@ -86,6 +90,11 @@ contract Liquidity is ILiquidity, StakingRewards
 			(maxAmountA, maxAmountB) = _dualZapInLiquidity(tokenA, tokenB, maxAmountA, maxAmountB );
 
 		// Approve the liquidity to add
+
+		// https://github.com/code-423n4/2024-01-salty/blob/main/bot-report.md#l-02
+		tokenA.approve(address(pools), 0 );
+		tokenB.approve(address(pools), 0 );
+
 		tokenA.approve( address(pools), maxAmountA );
 		tokenB.approve( address(pools), maxAmountB );
 
