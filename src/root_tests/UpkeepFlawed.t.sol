@@ -27,11 +27,9 @@ contract TestUpkeepFlawed is Deployment
 		daoConfig = new DAOConfig();
 		poolsConfig = new PoolsConfig();
 
-		managedTeamWallet = new ManagedWallet(teamWallet, teamConfirmationWallet);
-		exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, managedTeamWallet );
+		exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, teamWallet );
 
-		priceAggregator = new PriceAggregator();
-		priceAggregator.setInitialFeeds( IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)) );
+		priceAggregator = new PriceAggregator(IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)));
 
 		pools = new Pools(exchangeConfig, poolsConfig);
 		staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
@@ -62,7 +60,7 @@ contract TestUpkeepFlawed is Deployment
 		upkeep = new UpkeepFlawed(pools, exchangeConfig, poolsConfig, daoConfig, saltRewards, emissions, dao, stepToRevert);
 
 		daoVestingWallet = new VestingWallet( address(dao), uint64(block.timestamp), 60 * 60 * 24 * 365 * 10 );
-		teamVestingWallet = new VestingWallet( address(managedTeamWallet), uint64(block.timestamp), 60 * 60 * 24 * 365 * 10 );
+		teamVestingWallet = new VestingWallet( address(teamWallet), uint64(block.timestamp), 60 * 60 * 24 * 365 * 10 );
 
 		bootstrapBallot = new BootstrapBallot(exchangeConfig, airdrop, 60 * 60 * 24 * 5 );
 		initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards);
@@ -75,7 +73,6 @@ contract TestUpkeepFlawed is Deployment
 		// Transfer ownership of the newly created config files to the DAO
 		Ownable(address(exchangeConfig)).transferOwnership( address(dao) );
 		Ownable(address(poolsConfig)).transferOwnership( address(dao) );
-		Ownable(address(priceAggregator)).transferOwnership(address(dao));
 		Ownable(address(daoConfig)).transferOwnership( address(dao) );
 		vm.stopPrank();
 

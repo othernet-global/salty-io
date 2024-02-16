@@ -39,7 +39,7 @@ contract TestArbitrageSearch2 is Deployment
 
 			poolsConfig = new PoolsConfig();
 
-			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, managedTeamWallet );
+			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, teamWallet );
 
 		pools = new Pools(exchangeConfig, poolsConfig);
 		staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );

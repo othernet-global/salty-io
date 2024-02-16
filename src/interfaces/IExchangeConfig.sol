@@ -12,7 +12,6 @@ import "../launch/interfaces/IAirdrop.sol";
 import "../dao/interfaces/IDAO.sol";
 import "../interfaces/ISalt.sol";
 import "./IUpkeep.sol";
-import "./IManagedWallet.sol";
 
 
 interface IExchangeConfig
@@ -26,7 +25,6 @@ interface IExchangeConfig
 	function weth() external view returns (IERC20);
 	function usdc() external view returns (IERC20);
 
-	function managedTeamWallet() external view returns (IManagedWallet);
 	function daoVestingWallet() external view returns (VestingWallet);
     function teamVestingWallet() external view returns (VestingWallet);
     function initialDistribution() external view returns (IInitialDistribution);
@@ -35,6 +33,7 @@ interface IExchangeConfig
 	function dao() external view returns (IDAO);
 	function upkeep() external view returns (IUpkeep);
 	function airdrop() external view returns (IAirdrop);
+	function teamWallet() external view returns (address);
 
 	function walletHasAccess( address wallet ) external view returns (bool);
 	}

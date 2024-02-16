@@ -960,36 +960,5 @@ contract TestDAO is Deployment
         assertEq(finalUsdsBalanceDAO, initialUsdsBalanceDAO - usdcAmount, "Incorrect final USDC balance in DAO");
         assertEq(finalPoolShareDAO, 500 ether + 500 * 10**6, "DAO did not receive pool share tokens");
     }
-
-
-	// From: https://github.com/code-423n4/2024-01-salty-findings/issues/712
-    function testTeamRewardIsLockedInUpkeep() public {
-    	skip( 1 hours );
-
-        uint releasableAmount = teamVestingWallet.releasable(address(salt));
-        uint upKeepBalance = salt.balanceOf(address(upkeep));
-        uint mainWalletBalance = salt.balanceOf(address(managedTeamWallet.mainWallet()));
-        //@audit-info a certain amount of SALT is releasable
-        assertTrue(releasableAmount != 0);
-        //@audit-info there is no SALT in upkeep
-        assertEq(upKeepBalance, 0);
-        //@audit-info there is no SALT in mainWallet
-        assertEq(mainWalletBalance, 0);
-        //@audit-info call release() before performUpkeep()
-        teamVestingWallet.release(address(salt));
-        upkeep.performUpkeep();
-
-        upKeepBalance = salt.balanceOf(address(upkeep));
-        mainWalletBalance = salt.balanceOf(address(managedTeamWallet.mainWallet()));
-
-		// Fixed:
-        assertEq(upKeepBalance, 0);
-        assertEq(mainWalletBalance, 137100488330796549974632);
-
-//        //@audit-info all released SALT is locked in upKeep
-//        assertEq(upKeepBalance, releasableAmount);
-//        //@audit-info development team receive nothing
-//        assertEq(mainWalletBalance, 0);
-      }
     }
 

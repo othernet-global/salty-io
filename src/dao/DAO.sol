@@ -319,7 +319,7 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 
 		// Send 10% of the rewards to the initial team
 		uint256 amountToSendToTeam = claimedSALT / 10;
-		salt.safeTransfer( exchangeConfig.managedTeamWallet().mainWallet(), amountToSendToTeam );
+		salt.safeTransfer( exchangeConfig.teamWallet(), amountToSendToTeam );
 		emit TeamRewardsTransferred(amountToSendToTeam);
 
 		uint256 remainingSALT = claimedSALT - amountToSendToTeam;

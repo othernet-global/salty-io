@@ -39,7 +39,7 @@ contract TestParametersOffchain is Test
 		poolsConfig = new PoolsConfig();
 		stakingConfig = new StakingConfig();
 		rewardsConfig = new RewardsConfig();
-		exchangeConfig = new ExchangeConfig(deployment.salt(), deployment.wbtc(), deployment.weth(), deployment.usdc(), deployment.managedTeamWallet());
+		exchangeConfig = new ExchangeConfig(deployment.salt(), deployment.wbtc(), deployment.weth(), deployment.usdc(), deployment.teamWallet());
 		daoConfig = new DAOConfig();
 
 		vm.stopPrank();

@@ -7,7 +7,7 @@ import "../dev/Deployment.sol";
 contract TestDeployment is Deployment
 	{
 	address constant public TEAM_WALLET = address(0xBB1A8d7927CFA75E3cA2eD99DB7A9Cbafb62Cd50);
-	address constant public TEAM_CONFIRMATION_WALLET = address(0x999999999);
+
 
 	function functionExists( address _contract, string memory _functionName ) public returns (bool)
 		{
@@ -55,14 +55,13 @@ contract TestDeployment is Deployment
 		assertEq( getContract(address(exchangeConfig), "airdrop()"), address(airdrop), "Incorrect exchangeConfig.airdrop" );
         assertEq( getContract(address(exchangeConfig), "teamVestingWallet()"), address(teamVestingWallet), "Incorrect exchangeConfig.teamVestingWallet" );
         assertEq( getContract(address(exchangeConfig), "daoVestingWallet()"), address(daoVestingWallet), "Incorrect exchangeConfig.daoVestingWallet" );
-        assertEq( getContract(address(exchangeConfig), "managedTeamWallet()"), address(managedTeamWallet), "Incorrect exchangeConfig.managedTeamWallet" );
+        assertEq( getContract(address(exchangeConfig), "teamWallet()"), address(teamWallet), "Incorrect exchangeConfig.teamWallet" );
         assertEq( getContract(address(exchangeConfig), "accessManager()"), address(accessManager), "Incorrect exchangeConfig.accessManager" );
-
-        assertEq( getContract(address(managedTeamWallet), "mainWallet()"), TEAM_WALLET, "Incorrect managedTeamWallet.mainWallet" );
-        assertEq( getContract(address(managedTeamWallet), "confirmationWallet()"), TEAM_CONFIRMATION_WALLET, "Incorrect managedTeamWallet.confirmationWallet" );
 
 		assertTrue( functionExists( address(teamVestingWallet), "beneficiary()" ), "For DEBUG: Incorrect exchangeConfig.teamVestingWallet" );
 		assertTrue( functionExists( address(daoVestingWallet), "beneficiary()" ), "For DEBUG: Incorrect exchangeConfig.daoVestingWallet" );
+        assertEq( getContract(address(teamVestingWallet), "beneficiary()"), address(teamWallet), "Incorrect teamVestingWallet.beneficiary" );
+        assertEq( getContract(address(daoVestingWallet), "beneficiary()"), address(dao), "Incorrect daoVestingWallet.beneficiary" );
 
         assertEq( getContract(address(airdrop), "exchangeConfig()"), address(exchangeConfig), "Incorrect airdrop.exchangeConfig" );
         assertEq( getContract(address(airdrop), "staking()"), address(staking), "Incorrect airdrop.staking" );
@@ -144,7 +143,6 @@ contract TestDeployment is Deployment
 		assertEq( getContract( address(stakingConfig), "owner()" ), address(dao), "stakingConfig owner is not dao" );
 		assertEq( getContract( address(rewardsConfig), "owner()" ), address(dao), "rewardsConfig owner is not dao" );
 		assertEq( getContract( address(daoConfig), "owner()" ), address(dao), "daoConfig owner is not dao" );
-		assertEq( getContract( address(priceAggregator), "owner()" ), address(dao), "priceAggregator owner is not dao" );
 
 		assertEq( getContract(address(bootstrapBallot), "exchangeConfig()"), address(exchangeConfig), "Incorrect bootstrapBallot.exchangeConfig" );
 		assertEq( getContract(address(bootstrapBallot), "airdrop()"), address(airdrop), "Incorrect bootstrapBallot.airdrop" );
@@ -189,7 +187,7 @@ contract TestDeployment is Deployment
 			assertEq( address(usdc), 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, "Invalid USDC" );
         	}
 
-        assertEq( exchangeConfig.managedTeamWallet().mainWallet(), teamWallet, "Incorrect teamWallet" );
+        assertEq( exchangeConfig.teamWallet(), teamWallet, "Incorrect teamWallet" );
 
         // Check the initial country exclusion
 		// Excluded by default: United States, Canada, United Kingdom, China, India, Pakistan, Russian, Afghanistan, Cuba, Iran, North Korea, Syria, Venezuela
@@ -227,7 +225,7 @@ contract TestDeployment is Deployment
    		console.log( "initialDistribution: ", address(initialDistribution) );
    		console.log( "liquidity: ", address(liquidity) );
    		console.log( "liquidityRewardsEmitter: ", address(liquidityRewardsEmitter) );
-   		console.log( "managedTeamWallet: ", address(managedTeamWallet) );
+   		console.log( "teamWallet: ", address(teamWallet) );
    		console.log( "pools: ", address(pools) );
    		console.log( "poolsConfig: ", address(poolsConfig) );
    		console.log( "priceAggregator: ", address(priceAggregator) );

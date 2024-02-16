@@ -33,7 +33,6 @@ import "../root_tests/TestERC20.sol";
 import "../launch/Airdrop.sol";
 import "../launch/BootstrapBallot.sol";
 import "../Salt.sol";
-import "../ManagedWallet.sol";
 import "../dao/DAOConfig.sol";
 
 // Stores the contract addresses for the various parts of the exchange and allows the unit tests to be run on them.
@@ -55,7 +54,7 @@ contract Deployment is Test
 	IForcedPriceFeed public forcedPriceFeed = IForcedPriceFeed(address(0x3B0Eb37f26b502bAe83df4eCc54afBDfb90B5d3a));
 
 	// The DAO contract can provide us with all other contract addresses in the protocol
-	IDAO public dao = IDAO(address(0x8D2dfc095467226Fd5692550C443e905a843065D));
+	IDAO public dao = IDAO(address(0xC038C265447ec2fFfD38006acbcA00C98C8A4816));
 	IPriceAggregator public priceAggregator = IPriceAggregator(address(0xc77AE56994C043DC2B4D420b105Ef1134D7bf4C7));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
@@ -64,9 +63,7 @@ contract Deployment is Test
 	IRewardsConfig public rewardsConfig = IRewardsConfig(getContract(address(dao), "rewardsConfig()" ));
 	IDAOConfig public daoConfig = IDAOConfig(getContract(address(dao), "daoConfig()" ));
 
-	IManagedWallet public managedTeamWallet = exchangeConfig.managedTeamWallet();
-	address public teamWallet = managedTeamWallet.mainWallet();
-	address public teamConfirmationWallet = managedTeamWallet.confirmationWallet();
+	address public teamWallet = exchangeConfig.teamWallet();
 
 	IUpkeep public upkeep = exchangeConfig.upkeep();
 	IEmissions public emissions = IEmissions(getContract(address(upkeep), "emissions()" ));
@@ -160,11 +157,9 @@ contract Deployment is Test
 		daoConfig = new DAOConfig();
 		poolsConfig = new PoolsConfig();
 
-		managedTeamWallet = new ManagedWallet(teamWallet, teamConfirmationWallet);
-		exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, managedTeamWallet );
+		exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, teamWallet );
 
-		priceAggregator = new PriceAggregator();
-		priceAggregator.setInitialFeeds( IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)) );
+		priceAggregator = new PriceAggregator(IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)));
 
 		pools = new Pools(exchangeConfig, poolsConfig);
 		staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
@@ -198,7 +193,7 @@ contract Deployment is Test
 		upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, saltRewards, emissions, dao);
 
 		daoVestingWallet = new VestingWallet( address(dao), uint64(block.timestamp), 60 * 60 * 24 * 365 * 10 );
-		teamVestingWallet = new VestingWallet( address(managedTeamWallet), uint64(block.timestamp), 60 * 60 * 24 * 365 * 10 );
+		teamVestingWallet = new VestingWallet( teamWallet, uint64(block.timestamp), 60 * 60 * 24 * 365 * 10 );
 
 		bootstrapBallot = new BootstrapBallot(exchangeConfig, airdrop, 60 * 60 * 24 * 5 );
 		initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards);
@@ -211,7 +206,6 @@ contract Deployment is Test
 		// Transfer ownership of the newly created config files to the DAO
 		Ownable(address(exchangeConfig)).transferOwnership( address(dao) );
 		Ownable(address(poolsConfig)).transferOwnership( address(dao) );
-		Ownable(address(priceAggregator)).transferOwnership(address(dao));
 		Ownable(address(daoConfig)).transferOwnership( address(dao) );
 		vm.stopPrank();
 

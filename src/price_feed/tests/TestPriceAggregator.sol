@@ -7,6 +7,11 @@ import "../PriceAggregator.sol";
 
 contract TestPriceAggregator is PriceAggregator
     {
+    constructor(IPriceFeed priceFeed1, IPriceFeed priceFeed2, IPriceFeed priceFeed3)
+    PriceAggregator(priceFeed1, priceFeed2, priceFeed3)
+    	{
+    	}
+
    	function absoluteDifference( uint256 x, uint256 y ) public pure returns (uint256)
 		{
 		return _absoluteDifference(x, y);

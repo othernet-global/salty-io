@@ -7,7 +7,6 @@ import "./rewards/interfaces/IRewardsEmitter.sol";
 import "./interfaces/IExchangeConfig.sol";
 import "./launch/interfaces/IAirdrop.sol";
 import "./interfaces/IUpkeep.sol";
-import "./interfaces/IManagedWallet.sol";
 
 // Contract owned by the DAO with parameters modifiable only by the DAO
 contract ExchangeConfig is IExchangeConfig, Ownable
@@ -18,7 +17,7 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 	IERC20 immutable public wbtc;
 	IERC20 immutable public weth;
 	IERC20 immutable public usdc;
-	IManagedWallet immutable public managedTeamWallet;
+	address immutable public teamWallet;
 
 	IDAO public dao; // can only be set once
 	IUpkeep public upkeep; // can only be set once
@@ -32,13 +31,13 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 	IAccessManager public accessManager;
 
 
-	constructor( ISalt _salt, IERC20 _wbtc, IERC20 _weth, IERC20 _usdc, IManagedWallet _managedTeamWallet )
+	constructor( ISalt _salt, IERC20 _wbtc, IERC20 _weth, IERC20 _usdc, address _teamWallet )
 		{
 		salt = _salt;
 		wbtc = _wbtc;
 		weth = _weth;
 		usdc = _usdc;
-		managedTeamWallet = _managedTeamWallet;
+		teamWallet = _teamWallet;
         }
 
 
