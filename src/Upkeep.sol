@@ -205,6 +205,8 @@ contract Upkeep is IUpkeep, ReentrancyGuard
 	// Each step is wrapped in a try/catch to prevent reversions from cascading through the performUpkeep.
 	function performUpkeep() public nonReentrant
 		{
+		require(lastUpkeepTimeEmissions != block.timestamp, "No time since elapsed since last upkeep");
+
 		// Perform the multiple steps of performUpkeep()
  		try this.step1(msg.sender) {}
 		catch (bytes memory error) { emit UpkeepError("Step 1", error); }

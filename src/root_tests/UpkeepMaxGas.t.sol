@@ -108,6 +108,8 @@ contract TestMaxUpkeep is Deployment
 		// === Perform upkeep ===
 		address upkeepCaller = address(0x9999);
 
+		vm.warp(block.timestamp + 1 hours );
+
 		vm.prank(upkeepCaller);
 		upkeep.performUpkeep();
 		// ==================

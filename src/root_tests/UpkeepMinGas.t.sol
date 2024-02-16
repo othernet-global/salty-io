@@ -80,6 +80,8 @@ contract TestMinUpkeep is Deployment
 		_setupPools();
 		_createActivity();
 
+		vm.warp(block.timestamp + 1 hours );
+
 		// === Perform upkeep ===
 		address upkeepCaller = address(0x9999);
 

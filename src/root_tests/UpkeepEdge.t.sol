@@ -107,6 +107,8 @@ contract TestUpkeepEdge is Deployment
 		forcedPriceFeed.setETHPrice( 0 );
 		vm.stopPrank();
 
+		skip( 1 hours );
+
 		// === Perform upkeep ===
 		address upkeepCaller = address(0x9999);
 

@@ -61,6 +61,8 @@ contract TestUpkeep2 is Deployment
     // A unit test to verify the performUpkeep function when it is called multiple times in quick succession. Ensure that the lastUpkeepTime is correctly updated on each call.
     function testUpdateLastUpkeepTime() public {
 
+			skip( 1 hours );
+
             for (uint i=0; i < 5; i++)
             	{
             	uint256 timeIncrease = i * 1 hours;
@@ -639,7 +641,7 @@ contract TestUpkeep2 is Deployment
 		// Check that the staking rewards were transferred to the staking contract:
 		// 1% max of (3 million bootstrapping in the stakingRewardsEmitter + 45% of 185786 ether sent from saltRewards)
 		// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
-		assertEq( staking.totalRewardsForPools(poolIDsA)[0], 104171052626262320395  );
+		assertEq( staking.totalRewardsForPools(poolIDsA)[0], 1354456236249976188075  );
 
 		bytes32[] memory poolIDs = new bytes32[](4);
 		poolIDs[0] = PoolUtils._poolID(salt,weth);
@@ -653,10 +655,10 @@ contract TestUpkeep2 is Deployment
 		// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
 		uint256[] memory rewards = liquidity.totalRewardsForPools(poolIDs);
 
-		assertEq( rewards[0], 19291585443322008033);
-		assertEq( rewards[1], 19291585443322008033);
-		assertEq( rewards[2], 19291585443322008033);
-		assertEq( rewards[3], 19291098114478046507);
+		assertEq( rewards[0], 250874558173860375449);
+		assertEq( rewards[1], 250874558173860375449);
+		assertEq( rewards[2], 250874558173860375449);
+		assertEq( rewards[3], 482170848248605674954);
 
 
 		// Check Step 7. Collect SALT rewards from the DAO's Protocol Owned Liquidity: send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.
@@ -669,15 +671,15 @@ contract TestUpkeep2 is Deployment
 		// 10% of the POL Rewards for the team wallet
 		// The teamVestingWallet contains 10 million SALT and vests over a 10 year period.
 		// 100k SALT were removed from it in _setupLiquidity() - so it emits about 13561 in the first 5 days (changed to one hour)
-		assertEq( salt.balanceOf(teamWallet), 13573022146341128169946 );
+		assertEq( salt.balanceOf(teamWallet), 13709190491284302419151 );
 
 		// 50% of the remaining rewards are burned
-		assertEq( salt.totalBurned(), 8680994151515120928 );
+		assertEq( salt.totalBurned(), 112876902560182803992 );
 
 		// Other 50% should stay in the DAO
 		// The daoVestingWallet contains 25 million SALT and vests over a 10 year period.
 		// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days (changed to one hour)
-		assertEq( salt.balanceOf(address(dao)), 34142036207241317251827 );
+		assertEq( salt.balanceOf(address(dao)), 34530478690992450688315 );
 		}
 
 
@@ -695,6 +697,8 @@ contract TestUpkeep2 is Deployment
     	weth.approve(address(pools), 100 ether);
     	pools.deposit(weth, 100 ether);
     	vm.stopPrank();
+
+		skip( 1 hours );
 
 		// === Perform upkeep ===
 		address upkeepCaller = address(0x9999);
@@ -731,7 +735,9 @@ function testFirstLPCanClaimAllRewards() public {
 		wbtc.approve( address(liquidity), type(uint256).max );
         weth.approve( address(liquidity), type(uint256).max );
 
+
         // Alice call upkeep
+        vm.expectRevert( "No time since elapsed since last upkeep" );
         upkeep.performUpkeep();
         // check total rewards for pool
         uint256[] memory totalRewards = new uint256[](1);
