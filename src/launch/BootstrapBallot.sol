@@ -48,6 +48,7 @@ contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
 	function vote( bool voteStartExchangeYes, bytes calldata signature ) external nonReentrant
 		{
 		require( ! hasVoted[msg.sender], "User already voted" );
+		require( ! ballotFinalized, "Ballot has already been finalized" );
 
 		// Verify the signature to confirm the user is authorized to vote
 		bytes32 messageHash = keccak256(abi.encodePacked(block.chainid, msg.sender));
