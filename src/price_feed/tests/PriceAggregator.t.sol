@@ -8,42 +8,15 @@ import "./ForcedPriceFeed.sol";
 
 contract TestPriceAggreagator is Deployment
 	{
-	IForcedPriceFeed public priceFeed1;
-	IForcedPriceFeed public priceFeed2;
-	IForcedPriceFeed public priceFeed3;
+	IForcedPriceFeed public priceFeed1 = new ForcedPriceFeed(30000 ether, 3000 ether );
+	IForcedPriceFeed public priceFeed2 = new ForcedPriceFeed(30100 ether, 3050 ether );
+	IForcedPriceFeed public priceFeed3 = new ForcedPriceFeed(30500 ether, 3010 ether );
 
 
-	constructor()
+	constructor( )
  		{
- 		priceFeed1 = new ForcedPriceFeed(30000 ether, 3000 ether );
- 		priceFeed2 = new ForcedPriceFeed(30100 ether, 3050 ether );
- 		priceFeed3 = new ForcedPriceFeed(30500 ether, 3010 ether );
-
-		priceAggregator = new PriceAggregator();
-		priceAggregator.setInitialFeeds( IPriceFeed(address(priceFeed1)), IPriceFeed(address(priceFeed2)), IPriceFeed(address(priceFeed3)) );
+		priceAggregator = new PriceAggregator(IPriceFeed(address(priceFeed1)), IPriceFeed(address(priceFeed2)), IPriceFeed(address(priceFeed3)));
 		}
-
-
-	// A unit test that verifies the correct operation of the setInitialFeeds function. This test should check that the function correctly sets the initial price feeds, that it cannot be called more than once, and that it reverts if any of the price feed addresses are zero.
-	function testSetInitialFeeds() public
-    {
-        // Setup
-        IPriceFeed newPriceFeed1 = IPriceFeed(address(new ForcedPriceFeed(1 ether, 1 ether)));
-        IPriceFeed newPriceFeed2 = IPriceFeed(address(new ForcedPriceFeed(2 ether, 2 ether)));
-        IPriceFeed newPriceFeed3 = IPriceFeed(address(new ForcedPriceFeed(3 ether, 3 ether)));
-
-        PriceAggregator newPriceAggregator = new PriceAggregator();
-
-        // Test successful call
-        newPriceAggregator.setInitialFeeds(newPriceFeed1, newPriceFeed2, newPriceFeed3);
-        assertEq(address(newPriceAggregator.priceFeed1()), address(newPriceFeed1));
-        assertEq(address(newPriceAggregator.priceFeed2()), address(newPriceFeed2));
-        assertEq(address(newPriceAggregator.priceFeed3()), address(newPriceFeed3));
-
-        // Test revert when function is called more than once
-        vm.expectRevert("setInitialFeeds() can only be called once");
-        newPriceAggregator.setInitialFeeds(newPriceFeed1, newPriceFeed2, newPriceFeed3);
-    }
 
 
 	// A unit test that checks the operation of the _aggregatePrices function. Should only be tested through external calls. This test should verify that the function correctly aggregates the prices from the price feeds when only two of the price feeds return non-zero prices, that it reverts if there are not at least two non-zero prices or if the closest two prices are more than the maximum allowed difference apart, and that the function correctly calculates the average of the two non-zero prices.
@@ -120,46 +93,11 @@ contract TestPriceAggreagator is Deployment
         priceAggregator.getPriceBTC();
     }
 
-    // A unit test for the setPriceFeed function. It should validate the function only calls if the cooldown period is met, also checking that the 1, 2 or 3 PriceFeed is updated accordingly and the timestamp changes.
-    function testSetPriceFeed() public
-        {
-            // Prepare a new price feed to set in place of the current price feed
-            IPriceFeed newPriceFeed = IPriceFeed(address(new ForcedPriceFeed(1 ether, 1 ether)));
-
-    		// Test setPriceFeed when cooldown period is met
-            vm.warp( block.timestamp + priceAggregator.priceFeedModificationCooldown() );
-            priceAggregator.setPriceFeed(1, newPriceFeed);
-            assertEq(address(priceAggregator.priceFeed1()), address(newPriceFeed));
-
-            // Set priceFeed2 and priceFeed3 to newPriceFeed
-            vm.warp( block.timestamp + priceAggregator.priceFeedModificationCooldown() );
-            priceAggregator.setPriceFeed(2, newPriceFeed);
-            assertEq(address(priceAggregator.priceFeed2()), address(newPriceFeed));
-
-            vm.warp( block.timestamp + priceAggregator.priceFeedModificationCooldown() );
-            priceAggregator.setPriceFeed(3, newPriceFeed);
-            assertEq(address(priceAggregator.priceFeed3()), address(newPriceFeed));
-
-            // Test revert when setPriceFeed is invoked before cooldown period is met
-            IPriceFeed anotherPriceFeed = IPriceFeed(address(new ForcedPriceFeed(2 ether, 2 ether)));
-
-			// Test that price feeds don't change if not meeting the cooldown
-            priceAggregator.setPriceFeed(1, anotherPriceFeed);
-            assertEq(address(priceAggregator.priceFeed1()), address(newPriceFeed));
-
-            priceAggregator.setPriceFeed(2, anotherPriceFeed);
-            assertEq(address(priceAggregator.priceFeed2()), address(newPriceFeed));
-
-            priceAggregator.setPriceFeed(3, anotherPriceFeed);
-            assertEq(address(priceAggregator.priceFeed3()), address(newPriceFeed));
-
-        }
-
 
     // A unit test that confirms the _absoluteDifference operation handles x and y with x > y, x < y and x == y
 	function testAbsoluteDifference() public
     	{
-    	TestPriceAggregator tpa = new TestPriceAggregator();
+    	TestPriceAggregator tpa = new TestPriceAggregator(IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)));
 
 		// Test x > y
 		uint256 result = tpa.absoluteDifference(10 ether, 5 ether);

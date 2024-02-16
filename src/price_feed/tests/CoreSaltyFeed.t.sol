@@ -120,7 +120,7 @@ contract TestCoreSaltyFeed is Deployment
 	// A unit test that checks if the contract behaves as expected when the WBTC, WETH, or USDC token contract addresses are invalid or manipulated. This could include scenarios where the token contracts do not implement the expected ERC20 interface, or when the token contracts behave maliciously.
 	function testInvalidTokens() public
 		{
-	    exchangeConfig = new ExchangeConfig( ISalt(address(0x1)), IERC20(address(0x1)), IERC20(address(0x1)), IERC20(address(0x2)), managedTeamWallet);
+	    exchangeConfig = new ExchangeConfig( ISalt(address(0x1)), IERC20(address(0x1)), IERC20(address(0x1)), IERC20(address(0x2)), teamWallet);
 		saltyFeed = new CoreSaltyFeed( pools, wbtc, weth, usdc );
 
 	    // Prices should match those set in the pools
