@@ -184,7 +184,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 		// Make sure that removing liquidity doesn't drive either of the reserves below DUST.
 		// This is to ensure that ratios remain relatively constant even after a maximum withdrawal.
-        require((reserves.reserve0 >= PoolUtils.DUST) && (reserves.reserve0 >= PoolUtils.DUST), "Insufficient reserves after liquidity removal");
+        require((reserves.reserve0 >= PoolUtils.DUST) && (reserves.reserve1 >= PoolUtils.DUST), "Insufficient reserves after liquidity removal");
 
 		// Switch reclaimed amounts back to the order that was specified in the call arguments so they make sense to the caller
 		if (flipped)
