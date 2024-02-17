@@ -56,7 +56,13 @@ contract CoreUniswapFeed is IPriceFeed
         // Get the historical tick data using the observe() function
          (int56[] memory tickCumulatives, ) = pool.observe(secondsAgo);
 
-		int24 tick = int24((tickCumulatives[1] - tickCumulatives[0]) / int56(uint56(twapInterval)));
+		int56 diff = tickCumulatives[1] - tickCumulatives[0];
+		int24 tick = int24(diff  / int56(uint56(twapInterval)));
+
+		// Round down for negative ticks
+		if ( (diff < 0) && ((diff % int56(uint56(secondsAgo[0]))) != 0) )
+        	tick --;
+
 		uint160 sqrtPriceX96 = TickMath.getSqrtRatioAtTick( tick );
 		uint256 p = FullMath.mulDiv(sqrtPriceX96, sqrtPriceX96, FixedPoint96.Q96 );
 
