@@ -30,7 +30,7 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
     event ContractCalled(address indexed contractAddress, uint256 indexed intArg);
     event TeamRewardsTransferred(uint256 teamAmount);
 
-    event POLFormed(IERC20 indexed tokenA, IERC20 indexed tokenB, uint256 amountA, uint256 amountB);
+    event POLFormed(uint256 addedSALT, uint256 addedUSDC);
     event POLProcessed(uint256 claimedSALT);
     event POLWithdrawn(IERC20 indexed tokenA, IERC20 indexed tokenB, uint256 withdrawnA, uint256 withdrawnB);
 
@@ -299,16 +299,23 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		}
 
 
-	// Form SALT/USDC or USDC/DAI Protocol Owned Liquidity using the given amount of specified tokens.
+	// Form SALT/USDC Protocol Owned Liquidity.
 	// Assumes that the tokens have already been transferred to this contract.
-	function formPOL( IERC20 tokenA, IERC20 tokenB, uint256 amountA, uint256 amountB ) external
+	function formPOL() external
 		{
 		require( msg.sender == address(exchangeConfig.upkeep()), "DAO.formPOL is only callable from the Upkeep contract" );
 
-		// Use zapping to form the liquidity so that all the specified tokens are used
-		liquidity.depositLiquidityAndIncreaseShare( tokenA, tokenB, amountA, amountB, 0, 0, 0, block.timestamp, true );
+		uint256 balanceSALT = salt.balanceOf(address(this));
+		uint256 balanceUSDC = usdc.balanceOf(address(this));
 
-		emit POLFormed(tokenA, tokenB, amountA, amountB);
+		// Normally the limiting token for the liquidity formation will be USDC - as the DAO contract typically contains SALT for the reserve.
+		// SALT balance is specified, but only enough SALT will be used to form liquidity with the available USDC.
+		liquidity.depositLiquidityAndIncreaseShare(salt, usdc, balanceSALT, balanceUSDC, 0, 0, 0, block.timestamp, false );
+
+		uint256 addedSALT = balanceSALT - salt.balanceOf(address(this));
+        uint256 addedUSDC = balanceUSDC - usdc.balanceOf(address(this));
+
+		emit POLFormed(addedSALT, addedUSDC);
 		}
 
 

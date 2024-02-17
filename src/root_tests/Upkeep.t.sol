@@ -346,7 +346,7 @@ contract TestUpkeep2 is Deployment
 		usdc.transfer(address(dao),  200 * 10**6);
 
 		vm.startPrank(address(upkeep));
-		dao.formPOL(salt, usdc, 100 ether, 100 * 10**6);
+		dao.formPOL();
 		vm.stopPrank();
 
 		// Mimic reward emission.
@@ -611,11 +611,11 @@ contract TestUpkeep2 is Deployment
 
 		// Check that 20% of the remaining WETH (20% of 95 ether) has been converted to SALT/USDC
 		(uint256 reservesA, uint256 reservesB) = pools.getPoolReserves(salt, usdc);
-		assertEq( reservesA, 18982837084300280125 ); // Close to 19
-		assertEq( reservesB, 18996601 ); // Close to 19
+		assertEq( reservesA, 18996985264186602850 ); // Close to 19
+		assertEq( reservesB, 18996607 ); // Close to 19
 
 		uint256 daoLiquidity = liquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usdc));
-		assertEq( daoLiquidity, 18989907293828063072 ); // Close to 19
+		assertEq( daoLiquidity, 18996985264205599457 ); // Close to 19
 
 
 		// Check Step 3. Convert remaining WETH to SALT and sends it to SaltRewards.
@@ -658,7 +658,7 @@ contract TestUpkeep2 is Deployment
 		assertEq( rewards[0], 250874558173860375449);
 		assertEq( rewards[1], 250874558173860375449);
 		assertEq( rewards[2], 250874558173860375449);
-		assertEq( rewards[3], 482170848248605674954);
+		assertEq( rewards[3], 482343375053537361555);
 
 
 		// Check Step 7. Collect SALT rewards from the DAO's Protocol Owned Liquidity: send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.
@@ -679,7 +679,7 @@ contract TestUpkeep2 is Deployment
 		// Other 50% should stay in the DAO
 		// The daoVestingWallet contains 25 million SALT and vests over a 10 year period.
 		// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34110 in the first 5 days (changed to one hour)
-		assertEq( salt.balanceOf(address(dao)), 34530478690992450688315 );
+		assertEq( salt.balanceOf(address(dao)), 34530464542812564365590 );
 		}
 
 

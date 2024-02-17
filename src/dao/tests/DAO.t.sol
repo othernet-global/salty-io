@@ -744,10 +744,10 @@ contract TestDAO is Deployment
         vm.stopPrank();
 
         vm.expectRevert( "DAO.formPOL is only callable from the Upkeep contract" );
-        dao.formPOL(salt, usdc, saltAmount, usdcAmount);
+        dao.formPOL();
 
         vm.prank(address(upkeep));
-        dao.formPOL(salt, usdc, saltAmount, usdcAmount);
+        dao.formPOL();
 
         assertEq(salt.balanceOf(address(dao)), 0, "DAO SALT balance incorrect after formPOL");
         assertEq(usdc.balanceOf(address(dao)), 0, "DAO USDC balance incorrect after formPOL");
@@ -767,7 +767,7 @@ contract TestDAO is Deployment
     	dao.withdrawArbitrageProfits( weth );
 
     	vm.expectRevert("DAO.formPOL is only callable from the Upkeep contract");
-    	dao.formPOL(salt, usdc, 0, 0);
+    	dao.formPOL();
 
     	vm.expectRevert("DAO.processRewardsFromPOL is only callable from the Upkeep contract");
     	dao.processRewardsFromPOL();
@@ -950,7 +950,7 @@ contract TestDAO is Deployment
 
         // Forming POL
         vm.prank(address(upkeep));
-        dao.formPOL(salt, usdc, saltAmount, usdcAmount);
+        dao.formPOL();
 
         // Capture the post-POL state
         uint256 finalSaltBalanceDAO = salt.balanceOf(address(dao));

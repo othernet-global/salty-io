@@ -117,7 +117,7 @@ contract Upkeep is IUpkeep, ReentrancyGuard
 		tokenB.safeTransfer( address(dao), amountB );
 
 		// Have the DAO form POL
-		dao.formPOL(tokenA, tokenB, amountA, amountB);
+		dao.formPOL();
 		}
 
 
