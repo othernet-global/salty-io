@@ -103,10 +103,11 @@ contract Proposals is IProposals, ReentrancyGuard
 		require( openBallotsByName[ string.concat("confirm_", ballotName)] == 0, "Cannot create a proposal for a ballot with a secondary confirmation" );
 
 		uint256 ballotMinimumEndTime = block.timestamp + daoConfig.ballotMinimumDuration();
+		uint256 ballotMaximumEndTime = block.timestamp + daoConfig.ballotMaximumDuration();
 
 		// Add the new Ballot to storage
 		ballotID = nextBallotID++;
-		ballots[ballotID] = Ballot( ballotID, true, ballotType, ballotName, address1, number1, string1, string2, ballotMinimumEndTime );
+		ballots[ballotID] = Ballot( ballotID, true, ballotType, ballotName, address1, number1, string1, string2, ballotMinimumEndTime, ballotMaximumEndTime );
 		openBallotsByName[ballotName] = ballotID;
 		_allOpenBallots.add( ballotID );
 

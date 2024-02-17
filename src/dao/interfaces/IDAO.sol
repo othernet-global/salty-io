@@ -8,6 +8,7 @@ import "../../interfaces/ISalt.sol";
 interface IDAO
 	{
 	function finalizeBallot( uint256 ballotID ) external;
+	function manuallyRemoveBallot( uint256 ballotID ) external;
 
 	function withdrawArbitrageProfits( IERC20 weth ) external returns (uint256 withdrawnAmount);
 	function formPOL( IERC20 tokenA, IERC20 tokenB, uint256 amountA, uint256 amountB ) external;

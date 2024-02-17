@@ -35,7 +35,8 @@ abstract contract Parameters
 		requiredProposalPercentStakeTimes1000,
 		maxPendingTokensForWhitelisting,
 		arbitrageProfitsPercentPOL,
-		upkeepRewardPercent
+		upkeepRewardPercent,
+		ballotMaximumDuration
 		}
 
 
@@ -85,5 +86,7 @@ abstract contract Parameters
 			daoConfig.changeArbitrageProfitsPercentPOL(increase);
 		else if ( parameterType == ParameterTypes.upkeepRewardPercent )
 			daoConfig.changeUpkeepRewardPercent(increase);
+		else if ( parameterType == ParameterTypes.ballotMaximumDuration )
+			daoConfig.changeBallotMaximumDuration(increase);
 		}
 	}

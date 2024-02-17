@@ -12,6 +12,7 @@ contract DAOConfig is IDAOConfig, Ownable
     event PercentPolRewardsBurnedChanged(uint256 newPercentPolRewardsBurned);
     event BaseBallotQuorumPercentChanged(uint256 newBaseBallotQuorumPercentTimes1000);
     event BallotDurationChanged(uint256 newBallotDuration);
+    event BallotMaximumDurationChanged(uint256 newMaximumDuration);
     event RequiredProposalPercentStakeChanged(uint256 newRequiredProposalPercentStakeTimes1000);
     event MaxPendingTokensForWhitelistingChanged(uint256 newMaxPendingTokensForWhitelisting);
     event ArbitrageProfitsPercentPOLChanged(uint256 newArbitrageProfitsPercentPOL);
@@ -43,6 +44,10 @@ contract DAOConfig is IDAOConfig, Ownable
 	// Action will only be taken if it has the required votes and quorum to do so.
 	// Range: 3 to 14 days with an adjustment of 1 day
 	uint256 public ballotMinimumDuration = 10 days;
+
+	// How many days a ballot can exist before it can be manually removed by any user.
+	// Range: 15 to 90 days with an adjustment of 15 days
+	uint256 public ballotMaximumDuration = 30 days;
 
 	// The percent of staked SALT that a user has to have to make a proposal
 	// Range: 0.10% to 2% with an adjustment of 0.10%
@@ -126,6 +131,23 @@ contract DAOConfig is IDAOConfig, Ownable
         	}
 
 		emit BallotDurationChanged(ballotMinimumDuration);
+    	}
+
+
+	function changeBallotMaximumDuration(bool increase) external onlyOwner
+    	{
+        if (increase)
+        	{
+            if (ballotMaximumDuration < 90 days)
+                ballotMaximumDuration += 15 days;
+        	}
+        else
+        	{
+            if (ballotMaximumDuration > 15 days)
+                ballotMaximumDuration -= 15 days;
+        	}
+
+		emit BallotMaximumDurationChanged(ballotMaximumDuration);
     	}
 
 

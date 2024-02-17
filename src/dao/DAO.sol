@@ -19,7 +19,7 @@ import "../Upkeep.sol";
 // It handles proposing ballots, tracking votes, enforcing voting requirements, and executing approved proposals.
 contract DAO is IDAO, Parameters, ReentrancyGuard
     {
-	event BallotFinalized(uint256 indexed ballotID, Vote winningVote);
+	event ParameterBallotFinalized(uint256 indexed ballotID, Vote winningVote);
     event SetContract(string indexed ballotName, address indexed contractAddress);
     event SetWebsiteURL(string newURL);
     event WhitelistToken(IERC20 indexed token);
@@ -108,10 +108,7 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		else if ( winningVote == Vote.DECREASE )
 			_executeParameterChange( ParameterTypes(ballot.number1), false, poolsConfig, stakingConfig, rewardsConfig, daoConfig );
 
-		// Finalize the ballot even if NO_CHANGE won
-		proposals.markBallotAsFinalized(ballotID);
-
-		emit BallotFinalized(ballotID, winningVote);
+		emit ParameterBallotFinalized(ballotID, winningVote);
 		}
 
 
@@ -204,8 +201,6 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 			Ballot memory ballot = proposals.ballotForID(ballotID);
 			_executeApproval( ballot );
 			}
-
-		proposals.markBallotAsFinalized(ballotID);
 		}
 
 
@@ -248,9 +243,6 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 
 			emit WhitelistToken(IERC20(ballot.address1));
 			}
-
-		// Mark the ballot as finalized (which will also remove it from the list of open token whitelisting proposals)
-		proposals.markBallotAsFinalized(ballotID);
 		}
 
 
@@ -269,6 +261,21 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 			_finalizeTokenWhitelisting(ballotID);
 		else
 			_finalizeApprovalBallot(ballotID);
+
+		// Mark the ballot as no longer votable and remove it from the list of open ballots
+		proposals.markBallotAsFinalized(ballotID);
+		}
+
+
+	// Remove a ballot from voting which has existed for longer than the DAOConfig.ballotMaximumDuration
+	function manuallyRemoveBallot( uint256 ballotID ) external nonReentrant
+		{
+		Ballot memory ballot = proposals.ballotForID(ballotID);
+
+		require( block.timestamp >= ballot.ballotMaximumEndTime, "The ballot is not yet able to be manually removed" );
+
+		// Mark the ballot as no longer votable and remove it from the list of open ballots
+		proposals.markBallotAsFinalized(ballotID);
 		}
 
 

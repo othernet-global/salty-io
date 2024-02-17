@@ -27,6 +27,9 @@ struct Ballot
 
 	// The earliest timestamp at which a ballot can end. Can be open longer if the quorum has not yet been reached for instance.
 	uint256 ballotMinimumEndTime;
+
+	// The time at which any user can end the ballot - even if it hasn't been successfully finalized.
+	uint256 ballotMaximumEndTime;
 	}
 
 

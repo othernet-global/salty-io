@@ -88,6 +88,8 @@ contract TestParametersOffchain is Test
 			return daoConfig.arbitrageProfitsPercentPOL();
 		else if ( parameter == Parameters.ParameterTypes.upkeepRewardPercent )
 			return daoConfig.upkeepRewardPercent();
+		else if ( parameter == Parameters.ParameterTypes.ballotMaximumDuration )
+			return daoConfig.ballotMaximumDuration();
 
 		require(false, "Invalid ParameterType" );
 		return 0;
@@ -186,6 +188,7 @@ contract TestParametersOffchain is Test
 		_checkParameter( Parameters.ParameterTypes.maxPendingTokensForWhitelisting, 3, 5, 12, 1 );
 		_checkParameter( Parameters.ParameterTypes.arbitrageProfitsPercentPOL, 15, 20, 45, 5 );
 		_checkParameter( Parameters.ParameterTypes.upkeepRewardPercent, 1, 5, 10, 1 );
+		_checkParameter( Parameters.ParameterTypes.ballotMaximumDuration, 15 days, 30 days, 90 days, 15 days );
 		}
     }
 

@@ -99,6 +99,8 @@ contract TestDAO is Deployment
 			return daoConfig.arbitrageProfitsPercentPOL();
 		else if ( parameter == Parameters.ParameterTypes.upkeepRewardPercent )
 			return daoConfig.upkeepRewardPercent();
+		else if ( parameter == Parameters.ParameterTypes.ballotMaximumDuration )
+			return daoConfig.ballotMaximumDuration();
 
 		require(false, "Invalid ParameterType" );
 		return 0;
@@ -960,5 +962,121 @@ contract TestDAO is Deployment
         assertEq(finalUsdsBalanceDAO, initialUsdsBalanceDAO - usdcAmount, "Incorrect final USDC balance in DAO");
         assertEq(finalPoolShareDAO, 500 ether + 500 * 10**6, "DAO did not receive pool share tokens");
     }
+
+
+    // A unit test to verify that ballots cannot be manually removed before their maximum timestamp has been reached
+	function testEarlyManualRemoval() public
+		{
+		// Alice stakes her SALT to get voting power
+		vm.startPrank(address(daoVestingWallet));
+		salt.transfer(alice, 1000000 ether);				// for staking and voting
+		salt.transfer(address(dao), 1000000 ether); // bootstrapping rewards
+		vm.stopPrank();
+
+		vm.startPrank(alice);
+		staking.stakeSALT(500000 ether);
+
+		IERC20 test = new TestERC20( "TEST", 18 );
+
+		// Propose a whitelisting ballot
+		proposals.proposeTokenWhitelisting(test, "url", "description");
+
+		uint256 ballotID = 1;
+
+		// Increase block time to finalize the ballot
+		skip( daoConfig.ballotMaximumDuration() - 1);
+
+		vm.expectRevert( "The ballot is not yet able to be manually removed" );
+		dao.manuallyRemoveBallot(ballotID);
+		}
+
+
+    // A unit test to ensure that ballots can be manually removed when their maximum timestamp has been reached
+	function testManualRemoval() public
+		{
+		// Alice stakes her SALT to get voting power
+		vm.startPrank(address(daoVestingWallet));
+		salt.transfer(alice, 1000000 ether);				// for staking and voting
+		salt.transfer(address(dao), 1000000 ether); // bootstrapping rewards
+		vm.stopPrank();
+
+		vm.startPrank(alice);
+		staking.stakeSALT(500000 ether);
+
+		IERC20 test = new TestERC20( "TEST", 18 );
+
+		// Propose a whitelisting ballot
+		proposals.proposeTokenWhitelisting(test, "url", "description");
+
+		uint256 ballotID = 1;
+
+		// Increase block time to finalize the ballot
+		skip( daoConfig.ballotMaximumDuration() + 1);
+
+		dao.manuallyRemoveBallot(ballotID);
+        assertEq(proposals.ballotForID(ballotID).ballotIsLive, false, "Ballot should have been removed");
+		}
+
+
+	// A unit test to make sure that a ballot can be recreated after it is manually removed
+	function testRecreateAfterManualRemoval() public
+		{
+		// Alice stakes her SALT to get voting power
+		vm.startPrank(address(daoVestingWallet));
+		salt.transfer(alice, 1000000 ether);				// for staking and voting
+		salt.transfer(address(dao), 1000000 ether); // bootstrapping rewards
+		vm.stopPrank();
+
+		vm.startPrank(alice);
+		staking.stakeSALT(500000 ether);
+
+		IERC20 test = new TestERC20( "TEST", 18 );
+
+		// Propose a whitelisting ballot
+		proposals.proposeTokenWhitelisting(test, "url", "description");
+
+		uint256 ballotID = 1;
+
+		// Increase block time to finalize the ballot
+		skip( daoConfig.ballotMaximumDuration() + 1);
+
+		// Propose a whitelisting ballot
+		vm.expectRevert( "Users can only have one active proposal at a time" );
+		proposals.proposeTokenWhitelisting(test, "url", "description");
+
+		dao.manuallyRemoveBallot(ballotID);
+        assertEq(proposals.ballotForID(ballotID).ballotIsLive, false, "Ballot should have been removed");
+
+   		proposals.proposeTokenWhitelisting(test, "url", "description");
+		}
+
+
+	// A unit test to make sure that manually removing a ballot does not execute it
+	function testManualRemovalDoesNotExecute() public
+		{
+		// Alice stakes her SALT to get voting power
+		vm.startPrank(address(daoVestingWallet));
+		salt.transfer(alice, 1000000 ether);				// for staking and voting
+		salt.transfer(address(dao), 1000000 ether); // bootstrapping rewards
+		vm.stopPrank();
+
+		vm.startPrank(alice);
+		staking.stakeSALT(500000 ether);
+
+		IERC20 token = new TestERC20( "TEST", 18 );
+
+		// Propose a whitelisting ballot
+		proposals.proposeTokenWhitelisting(token, "url", "description");
+
+		uint256 ballotID = 1;
+
+		// Increase block time to finalize the ballot
+		skip( daoConfig.ballotMaximumDuration() + 1);
+
+		dao.manuallyRemoveBallot(ballotID);
+        assertEq(proposals.ballotForID(ballotID).ballotIsLive, false, "Ballot should have been removed");
+
+        assertFalse( poolsConfig.tokenHasBeenWhitelisted(token, wbtc, weth), "Token should not have been whitelisted" );
+		}
     }
 
