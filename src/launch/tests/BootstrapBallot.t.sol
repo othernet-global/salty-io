@@ -397,7 +397,7 @@ contract TestBootstrapBallot is Deployment
 
     		// Attempted vote with incorrect signature should be reverted
     		vm.startPrank(alice);
-    		vm.expectRevert("Incorrect BootstrapBallot.vote signatory");
+    		vm.expectRevert("ECDSA: invalid signature");
     		bootstrapBallot.vote(true, invalidSignature);
     		vm.stopPrank();
 
@@ -528,7 +528,7 @@ contract TestBootstrapBallot is Deployment
 
         vm.startPrank(voter);
         // Expect a revert with a specific error message related to incorrect signature verification
-        vm.expectRevert("Incorrect BootstrapBallot.vote signatory");
+        vm.expectRevert("ECDSA: invalid signature");
         bootstrapBallot.vote(true, incorrectSignature); // External call to vote function
         vm.stopPrank();
 

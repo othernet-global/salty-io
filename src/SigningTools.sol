@@ -1,5 +1,7 @@
 pragma solidity =0.8.22;
 
+import "openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol";
+
 
 library SigningTools
 	{
@@ -10,8 +12,6 @@ library SigningTools
 	// Verify that the messageHash was signed by the authoratative signer.
     function _verifySignature(bytes32 messageHash, bytes memory signature ) internal pure returns (bool)
     	{
-    	require( signature.length == 65, "Invalid signature length" );
-
 		bytes32 r;
 		bytes32 s;
 		uint8 v;
@@ -23,7 +23,7 @@ library SigningTools
 			v := mload (add (signature, 0x41))
 			}
 
-		address recoveredAddress = ecrecover(messageHash, v, r, s);
+		address recoveredAddress = ECDSA.recover(messageHash, v, r, s);
 
         return (recoveredAddress == EXPECTED_SIGNER);
     	}
