@@ -236,22 +236,6 @@ contract TestPriceAggreagator is Deployment
         assertEq(aggregatedPrice, expectedPrice, "Aggregated price should be the average of the two same prices");
     }
 
-
-//    // A unit test that tests that near zero prices will not show proximity to zero itself
-//    function testPricesCloseToZero() public {
-//        // Setup
-//        priceFeed1.setBTCPrice(0);
-//        priceFeed2.setBTCPrice(.01 ether);
-//        priceFeed3.setBTCPrice(.0101 ether);
-//
-//        // If the two same prices are valid, and within range, the function should aggregate them correctly.
-//        uint256 expectedPrice = 2 ether;
-//        uint256 aggregatedPrice = priceAggregator.getPriceBTC();
-//
-//        console.log( "aggregatedPrice: ", aggregatedPrice );
-////        assertEq(aggregatedPrice, expectedPrice, "Aggregated price should be the average of the two same prices");
-//    }
-
 	}
 
 
