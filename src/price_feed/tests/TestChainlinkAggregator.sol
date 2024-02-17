@@ -40,7 +40,7 @@ contract TestChainlinkAggregator is Ownable
 		require( ! shouldFail );
 
 		if ( shouldTimeout )
-			return (uint80(0), int256(forcedPriceWith18Decimals), uint256(0), block.timestamp - 61 minutes, uint80(0));
+			return (uint80(0), int256(forcedPriceWith18Decimals), uint256(0), block.timestamp - 66 minutes, uint80(0));
 
 		return (uint80(0), int256(forcedPriceWith18Decimals), uint256(0), block.timestamp - 59 minutes, uint80(0));
 		}

@@ -9,7 +9,7 @@ import "./interfaces/IPriceFeed.sol";
 // Prices are returned with 18 decimals.
 contract CoreChainlinkFeed is IPriceFeed
     {
-    uint256 constant MAX_ANSWER_DELAY = 60 minutes;
+    uint256 constant MAX_ANSWER_DELAY = 65 minutes;
 
 	// https://docs.chain.link/data-feeds/price-feeds/addresses
 	AggregatorV3Interface immutable public CHAINLINK_BTC_USD;
