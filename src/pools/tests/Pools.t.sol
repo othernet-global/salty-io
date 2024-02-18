@@ -1796,4 +1796,60 @@ function testMinLiquidityAndReclaimedAmounts() public {
 		console.log( "DOUBLE SWAP GAS: ", gas0 - gasleft() );
 		vm.stopPrank();
 		}
+
+
+// From: https://github.com/code-423n4/2024-01-salty-findings/issues/927
+function testAdjustReservesForSwap_Overflow_Bug_Audit() public {
+    // setup
+    vm.startPrank(alice);
+    IERC20 tokenIn = new TestERC20('TEST', 18);
+    IERC20 tokenOut = new TestERC20('TEST', 18);
+    vm.stopPrank();
+
+    vm.startPrank(address(dao));
+    poolsConfig.whitelistPool(pools, tokenIn, tokenOut);
+    vm.stopPrank();
+
+    uint256 tokenInBalance = type(uint128).max - 1000;
+    uint256 tokenOutBalance = type(uint128).max - 1000;
+
+    deal(address(tokenIn), alice, type(uint256).max);
+    deal(address(tokenOut), alice, type(uint256).max);
+
+    // Add enough liquidity
+    vm.startPrank(alice);
+    tokenIn.transfer(address(liquidity), tokenInBalance);
+    tokenOut.transfer(address(liquidity), tokenInBalance);
+    vm.stopPrank();
+
+    vm.startPrank(address(liquidity));
+    tokenIn.approve(address(pools), type(uint256).max);
+    tokenOut.approve(address(pools), type(uint256).max);
+    uint256 totalShares = liquidity.totalShares(PoolUtils._poolID(tokenIn, tokenOut));
+
+    pools.addLiquidity(tokenIn, tokenOut, tokenInBalance, tokenOutBalance, 0, 0, totalShares);
+    vm.stopPrank();
+
+    // get pool reserves before swap
+    (uint256 reserves0Before, uint256 reserves1Before) = pools.getPoolReserves(tokenIn, tokenOut);
+
+    uint256 tokenAmountToSwap = 1500;
+    uint256 minAmountOut = 1;
+
+    vm.prank(alice);
+    tokenIn.transfer(bob, tokenAmountToSwap + 100);
+
+    uint256 tokenOutBalanceBeforeSwap = tokenOut.balanceOf(bob);
+    vm.startPrank(bob);
+    tokenIn.approve(address(pools), type(uint256).max);
+
+    vm.expectRevert( "Overflow detected in reserves update" );
+    uint256 amountOut = pools.depositSwapWithdraw(
+      tokenIn,
+      tokenOut,
+      tokenAmountToSwap,
+      minAmountOut,
+      block.timestamp + 1 minutes
+    );
+  }
     }

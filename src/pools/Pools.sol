@@ -270,7 +270,9 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		// Make sure that the reserves after swap are above DUST
         require( (reserve0 >= PoolUtils.DUST) && (reserve1 >= PoolUtils.DUST), "Insufficient reserves after swap");
 
-		// Update the reserves
+		// Update the reserves with overflow check
+		require( (reserve0 <= type(uint128).max) && (reserve1 <= type(uint128).max), "Overflow detected in reserves update" );
+
 		reserves.reserve0 = uint128(reserve0);
 		reserves.reserve1 = uint128(reserve1);
     	}
