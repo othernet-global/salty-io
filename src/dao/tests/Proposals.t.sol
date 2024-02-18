@@ -63,7 +63,7 @@ contract TestProposals is Deployment
 		staking.stakeSALT(1000 ether);
 
         // Define a ballotName
-        string memory ballotName = "parameter:1";
+        string memory ballotName = "parameter:1description";
 
         // Ensure ballot with ballotName doesn't exist before proposing
         assertEq(proposals.openBallotsByName(ballotName), 0);
@@ -83,7 +83,7 @@ contract TestProposals is Deployment
         uint256 initialNextBallotId = proposals.nextBallotID();
 
         // Define a ballotName
-        string memory ballotName = "parameter:1";
+        string memory ballotName = "parameter:1description";
 
         // Ensure ballot with ballotName doesn't exist before proposing
         assertEq(proposals.openBallotsByName(ballotName), 0);
@@ -160,8 +160,8 @@ contract TestProposals is Deployment
 
 	// A unit test that verifies the proposeCountryInclusion and proposeCountryExclusion functions with different country names. Check that the appropriate country name gets stored in the proposal.
 	function testProposeCountryInclusionExclusion() public {
-        string memory inclusionBallotName = "include:us";
-        string memory exclusionBallotName = "exclude:ca";
+        string memory inclusionBallotName = "include:usdescription";
+        string memory exclusionBallotName = "exclude:cadescription";
         string memory countryName1 = "us";
         string memory countryName2 = "ca";
 
@@ -197,7 +197,7 @@ contract TestProposals is Deployment
 
 
 	// A unit test that verifies the proposeSetContractAddress function. Test this function with different address values and verify that the new address gets stored in the proposal.
-	function testProposeSetContractAddress() public {
+	function testProposeSetAccessManager() public {
         vm.startPrank(alice);
 		staking.stakeSALT(1000 ether);
 
@@ -207,17 +207,17 @@ contract TestProposals is Deployment
         // Try to set an invalid address and expect a revert
         address newAddress = address(0);
         vm.expectRevert("Proposed address cannot be address(0)");
-        proposals.proposeSetContractAddress( "contractName", newAddress, "description" );
+        proposals.proposeSetAccessManager( newAddress, "description" );
 
         // Use a valid address
         newAddress = address(0x1111111111111111111111111111111111111112);
-        proposals.proposeSetContractAddress("contractName", newAddress, "description" );
+        proposals.proposeSetAccessManager(newAddress, "description" );
 		vm.stopPrank();
 
         vm.startPrank(DEPLOYER);
 		staking.stakeSALT(1000 ether);
        vm.expectRevert("Cannot create a proposal similar to a ballot that is still open");
-        proposals.proposeSetContractAddress("contractName", newAddress, "description" );
+        proposals.proposeSetAccessManager( newAddress, "description" );
 
         // Check if a new proposal is created
         uint256 newProposalCount = proposals.nextBallotID() - 1;
@@ -250,7 +250,7 @@ contract TestProposals is Deployment
         uint256 postNextBallotID = proposals.nextBallotID();
         assertEq(postNextBallotID, preNextBallotID + 1, "proposals.nextBallotID() should have incremented by 1");
 
-		string memory ballotName = "setURL:https://www.newwebsite.com";
+		string memory ballotName = "setURL:https://www.newwebsite.comdescription";
 
         // Verify the ballot ID associated with the ballotName
         uint256 ballotID = proposals.openBallotsByName(ballotName);
@@ -276,7 +276,7 @@ contract TestProposals is Deployment
         vm.startPrank(alice);
         staking.stakeSALT(1000 ether);
 
-		string memory ballotName = "callContract:0x000000000000000000000000000000000000bbbb";
+		string memory ballotName = "callContract:0x000000000000000000000000000000000000bbbb12345description";
 
         // Check initial state before proposal
         assertEq(proposals.openBallotsByName(ballotName), 0, "Ballot ID should be 0 before proposal");
@@ -299,7 +299,7 @@ contract TestProposals is Deployment
 
 	// A unit test for the _markBallotAsFinalized function that confirms if a ballot's status is updated correctly after finalization.
 	function testMarkBallotAsFinalized() public {
-        string memory ballotName = "parameter:2";
+        string memory ballotName = "parameter:2description";
 
         vm.startPrank(DEPLOYER);
         staking.stakeSALT(1000 ether);
@@ -321,7 +321,7 @@ contract TestProposals is Deployment
 
 	// A unit test that checks if the castVote function appropriately updates the votesCastForBallot mapping and proposals.totalVotesCastForBallot for the ballot. This should also cover situations where a user tries to vote without voting power and a situation where a user changes their vote.
 	function testCastVote() public {
-        string memory ballotName = "parameter:2";
+        string memory ballotName = "parameter:2description";
 
         vm.startPrank(DEPLOYER);
 		staking.stakeSALT( 1000 ether );
@@ -378,7 +378,7 @@ contract TestProposals is Deployment
 
 	// A unit test that checks if canFinalizeBallot function returns the correct boolean value under various conditions, including situations where a ballot can be finalized and where it cannot due to ballot not being live, minimum end time not being reached, or not meeting the required quorum.
 	function testCanFinalizeBallot() public {
-        string memory ballotName = "parameter:2";
+        string memory ballotName = "parameter:2description";
 
 		uint256 initialStake = 10000000 ether;
 
@@ -483,7 +483,7 @@ contract TestProposals is Deployment
 
         // Check quorum for SetContract ballot type
         expectedQuorum = (3 * stakedSALT * baseBallotQuorumPercentTimes1000) / (1000 * 100);
-        assertEq(proposals.requiredQuorumForBallotType(BallotType.SET_CONTRACT), expectedQuorum);
+        assertEq(proposals.requiredQuorumForBallotType(BallotType.SET_ACCESS_MANAGER), expectedQuorum);
 
         // Check quorum for SetWebsiteUrl ballot type
         expectedQuorum = (3 * stakedSALT * baseBallotQuorumPercentTimes1000) / (1000 * 100);
@@ -495,7 +495,7 @@ contract TestProposals is Deployment
    // A unit test that verifies if the totalVotesCastForBallot function correctly calculates the sum of all types of votes for a particular ballot.
 	function testTotalVotesCastForBallot() public
         {
-        string memory ballotName = "parameter:2";
+        string memory ballotName = "parameter:2description";
 
 		vm.prank(DEPLOYER);
 		salt.transfer(bob, 1000 ether);
@@ -641,6 +641,9 @@ staking.stakeSALT(1000 ether);
 
         // Test only one sendSALT proposal being able to be pending at a time
         vm.expectRevert( "Cannot create a proposal similar to a ballot that is still open" );
+        proposals.proposeSendSALT( bob, validAmount, "description" );
+
+        // Make sure can send SATL to another wallet
         proposals.proposeSendSALT( DEPLOYER, validAmount, "description" );
     }
 
@@ -1040,7 +1043,7 @@ staking.stakeSALT(1000 ether);
 
         // Alice proposes a new ballot
         proposals.proposeParameterBallot(1, "description" );
-        uint256 ballotID = proposals.openBallotsByName("parameter:1");
+        uint256 ballotID = proposals.openBallotsByName("parameter:1description");
 
         // Alice casts a vote
         proposals.castVote(ballotID, Vote.INCREASE);
@@ -1057,14 +1060,14 @@ staking.stakeSALT(1000 ether);
 
 
 	// A unit test to verify that the proposeSetContractAddress function does not allow a proposal to set a contract address to address(0).
-	function testProposeSetContractAddressRejectsZeroAddress() public {
+	function testProposeSetAccessManagerRejectsZeroAddress() public {
         vm.startPrank(alice);
 		staking.stakeSALT(1000 ether);
 
         // Try to set an invalid address and expect a revert
         address newAddress = address(0);
         vm.expectRevert("Proposed address cannot be address(0)");
-        proposals.proposeSetContractAddress("contractName", newAddress, "description" );
+        proposals.proposeSetAccessManager( newAddress, "description" );
 
         vm.stopPrank();
     }
@@ -1105,7 +1108,7 @@ staking.stakeSALT(1000 ether);
 
         // Define a ballotName
         string memory ballotName = "setContract:1";
-        BallotType ballotType = BallotType.SET_CONTRACT;
+        BallotType ballotType = BallotType.SET_ACCESS_MANAGER;
         address address1 = address(0x3333);
         uint256 number1 = 0;
         string memory string1 = "newContractAddress";
@@ -1209,7 +1212,7 @@ staking.stakeSALT(1000 ether);
 
        // Try proposing a ballot for the same token again - should fail
        vm.expectRevert("Cannot create a proposal similar to a ballot that is still open");
-       proposals.proposeTokenWhitelisting(TestERC20(testTokenAddress), "", "");
+       proposals.proposeTokenWhitelisting(TestERC20(testTokenAddress), "abc", "def");
 
        // Verify proposing a new ballot with a new token
 //       string memory ballotNameTwo = "whitelist:0x1909b107ce8e4e1b43838371a290e13bed3a1002";
@@ -1385,7 +1388,7 @@ staking.stakeSALT(1000 ether);
         assertTrue(retrievedBallot.ballotIsLive);
         assertEq(retrievedBallot.ballotID, expectedBallotID);
         assertEq(uint256(retrievedBallot.ballotType), uint256(BallotType.PARAMETER));
-        assertEq(retrievedBallot.ballotName, "parameter:2");
+        assertEq(retrievedBallot.ballotName, "parameter:2testBallotForID");
         assertEq(retrievedBallot.address1, address(0));
         assertEq(retrievedBallot.number1, 2);
         assertEq(retrievedBallot.string1, "");
@@ -1631,13 +1634,13 @@ staking.stakeSALT(1000 ether);
  	      proposals.proposeParameterBallot(1, "description" );
 		vm.stopPrank();
 
-		uint256 ballotID = proposals.openBallotsByName("parameter:1");
+		uint256 ballotID = proposals.openBallotsByName("parameter:1description");
 		assertEq(ballotID, 1); // Ensuring ballotID exists before finalization
 
 		vm.prank(address(dao));
 		proposals.markBallotAsFinalized(ballotID);
 
-		uint256 removedBallotID = proposals.openBallotsByName("parameter:1");
+		uint256 removedBallotID = proposals.openBallotsByName("parameter:1description");
 		assertEq(removedBallotID, 0); // Ensuring ballotID is removed from openBallotsByName
         }
 
@@ -1645,7 +1648,7 @@ staking.stakeSALT(1000 ether);
     // A unit test that confirms vote tallies reset when a user changes their vote to a different type
 	function testVoteTallyResetUponChangingVote() public {
         // Prepare a ParameterBallot proposal
-        string memory ballotName = "parameter:2";
+        string memory ballotName = "parameter:2description";
         vm.startPrank(DEPLOYER);
         staking.stakeSALT(1000 ether);
         proposals.proposeParameterBallot(2, "description" );
@@ -1676,7 +1679,7 @@ staking.stakeSALT(1000 ether);
     // A unit test that checks the user's _userHasActiveProposal flag is reset after their ballot is finalized
 	function testUserHasActiveProposalFlagResetAfterBallotFinalized() public {
         // Prepare a ParameterBallot proposal
-        string memory ballotName = "parameter:2";
+        string memory ballotName = "parameter:2description";
         vm.startPrank(alice);
         staking.stakeSALT(1000 ether);
         proposals.proposeParameterBallot(2, "description" );
@@ -1734,33 +1737,6 @@ staking.stakeSALT(1000 ether);
     }
 
 
-// From: https://github.com/code-423n4/2024-01-salty-findings/issues/620
-function testProposeSetContractAddress_confirm() public {
-    uint256 initialNextBallotId = proposals.nextBallotID();
-
-    // Alice is the adversary
-    vm.startPrank(alice);
-    staking.stakeSALT(1000 ether);
-
-    // Create a poisonous proposal with a ballot name ending in `_confirm`
-    address newAddress = address(0x1111111111111111111111111111111111111112);
-    proposals.proposeSetContractAddress("priceFeed1_confirm", newAddress, "description");
-    assertEq(proposals.nextBallotID(), initialNextBallotId + 1); // proposal was created successfully
-    vm.stopPrank();
-
-    // Transfer some tokens to Bob who wants to create a legit proposal
-    vm.startPrank(DEPLOYER);
-    salt.transfer(bob, 1000 ether);
-    vm.stopPrank();
-
-    // Bob can't create a legit proposal to change the contract address of `priceFeed1`
-    vm.startPrank(bob);
-    staking.stakeSALT(1000 ether);
-
-
-   // vm.expectRevert("Cannot create a proposal for a ballot with a secondary confirmation");
-    proposals.proposeSetContractAddress("priceFeed1", newAddress, "description");
-}
    }
 
 

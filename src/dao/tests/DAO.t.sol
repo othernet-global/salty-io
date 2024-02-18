@@ -473,35 +473,19 @@ contract TestDAO is Deployment
     	}
 
 
-	function _contractForName( string memory contractName ) internal view returns (address)
-		{
-		bytes32 nameHash = keccak256(bytes(contractName));
 
-		if ( nameHash == keccak256(bytes("accessManager" )))
-			return address(exchangeConfig.accessManager());
-		if ( nameHash == keccak256(bytes("priceFeed1" )))
-			return address(priceAggregator.priceFeed1());
-		if ( nameHash == keccak256(bytes("priceFeed2" )))
-			return address(priceAggregator.priceFeed2());
-		if ( nameHash == keccak256(bytes("priceFeed3" )))
-			return address(priceAggregator.priceFeed3());
-
-		return address(0);
-		}
-
-
-    function _checkSetContractApproved( uint256 ballotID, string memory contractName, address newAddress) internal
+    function _checkAccessManagerApproved( uint256 ballotID, address newAddress) internal
     	{
         vm.startPrank(alice);
         staking.stakeSALT( 1000000 ether );
 
-        proposals.proposeSetContractAddress( contractName, newAddress, "description" );
+        proposals.proposeSetAccessManager( newAddress, "description" );
 		_voteForAndFinalizeBallot(ballotID, Vote.YES);
 
 		// Above finalization should create a confirmation ballot
 		_voteForAndFinalizeBallot(ballotID + 1, Vote.YES);
 
-		assertEq( _contractForName(contractName), newAddress, "Contract address should have changed" );
+		assertEq( address(exchangeConfig.accessManager()), newAddress, "AccessManager should have changed" );
 		vm.stopPrank();
     	}
 
@@ -510,19 +494,19 @@ contract TestDAO is Deployment
 	function testSetContractApproved() public
 		{
 		// Done last to prevent access issues
-		_checkSetContractApproved( 1, "accessManager", address( new AccessManager(dao) ) );
+		_checkAccessManagerApproved( 1, address( new AccessManager(dao) ) );
 		}
 
 
-    function _checkSetContractDenied1( uint256 ballotID, string memory contractName, address newAddress) internal
+    function _checkSetAccessManagerDenied1( uint256 ballotID, address newAddress) internal
     	{
         vm.startPrank(alice);
         staking.stakeSALT( 1000000 ether );
 
-        proposals.proposeSetContractAddress( contractName, newAddress, "description" );
+        proposals.proposeSetAccessManager( newAddress, "description" );
 		_voteForAndFinalizeBallot(ballotID, Vote.NO);
 
-		assertFalse( _contractForName(contractName) == newAddress, "Contract address should not have changed" );
+		assertFalse( address(exchangeConfig.accessManager()) == newAddress, "Contract address should not have changed" );
 		vm.stopPrank();
     	}
 
@@ -530,28 +514,22 @@ contract TestDAO is Deployment
 	// A unit test to test that  with all possible contract options, finalizing a setContract ballot has no effect when the initial ballot fails
 	function testSetContractDenied1() public
 		{
-		_checkSetContractDenied1( 1, "priceFeed", address(0x1231231 ) );
-		_checkSetContractDenied1( 2, "accessManager", address( new AccessManager(dao) ) );
-		_checkSetContractDenied1( 3, "stakingRewardsEmitter", address(0x1231233 ) );
-		_checkSetContractDenied1( 4, "liquidityRewardsEmitter", address(0x1231234 ) );
-		_checkSetContractDenied1( 5, "priceFeed1", address(0x1231236 ) );
-		_checkSetContractDenied1( 6, "priceFeed2", address(0x1231237 ) );
-		_checkSetContractDenied1( 7, "priceFeed3", address(0x1231238 ) );
+		_checkSetAccessManagerDenied1( 1, address( new AccessManager(dao) ) );
 		}
 
 
-    function _checkSetContractDenied2( uint256 ballotID, string memory contractName, address newAddress) internal
+    function _checkSetContractDenied2( uint256 ballotID, address newAddress) internal
     	{
         vm.startPrank(alice);
         staking.stakeSALT( 1000000 ether );
 
-        proposals.proposeSetContractAddress( contractName, newAddress, "description" );
+        proposals.proposeSetAccessManager(newAddress, "description" );
 		_voteForAndFinalizeBallot(ballotID, Vote.YES);
 
 		// Above finalization should create a confirmation ballot
 		_voteForAndFinalizeBallot(ballotID + 1, Vote.NO);
 
-		assertFalse( _contractForName(contractName) == newAddress, "Contract address should not have changed" );
+		assertFalse( address(exchangeConfig.accessManager()) == newAddress, "Contract address should not have changed" );
 		vm.stopPrank();
     	}
 
@@ -559,12 +537,7 @@ contract TestDAO is Deployment
 	// A unit test to test that  with all possible contract options, finalizing a setContract ballot has no effect when the confirm ballot fails
 	function testSetContractDenied2() public
 		{
-		_checkSetContractDenied2( 1, "accessManager", address( new AccessManager(dao) ) );
-		_checkSetContractDenied2( 3, "stakingRewardsEmitter", address(0x1231233 ) );
-		_checkSetContractDenied2( 5, "liquidityRewardsEmitter", address(0x1231234 ) );
-		_checkSetContractDenied2( 7, "priceFeed1", address(0x1231236 ) );
-		_checkSetContractDenied2( 9, "priceFeed2", address(0x1231237 ) );
-		_checkSetContractDenied2( 11, "priceFeed3", address(0x1231238 ) );
+		_checkSetContractDenied2( 1, address( new AccessManager(dao) ) );
 		}
 
 
@@ -807,7 +780,7 @@ contract TestDAO is Deployment
         vm.stopPrank();
 
         // Retrieve the initial ballot ID
-        uint256 initialBallotID = proposals.openBallotsByName("parameter:0");
+        uint256 initialBallotID = proposals.openBallotsByName("parameter:0test");
         assertEq(initialBallotID, 1, "Initial ballot ID should be 1");
 
         // Warp time to allow for another proposal
@@ -819,7 +792,7 @@ contract TestDAO is Deployment
         vm.stopPrank();
 
         // Retrieve the second ballot ID
-        uint256 secondBallotID = proposals.openBallotsByName("parameter:2");
+        uint256 secondBallotID = proposals.openBallotsByName("parameter:2test");
         assertEq(secondBallotID, initialBallotID + 1, "Second ballot ID should increment by 1");
     }
 

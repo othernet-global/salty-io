@@ -155,7 +155,7 @@ contract Proposals is IProposals, ReentrancyGuard
 
 	function proposeParameterBallot( uint256 parameterType, string calldata description ) external nonReentrant returns (uint256 ballotID)
 		{
-		string memory ballotName = string.concat("parameter:", Strings.toString(parameterType) );
+		string memory ballotName = string.concat("parameter:", Strings.toString(parameterType), description );
 		return _possiblyCreateProposal( ballotName, BallotType.PARAMETER, address(0), parameterType, "", description );
 		}
 
@@ -169,7 +169,7 @@ contract Proposals is IProposals, ReentrancyGuard
 		require( poolsConfig.numberOfWhitelistedPools() < poolsConfig.maximumWhitelistedPools(), "Maximum number of whitelisted pools already reached" );
 		require( ! poolsConfig.tokenHasBeenWhitelisted(token, exchangeConfig.wbtc(), exchangeConfig.weth()), "The token has already been whitelisted" );
 
-		string memory ballotName = string.concat("whitelist:", Strings.toHexString(address(token)) );
+		string memory ballotName = string.concat("whitelist:", Strings.toHexString(address(token)), tokenIconURL, description );
 
 		uint256 ballotID = _possiblyCreateProposal( ballotName, BallotType.WHITELIST_TOKEN, address(token), 0, tokenIconURL, description );
 		_openBallotsForTokenWhitelisting.add( ballotID );
@@ -186,7 +186,7 @@ contract Proposals is IProposals, ReentrancyGuard
 		require( address(token) != address(exchangeConfig.usdc()), "Cannot unwhitelist USDC" );
 		require( address(token) != address(exchangeConfig.salt()), "Cannot unwhitelist SALT" );
 
-		string memory ballotName = string.concat("unwhitelist:", Strings.toHexString(address(token)) );
+		string memory ballotName = string.concat("unwhitelist:", Strings.toHexString(address(token)), tokenIconURL, description );
 		return _possiblyCreateProposal( ballotName, BallotType.UNWHITELIST_TOKEN, address(token), 0, tokenIconURL, description );
 		}
 
@@ -204,7 +204,7 @@ contract Proposals is IProposals, ReentrancyGuard
 
 		// This ballotName is not unique for the receiving wallet and enforces the restriction of one sendSALT ballot at a time.
 		// If more receivers are necessary at once, a splitter can be used.
-		string memory ballotName = "sendSALT";
+		string memory ballotName = string.concat("sendSALT:", Strings.toHexString(wallet), Strings.toString(amount), description );
 		return _possiblyCreateProposal( ballotName, BallotType.SEND_SALT, wallet, amount, "", description );
 		}
 
@@ -214,7 +214,7 @@ contract Proposals is IProposals, ReentrancyGuard
 		{
 		require( contractAddress != address(0), "Contract address cannot be address(0)" );
 
-		string memory ballotName = string.concat("callContract:", Strings.toHexString(address(contractAddress)) );
+		string memory ballotName = string.concat("callContract:", Strings.toHexString(address(contractAddress)), Strings.toString(number), description );
 		return _possiblyCreateProposal( ballotName, BallotType.CALL_CONTRACT, contractAddress, number, description, "" );
 		}
 
@@ -223,7 +223,7 @@ contract Proposals is IProposals, ReentrancyGuard
 		{
 		require( bytes(country).length == 2, "Country must be an ISO 3166 Alpha-2 Code" );
 
-		string memory ballotName = string.concat("include:", country );
+		string memory ballotName = string.concat("include:", country, description );
 		return _possiblyCreateProposal( ballotName, BallotType.INCLUDE_COUNTRY, address(0), 0, country, description );
 		}
 
@@ -232,17 +232,17 @@ contract Proposals is IProposals, ReentrancyGuard
 		{
 		require( bytes(country).length == 2, "Country must be an ISO 3166 Alpha-2 Code" );
 
-		string memory ballotName = string.concat("exclude:", country );
+		string memory ballotName = string.concat("exclude:", country, description );
 		return _possiblyCreateProposal( ballotName, BallotType.EXCLUDE_COUNTRY, address(0), 0, country, description );
 		}
 
 
-	function proposeSetContractAddress( string calldata contractName, address newAddress, string calldata description ) external nonReentrant returns (uint256 ballotID)
+	function proposeSetAccessManager( address newAddress, string calldata description ) external nonReentrant returns (uint256 ballotID)
 		{
 		require( newAddress != address(0), "Proposed address cannot be address(0)" );
 
-		string memory ballotName = string.concat("setContract:", contractName );
-		return _possiblyCreateProposal( ballotName, BallotType.SET_CONTRACT, newAddress, 0, "", description );
+		string memory ballotName = string.concat("setAccessManager:", Strings.toHexString(newAddress), description );
+		return _possiblyCreateProposal( ballotName, BallotType.SET_ACCESS_MANAGER, newAddress, 0, "", description );
 		}
 
 
@@ -250,7 +250,7 @@ contract Proposals is IProposals, ReentrancyGuard
 		{
 		require( keccak256(abi.encodePacked(newWebsiteURL)) != keccak256(abi.encodePacked("")), "newWebsiteURL cannot be empty" );
 
-		string memory ballotName = string.concat("setURL:", newWebsiteURL );
+		string memory ballotName = string.concat("setURL:", newWebsiteURL, description );
 		return _possiblyCreateProposal( ballotName, BallotType.SET_WEBSITE_URL, address(0), 0, newWebsiteURL, description );
 		}
 

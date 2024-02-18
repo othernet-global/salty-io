@@ -5,7 +5,7 @@ import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 
 enum Vote { INCREASE, DECREASE, NO_CHANGE, YES, NO }
-enum BallotType { PARAMETER, WHITELIST_TOKEN, UNWHITELIST_TOKEN, SEND_SALT, CALL_CONTRACT, INCLUDE_COUNTRY, EXCLUDE_COUNTRY, SET_CONTRACT, SET_WEBSITE_URL, CONFIRM_SET_CONTRACT, CONFIRM_SET_WEBSITE_URL }
+enum BallotType { PARAMETER, WHITELIST_TOKEN, UNWHITELIST_TOKEN, SEND_SALT, CALL_CONTRACT, INCLUDE_COUNTRY, EXCLUDE_COUNTRY, SET_ACCESS_MANAGER, SET_WEBSITE_URL, CONFIRM_SET_ACCESS_MANAGER, CONFIRM_SET_WEBSITE_URL }
 
 struct UserVote
 	{
@@ -45,7 +45,7 @@ interface IProposals
 	function proposeCallContract( address contractAddress, uint256 number, string calldata description ) external returns (uint256 ballotID);
 	function proposeCountryInclusion( string calldata country, string calldata description ) external returns (uint256 ballotID);
 	function proposeCountryExclusion( string calldata country, string calldata description ) external returns (uint256 ballotID);
-	function proposeSetContractAddress( string calldata contractName, address newAddress, string calldata description ) external returns (uint256 ballotID);
+	function proposeSetAccessManager( address newAddress, string calldata description ) external returns (uint256 ballotID);
 	function proposeWebsiteUpdate( string calldata newWebsiteURL, string calldata description ) external returns (uint256 ballotID);
 
 	function castVote( uint256 ballotID, Vote vote ) external;

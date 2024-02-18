@@ -20,7 +20,7 @@ import "../Upkeep.sol";
 contract DAO is IDAO, Parameters, ReentrancyGuard
     {
 	event ParameterBallotFinalized(uint256 indexed ballotID, Vote winningVote);
-    event SetContract(string indexed ballotName, address indexed contractAddress);
+    event SetAccessManager(address indexed contractAddress);
     event SetWebsiteURL(string newURL);
     event WhitelistToken(IERC20 indexed token);
     event UnwhitelistToken(IERC20 indexed token);
@@ -112,14 +112,11 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		}
 
 
-	function _executeSetContract( Ballot memory ballot ) internal
+	function _executeSetAccessManager( Ballot memory ballot ) internal
 		{
-		bytes32 nameHash = keccak256(bytes( ballot.ballotName ) );
+		exchangeConfig.setAccessManager( IAccessManager(ballot.address1) );
 
-		if ( nameHash == keccak256(bytes( "confirm_setContract:accessManager" )) )
-			exchangeConfig.setAccessManager( IAccessManager(ballot.address1) );
-
-		emit SetContract(ballot.ballotName, ballot.address1);
+		emit SetAccessManager(ballot.address1);
 		}
 
 
@@ -177,16 +174,16 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 			emit GeoExclusionUpdated(ballot.string1, true, exchangeConfig.accessManager().geoVersion());
 			}
 
-		// Once an initial setContract proposal passes, it automatically starts a second confirmation ballot (to prevent last minute approvals)
-		else if ( ballot.ballotType == BallotType.SET_CONTRACT )
-			proposals.createConfirmationProposal( string.concat("confirm_", ballot.ballotName), BallotType.CONFIRM_SET_CONTRACT, ballot.address1, "", ballot.description );
+		// Once an initial setAccessManager proposal passes, it automatically starts a second confirmation ballot (to prevent last minute approvals)
+		else if ( ballot.ballotType == BallotType.SET_ACCESS_MANAGER )
+			proposals.createConfirmationProposal( string.concat("confirm_", ballot.ballotName), BallotType.CONFIRM_SET_ACCESS_MANAGER, ballot.address1, "", ballot.description );
 
 		// Once an initial setWebsiteURL proposal passes, it automatically starts a second confirmation ballot (to prevent last minute approvals)
 		else if ( ballot.ballotType == BallotType.SET_WEBSITE_URL )
 			proposals.createConfirmationProposal( string.concat("confirm_", ballot.ballotName), BallotType.CONFIRM_SET_WEBSITE_URL, address(0), ballot.string1, ballot.description );
 
-		else if ( ballot.ballotType == BallotType.CONFIRM_SET_CONTRACT )
-			_executeSetContract( ballot );
+		else if ( ballot.ballotType == BallotType.CONFIRM_SET_ACCESS_MANAGER )
+			_executeSetAccessManager( ballot );
 
 		else if ( ballot.ballotType == BallotType.CONFIRM_SET_WEBSITE_URL )
 			_executeSetWebsiteURL( ballot );
