@@ -891,7 +891,7 @@ staking.stakeSALT(1000 ether);
         staking.stakeSALT( 1000000 ether );
 
         // Alice proposes a parameter ballot
-        proposals.proposeParameterBallot(20, "description" );
+        proposals.proposeParameterBallot(9, "description" );
         uint256 ballotID = 1;
 
         // Alice casts a vote on the newly created ballot
@@ -1568,7 +1568,7 @@ staking.stakeSALT(1000 ether);
         vm.startPrank(DEPLOYER);
         staking.stakeSALT(1000 ether);
 
-        // Won't revert, but will have no effect
+		vm.expectRevert( "Invalid parameterType" );
         proposals.proposeParameterBallot(invalidParameterType, description);
         vm.stopPrank();
     }
@@ -1709,6 +1709,15 @@ staking.stakeSALT(1000 ether);
     }
 
 
+function testInvalidParameterBallot() public {
+		vm.startPrank(DEPLOYER);
+        staking.stakeSALT(1000 ether);
+
+        vm.expectRevert( "Invalid parameterType" );
+		proposals.proposeParameterBallot(999, "description" );
+		vm.stopPrank();
+
+    }
    }
 
 

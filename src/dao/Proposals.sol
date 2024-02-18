@@ -33,6 +33,8 @@ contract Proposals is IProposals, ReentrancyGuard
     IDAOConfig immutable public daoConfig;
     ISalt immutable public salt;
 
+	uint256 constant NUMBER_OF_PARAMETERS = 18;
+
 	// Mapping from ballotName to a currently open ballotID (zero if none).
 	// Used to check for existing ballots by name so as to not allow duplicate ballots to be created.
 	mapping(string=>uint256) public openBallotsByName;
@@ -155,6 +157,8 @@ contract Proposals is IProposals, ReentrancyGuard
 
 	function proposeParameterBallot( uint256 parameterType, string calldata description ) external nonReentrant returns (uint256 ballotID)
 		{
+		require( parameterType < NUMBER_OF_PARAMETERS, "Invalid parameterType" );
+
 		string memory ballotName = string.concat("parameter:", Strings.toString(parameterType), description );
 		return _possiblyCreateProposal( ballotName, BallotType.PARAMETER, address(0), parameterType, "", description );
 		}
