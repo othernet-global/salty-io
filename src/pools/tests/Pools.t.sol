@@ -1831,7 +1831,7 @@ function testAdjustReservesForSwap_Overflow_Bug_Audit() public {
     vm.stopPrank();
 
     // get pool reserves before swap
-    (uint256 reserves0Before, uint256 reserves1Before) = pools.getPoolReserves(tokenIn, tokenOut);
+    pools.getPoolReserves(tokenIn, tokenOut);
 
     uint256 tokenAmountToSwap = 1500;
     uint256 minAmountOut = 1;
@@ -1839,12 +1839,12 @@ function testAdjustReservesForSwap_Overflow_Bug_Audit() public {
     vm.prank(alice);
     tokenIn.transfer(bob, tokenAmountToSwap + 100);
 
-    uint256 tokenOutBalanceBeforeSwap = tokenOut.balanceOf(bob);
+    tokenOut.balanceOf(bob);
     vm.startPrank(bob);
     tokenIn.approve(address(pools), type(uint256).max);
 
     vm.expectRevert( "Reserves overflow after swap" );
-    uint256 amountOut = pools.depositSwapWithdraw(
+    pools.depositSwapWithdraw(
       tokenIn,
       tokenOut,
       tokenAmountToSwap,

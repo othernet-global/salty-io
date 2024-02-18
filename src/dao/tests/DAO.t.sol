@@ -1049,5 +1049,19 @@ contract TestDAO is Deployment
 
         assertFalse( poolsConfig.tokenHasBeenWhitelisted(token, wbtc, weth), "Token should not have been whitelisted" );
 		}
+
+
+
+    function testCallContractApproveRevertHandled() public {
+        // Arrange
+        vm.startPrank(alice);
+        staking.stakeSALT(1000000 ether);
+
+        TestERC20 brokenReceiver = new TestERC20( "TEST", 18 );
+
+        uint256 ballotID = proposals.proposeCallContract(address(brokenReceiver), 123, "description" );
+
+        _voteForAndFinalizeBallot(ballotID, Vote.YES);
+    }
     }
 

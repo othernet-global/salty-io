@@ -152,10 +152,15 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 
 		else if ( ballot.ballotType == BallotType.CALL_CONTRACT )
 			{
-			ICalledContract(ballot.address1).callFromDAO( ballot.number1 );
+			try ICalledContract(ballot.address1).callFromDAO(ballot.number1)
+				{
+				}
+			catch (bytes memory)
+				{
+				}
 
 			emit ContractCalled(ballot.address1, ballot.number1);
-			}
+ 			}
 
 		else if ( ballot.ballotType == BallotType.INCLUDE_COUNTRY )
 			{
