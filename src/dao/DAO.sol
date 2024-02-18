@@ -223,8 +223,8 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 			require( saltBalance >= bootstrappingRewards * 2, "Whitelisting is not currently possible due to insufficient bootstrapping rewards" );
 
 			// All tokens are paired with both WBTC and WETH, so whitelist both pairings
-			poolsConfig.whitelistPool( pools,  IERC20(ballot.address1), exchangeConfig.wbtc() );
 			poolsConfig.whitelistPool( pools,  IERC20(ballot.address1), exchangeConfig.weth() );
+			poolsConfig.whitelistPool( pools,  IERC20(ballot.address1), exchangeConfig.wbtc() );
 
 			bytes32 pool1 = PoolUtils._poolID( IERC20(ballot.address1), exchangeConfig.wbtc() );
 			bytes32 pool2 = PoolUtils._poolID( IERC20(ballot.address1), exchangeConfig.weth() );
