@@ -168,6 +168,7 @@ contract Proposals is IProposals, ReentrancyGuard
 		{
 		require( address(token) != address(0), "token cannot be address(0)" );
 		require( token.totalSupply() < type(uint112).max, "Token supply cannot exceed uint112.max" ); // 5 quadrillion max supply with 18 decimals of precision
+		require( ERC20(address(token)).decimals() <= 18, "Token decimal maximum is 18" );
 
 		require( poolsConfig.numberOfWhitelistedPools() < poolsConfig.maximumWhitelistedPools(), "Maximum number of whitelisted pools already reached" );
 		require( ! poolsConfig.tokenHasBeenWhitelisted(token, exchangeConfig.wbtc(), exchangeConfig.weth()), "The token has already been whitelisted" );
