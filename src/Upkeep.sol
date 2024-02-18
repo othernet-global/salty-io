@@ -91,7 +91,7 @@ contract Upkeep is IUpkeep, ReentrancyGuard
 	// 1. Withdraw existing WETH arbitrage profits from the Pools contract and reward the caller of performUpkeep() with default 5% of the withdrawn amount.
 	function step1(address receiver) public onlySameContract
 		{
-		uint256 withdrawnAmount = exchangeConfig.dao().withdrawArbitrageProfits(weth);
+		uint256 withdrawnAmount = dao.withdrawArbitrageProfits(weth);
 		if ( withdrawnAmount == 0 )
 			return;
 
