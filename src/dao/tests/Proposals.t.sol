@@ -546,8 +546,6 @@ staking.stakeSALT(1000 ether);
         proposals.proposeTokenWhitelisting( wbtc, "https://tokenIconURL", "This is a test token");
 		vm.stopPrank();
 
-		vm.prank(address(dao));
-		poolsConfig.unwhitelistPool( pools, wbtc, weth );
 
         // Prepare a new whitelisting ballot
 		uint256 initialStake = 10000000 ether;
@@ -570,8 +568,6 @@ staking.stakeSALT(1000 ether);
 //		console.log( "QUORUM: ", requiredQuorumForBallotType( BallotType.WHITELIST_TOKEN ) );
 //        console.log( "VOTES: ", proposals.totalVotesCastForBallot(ballotID) );
 //
-		// Shouldn't have enough votes for quorum yet
-        assertEq(proposals.tokenWhitelistingBallotWithTheMostVotes(), 0, "The ballot shouldn't have enough votes for quorum yet");
 		vm.stopPrank();
 
 		// Have alice cast more votes for YES
@@ -579,19 +575,25 @@ staking.stakeSALT(1000 ether);
         staking.stakeSALT( 300000 ether );
         proposals.castVote(ballotID, Vote.YES);
 
-        // The ballot should now be whitelistable
-        assertEq(proposals.tokenWhitelistingBallotWithTheMostVotes(), ballotID, "Ballot should be whitelistable");
-
 		// 10 million no votes will bring ballot to quorum, but no votes will now be more than yes votes
 		vm.startPrank( DEPLOYER );
         proposals.castVote(ballotID, Vote.NO);
-        assertEq(proposals.tokenWhitelistingBallotWithTheMostVotes(), 0, "NO > YES should mean no whitelisted ballot");
+
+		assertFalse( proposals.canFinalizeBallot(ballotID), "First ballot should not be finalizable" );
+		skip( 10 days );
+		assertTrue( proposals.canFinalizeBallot(ballotID), "First ballot should be finalizable" );
+
+		// Make sure the ballot failed to approve the token
+		dao.finalizeBallot(ballotID);
+		assertFalse( poolsConfig.tokenHasBeenWhitelisted( testToken, wbtc, weth ), "Token should not have been whitelisted" );
+
+        assertEq(proposals.openBallotsForTokenWhitelisting().length, 0, "The number of ballots shoudl now be zero");
 
 
         // Create a second whitelisting ballot
         IERC20 testToken2 = new TestERC20("TEST", 18);
         proposals.proposeTokenWhitelisting(testToken2, "https://tokenIconURL", "This is a test token");
-        assertEq(proposals.openBallotsForTokenWhitelisting().length, 2, "The number of open ballots for token whitelisting did not increase after a second proposal");
+        assertEq(proposals.openBallotsForTokenWhitelisting().length, 1, "The number of open ballots for token whitelisting did not increase after a second proposal");
 
 		uint256 ballotID2 = 2;
 
@@ -601,7 +603,22 @@ staking.stakeSALT(1000 ether);
 
 //        console.log( "max id: ", proposals.tokenWhitelistingBallotWithTheMostVotes() );
 
-        assertEq(proposals.tokenWhitelistingBallotWithTheMostVotes(), ballotID2, "The ballot with the most votes was not updated correctly after a vote");
+		assertFalse( proposals.canFinalizeBallot(ballotID2), "Second ballot should not be finalizable" );
+		skip( 10 days );
+		assertTrue( proposals.canFinalizeBallot(ballotID2), "Second ballot should be finalizable" );
+
+		// Make sure the ballot failed to approve the token
+		vm.expectRevert( "Whitelisting is not currently possible due to insufficient bootstrapping rewards" );
+		dao.finalizeBallot(ballotID2);
+
+		salt.transfer( address(dao), daoConfig.bootstrappingRewards() * 2 - 1 );
+		vm.expectRevert( "Whitelisting is not currently possible due to insufficient bootstrapping rewards" );
+		dao.finalizeBallot(ballotID2);
+
+		salt.transfer( address(dao), 1	 );
+		dao.finalizeBallot(ballotID2);
+
+		assertTrue( poolsConfig.tokenHasBeenWhitelisted( testToken2, wbtc, weth ), "Token should have been whitelisted" );
     }
 
 
@@ -645,51 +662,6 @@ staking.stakeSALT(1000 ether);
 
         // Make sure can send SATL to another wallet
         proposals.proposeSendSALT( DEPLOYER, validAmount, "description" );
-    }
-
-
-	// A unit test for the proposeTokenWhitelisting function that includes the situation where the maximum number of token whitelisting proposals are already pending.
-	function testProposeTokenWhitelistingMaxPending() public {
-
-		// Reduce maxPendingTokensForWhitelisting to 3
-		vm.startPrank(address(dao));
-		daoConfig.changeMaxPendingTokensForWhitelisting(false);
-		daoConfig.changeMaxPendingTokensForWhitelisting(false);
-		vm.stopPrank();
-
-        string memory tokenIconURL = "http://test.com/token.png";
-        string memory tokenDescription = "Test Token for Whitelisting";
-
-        vm.startPrank(DEPLOYER);
-		staking.stakeSALT(1000 ether);
-		IERC20 token = new TestERC20("TEST", 18);
-        salt.transfer( bob, 1000 ether );
-        salt.transfer( charlie, 1000 ether );
-        proposals.proposeTokenWhitelisting(token, tokenIconURL, tokenDescription);
-        vm.stopPrank();
-
-        vm.startPrank(bob);
-		salt.approve(address(staking), 1000 ether);
-		staking.stakeSALT(1000 ether);
-		token = new TestERC20("TEST", 18);
-        proposals.proposeTokenWhitelisting(token, tokenIconURL, tokenDescription);
-        vm.stopPrank();
-
-        vm.startPrank(charlie);
-		salt.approve(address(staking), 1000 ether);
-		staking.stakeSALT(1000 ether);
-		token = new TestERC20("TEST", 18);
-        proposals.proposeTokenWhitelisting(token, tokenIconURL, tokenDescription);
-        vm.stopPrank();
-
-        // Attempt to create another token whitelisting proposal beyond the maximum limit
-        vm.startPrank(alice);
-		salt.approve(address(staking), 1000 ether);
-		staking.stakeSALT(1000 ether);
-		token = new TestERC20("TEST", 18);
-
-        vm.expectRevert("The maximum number of token whitelisting proposals are already pending");
-        proposals.proposeTokenWhitelisting(token, tokenIconURL, tokenDescription);
     }
 
 

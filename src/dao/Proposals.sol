@@ -165,7 +165,6 @@ contract Proposals is IProposals, ReentrancyGuard
 		require( address(token) != address(0), "token cannot be address(0)" );
 		require( token.totalSupply() < type(uint112).max, "Token supply cannot exceed uint112.max" ); // 5 quadrillion max supply with 18 decimals of precision
 
-		require( _openBallotsForTokenWhitelisting.length() < daoConfig.maxPendingTokensForWhitelisting(), "The maximum number of token whitelisting proposals are already pending" );
 		require( poolsConfig.numberOfWhitelistedPools() < poolsConfig.maximumWhitelistedPools(), "Maximum number of whitelisted pools already reached" );
 		require( ! poolsConfig.tokenHasBeenWhitelisted(token, exchangeConfig.wbtc(), exchangeConfig.weth()), "The token has already been whitelisted" );
 
@@ -409,33 +408,6 @@ contract Proposals is IProposals, ReentrancyGuard
 	function openBallotsForTokenWhitelisting() external view returns (uint256[] memory)
 		{
 		return _openBallotsForTokenWhitelisting.values();
-		}
-
-
-	// Returns the ballotID of the whitelisting ballot that currently has the most yes votes
-	// Requires that the quorum has been reached and that the number of yes votes is greater than the number no votes
-	function tokenWhitelistingBallotWithTheMostVotes() external view returns (uint256)
-		{
-		uint256 quorum = requiredQuorumForBallotType( BallotType.WHITELIST_TOKEN);
-
-		uint256 bestID = 0;
-		uint256 mostYes = 0;
-		for( uint256 i = 0; i < _openBallotsForTokenWhitelisting.length(); i++ )
-			{
-			uint256 ballotID = _openBallotsForTokenWhitelisting.at(i);
-			uint256 yesTotal = _votesCastForBallot[ballotID][Vote.YES];
-			uint256 noTotal = _votesCastForBallot[ballotID][Vote.NO];
-
-			if ( (yesTotal + noTotal) >= quorum ) // Make sure that quorum has been reached
-			if ( yesTotal > noTotal )  // Make sure the token vote is favorable
-			if ( yesTotal > mostYes )  // Make sure these are the most yes votes seen
-				{
-				bestID = ballotID;
-				mostYes = yesTotal;
-				}
-			}
-
-		return bestID;
 		}
 
 

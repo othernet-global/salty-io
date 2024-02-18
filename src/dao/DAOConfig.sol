@@ -53,10 +53,6 @@ contract DAOConfig is IDAOConfig, Ownable
 	// Range: 0.10% to 2% with an adjustment of 0.10%
 	uint256 public requiredProposalPercentStakeTimes1000 = 500;  // Defaults to 0.50% with a 1000x multiplier
 
-	// The maximum number of tokens that can be pending for whitelisting at any time.
-	// Range: 3 to 12 with an adjustment of 1
-	uint256 public maxPendingTokensForWhitelisting = 5;
-
 	// The share of the WETH arbitrage profits that are sent to the DAO to form SALT/USDC Protocol Owned Liquidity
 	// Range: 15% to 45% with an adjustment of 5%
 	uint256 public arbitrageProfitsPercentPOL = 20;
@@ -165,23 +161,6 @@ contract DAOConfig is IDAOConfig, Ownable
 			}
 
 		emit RequiredProposalPercentStakeChanged(requiredProposalPercentStakeTimes1000);
-		}
-
-
-	function changeMaxPendingTokensForWhitelisting(bool increase) external onlyOwner
-		{
-		if (increase)
-			{
-			if (maxPendingTokensForWhitelisting < 12)
-				maxPendingTokensForWhitelisting += 1;
-			}
-		else
-			{
-			if (maxPendingTokensForWhitelisting > 3)
-				maxPendingTokensForWhitelisting -= 1;
-			}
-
-		emit MaxPendingTokensForWhitelistingChanged(maxPendingTokensForWhitelisting);
 		}
 
 

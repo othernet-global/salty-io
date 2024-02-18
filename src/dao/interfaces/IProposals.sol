@@ -64,6 +64,5 @@ interface IProposals
 	function canFinalizeBallot( uint256 ballotID ) external view returns (bool);
 	function openBallots() external view returns (uint256[] memory);
 	function openBallotsForTokenWhitelisting() external view returns (uint256[] memory);
-	function tokenWhitelistingBallotWithTheMostVotes() external view returns (uint256);
 	function userHasActiveProposal( address user ) external view returns (bool);
 	}

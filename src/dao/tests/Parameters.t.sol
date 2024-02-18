@@ -82,8 +82,6 @@ contract TestParametersOffchain is Test
 			return daoConfig.ballotMinimumDuration();
 		else if ( parameter == Parameters.ParameterTypes.requiredProposalPercentStakeTimes1000 )
 			return daoConfig.requiredProposalPercentStakeTimes1000();
-		else if ( parameter == Parameters.ParameterTypes.maxPendingTokensForWhitelisting )
-			return daoConfig.maxPendingTokensForWhitelisting();
 		else if ( parameter == Parameters.ParameterTypes.arbitrageProfitsPercentPOL )
 			return daoConfig.arbitrageProfitsPercentPOL();
 		else if ( parameter == Parameters.ParameterTypes.upkeepRewardPercent )
@@ -185,7 +183,6 @@ contract TestParametersOffchain is Test
 		_checkParameter( Parameters.ParameterTypes.baseBallotQuorumPercentTimes1000, 5000, 10000, 20000, 1000 );
 		_checkParameter( Parameters.ParameterTypes.ballotDuration, 3 days, 10 days, 14 days, 1 days );
 		_checkParameter( Parameters.ParameterTypes.requiredProposalPercentStakeTimes1000, 100, 500, 2000, 100 );
-		_checkParameter( Parameters.ParameterTypes.maxPendingTokensForWhitelisting, 3, 5, 12, 1 );
 		_checkParameter( Parameters.ParameterTypes.arbitrageProfitsPercentPOL, 15, 20, 45, 5 );
 		_checkParameter( Parameters.ParameterTypes.upkeepRewardPercent, 1, 5, 10, 1 );
 		_checkParameter( Parameters.ParameterTypes.ballotMaximumDuration, 15 days, 30 days, 90 days, 15 days );

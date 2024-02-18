@@ -202,8 +202,6 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 
 
 	// Finalize and execute a token whitelisting ballot.
-	// If the proposal is currently the whitelisting proposal with the most yes votes then the token can be whitelisted.
-	// Only the top voted whitelisting proposal can be finalized - as whitelisting requires bootstrapping rewards to be sent from the DAO.
 	// If NO > YES than the proposal is removed immediately (quorum would already have been determined - in canFinalizeBallot as called from finalizeBallot).
 	function _finalizeTokenWhitelisting( uint256 ballotID ) internal
 		{
@@ -218,10 +216,6 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 			// Twice the bootstrapping rewards are needed (for both the token/WBTC and token/WETH pools)
 			uint256 saltBalance = exchangeConfig.salt().balanceOf( address(this) );
 			require( saltBalance >= bootstrappingRewards * 2, "Whitelisting is not currently possible due to insufficient bootstrapping rewards" );
-
-			// Fail to whitelist for now if this isn't the whitelisting proposal with the most votes - can try again later.
-			uint256 bestWhitelistingBallotID = proposals.tokenWhitelistingBallotWithTheMostVotes();
-			require( bestWhitelistingBallotID == ballotID, "Only the token whitelisting ballot with the most votes can be finalized" );
 
 			// All tokens are paired with both WBTC and WETH, so whitelist both pairings
 			poolsConfig.whitelistPool( pools,  IERC20(ballot.address1), exchangeConfig.wbtc() );
