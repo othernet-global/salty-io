@@ -214,7 +214,7 @@ contract Proposals is IProposals, ReentrancyGuard
 		require( contractAddress != address(0), "Contract address cannot be address(0)" );
 
 		string memory ballotName = string.concat("callContract:", Strings.toHexString(address(contractAddress)), Strings.toString(number), description );
-		return _possiblyCreateProposal( ballotName, BallotType.CALL_CONTRACT, contractAddress, number, description, "" );
+		return _possiblyCreateProposal( ballotName, BallotType.CALL_CONTRACT, contractAddress, number, "", description );
 		}
 
 
