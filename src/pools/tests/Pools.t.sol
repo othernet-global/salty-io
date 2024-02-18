@@ -1843,7 +1843,7 @@ function testAdjustReservesForSwap_Overflow_Bug_Audit() public {
     vm.startPrank(bob);
     tokenIn.approve(address(pools), type(uint256).max);
 
-    vm.expectRevert( "Overflow detected in reserves update" );
+    vm.expectRevert( "Reserves overflow after swap" );
     uint256 amountOut = pools.depositSwapWithdraw(
       tokenIn,
       tokenOut,
