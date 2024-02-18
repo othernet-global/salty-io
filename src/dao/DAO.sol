@@ -282,7 +282,7 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 
 		// The arbitrage profits are deposited in the Pools contract as WETH and owned by the DAO.
 		uint256 depositedWETH = pools.depositedUserBalance(address(this), weth );
-		if ( depositedWETH == 0 )
+		if ( depositedWETH <= PoolUtils.DUST )
 			return 0;
 
 		pools.withdraw( weth, depositedWETH );
