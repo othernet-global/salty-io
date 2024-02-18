@@ -112,7 +112,6 @@ contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
 		uint256 numeratorMult = timeSinceLastUpkeep * rewardsConfig.rewardsEmitterDailyPercentTimes1000();
 		uint256 denominatorMult = 1 days * 100000; // simplification of numberSecondsInOneDay * (100 percent) * 1000
 
-		uint256 sum = 0;
 		for( uint256 i = 0; i < poolIDs.length; i++ )
 			{
 			bytes32 poolID = poolIDs[i];
@@ -122,11 +121,7 @@ contract RewardsEmitter is IRewardsEmitter, ReentrancyGuard
 
 			// Reduce the pending rewards so they are not sent again
 			if ( amountToAddForPool != 0 )
-				{
 				pendingRewards[poolID] -= amountToAddForPool;
-
-				sum += amountToAddForPool;
-				}
 
 			// Specify the rewards that will be added for the specific pool
 			addedRewards[i] = AddedReward( poolID, amountToAddForPool );

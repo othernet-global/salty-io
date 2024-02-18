@@ -78,7 +78,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		}
 
 
-	modifier ensureNotExpired(uint deadline)
+	modifier ensureNotExpired(uint256 deadline)
 		{
 		require(block.timestamp <= deadline, "TX EXPIRED");
 		_;
@@ -267,7 +267,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 			reserve1 -= amountOut;
         	}
 
-		// Make sure that the reserves after swap are above DUST
+		// Make sure that the reserves after swap are at least DUST
         require( (reserve0 >= PoolUtils.DUST) && (reserve1 >= PoolUtils.DUST), "Insufficient reserves after swap");
 
 		// Update the reserves with overflow check

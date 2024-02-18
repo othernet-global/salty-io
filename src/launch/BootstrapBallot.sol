@@ -8,7 +8,7 @@ import "./interfaces/IAirdrop.sol";
 import "../SigningTools.sol";
 
 
-// Allows airdrop participants to vote on whether or not to start up the exchange and which countries should be initially excluded from access.
+// Allows airdrop participants to vote on whether or not to start up the exchange
 
 contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
     {
