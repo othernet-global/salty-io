@@ -12,7 +12,6 @@ import "../interfaces/IExchangeConfig.sol";
 import "./interfaces/IDAOConfig.sol";
 import "./interfaces/IProposals.sol";
 import "./interfaces/IDAO.sol";
-import "../pools/PoolUtils.sol";
 
 
 // Allows SALT stakers to propose and vote on various types of ballots such as parameter changes, token whitelisting/unwhitelisting, sending tokens, calling contracts, and updating website URLs.
@@ -33,7 +32,10 @@ contract Proposals is IProposals, ReentrancyGuard
     IDAOConfig immutable public daoConfig;
     ISalt immutable public salt;
 
-	uint256 constant NUMBER_OF_PARAMETERS = 18;
+	// A special pool that represents staked SALT that is not associated with any actual liquidity pool.
+    bytes32 constant public STAKED_SALT = bytes32(0);
+    
+    uint256 constant NUMBER_OF_PARAMETERS = 18;
 
 	// Mapping from ballotName to a currently open ballotID (zero if none).
 	// Used to check for existing ballots by name so as to not allow duplicate ballots to be created.
@@ -88,12 +90,12 @@ contract Proposals is IProposals, ReentrancyGuard
 		if ( msg.sender != address(exchangeConfig.dao() ) )
 			{
 			// Make sure that the sender has the minimum amount of xSALT required to make the proposal
-			uint256 totalStaked = staking.totalShares(PoolUtils.STAKED_SALT);
+			uint256 totalStaked = staking.totalShares(STAKED_SALT);
 			uint256 requiredXSalt = ( totalStaked * daoConfig.requiredProposalPercentStakeTimes1000() ) / ( 100 * 1000 );
 
 			require( requiredXSalt > 0, "requiredXSalt cannot be zero" );
 
-			uint256 userXSalt = staking.userShareForPool( msg.sender, PoolUtils.STAKED_SALT );
+			uint256 userXSalt = staking.userShareForPool( msg.sender, STAKED_SALT );
 			require( userXSalt >= requiredXSalt, "Sender does not have enough xSALT to make the proposal" );
 
 			// Make sure that the user doesn't already have an active proposal
@@ -223,25 +225,30 @@ contract Proposals is IProposals, ReentrancyGuard
 		}
 
 
-	function proposeCountryInclusion( string calldata country, string calldata description ) external nonReentrant returns (uint256 ballotID)
+	function _checkCountryCode( string calldata countryCode ) internal
 		{
-		require( bytes(country).length == 2, "Country must be an ISO 3166 Alpha-2 Code" );
-		require(bytes(country)[0] >= 0x41 && bytes(country)[0] <= 0x5A && bytes(country)[1] >= 0x41 && bytes(country)[1] <= 0x5A, "Invalid country code");
-		require(exchangeConfig.dao().countryIsExcluded(country), "Country is not excluded");
-
-		string memory ballotName = string.concat("include:", country, description );
-		return _possiblyCreateProposal( ballotName, BallotType.INCLUDE_COUNTRY, address(0), 0, country, description );
+		require( bytes(countryCode).length == 2, "Country must be an ISO 3166 Alpha-2 Code" );
+		require(bytes(countryCode)[0] >= 0x41 && bytes(countryCode)[0] <= 0x5A && bytes(countryCode)[1] >= 0x41 && bytes(countryCode)[1] <= 0x5A, "Invalid country code");
 		}
 
 
-	function proposeCountryExclusion( string calldata country, string calldata description ) external nonReentrant returns (uint256 ballotID)
+	function proposeCountryInclusion( string calldata countryCode, string calldata description ) external nonReentrant returns (uint256 ballotID)
 		{
-		require( bytes(country).length == 2, "Country must be an ISO 3166 Alpha-2 Code" );
-		require(bytes(country)[0] >= 0x41 && bytes(country)[0] <= 0x5A && bytes(country)[1] >= 0x41 && bytes(country)[1] <= 0x5A, "Invalid country code");
-		require( ! exchangeConfig.dao().countryIsExcluded(country), "Country is already excluded");
+		_checkCountryCode(countryCode);
+		require(exchangeConfig.dao().countryIsExcluded(countryCode), "Country is not excluded");
 
-		string memory ballotName = string.concat("exclude:", country, description );
-		return _possiblyCreateProposal( ballotName, BallotType.EXCLUDE_COUNTRY, address(0), 0, country, description );
+		string memory ballotName = string.concat("include:", countryCode, description );
+		return _possiblyCreateProposal( ballotName, BallotType.INCLUDE_COUNTRY, address(0), 0, countryCode, description );
+		}
+
+
+	function proposeCountryExclusion( string calldata countryCode, string calldata description ) external nonReentrant returns (uint256 ballotID)
+		{
+		_checkCountryCode(countryCode);
+		require( ! exchangeConfig.dao().countryIsExcluded(countryCode), "Country is already excluded");
+
+		string memory ballotName = string.concat("exclude:", countryCode, description );
+		return _possiblyCreateProposal( ballotName, BallotType.EXCLUDE_COUNTRY, address(0), 0, countryCode, description );
 		}
 
 
@@ -284,7 +291,7 @@ contract Proposals is IProposals, ReentrancyGuard
 		// Voting power is equal to their userShare of STAKED_SALT.
 		// If the user changes their stake after voting they will have to recast their vote.
 
-		uint256 userVotingPower = staking.userShareForPool( msg.sender, PoolUtils.STAKED_SALT );
+		uint256 userVotingPower = staking.userShareForPool( msg.sender, STAKED_SALT );
 		require( userVotingPower > 0, "Staked SALT required to vote" );
 
 		// Remove any previous votes made by the user on the ballot
@@ -328,7 +335,7 @@ contract Proposals is IProposals, ReentrancyGuard
 	function requiredQuorumForBallotType( BallotType ballotType ) public view returns (uint256 requiredQuorum)
 		{
 		// The quorum will be specified as a percentage of the total amount of SALT staked
-		uint256 totalStaked = staking.totalShares( PoolUtils.STAKED_SALT );
+		uint256 totalStaked = staking.totalShares( STAKED_SALT );
 		require( totalStaked != 0, "SALT staked cannot be zero to determine quorum" );
 
 		if ( ballotType == BallotType.PARAMETER )
