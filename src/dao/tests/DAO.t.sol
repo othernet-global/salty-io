@@ -399,10 +399,10 @@ contract TestDAO is Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 1000000 ether );
 
-        proposals.proposeCountryExclusion( "US", "description" );
+        proposals.proposeCountryExclusion( "ZZ", "description" );
 		_voteForAndFinalizeBallot(1, Vote.YES);
 
-		assertTrue( dao.countryIsExcluded( "US" ), "US should be excluded" );
+		assertTrue( dao.countryIsExcluded( "ZZ" ), "Country should be excluded" );
 		vm.stopPrank();
 
 		// GeoVersion is now 1 and effectively has cleared access
@@ -412,10 +412,10 @@ contract TestDAO is Deployment
 
 
         vm.startPrank(alice);
-        proposals.proposeCountryInclusion( "US", "description" );
+        proposals.proposeCountryInclusion( "ZZ", "description" );
 		_voteForAndFinalizeBallot(2, Vote.YES);
 
-		assertFalse( dao.countryIsExcluded( "US" ), "US shouldn't be excluded" );
+		assertFalse( dao.countryIsExcluded( "ZZ" ), "Country shouldn't be excluded" );
     	}
 
 
@@ -425,10 +425,10 @@ contract TestDAO is Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 1000000 ether );
 
-        proposals.proposeCountryExclusion( "US", "description" );
+        proposals.proposeCountryExclusion( "ZZ", "description" );
 		_voteForAndFinalizeBallot(1, Vote.YES);
 
-		assertTrue( dao.countryIsExcluded( "US" ), "US should be excluded" );
+		assertTrue( dao.countryIsExcluded( "ZZ" ), "Country should be excluded" );
 		vm.stopPrank();
 
 		// GeoVersion is now 1 and effectively has cleared access
@@ -438,10 +438,10 @@ contract TestDAO is Deployment
 
 
         vm.startPrank(alice);
-        proposals.proposeCountryInclusion( "US", "description" );
+        proposals.proposeCountryInclusion( "ZZ", "description" );
 		_voteForAndFinalizeBallot(2, Vote.NO);
 
-		assertTrue( dao.countryIsExcluded( "US" ), "US should be excluded" );
+		assertTrue( dao.countryIsExcluded( "ZZ" ), "Country should be excluded" );
     	}
 
 
@@ -451,10 +451,10 @@ contract TestDAO is Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 1000000 ether );
 
-        proposals.proposeCountryExclusion( "US", "description" );
+        proposals.proposeCountryExclusion( "ZZ", "description" );
 		_voteForAndFinalizeBallot(1, Vote.YES);
 
-		assertTrue( dao.countryIsExcluded( "US" ), "USA should be excluded" );
+		assertTrue( dao.countryIsExcluded( "ZZ" ), "Country should be excluded" );
     	}
 
 

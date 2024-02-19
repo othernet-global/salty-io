@@ -226,6 +226,8 @@ contract Proposals is IProposals, ReentrancyGuard
 	function proposeCountryInclusion( string calldata country, string calldata description ) external nonReentrant returns (uint256 ballotID)
 		{
 		require( bytes(country).length == 2, "Country must be an ISO 3166 Alpha-2 Code" );
+		require(bytes(country)[0] >= 0x41 && bytes(country)[0] <= 0x5A && bytes(country)[1] >= 0x41 && bytes(country)[1] <= 0x5A, "Invalid country code");
+		require(exchangeConfig.dao().countryIsExcluded(country), "Country is not excluded");
 
 		string memory ballotName = string.concat("include:", country, description );
 		return _possiblyCreateProposal( ballotName, BallotType.INCLUDE_COUNTRY, address(0), 0, country, description );
@@ -235,6 +237,8 @@ contract Proposals is IProposals, ReentrancyGuard
 	function proposeCountryExclusion( string calldata country, string calldata description ) external nonReentrant returns (uint256 ballotID)
 		{
 		require( bytes(country).length == 2, "Country must be an ISO 3166 Alpha-2 Code" );
+		require(bytes(country)[0] >= 0x41 && bytes(country)[0] <= 0x5A && bytes(country)[1] >= 0x41 && bytes(country)[1] <= 0x5A, "Invalid country code");
+		require( ! exchangeConfig.dao().countryIsExcluded(country), "Country is already excluded");
 
 		string memory ballotName = string.concat("exclude:", country, description );
 		return _possiblyCreateProposal( ballotName, BallotType.EXCLUDE_COUNTRY, address(0), 0, country, description );
@@ -253,6 +257,9 @@ contract Proposals is IProposals, ReentrancyGuard
 	function proposeWebsiteUpdate( string calldata newWebsiteURL, string calldata description ) external nonReentrant returns (uint256 ballotID)
 		{
 		require( keccak256(abi.encodePacked(newWebsiteURL)) != keccak256(abi.encodePacked("")), "newWebsiteURL cannot be empty" );
+
+		for (uint i = 0; i < bytes(newWebsiteURL).length; i++)
+			require(bytes(newWebsiteURL)[i] >= 0x2D && bytes(newWebsiteURL)[i] <= 0x7A, "Invalid character in URL");
 
 		string memory ballotName = string.concat("setURL:", newWebsiteURL, description );
 		return _possiblyCreateProposal( ballotName, BallotType.SET_WEBSITE_URL, address(0), 0, newWebsiteURL, description );

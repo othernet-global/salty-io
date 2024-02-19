@@ -160,10 +160,10 @@ contract TestProposals is Deployment
 
 	// A unit test that verifies the proposeCountryInclusion and proposeCountryExclusion functions with different country names. Check that the appropriate country name gets stored in the proposal.
 	function testProposeCountryInclusionExclusion() public {
-        string memory inclusionBallotName = "include:usdescription";
-        string memory exclusionBallotName = "exclude:cadescription";
-        string memory countryName1 = "us";
-        string memory countryName2 = "ca";
+        string memory inclusionBallotName = "include:USdescription";
+        string memory exclusionBallotName = "exclude:ZZdescription";
+        string memory countryName1 = "US";
+        string memory countryName2 = "ZZ";
 
         // Propose country inclusion
         vm.startPrank(alice);
