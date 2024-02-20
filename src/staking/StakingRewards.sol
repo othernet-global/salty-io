@@ -119,8 +119,8 @@ abstract contract StakingRewards is IStakingRewards, ReentrancyGuard
 		uint256 rewardsForAmount = ( totalRewards[poolID] * decreaseShareAmount ) / totalShares[poolID];
 
 		// For the amountToDecrease determine the proportion of virtualRewards (proportional to all virtualRewards for the user)
-		// Round virtualRewards down in favor of the protocol
-		uint256 virtualRewardsToRemove = (user.virtualRewards * decreaseShareAmount) / user.userShare;
+		// Round virtualRewards up in favor of the protocol
+		uint256 virtualRewardsToRemove = Math.ceilDiv(user.virtualRewards * decreaseShareAmount,  user.userShare );
 
 		// Update totals
 		totalRewards[poolID] -= rewardsForAmount;
