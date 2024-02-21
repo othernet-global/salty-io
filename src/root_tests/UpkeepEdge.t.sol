@@ -46,8 +46,11 @@ contract TestUpkeepEdge is Deployment
 		{
 		vm.startPrank(DEPLOYER);
 		pools.depositSwapWithdraw(salt, weth, 1 ether, 0, block.timestamp);
+		vm.roll(block.number + 1);
 		pools.depositSwapWithdraw(salt, wbtc, 1 ether, 0, block.timestamp);
+		vm.roll(block.number + 1);
 		pools.depositSwapWithdraw(weth, wbtc, 1 ether, 0, block.timestamp);
+		vm.roll(block.number + 1);
 		vm.stopPrank();
 		}
 

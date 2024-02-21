@@ -36,6 +36,15 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		uint128 reserve1;
 		}
 
+	// The curve of arbitrageProfit / userSwapSize is non linear as increasingly expontential as the userSwapSize grows.
+	// Because of this behaviour it is possible to completely eliminate arbitrage profits from user swaps by splitting the user
+	// swap into many smaller swaps (hundreds or htousands of swaps).
+	// In order to prevent this a maximum number of swaps is established per block.
+	// This helps to ensure arbitrage profit for the liquidity providers and stakers and continues to establish significant deterrents
+	// to sandwich attacks as outlined in: https://saltyio.substack.com/p/making-sandwich-attacks-inedible
+	uint256 constant MAXIMUM_SWAPS_PER_BLOCK = 10;
+
+
 	IDAO public dao;
 	ILiquidity public liquidity;
 
@@ -48,12 +57,24 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	// User token balances for deposited tokens
 	mapping(address=>mapping(IERC20=>uint256)) private _userDeposits;
 
+	// Used to prevent splitting largeswaps within a block into smaller ones as doing so allows for greater price manipulation without consequence from the arbitrage balancing.
+	mapping(address => uint) private lastCallBlockNumber;
+
 
 	constructor( IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig )
 	ArbitrageSearch(_exchangeConfig)
 	PoolStats(_exchangeConfig, _poolsConfig)
 		{
 		}
+
+
+	// Allow users to make only one call per block
+	modifier oncePerBlock()
+		{
+		require(lastCallBlockNumber[msg.sender] != block.number, "User already swapped in this block");
+        _;
+        lastCallBlockNumber[msg.sender] = block.number;
+        }
 
 
 	// This will be called only once - at deployment time
@@ -341,7 +362,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
     // Having simpler swaps without multiple tokens in the swap chain makes it simpler (and less expensive gas wise) to find suitable arbitrage opportunities.
     // Cheap arbitrage gas-wise is important as arbitrage will be atomically attempted with every user swap transaction.
     // Requires that the first token in the chain has already been deposited for the caller.
-	function swap( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline ) external nonReentrant ensureNotExpired(deadline) returns (uint256 swapAmountOut)
+	function swap( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline ) external oncePerBlock nonReentrant ensureNotExpired(deadline) returns (uint256 swapAmountOut)
 		{
 		// Confirm and adjust user deposits
 		mapping(IERC20=>uint256) storage userDeposits = _userDeposits[msg.sender];
@@ -357,7 +378,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 
 	// Deposit tokenIn, swap to tokenOut and then have tokenOut sent to the sender
-	function depositSwapWithdraw(IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline ) external nonReentrant ensureNotExpired(deadline) returns (uint256 swapAmountOut)
+	function depositSwapWithdraw(IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline ) external oncePerBlock nonReentrant ensureNotExpired(deadline) returns (uint256 swapAmountOut)
 		{
 		// Transfer the tokens from the sender - only tokens without fees should be whitelisted on the DEX
 		swapTokenIn.safeTransferFrom(msg.sender, address(this), swapAmountIn );
@@ -370,7 +391,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 
 	// A convenience method to perform two swaps in one transaction
-	function depositDoubleSwapWithdraw( IERC20 swapTokenIn, IERC20 swapTokenMiddle, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline ) external nonReentrant ensureNotExpired(deadline) returns (uint256 swapAmountOut)
+	function depositDoubleSwapWithdraw( IERC20 swapTokenIn, IERC20 swapTokenMiddle, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline ) external oncePerBlock nonReentrant ensureNotExpired(deadline) returns (uint256 swapAmountOut)
 		{
 		swapTokenIn.safeTransferFrom(msg.sender, address(this), swapAmountIn );
 

@@ -52,6 +52,7 @@ contract TestMinUpkeep is Deployment
     		(IERC20 tokenA, IERC20 tokenB) = poolsConfig.underlyingTokenPair(poolIDs[i]);
 
             pools.depositSwapWithdraw(tokenA, tokenB, 10 * 10**ERC20(address(tokenA)).decimals(), 0, block.timestamp);
+            vm.roll(block.number + 1);
     		}
     	vm.stopPrank();
     	}

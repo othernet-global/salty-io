@@ -282,7 +282,9 @@ contract TestPools2 is Deployment
 			pools.addLiquidity(token1, token2, added1b, added2, 0, 0, liquidity.totalShares( PoolUtils._poolID(token1, token2)) );
 
 			uint256 amountOut = pools.depositSwapWithdraw(token0, token1, amountIn, 0, block.timestamp);
+			vm.roll(block.number + 1);
 			pools.depositSwapWithdraw(token1, token2, amountOut, 0, block.timestamp);
+			vm.roll(block.number + 1);
 			}
 
 		// Check that k is still the same
@@ -327,10 +329,13 @@ contract TestPools2 is Deployment
         // Call the swap function on the pools contract
 		vm.expectRevert( "Insufficient deposited token balance of initial token" );
         pools.swap(tokens[2], tokens[3], amountIn, minAmountOut, deadline);
+		vm.roll(block.number + 1);
 
 		pools.deposit(tokens[2], 101 );
         uint256 amountOut = pools.swap(tokens[2], tokens[3], amountIn, 0, deadline);
+		vm.roll(block.number + 1);
         pools.swap(tokens[3], tokens[4], amountOut, minAmountOut, deadline);
+		vm.roll(block.number + 1);
 
 		// Check that the user's deposited amount of tokens[2] is zero
 		assertEq( pools.depositedUserBalance( address(liquidity), tokens[2] ), 0, "tokenIn deposited balance should now be zero" );
@@ -868,11 +873,13 @@ contract TestPools2 is Deployment
 		vm.prank(alice);
 		liquidity.depositLiquidityAndIncreaseShare( token0, token1, 200 ether, 100 ether, 0, 0, 0, block.timestamp, false );
 		vm.warp( block.timestamp + 1 hours );
+		vm.roll(block.number + 1);
 
 		// Bob depositSwapWithdraws 10 ether token0 for token1
 		vm.prank(bob);
 		uint256 amountOut = pools.depositSwapWithdraw(token0, token1, 10 ether, 1 ether, block.timestamp);
 		_assertAlmostEqual( amountOut, 4761904761904761905 );
+		vm.roll(block.number + 1);
 
 		(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves(token0,token1);
 		_assertAlmostEqual( reserve0, 210000000000000000000 );
@@ -886,6 +893,7 @@ contract TestPools2 is Deployment
 		uint256 charlieToken0 = pools.swap(token1, token0, 20 ether, 1 ether, block.timestamp);
 		_assertAlmostEqual( charlieToken0, 36446280991735537191 );
 		vm.stopPrank();
+		vm.roll(block.number + 1);
 
 			{
 			(uint256 aliceReserve0, uint256 aliceReserve1) = pools.getPoolReserves(token0,token1);
@@ -942,6 +950,7 @@ contract TestPools2 is Deployment
 		vm.prank(charlie);
 		amountOut = pools.swap(token0, token1, charlieToken0, 1 ether, block.timestamp);
 		_assertAlmostEqual( amountOut, 19516129032258064517 );
+		vm.roll(block.number + 1);
 
 		(reserve0, reserve1) = pools.getPoolReserves(token0,token1);
 		_assertAlmostEqual( reserve0, 188305785123966942148 );
@@ -1204,6 +1213,7 @@ contract TestPools2 is Deployment
 		{
 		vm.prank(alice);
 		pools.swap( token0, token1, 500 * units0, 0 ether, block.timestamp );
+		vm.roll(block.number + 1);
 
 		vm.prank(bob);
 		pools.depositSwapWithdraw(token1, token0, 500 * units1, 0 ether, block.timestamp );
@@ -1213,6 +1223,7 @@ contract TestPools2 is Deployment
 
 		vm.prank(alice);
 		pools.swap( token1, token0, 100 * units1, 0 ether, block.timestamp );
+		vm.roll(block.number + 1);
 
 		vm.prank(bob);
 		pools.depositSwapWithdraw(token0, token1, 100 * units0, 0 * units1, block.timestamp );
@@ -1222,6 +1233,7 @@ contract TestPools2 is Deployment
 
 		vm.prank(alice);
 		pools.swap( token0, token1, 10 * units0, 0 * units1, block.timestamp );
+		vm.roll(block.number + 1);
 
 		vm.prank(bob);
 		pools.depositSwapWithdraw(token1, token0, 10 * units1, 0 * units0, block.timestamp );
@@ -1499,9 +1511,11 @@ function testMinLiquidityAndReclaimedAmounts() public {
 		// Swap back and see if things are where we started
 		if ( reclaimedA > zapAmount0 * 10**decimals0 )
 			pools.depositSwapWithdraw(token0, token1, reclaimedA - zapAmount0 * 10**decimals0, 0, block.timestamp);
+		vm.roll(block.number + 1);
 
 		if ( reclaimedB > zapAmount1 * 10**decimals1 )
 			pools.depositSwapWithdraw(token1, token0, reclaimedB - zapAmount1 * 10**decimals1, 0, block.timestamp);
+		vm.roll(block.number + 1);
 
 		(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves(token0, token1);
 
@@ -1611,9 +1625,11 @@ function testMinLiquidityAndReclaimedAmounts() public {
 		// Swap back and see if things are where we started
 		if ( reclaimedA > zapAmount0 )
 			pools.depositSwapWithdraw(token0, token1, reclaimedA - zapAmount0, 0, block.timestamp);
+		vm.roll(block.number + 1);
 
 		if ( reclaimedB > zapAmount1 )
 			pools.depositSwapWithdraw(token1, token0, reclaimedB - zapAmount1, 0, block.timestamp);
+		vm.roll(block.number + 1);
 
 		(uint256 reserve0, uint256 reserve1) = pools.getPoolReserves(token0, token1);
 

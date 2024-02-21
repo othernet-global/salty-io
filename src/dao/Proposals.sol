@@ -225,7 +225,7 @@ contract Proposals is IProposals, ReentrancyGuard
 		}
 
 
-	function _checkCountryCode( string calldata countryCode ) internal
+	function _checkCountryCode( string calldata countryCode ) internal pure
 		{
 		require( bytes(countryCode).length == 2, "Country must be an ISO 3166 Alpha-2 Code" );
 		require(bytes(countryCode)[0] >= 0x41 && bytes(countryCode)[0] <= 0x5A && bytes(countryCode)[1] >= 0x41 && bytes(countryCode)[1] <= 0x5A, "Invalid country code");

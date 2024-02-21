@@ -254,8 +254,7 @@ contract Utils
 			uint256 k = reserve0 * reserve1;
 
 			// Determine amountOut based on amountIn and the reserves
-			reserve0 += amountIn;
-			amountOut = reserve1 - k / reserve0;
+			amountOut = reserve1 - k / ( reserve0 + amountIn );
 
 			tokenIn = tokenOut;
 			amountIn = amountOut;

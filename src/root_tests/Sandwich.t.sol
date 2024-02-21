@@ -269,7 +269,7 @@ contract TestSandwichAttacks is Deployment
 
 	function testSandwich2() public
 		{
-//		for( uint256 i = 100; i < 10000; i = i + 100 )
+//		for( uint256 i = 100; i < 100000; i = i + 1000 )
 //			{
 //			uint256 sandwichAmountIn = i * 10**6;
 //
@@ -280,9 +280,9 @@ contract TestSandwichAttacks is Deployment
 //			(uint256 amountOut, uint256 backrunOut, uint256 arbProfit) = _sandwich(sandwichAmountIn, 400 ether, 1000000 *10**6, 1000000 *10**6, 25 *10**8, 25 *10**8, 400 ether );
 //
 //			if ( backrunOut > sandwichAmountIn )
-//				console.log( i, "SANDWICH PROFIT: ", (backrunOut - sandwichAmountIn), amountOut );
+//				console.log( i, "SANDWICH PROFIT: ", (backrunOut - sandwichAmountIn) / 10**6, amountOut / 10**16 );
 //			else
-//				console.log( i, "SANDWICH PROFIT: -", ( sandwichAmountIn - backrunOut), amountOut ) ;
+//				console.log( i, "SANDWICH PROFIT: -", ( sandwichAmountIn - backrunOut) / 10**6, amountOut / 10**16 ) ;
 //			}
 		}
     }

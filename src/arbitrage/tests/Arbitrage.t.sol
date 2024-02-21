@@ -358,6 +358,7 @@ contract TestArbitrage is Deployment
 			uint256 startingDepositWeth = pools.depositedUserBalance( address(dao), weth );
 
 			pools.depositSwapWithdraw( weth, wbtc, 1 ether, 0, block.timestamp );
+			vm.roll(block.number + 1);
 
 			uint256 profit = pools.depositedUserBalance( address(dao), weth ) - startingDepositWeth;
 			assertTrue( profit > 4*10**13, "Profit lower than expected" );

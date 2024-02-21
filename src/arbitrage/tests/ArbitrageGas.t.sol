@@ -59,15 +59,44 @@ contract TestArbitrage is Deployment
 
 		// Initial transactions cost more gas so perform the first ones here
 		pools.swap( tokenE, weth, 10 ether, 0, block.timestamp );
+		vm.roll(block.number + 1 );
+
 		pools.depositSwapWithdraw( weth, tokenE, 10 ether, 0, block.timestamp );
+
+		vm.roll(block.number + 1 );
 		}
 
 
 	function testGasDepositSwapWithdrawAndArbitrage() public
 		{
+		uint256 arbProfits = pools.depositedUserBalance(address(dao), weth);
+
 		uint256 gas0 = gasleft();
-		pools.depositSwapWithdraw( tokenE, weth, 10 ether, 0, block.timestamp );
+		uint256 totalOutput = pools.depositSwapWithdraw( tokenE, weth, 100 ether, 0, block.timestamp );
+
 		console.log( "DEPOSIT/SWAP/ARB GAS: ", gas0 - gasleft() );
+		console.log( "OUTPUT: ", totalOutput );
+		console.log( "ARB PROFITS: ", arbProfits );
+		}
+
+
+	function testGasSerialSplitDepositSwapWithdrawAndArbitrage() public
+		{
+		uint256 totalOutput = 0;
+		uint256 arbProfits = pools.depositedUserBalance(address(dao), weth);
+
+		uint256 gas0 = gasleft();
+		for( uint256 i = 0; i < 10; i++ )
+			{
+			totalOutput += pools.depositSwapWithdraw( tokenE, weth, 10 ether, 0, block.timestamp );
+			vm.roll(block.number + 1 );
+			}
+
+		arbProfits = pools.depositedUserBalance(address(dao), weth) - arbProfits;
+
+		console.log( "SERIAL SPLIT DEPOSIT/SWAP/ARB GAS: ", gas0 - gasleft() );
+		console.log( "SERIAL SPLIT OUTPUT: ", totalOutput );
+		console.log( "SERIAL SPLIT ARB PROFITS: ", arbProfits );
 		}
 
 
@@ -89,5 +118,9 @@ contract TestArbitrage is Deployment
 		assertEq( amountOut, 9900801949662407685 );
 		assertEq( pools.depositedUserBalance( address(dao), weth ), 186746281551137400 );
 		}
+
+
+
+
 	}
 
