@@ -24,6 +24,7 @@ interface IExchangeConfig
 	function wbtc() external view returns (IERC20);
 	function weth() external view returns (IERC20);
 	function usdc() external view returns (IERC20);
+	function usdt() external view returns (IERC20);
 
 	function daoVestingWallet() external view returns (VestingWallet);
     function teamVestingWallet() external view returns (VestingWallet);

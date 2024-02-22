@@ -585,7 +585,7 @@ staking.stakeSALT(1000 ether);
 
 		// Make sure the ballot failed to approve the token
 		dao.finalizeBallot(ballotID);
-		assertFalse( poolsConfig.tokenHasBeenWhitelisted( testToken, wbtc, weth ), "Token should not have been whitelisted" );
+		assertFalse( poolsConfig.tokenHasBeenWhitelisted( testToken, salt, weth ), "Token should not have been whitelisted" );
 
         assertEq(proposals.openBallotsForTokenWhitelisting().length, 0, "The number of ballots shoudl now be zero");
 
@@ -618,7 +618,7 @@ staking.stakeSALT(1000 ether);
 		salt.transfer( address(dao), 1	 );
 		dao.finalizeBallot(ballotID2);
 
-		assertTrue( poolsConfig.tokenHasBeenWhitelisted( testToken2, wbtc, weth ), "Token should have been whitelisted" );
+		assertTrue( poolsConfig.tokenHasBeenWhitelisted( testToken2, salt, weth ), "Token should have been whitelisted" );
     }
 
 
@@ -917,7 +917,7 @@ staking.stakeSALT(1000 ether);
         // Test proposeParameterBallot function
         vm.startPrank(DEPLOYER);
         staking.stakeSALT( 2000000 ether );
-        proposals.proposeParameterBallot(16, "description" );
+        proposals.proposeParameterBallot(15, "description" );
         vm.stopPrank();
 
         uint256 ballotID = 1;
@@ -995,13 +995,13 @@ staking.stakeSALT(1000 ether);
 		// Test proposeParameterBallot function
 		vm.startPrank(DEPLOYER);
         staking.stakeSALT(1000 ether);
-		proposals.proposeParameterBallot(17, "description" );
+		proposals.proposeParameterBallot(15, "description" );
 		vm.stopPrank();
 
 		vm.startPrank(alice);
         staking.stakeSALT(1000 ether);
 		vm.expectRevert( "Cannot create a proposal similar to a ballot that is still open" );
-		proposals.proposeParameterBallot(17, "description" );
+		proposals.proposeParameterBallot(15, "description" );
 		vm.stopPrank();
 
 	}
@@ -1693,7 +1693,7 @@ staking.stakeSALT(1000 ether);
         vm.stopPrank();
 
         // Check that the token is now whitelisted
-        assertTrue(poolsConfig.tokenHasBeenWhitelisted(testToken, exchangeConfig.wbtc(), exchangeConfig.weth()));
+        assertTrue(poolsConfig.tokenHasBeenWhitelisted(testToken, exchangeConfig.salt(), exchangeConfig.weth()));
 
         vm.startPrank(alice);
 

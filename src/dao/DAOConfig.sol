@@ -14,7 +14,6 @@ contract DAOConfig is IDAOConfig, Ownable
     event BallotDurationChanged(uint256 newBallotDuration);
     event BallotMaximumDurationChanged(uint256 newMaximumDuration);
     event RequiredProposalPercentStakeChanged(uint256 newRequiredProposalPercentStakeTimes1000);
-    event MaxPendingTokensForWhitelistingChanged(uint256 newMaxPendingTokensForWhitelisting);
     event ArbitrageProfitsPercentPOLChanged(uint256 newArbitrageProfitsPercentPOL);
     event UpkeepRewardPercentChanged(uint256 newUpkeepRewardPercent);
 
@@ -24,9 +23,9 @@ contract DAOConfig is IDAOConfig, Ownable
 	// Range: 50k ether to 500k ether with an adjustment of 50k ether
 	uint256 public bootstrappingRewards = 200000 ether;
 
-	// For rewards distributed to the DAO, the percentage of SALT that is burned with the remaining staying in the DAO for later use.
-	// Range: 25% to 75% with an adjustment of 5%
-    uint256 public percentPolRewardsBurned = 50;
+	// The percent of SALT rewards that are burned.
+	// Range: 5% to 15% with an adjustment of 1%
+    uint256 public percentRewardsBurned = 10;
 
 	// The minimum amount of xSALT required for ballot quorum (to take action on the ballot).
 	// baseBallotQuorum is decided as a percent of the total amount of SALT staked.
@@ -53,9 +52,9 @@ contract DAOConfig is IDAOConfig, Ownable
 	// Range: 0.10% to 2% with an adjustment of 0.10%
 	uint256 public requiredProposalPercentStakeTimes1000 = 500;  // Defaults to 0.50% with a 1000x multiplier
 
-	// The share of the WETH arbitrage profits that are sent to the DAO to form SALT/USDC Protocol Owned Liquidity
-	// Range: 15% to 45% with an adjustment of 5%
-	uint256 public arbitrageProfitsPercentPOL = 20;
+	// The percentage of SALT rewards that are sent to the DAO's reserve
+	// Range: 5% to 15% with an adjustment of 1%
+	uint256 public percentRewardsForReserve = 10;
 
 	// The share of the WETH arbitrage profits sent to the DAO that are sent to the caller of DAO.performUpkeep()
 	// Range: 1% to 10% with an adjustment of 1%
@@ -79,20 +78,20 @@ contract DAOConfig is IDAOConfig, Ownable
     	}
 
 
-	function changePercentPolRewardsBurned(bool increase) external onlyOwner
+	function changePercentRewardsBurned(bool increase) external onlyOwner
 		{
 		if (increase)
 			{
-			if (percentPolRewardsBurned < 75)
-				percentPolRewardsBurned += 5;
+			if (percentRewardsBurned < 15)
+				percentRewardsBurned += 1;
 			}
 		else
 			{
-			if (percentPolRewardsBurned > 25)
-				percentPolRewardsBurned -= 5;
+			if (percentRewardsBurned > 5)
+				percentRewardsBurned -= 1;
 			}
 
-		emit PercentPolRewardsBurnedChanged(percentPolRewardsBurned);
+		emit PercentPolRewardsBurnedChanged(percentRewardsBurned);
 		}
 
 
@@ -164,20 +163,20 @@ contract DAOConfig is IDAOConfig, Ownable
 		}
 
 
-	function changeArbitrageProfitsPercentPOL(bool increase) external onlyOwner
+	function changePercentRewardsForReserve(bool increase) external onlyOwner
         {
         if (increase)
             {
-            if (arbitrageProfitsPercentPOL < 45)
-                arbitrageProfitsPercentPOL += 5;
+            if (percentRewardsForReserve < 15)
+                percentRewardsForReserve += 1;
             }
         else
             {
-            if (arbitrageProfitsPercentPOL > 15)
-                arbitrageProfitsPercentPOL -= 5;
+            if (percentRewardsForReserve > 5)
+                percentRewardsForReserve -= 1;
             }
 
-		emit ArbitrageProfitsPercentPOLChanged(arbitrageProfitsPercentPOL);
+		emit ArbitrageProfitsPercentPOLChanged(percentRewardsForReserve);
 		}
 
 

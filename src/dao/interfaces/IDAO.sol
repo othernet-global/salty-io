@@ -10,9 +10,7 @@ interface IDAO
 	function finalizeBallot( uint256 ballotID ) external;
 	function manuallyRemoveBallot( uint256 ballotID ) external;
 
-	function withdrawArbitrageProfits( IERC20 weth ) external returns (uint256 withdrawnAmount);
-	function formPOL() external;
-	function processRewardsFromPOL() external;
+	function withdrawFromDAO( IERC20 token ) external returns (uint256 withdrawnAmount);
 
 	// Views
 	function pools() external view returns (IPools);

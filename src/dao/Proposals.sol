@@ -11,7 +11,6 @@ import "../staking/interfaces/IStaking.sol";
 import "../interfaces/IExchangeConfig.sol";
 import "./interfaces/IDAOConfig.sol";
 import "./interfaces/IProposals.sol";
-import "./interfaces/IDAO.sol";
 
 
 // Allows SALT stakers to propose and vote on various types of ballots such as parameter changes, token whitelisting/unwhitelisting, sending tokens, calling contracts, and updating website URLs.
@@ -30,12 +29,11 @@ contract Proposals is IProposals, ReentrancyGuard
     IExchangeConfig immutable public exchangeConfig;
     IPoolsConfig immutable public poolsConfig;
     IDAOConfig immutable public daoConfig;
-    ISalt immutable public salt;
 
 	// A special pool that represents staked SALT that is not associated with any actual liquidity pool.
     bytes32 constant public STAKED_SALT = bytes32(0);
     
-    uint256 constant NUMBER_OF_PARAMETERS = 18;
+    uint256 constant NUMBER_OF_PARAMETERS = 16;
 
 	// Mapping from ballotName to a currently open ballotID (zero if none).
 	// Used to check for existing ballots by name so as to not allow duplicate ballots to be created.
@@ -77,8 +75,6 @@ contract Proposals is IProposals, ReentrancyGuard
 		exchangeConfig = _exchangeConfig;
 		poolsConfig = _poolsConfig;
 		daoConfig = _daoConfig;
-
-		salt = exchangeConfig.salt();
         }
 
 
@@ -173,7 +169,7 @@ contract Proposals is IProposals, ReentrancyGuard
 		require( ERC20(address(token)).decimals() <= 18, "Token decimal maximum is 18" );
 
 		require( poolsConfig.numberOfWhitelistedPools() < poolsConfig.maximumWhitelistedPools(), "Maximum number of whitelisted pools already reached" );
-		require( ! poolsConfig.tokenHasBeenWhitelisted(token, exchangeConfig.wbtc(), exchangeConfig.weth()), "The token has already been whitelisted" );
+		require( ! poolsConfig.tokenHasBeenWhitelisted(token, exchangeConfig.salt(), exchangeConfig.weth()), "The token has already been whitelisted" );
 
 		string memory ballotName = string.concat("whitelist:", Strings.toHexString(address(token)), tokenIconURL, description );
 
@@ -186,10 +182,11 @@ contract Proposals is IProposals, ReentrancyGuard
 
 	function proposeTokenUnwhitelisting( IERC20 token, string calldata tokenIconURL, string calldata description ) external nonReentrant returns (uint256 ballotID)
 		{
-		require( poolsConfig.tokenHasBeenWhitelisted(token, exchangeConfig.wbtc(), exchangeConfig.weth()), "Can only unwhitelist a whitelisted token" );
+		require( poolsConfig.tokenHasBeenWhitelisted(token, exchangeConfig.salt(), exchangeConfig.weth()), "Can only unwhitelist a whitelisted token" );
 		require( address(token) != address(exchangeConfig.wbtc()), "Cannot unwhitelist WBTC" );
 		require( address(token) != address(exchangeConfig.weth()), "Cannot unwhitelist WETH" );
 		require( address(token) != address(exchangeConfig.usdc()), "Cannot unwhitelist USDC" );
+		require( address(token) != address(exchangeConfig.usdt()), "Cannot unwhitelist USDT" );
 		require( address(token) != address(exchangeConfig.salt()), "Cannot unwhitelist SALT" );
 
 		string memory ballotName = string.concat("unwhitelist:", Strings.toHexString(address(token)), tokenIconURL, description );
@@ -208,8 +205,6 @@ contract Proposals is IProposals, ReentrancyGuard
 		uint256 maxSendable = balance * 5 / 100;
 		require( amount <= maxSendable, "Cannot send more than 5% of the DAO SALT balance" );
 
-		// This ballotName is not unique for the receiving wallet and enforces the restriction of one sendSALT ballot at a time.
-		// If more receivers are necessary at once, a splitter can be used.
 		string memory ballotName = string.concat("sendSALT:", Strings.toHexString(wallet), Strings.toString(amount), description );
 		return _possiblyCreateProposal( ballotName, BallotType.SEND_SALT, wallet, amount, "", description );
 		}
@@ -331,7 +326,7 @@ contract Proposals is IProposals, ReentrancyGuard
 
 
 	// The required quorum is normally a default 10% of the amount of SALT staked.
-	// There is though a minimum of 0.50% of SALT.totalSupply (in the case that the amount of staked SALT is low - at launch for instance).
+	// There is though a minimum of 0.50% of SALT.totalSupply
 	function requiredQuorumForBallotType( BallotType ballotType ) public view returns (uint256 requiredQuorum)
 		{
 		// The quorum will be specified as a percentage of the total amount of SALT staked

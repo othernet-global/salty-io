@@ -4,7 +4,6 @@ pragma solidity =0.8.22;
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import "openzeppelin-contracts/contracts/finance/VestingWallet.sol";
-import "./price_feed/interfaces/IPriceAggregator.sol";
 import "./rewards/interfaces/IEmissions.sol";
 import "./pools/interfaces/IPoolsConfig.sol";
 import "./interfaces/IExchangeConfig.sol";
@@ -14,23 +13,18 @@ import "./dao/interfaces/IDAO.sol";
 
 
 // Performs the following upkeep for each call to performUpkeep():
-// (Uses a maximum of 1.6 million gas with 100 whitelisted pools according to UpkeepGasUsage.t.sol)
+// (Uses a maximum of 1 million gas with 100 whitelisted pools according to UpkeepGasUsage.t.sol)
 
-// 1. Withdraws existing WETH arbitrage profits from the Pools contract and rewards the caller of performUpkeep() with default 5% of the withdrawn amount.
-// 2. Converts a default 20% of the remaining WETH to SALT/USDC Protocol Owned Liquidity.
-// 3. Converts remaining WETH to SALT and sends it to SaltRewards.
+// 1. Withdraws deposited SALT arbitrage profits from the Pools contract and rewards the caller of performUpkeep()
+// 2. Burns 10% of the remaining withdrawn salt and sends 10% to the DAO's reserve.
+// 3. Sends the remaining SALT to SaltRewards.
 
 // 4. Sends SALT Emissions to the SaltRewards contract.
 // 5. Distributes SALT from SaltRewards to the stakingRewardsEmitter and liquidityRewardsEmitter.
 // 6. Distributes SALT rewards from the stakingRewardsEmitter and liquidityRewardsEmitter.
 
-// 7. Collects SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDC formed POL), sends 10% to the initial dev team and burns a default 50% of the remaining - the rest stays in the DAO.
-// 8. Sends SALT from the DAO vesting wallet to the DAO (linear distribution over 10 years).
-// 9. Sends SALT from the team vesting wallet to the team (linear distribution over 10 years).
-
-// WETH arbitrage profits are converted directly via depositSwapWithdraw - as performUpkeep is called often and the generated arbitrage profits should be manageable compared to the size of the reserves.
-// Additionally, simulations show that the impact from sandwich attacks on swap transactions (even without specifying slippage) is limited due to the atomic arbitrage process.
-// See PoolUtils.__placeInternalSwap and Sandwich.t.sol for more details.
+// 7. Sends SALT from the DAO vesting wallet to the DAO (linear distribution over 10 years).
+// 8. Sends SALT from the team vesting wallet to the team (linear distribution over 10 years).
 
 contract Upkeep is IUpkeep, ReentrancyGuard
     {
@@ -47,9 +41,7 @@ contract Upkeep is IUpkeep, ReentrancyGuard
 	IEmissions immutable public emissions;
 	IDAO immutable public dao;
 
-	IERC20  immutable public weth;
 	ISalt  immutable public salt;
-	IERC20  immutable public usdc;
 
 	uint256 public lastUpkeepTimeEmissions;
 	uint256 public lastUpkeepTimeRewardsEmitters;
@@ -66,16 +58,10 @@ contract Upkeep is IUpkeep, ReentrancyGuard
 		dao = _dao;
 
 		// Cached for efficiency
-		weth = _exchangeConfig.weth();
 		salt = _exchangeConfig.salt();
-		usdc = _exchangeConfig.usdc();
 
 		lastUpkeepTimeEmissions = block.timestamp;
 		lastUpkeepTimeRewardsEmitters = block.timestamp;
-
-		// Approve for future WETH swaps.
-		// This contract only has a temporary WETH balance within the performUpkeep() function itself.
-		weth.approve( address(pools), type(uint256).max );
 		}
 
 
@@ -88,62 +74,47 @@ contract Upkeep is IUpkeep, ReentrancyGuard
 
 	// Note - while the following steps are public so that they can be wrapped in a try/catch, they are all still only callable from this same contract.
 
-	// 1. Withdraw existing WETH arbitrage profits from the Pools contract and reward the caller of performUpkeep() with default 5% of the withdrawn amount.
+	// 1. Withdraw deposited SALT arbitrage profits from the Pools contract and reward the caller of performUpkeep()
 	function step1(address receiver) public onlySameContract
 		{
-		uint256 withdrawnAmount = dao.withdrawArbitrageProfits(weth);
-		if ( withdrawnAmount == 0 )
+		uint256 withdrawnSALT = dao.withdrawFromDAO(salt);
+		if ( withdrawnSALT == 0 )
 			return;
 
-		// Default 5% of the arbitrage profits for the caller of performUpkeep()
-		uint256 rewardAmount = withdrawnAmount * daoConfig.upkeepRewardPercent() / 100;
+		// Default 5% of the original SALT arbitrage profits should be rewarded to the caller of performUpkeep.
+		uint256 rewardAmount = withdrawnSALT * daoConfig.upkeepRewardPercent() / 100;
 
 		// Send the reward
-		weth.safeTransfer(receiver, rewardAmount);
+		salt.safeTransfer(receiver, rewardAmount);
 		}
 
 
-	// Have the DAO form the specified Protocol Owned Liquidity with the given amount of WETH
-	function _formPOL( IERC20 tokenA, IERC20 tokenB, uint256 amountWETH) internal
-		{
-		uint256 wethAmountPerToken = amountWETH >> 1;
-
-		// Swap WETH for the specified tokens
-		uint256 amountA = pools.depositSwapWithdraw( weth, tokenA, wethAmountPerToken, 0, block.timestamp );
-		uint256 amountB = pools.depositSwapWithdraw( weth, tokenB, wethAmountPerToken, 0, block.timestamp );
-
-		// Transfer the tokens to the DAO
-		tokenA.safeTransfer( address(dao), amountA );
-		tokenB.safeTransfer( address(dao), amountB );
-
-		// Have the DAO form POL
-		dao.formPOL();
-		}
-
-
-	// 2. Convert a default 20% of the remaining WETH to SALT/USDC Protocol Owned Liquidity.
+	// 2. Burn 10% of the remaining withdrawn salt and send 10% to the DAO's reserve.
 	function step2() public onlySameContract
 		{
-		uint256 wethBalance = weth.balanceOf( address(this) );
-		if ( wethBalance == 0 )
+		uint256 saltBalance = salt.balanceOf( address(this) );
+		if ( saltBalance == 0 )
 			return;
 
-		// A default 20% of the remaining WETH will be swapped for SALT/USDC POL.
-		uint256 amountOfWETH = wethBalance * daoConfig.arbitrageProfitsPercentPOL() / 100;
-		_formPOL(salt, usdc, amountOfWETH);
+		// Default 10% of the remaining SALT profits should be burned
+		uint256 burnAmount = saltBalance * daoConfig.percentRewardsBurned() / 100;
+		salt.transfer( address(salt), burnAmount);
+		salt.burnTokensInContract();
+
+		// Default 10% of the remaining SALT profits should be sent to the DAO's reserve
+		uint256 reserveAmount = saltBalance * daoConfig.percentRewardsForReserve() / 100;
+		salt.transfer( address(dao), reserveAmount);
 		}
 
 
-	// 3. Convert remaining WETH to SALT and sends it to SaltRewards.
+	// 3. Send the remaining SALT to SaltRewards
 	function step3() public onlySameContract
 		{
-		uint256 wethBalance = weth.balanceOf( address(this) );
-		if ( wethBalance == 0 )
+		uint256 saltBalance = salt.balanceOf( address(this) );
+		if ( saltBalance == 0 )
 			return;
 
-		// Convert remaining WETH to SALT and send it to SaltRewards
-		uint256 amountSALT = pools.depositSwapWithdraw( weth, salt, wethBalance, 0, block.timestamp );
-		salt.safeTransfer(address(saltRewards), amountSALT);
+		salt.safeTransfer(address(saltRewards), saltBalance);
 		}
 
 
@@ -180,22 +151,15 @@ contract Upkeep is IUpkeep, ReentrancyGuard
 		}
 
 
-	// 7. Collect SALT rewards from the DAO's Protocol Owned Liquidity (SALT/USDC from formed POL), send 10% to the initial dev team and burn a default 50% of the remaining - the rest stays in the DAO.
+	// 7. Send SALT from the DAO vesting wallet to the DAO (linear distribution over 10 years).
 	function step7() public onlySameContract
-		{
-		dao.processRewardsFromPOL();
-		}
-
-
-	// 8. Send SALT from the DAO vesting wallet to the DAO (linear distribution over 10 years).
-	function step8() public onlySameContract
 		{
 		exchangeConfig.daoVestingWallet().release(address(salt));
 		}
 
 
-	// 9. Sends SALT from the team vesting wallet to the team (linear distribution over 10 years).
-	function step9() public onlySameContract
+	// 8. Sends SALT from the team vesting wallet to the team (linear distribution over 10 years).
+	function step8() public onlySameContract
 		{
 		exchangeConfig.teamVestingWallet().release(address(salt));
 		}
@@ -231,9 +195,6 @@ contract Upkeep is IUpkeep, ReentrancyGuard
 
  		try this.step8() {}
 		catch (bytes memory error) { emit UpkeepError("Step 8", error); }
-
- 		try this.step9() {}
-		catch (bytes memory error) { emit UpkeepError("Step 9", error); }
 		}
 
 
@@ -242,8 +203,9 @@ contract Upkeep is IUpkeep, ReentrancyGuard
 	// Useful for potential callers to know if calling the function will be profitable in comparison to current gas costs.
 	function currentRewardsForCallingPerformUpkeep() public view returns (uint256)
 		{
-		uint256 daoWETH = pools.depositedUserBalance( address(dao), weth );
+		uint256 depositedSALT = pools.depositedUserBalance(address(dao), salt);
 
-		return daoWETH * daoConfig.upkeepRewardPercent() / 100;
+		// Default 5% of the original SALT arbitrage profits should be rewarded to the caller of performUpkeep.
+		return depositedSALT * daoConfig.upkeepRewardPercent() / 100;
 		}
 	}

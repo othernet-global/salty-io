@@ -12,10 +12,7 @@ import "../../ExchangeConfig.sol";
 import "../../pools/Pools.sol";
 import "../../staking/Staking.sol";
 import "../../rewards/RewardsEmitter.sol";
-import "../../price_feed/tests/IForcedPriceFeed.sol";
-import "../../price_feed/tests/ForcedPriceFeed.sol";
 import "../../pools/PoolsConfig.sol";
-import "../../price_feed/PriceAggregator.sol";
 import "../../dao/Proposals.sol";
 import "../../dao/DAO.sol";
 import "../../AccessManager.sol";
@@ -39,7 +36,7 @@ contract TestArbitrageSearch2 is Deployment
 
 			poolsConfig = new PoolsConfig();
 
-			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, teamWallet );
+			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, usdt, teamWallet );
 
 		pools = new Pools(exchangeConfig, poolsConfig);
 		staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
@@ -50,18 +47,20 @@ contract TestArbitrageSearch2 is Deployment
 
 			emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
-			poolsConfig.whitelistPool( pools,   salt, wbtc);
-			poolsConfig.whitelistPool( pools,   salt, weth);
 			poolsConfig.whitelistPool( pools,   salt, usdc);
-			poolsConfig.whitelistPool( pools,   wbtc, usdc);
+			poolsConfig.whitelistPool( pools,   salt, usdt);
 			poolsConfig.whitelistPool( pools,   weth, usdc);
+			poolsConfig.whitelistPool( pools,   weth, usdt);
+			poolsConfig.whitelistPool( pools,   wbtc, salt);
 			poolsConfig.whitelistPool( pools,   wbtc, weth);
+			poolsConfig.whitelistPool( pools,   salt, weth);
+			poolsConfig.whitelistPool( pools,   usdc, usdt);
 
 
 			proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 
 			address oldDAO = address(dao);
-			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, daoConfig, liquidityRewardsEmitter, liquidity);
+			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, daoConfig, liquidityRewardsEmitter);
 
 			accessManager = new AccessManager(dao);
 
@@ -138,31 +137,31 @@ contract TestArbitrageSearch2 is Deployment
         address swapTokenOutAddress = address(uint160(uint256(keccak256("tokenOut"))));
         IERC20 swapTokenOut = IERC20(swapTokenOutAddress);
 
-        // WETH->WBTC scenario
+        // WETH->SALT scenario
         vm.prank(alice);
         IERC20 arbToken2;
         IERC20 arbToken3;
-        (arbToken2, arbToken3) = testArbitrageSearch.arbitragePath(weth, wbtc);
-        assertEq(address(arbToken2), address(salt));
-        assertEq(address(arbToken3), address(wbtc));
+        (arbToken2, arbToken3) = testArbitrageSearch.arbitragePath(weth, salt);
+        assertEq(address(arbToken2), address(weth));
+        assertEq(address(arbToken3), address(usdc));
 
-        // WBTC->WETH scenario
+        // SALT->WETH scenario
         vm.prank(alice);
-        (arbToken2, arbToken3) = testArbitrageSearch.arbitragePath(wbtc, weth);
-        assertEq(address(arbToken2), address(wbtc));
-        assertEq(address(arbToken3), address(salt));
+        (arbToken2, arbToken3) = testArbitrageSearch.arbitragePath(salt, weth);
+        assertEq(address(arbToken2), address(usdc));
+        assertEq(address(arbToken3), address(weth));
 
-        // WETH->swapTokenOut scenario
+        // SALT->swapTokenOut scenario
         vm.prank(alice);
-        (arbToken2, arbToken3) = testArbitrageSearch.arbitragePath(weth, swapTokenOut);
-        assertEq(address(arbToken2), address(wbtc));
+        (arbToken2, arbToken3) = testArbitrageSearch.arbitragePath(salt, swapTokenOut);
+        assertEq(address(arbToken2), address(weth));
         assertEq(address(arbToken3), address(swapTokenOut));
 
-        // swapTokenIn->WETH scenario
+        // swapTokenIn->SALT scenario
         vm.prank(alice);
-        (arbToken2, arbToken3) = testArbitrageSearch.arbitragePath(swapTokenIn, weth);
+        (arbToken2, arbToken3) = testArbitrageSearch.arbitragePath(swapTokenIn, salt);
         assertEq(address(arbToken2), address(swapTokenIn));
-        assertEq(address(arbToken3), address(wbtc));
+        assertEq(address(arbToken3), address(weth));
 
         // swapTokenIn->swapTokenOut scenario
         vm.prank(alice);

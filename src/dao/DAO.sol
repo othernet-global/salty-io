@@ -25,14 +25,10 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
     event WhitelistToken(IERC20 indexed token);
     event UnwhitelistToken(IERC20 indexed token);
     event GeoExclusionUpdated(string country, bool excluded, uint256 geoVersion);
-    event ArbitrageProfitsWithdrawn(address indexed upkeepContract, IERC20 indexed weth, uint256 withdrawnAmount);
+    event TokensWithdrawn(address indexed upkeepContract, IERC20 indexed token, uint256 withdrawnAmount);
     event SaltSent(address indexed to, uint256 amount);
     event ContractCalled(address indexed contractAddress, uint256 indexed intArg);
     event TeamRewardsTransferred(uint256 teamAmount);
-
-    event POLFormed(uint256 addedSALT, uint256 addedUSDC);
-    event POLProcessed(uint256 claimedSALT);
-    event POLWithdrawn(IERC20 indexed tokenA, IERC20 indexed tokenB, uint256 withdrawnA, uint256 withdrawnB);
 
 	using SafeERC20 for ISalt;
 	using SafeERC20 for IERC20;
@@ -45,11 +41,6 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 	IRewardsConfig immutable public rewardsConfig;
 	IDAOConfig immutable public daoConfig;
 	IRewardsEmitter immutable public liquidityRewardsEmitter;
-	ILiquidity immutable public liquidity;
-
-	ISalt immutable public salt;
-	IERC20 immutable public usdc;
-
 
 	// The default IPFS URL for the website content (can be changed with a setWebsiteURL proposal)
 	string public websiteURL;
@@ -59,7 +50,7 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 	mapping(string=>bool) public excludedCountries;
 
 
-    constructor( IPools _pools, IProposals _proposals, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IRewardsConfig _rewardsConfig, IDAOConfig _daoConfig, IRewardsEmitter _liquidityRewardsEmitter, ILiquidity _liquidity )
+    constructor( IPools _pools, IProposals _proposals, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IRewardsConfig _rewardsConfig, IDAOConfig _daoConfig, IRewardsEmitter _liquidityRewardsEmitter )
 		{
 		pools = _pools;
 		proposals = _proposals;
@@ -69,14 +60,6 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		rewardsConfig = _rewardsConfig;
 		daoConfig = _daoConfig;
         liquidityRewardsEmitter = _liquidityRewardsEmitter;
-        liquidity = _liquidity;
-
-        salt = exchangeConfig.salt();
-        usdc = exchangeConfig.usdc();
-
-		// Gas saving approves for eventually forming Protocol Owned Liquidity
-		salt.approve(address(liquidity), type(uint256).max);
-		usdc.approve(address(liquidity), type(uint256).max);
 
 		// Excluded by default: United States, Canada, United Kingdom, China, India, Pakistan, Russia, Afghanistan, Cuba, Iran, North Korea, Syria, Venezuela
 		// Note that the DAO can remove any of these exclusions - or open up access completely to the exchange as it sees fit.
@@ -132,8 +115,11 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		if ( ballot.ballotType == BallotType.UNWHITELIST_TOKEN )
 			{
 			// All tokens are paired with both WBTC and WETH so unwhitelist those pools
-			poolsConfig.unwhitelistPool( pools, IERC20(ballot.address1), exchangeConfig.wbtc() );
+			poolsConfig.unwhitelistPool( pools, IERC20(ballot.address1), exchangeConfig.salt() );
 			poolsConfig.unwhitelistPool( pools, IERC20(ballot.address1), exchangeConfig.weth() );
+
+			// Make sure that the cached arbitrage indicies in PoolStats are updated
+			pools.updateArbitrageIndicies();
 
 			emit UnwhitelistToken(IERC20(ballot.address1));
 			}
@@ -223,10 +209,13 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 			require( saltBalance >= bootstrappingRewards * 2, "Whitelisting is not currently possible due to insufficient bootstrapping rewards" );
 
 			// All tokens are paired with both WBTC and WETH, so whitelist both pairings
+			poolsConfig.whitelistPool( pools,  IERC20(ballot.address1), exchangeConfig.salt() );
 			poolsConfig.whitelistPool( pools,  IERC20(ballot.address1), exchangeConfig.weth() );
-			poolsConfig.whitelistPool( pools,  IERC20(ballot.address1), exchangeConfig.wbtc() );
 
-			bytes32 pool1 = PoolUtils._poolID( IERC20(ballot.address1), exchangeConfig.wbtc() );
+			// Make sure that the cached arbitrage indicies in PoolStats are updated
+			pools.updateArbitrageIndicies();
+
+			bytes32 pool1 = PoolUtils._poolID( IERC20(ballot.address1), exchangeConfig.salt() );
 			bytes32 pool2 = PoolUtils._poolID( IERC20(ballot.address1), exchangeConfig.weth() );
 
 			// Send the initial bootstrappingRewards to promote initial liquidity on these two newly whitelisted pools
@@ -275,72 +264,20 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		}
 
 
-	// Withdraw the WETH arbitrage profits deposited in the Pools contract and send them to the caller (the Upkeep contract).
-	function withdrawArbitrageProfits( IERC20 weth ) external returns (uint256 withdrawnAmount)
+	// Withdraw deposited tokens in the Pools contract and send them to the caller (the Upkeep contract).
+	function withdrawFromDAO( IERC20 token ) external returns (uint256 withdrawnAmount)
 		{
-		require( msg.sender == address(exchangeConfig.upkeep()), "DAO.withdrawArbitrageProfits is only callable from the Upkeep contract" );
+		require( msg.sender == address(exchangeConfig.upkeep()), "DAO.withdrawFromDAO is only callable from the Upkeep contract" );
 
-		// The arbitrage profits are deposited in the Pools contract as WETH and owned by the DAO.
-		uint256 depositedWETH = pools.depositedUserBalance(address(this), weth );
-		if ( depositedWETH <= PoolUtils.DUST )
+		withdrawnAmount = pools.depositedUserBalance(address(this), token );
+		if ( withdrawnAmount <= PoolUtils.DUST )
 			return 0;
 
-		pools.withdraw( weth, depositedWETH );
+		pools.withdraw( token, withdrawnAmount );
 
-		// Check the WETH balance - in case any WETH was accidentally sent here previously
-		withdrawnAmount = weth.balanceOf( address(this) );
-		weth.safeTransfer( msg.sender, withdrawnAmount );
+		token.safeTransfer( msg.sender, withdrawnAmount );
 
-		emit ArbitrageProfitsWithdrawn(msg.sender, weth, withdrawnAmount);
-		}
-
-
-	// Form SALT/USDC Protocol Owned Liquidity.
-	// Assumes that the tokens have already been transferred to this contract.
-	function formPOL() external
-		{
-		require( msg.sender == address(exchangeConfig.upkeep()), "DAO.formPOL is only callable from the Upkeep contract" );
-
-		uint256 balanceSALT = salt.balanceOf(address(this));
-		uint256 balanceUSDC = usdc.balanceOf(address(this));
-
-		// Normally the limiting token for the liquidity formation will be USDC - as the DAO contract typically contains SALT for the reserve.
-		// SALT balance is specified, but only enough SALT will be used to form liquidity with the available USDC.
-		liquidity.depositLiquidityAndIncreaseShare(salt, usdc, balanceSALT, balanceUSDC, 0, 0, 0, block.timestamp, false );
-
-		uint256 addedSALT = balanceSALT - salt.balanceOf(address(this));
-        uint256 addedUSDC = balanceUSDC - usdc.balanceOf(address(this));
-
-		emit POLFormed(addedSALT, addedUSDC);
-		}
-
-
-	function processRewardsFromPOL() external
-		{
-		require( msg.sender == address(exchangeConfig.upkeep()), "DAO.processRewardsFromPOL is only callable from the Upkeep contract" );
-
-		// The DAO owns SALT/USDC liquidity.
-		bytes32[] memory poolIDs = new bytes32[](1);
-		poolIDs[0] = PoolUtils._poolID(salt, usdc);
-
-		uint256 claimedSALT = liquidity.claimAllRewards(poolIDs);
-		if ( claimedSALT == 0 )
-			return;
-
-		// Send 10% of the rewards to the initial team
-		uint256 amountToSendToTeam = claimedSALT / 10;
-		salt.safeTransfer( exchangeConfig.teamWallet(), amountToSendToTeam );
-		emit TeamRewardsTransferred(amountToSendToTeam);
-
-		uint256 remainingSALT = claimedSALT - amountToSendToTeam;
-
-		// Burn a default 50% of the remaining SALT that was just claimed - the rest of the SALT stays in the DAO contract.
-		uint256 saltToBurn = ( remainingSALT * daoConfig.percentPolRewardsBurned() ) / 100;
-
-		salt.safeTransfer( address(salt), saltToBurn );
-		salt.burnTokensInContract();
-
-		emit POLProcessed(claimedSALT);
+		emit TokensWithdrawn(msg.sender, token, withdrawnAmount);
 		}
 
 

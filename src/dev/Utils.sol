@@ -12,7 +12,7 @@ import "../interfaces/ISalt.sol";
 import "../interfaces/IExchangeConfig.sol";
 import "../pools/PoolUtils.sol";
 import "../pools/PoolMath.sol";
-import "../price_feed/interfaces/IPriceAggregator.sol";
+import "./IPriceFeed.sol";
 
 
 // Efficiency functions called from the Web3 UI to prevent multiple calls on the RPC server
@@ -162,10 +162,10 @@ contract Utils
 
 
 	// Returns prices with 18 decimals
-	function corePrices(IPools pools, IExchangeConfig exchangeConfig, IPriceAggregator priceAggregator) public view returns (uint256 btcPrice, uint256 ethPrice, uint256 saltPrice)
+	function corePrices(IPools pools, IExchangeConfig exchangeConfig, IPriceFeed priceFeed) public view returns (uint256 btcPrice, uint256 ethPrice, uint256 saltPrice)
 		{
-		btcPrice =  priceAggregator.getPriceBTC();
-		ethPrice =  priceAggregator.getPriceETH();
+		btcPrice =  priceFeed.getPriceBTC();
+		ethPrice =  priceFeed.getPriceETH();
 
 		IERC20 wbtc = exchangeConfig.wbtc();
 		IERC20 weth = exchangeConfig.weth();

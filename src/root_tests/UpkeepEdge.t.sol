@@ -92,23 +92,17 @@ contract TestUpkeepEdge is Deployment
 
     	// Mimic arbitrage profits deposited as WETH for the DAO
     	vm.prank(DEPLOYER);
-    	weth.transfer(address(dao), 100 ether);
+    	salt.transfer(address(dao), 100 ether);
 
     	vm.startPrank(address(dao));
-    	weth.approve(address(pools), 100 ether);
-    	pools.deposit(weth, 100 ether);
+    	salt.approve(address(pools), 100 ether);
+    	pools.deposit(salt, 100 ether);
     	vm.stopPrank();
 
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000000 );
 		assertEq( salt.balanceOf(address(staking)), 0 );
 
-		assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049714925620913 );
-
-		// Set a new price
-		vm.startPrank(DEPLOYER);
-		forcedPriceFeed.setBTCPrice( 0 );
-		forcedPriceFeed.setETHPrice( 0 );
-		vm.stopPrank();
+		assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049219234333028 );
 
 		skip( 1 hours );
 
@@ -200,23 +194,6 @@ contract TestUpkeepEdge is Deployment
 
 		// Check that SALT has been sent to DAO.
 		assertEq( salt.balanceOf(address(dao)), 0 );
-		}
-
-
-    // A unit test to verify the step9 function when the team's vesting wallet has no elapsed time
-	function testSuccessStep9() public
-		{
-		// Warp to the start of when the teamVestingWallet starts to emit
-		vm.warp( teamVestingWallet.start() );
-
-		assertEq( salt.balanceOf(teamWallet), 0 );
-
-		// Step 9. Sends SALT from the team vesting wallet to the team (linear distribution over 10 years).
-		vm.prank(address(upkeep));
-		ITestUpkeep(address(upkeep)).step9();
-
-		// Check that SALT has been sent to DAO.
-		assertEq( salt.balanceOf(teamWallet), 0 );
 		}
 	}
 

@@ -67,9 +67,6 @@ contract TestDeployment is Deployment
         assertEq( getContract(address(airdrop), "staking()"), address(staking), "Incorrect airdrop.staking" );
         assertEq( getContract(address(airdrop), "salt()"), address(salt), "Incorrect airdrop.salt" );
 
-        assertEq( getContract(address(pools), "wbtc()"), address(wbtc), "Incorrect pools.wbtc" );
-        assertEq( getContract(address(pools), "weth()"), address(weth), "Incorrect pools.weth" );
-        assertEq( getContract(address(pools), "salt()"), address(salt), "Incorrect pools.salt" );
         assertEq( getContract(address(pools), "exchangeConfig()"), address(exchangeConfig), "Incorrect pools.exchangeConfig" );
         assertEq( getContract(address(pools), "poolsConfig()"), address(poolsConfig), "Incorrect pools.poolsConfig" );
         assertEq( getContract(address(pools), "dao()"), address(dao), "Incorrect pools.dao" );
@@ -121,9 +118,7 @@ contract TestDeployment is Deployment
         assertEq( getContract(address(upkeep), "emissions()"), address(emissions), "Incorrect upkeep.emissions" );
         assertEq( getContract(address(upkeep), "dao()"), address(dao), "Incorrect upkeep.dao" );
 
-        assertEq( getContract(address(upkeep), "weth()"), address(weth), "Incorrect upkeep.weth" );
         assertEq( getContract(address(upkeep), "salt()"), address(salt), "Incorrect upkeep.salt" );
-        assertEq( getContract(address(upkeep), "usdc()"), address(usdc), "Incorrect upkeep.usdc" );
 
 		assertEq( getContract(address(proposals), "staking()"), address(staking), "Incorrect proposals.staking" );
         assertEq( getContract(address(proposals), "exchangeConfig()"), address(exchangeConfig), "Incorrect proposals.exchangeConfig" );
@@ -161,27 +156,6 @@ contract TestDeployment is Deployment
 
         if ( ! DEBUG )
         	{
-        	// Live on the Ethereum blockchain
-        	// Check that contracts are what they are expected to be
-        	assertFalse( functionExists( address(priceAggregator), "forcedPriceBTCWith18Decimals()" ), "For DEBUG: The PriceFeed should not be a ForcedPriceFeed" );
-
-			// CoreChainlinkFeed
-        	assertEq( getContract( address(priceAggregator.priceFeed1()), "CHAINLINK_BTC_USD()" ), address(0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c), "Incorrect BTC/USD Chainlink price feed" );
-        	assertEq( getContract( address(priceAggregator.priceFeed1()), "CHAINLINK_ETH_USD()" ), address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419), "Incorrect ETH/USD Chainlink price feed" );
-
-			// CoreUniswapFeed
-        	assertEq( getContract( address(priceAggregator.priceFeed2()), "UNISWAP_V3_WBTC_WETH()" ), address(0xCBCdF9626bC03E24f779434178A73a0B4bad62eD), "Incorrect WBTC/WETH Uniswap v3 Pool" );
-        	assertEq( getContract( address(priceAggregator.priceFeed2()), "UNISWAP_V3_WETH_USDC()" ), address(0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640), "Incorrect WETH/USDC Uniswap v3 Pool" );
-			assertEq( getContract( address(priceAggregator.priceFeed2()), "wbtc()" ), address(wbtc), "Invalid priceAggregator.uniswapFeed.wbtc" );
-			assertEq( getContract( address(priceAggregator.priceFeed2()), "weth()" ), address(weth), "Invalid priceAggregator.uniswapFeed.weth" );
-			assertEq( getContract( address(priceAggregator.priceFeed2()), "usdc()" ), address(0x9C65b1773A95d607f41fa205511cd3327cc39D9D), "Invalid priceAggregator.uniswapFeed.usdc" );
-
-			// CoreSaltyFeed
-			assertEq( getContract( address(priceAggregator.priceFeed3()), "pools()" ), address(pools), "Invalid priceAggregator.saltyFeed.pools" );
-			assertEq( getContract( address(priceAggregator.priceFeed3()), "wbtc()" ), address(wbtc), "Invalid priceAggregator.saltyFeed.wbtc" );
-			assertEq( getContract( address(priceAggregator.priceFeed3()), "weth()" ), address(weth), "Invalid priceAggregator.saltyFeed.weth" );
-			assertEq( getContract( address(priceAggregator.priceFeed3()), "usdc()" ), address(usdc), "Invalid priceAggregator.saltyFeed.usdc" );
-
 			assertEq( address(wbtc), 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599, "Invalid WBTC" );
 			assertEq( address(weth), 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2, "Invalid WETH" );
 			assertEq( address(usdc), 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, "Invalid USDC" );
@@ -228,7 +202,6 @@ contract TestDeployment is Deployment
    		console.log( "teamWallet: ", address(teamWallet) );
    		console.log( "pools: ", address(pools) );
    		console.log( "poolsConfig: ", address(poolsConfig) );
-   		console.log( "priceAggregator: ", address(priceAggregator) );
    		console.log( "proposals: ", address(proposals) );
    		console.log( "rewardsConfig: ", address(rewardsConfig) );
    		console.log( "salt: ", address(salt) );
@@ -239,9 +212,6 @@ contract TestDeployment is Deployment
 		console.log( "teamVestingWallet: ", address(teamVestingWallet) );
    		console.log( "upkeep: ", address(upkeep) );
 		console.log( "" );
-   		console.log( "priceFeed1: ", address(priceAggregator.priceFeed1()) );
-   		console.log( "priceFeed2: ", address(priceAggregator.priceFeed2()) );
-   		console.log( "priceFeed3: ", address(priceAggregator.priceFeed3()) );
    		}
     }
 

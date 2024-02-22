@@ -15,12 +15,12 @@ abstract contract PoolStats is IPoolStats
 
 	IExchangeConfig immutable public exchangeConfig;
 	IPoolsConfig immutable public poolsConfig;
-	IERC20 immutable public _weth;
+	IERC20 immutable public _salt;
 
 	// poolID(arbToken2, arbToken3) => arbitrage profits contributed since the last performUpkeep
 	mapping(bytes32=>uint256) public _arbitrageProfits;
 
-	// Maps poolID(arbToken2, arbToken3) => the indicies (within the whitelistedPools array) of the pools involved in WETH->arbToken2->arbToken3->WETH
+	// Maps poolID(arbToken2, arbToken3) => the indicies (within the whitelistedPools array) of the pools involved in SALT->arbToken2->arbToken3->SALT
 	mapping(bytes32=>ArbitrageIndicies) public _arbitrageIndicies;
 
 
@@ -29,14 +29,14 @@ abstract contract PoolStats is IPoolStats
 		exchangeConfig = _exchangeConfig;
 		poolsConfig = _poolsConfig;
 
-		_weth = exchangeConfig.weth();
+		_salt = exchangeConfig.salt();
     	}
 
 
-	// Record that arbitrageProfit was generated and the a specific arbitrage path generated it (which is defined by the middle two tokens in WETH->arbToken2->arbToken3->WETH)
+	// Record that arbitrageProfit was generated and the a specific arbitrage path generated it (which is defined by the middle two tokens in SALT->arbToken2->arbToken3->SALT)
 	function _updateProfitsFromArbitrage( IERC20 arbToken2, IERC20 arbToken3, uint256 arbitrageProfit ) internal
 		{
-		// Though three pools contributed to the arbitrage we can record just the middle one as we know the input and output token will be WETH
+		// Though three pools contributed to the arbitrage we can record just the middle one as we know the input and output token will be SALT
 		bytes32 poolID = PoolUtils._poolID( arbToken2, arbToken3 );
 
 		_arbitrageProfits[poolID] += arbitrageProfit;
@@ -73,7 +73,7 @@ abstract contract PoolStats is IPoolStats
 
 
 	// Traverse the current whitelisted poolIDs and update the indicies of each pool that would contribute to arbitrage for it.
-	// Maps poolID(arbToken2, arbToken3) => the indicies (within the whitelistedPools array) of the pools involved in WETH->arbToken2->arbToken3->WETH arbitrage.
+	// Maps poolID(arbToken2, arbToken3) => the indicies (within the whitelistedPools array) of the pools involved in SALT->arbToken2->arbToken3->SALT arbitrage.
 	function updateArbitrageIndicies() public
 		{
 		bytes32[] memory poolIDs = poolsConfig.whitelistedPools();
@@ -83,12 +83,12 @@ abstract contract PoolStats is IPoolStats
 			bytes32 poolID = poolIDs[i];
 			(IERC20 arbToken2, IERC20 arbToken3) = poolsConfig.underlyingTokenPair(poolID);
 
-			// The middle two tokens can never be WETH in a valid arbitrage path as the path is WETH->arbToken2->arbToken3->WETH.
-			if ( (arbToken2 != _weth) && (arbToken3 != _weth) )
+			// The middle two tokens can never be SALT in a valid arbitrage path as the path is SALT->arbToken2->arbToken3->SALT.
+			if ( (arbToken2 != _salt) && (arbToken3 != _salt) )
 				{
-				uint64 poolIndex1 = _poolIndex( _weth, arbToken2, poolIDs );
+				uint64 poolIndex1 = _poolIndex( _salt, arbToken2, poolIDs );
 				uint64 poolIndex2 = _poolIndex( arbToken2, arbToken3, poolIDs );
-				uint64 poolIndex3 = _poolIndex( arbToken3, _weth, poolIDs );
+				uint64 poolIndex3 = _poolIndex( arbToken3, _salt, poolIDs );
 
 				// Check if the indicies in storage have the correct values - and if not then update them
 				ArbitrageIndicies memory indicies = _arbitrageIndicies[poolID];
@@ -105,7 +105,7 @@ abstract contract PoolStats is IPoolStats
 		{
 		for( uint256 i = 0; i < poolIDs.length; i++ )
 			{
-			// references poolID(arbToken2, arbToken3) which defines the arbitage path of WETH->arbToken2->arbToken3->WETH
+			// references poolID(arbToken2, arbToken3) which defines the arbitage path of SALT->arbToken2->arbToken3->SALT
 			bytes32 poolID = poolIDs[i];
 
 			// Split the arbitrage profit between all the pools that contributed to generating the arbitrage for the referenced pool.

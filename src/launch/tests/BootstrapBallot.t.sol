@@ -10,9 +10,7 @@ import "../../staking/Liquidity.sol";
 import "../../staking/Staking.sol";
 import "../../staking/Liquidity.sol";
 import "../../rewards/RewardsEmitter.sol";
-import "../../price_feed/tests/IForcedPriceFeed.sol";
 import "../../pools/PoolsConfig.sol";
-import "../../price_feed/PriceAggregator.sol";
 import "../../AccessManager.sol";
 import "../InitialDistribution.sol";
 import "../../Upkeep.sol";
@@ -46,7 +44,7 @@ contract TestBootstrapBallot is Deployment
 
 			poolsConfig = new PoolsConfig();
 
-			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, teamWallet );
+			exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, usdt, teamWallet );
 
 		pools = new Pools(exchangeConfig, poolsConfig);
 		staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
@@ -57,17 +55,19 @@ contract TestBootstrapBallot is Deployment
 
 			emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
-			poolsConfig.whitelistPool( pools,   salt, wbtc);
-			poolsConfig.whitelistPool( pools,   salt, weth);
 			poolsConfig.whitelistPool( pools,   salt, usdc);
-			poolsConfig.whitelistPool( pools,   wbtc, usdc);
+			poolsConfig.whitelistPool( pools,   salt, usdt);
 			poolsConfig.whitelistPool( pools,   weth, usdc);
+			poolsConfig.whitelistPool( pools,   weth, usdt);
+			poolsConfig.whitelistPool( pools,   wbtc, salt);
 			poolsConfig.whitelistPool( pools,   wbtc, weth);
+			poolsConfig.whitelistPool( pools,   salt, weth);
+			poolsConfig.whitelistPool( pools,   usdc, usdt);
 
 			proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 
 			address oldDAO = address(dao);
-			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, daoConfig, liquidityRewardsEmitter, liquidity);
+			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, daoConfig, liquidityRewardsEmitter);
 
 			airdrop = new Airdrop(exchangeConfig, staking);
 

@@ -17,6 +17,7 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 	IERC20 immutable public wbtc;
 	IERC20 immutable public weth;
 	IERC20 immutable public usdc;
+	IERC20 immutable public usdt;
 	address immutable public teamWallet;
 
 	IDAO public dao; // can only be set once
@@ -31,12 +32,13 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 	IAccessManager public accessManager;
 
 
-	constructor( ISalt _salt, IERC20 _wbtc, IERC20 _weth, IERC20 _usdc, address _teamWallet )
+	constructor( ISalt _salt, IERC20 _wbtc, IERC20 _weth, IERC20 _usdc, IERC20 _usdt, address _teamWallet )
 		{
 		salt = _salt;
 		wbtc = _wbtc;
 		weth = _weth;
 		usdc = _usdc;
+		usdt = _usdt;
 		teamWallet = _teamWallet;
         }
 

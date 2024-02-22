@@ -13,7 +13,6 @@ contract PoolsConfig is IPoolsConfig, Ownable
 	event PoolWhitelisted(address indexed tokenA, address indexed tokenB);
 	event PoolUnwhitelisted(address indexed tokenA, address indexed tokenB);
 	event MaximumWhitelistedPoolsChanged(uint256 newMaxPools);
-	event maximumInternalSwapPercentTimes1000Changed(uint256 newMaxSwap);
 
 	struct TokenPair
 		{
@@ -36,10 +35,6 @@ contract PoolsConfig is IPoolsConfig, Ownable
 	// Range: 20 to 100 with an adjustment of 10
 	uint256 public maximumWhitelistedPools = 50;
 
-	// For swaps internal to the protocol, the maximum swap size as a percent of the reserves.
-	// Range: .25 to 2% with an adjustment of .25%
-	uint256 public maximumInternalSwapPercentTimes1000 = 1000;  // Defaults to 1.0% with a 1000x multiplier
-
 
 	// Whitelist a given pair of tokens
 	function whitelistPool( IPools pools, IERC20 tokenA, IERC20 tokenB ) external onlyOwner
@@ -53,9 +48,6 @@ contract PoolsConfig is IPoolsConfig, Ownable
 		_whitelist.add(poolID);
 		underlyingPoolTokens[poolID] = TokenPair(tokenA, tokenB);
 
-		// Make sure that the cached arbitrage indicies in PoolStats are updated
-		pools.updateArbitrageIndicies();
-
  		emit PoolWhitelisted(address(tokenA), address(tokenB));
 		}
 
@@ -66,9 +58,6 @@ contract PoolsConfig is IPoolsConfig, Ownable
 
 		_whitelist.remove(poolID);
 		delete underlyingPoolTokens[poolID];
-
-		// Make sure that the cached arbitrage indicies in PoolStats are updated
-		pools.updateArbitrageIndicies();
 
 		emit PoolUnwhitelisted(address(tokenA), address(tokenB));
 		}
@@ -88,23 +77,6 @@ contract PoolsConfig is IPoolsConfig, Ownable
             }
 
 		emit MaximumWhitelistedPoolsChanged(maximumWhitelistedPools);
-        }
-
-
-	function changeMaximumInternalSwapPercentTimes1000(bool increase) external onlyOwner
-        {
-        if (increase)
-            {
-            if (maximumInternalSwapPercentTimes1000 < 2000)
-                maximumInternalSwapPercentTimes1000 += 250;
-            }
-        else
-            {
-            if (maximumInternalSwapPercentTimes1000 > 250)
-                maximumInternalSwapPercentTimes1000 -= 250;
-            }
-
-		emit maximumInternalSwapPercentTimes1000Changed(maximumInternalSwapPercentTimes1000);
         }
 
 
@@ -140,10 +112,10 @@ contract PoolsConfig is IPoolsConfig, Ownable
 
 
 	// Returns true if the token has been whitelisted (meaning it has been pooled with either WBTC and WETH)
-	function tokenHasBeenWhitelisted( IERC20 token, IERC20 wbtc, IERC20 weth ) external view returns (bool)
+	function tokenHasBeenWhitelisted( IERC20 token, IERC20 salt, IERC20 weth ) external view returns (bool)
 		{
-		// See if the token has been whitelisted with either WBTC or WETH, as all whitelisted tokens are pooled with both WBTC and WETH
-		bytes32 poolID1 = PoolUtils._poolID( token, wbtc );
+		// See if the token has been whitelisted with either SALT or WETH, as all whitelisted tokens are pooled with both WBTC and WETH
+		bytes32 poolID1 = PoolUtils._poolID( token, salt );
 		if ( isWhitelisted(poolID1) )
 			return true;
 

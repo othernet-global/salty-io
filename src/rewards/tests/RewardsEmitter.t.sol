@@ -224,7 +224,7 @@ contract TestRewardsEmitter is Deployment
         assertEq(pendingLiquidityRewardsForPool(poolIDs[1]), 9.75 ether); // 10 ether - 2.5%
 
         // Rewards transferred to the liquidity contract (including from the bootstrapping rewards)
-        assertEq(salt.balanceOf(address(liquidity)), 125000499999999999999992);
+        assertEq(salt.balanceOf(address(liquidity)), 125000500000000000000000);
     }
 
 
@@ -252,7 +252,7 @@ contract TestRewardsEmitter is Deployment
 
         // Verify that the correct amount of rewards were deducted from each pool's pending rewards
         // With the adjustment in the constructor, 2.5% of the rewards should be deducted per day
-        assertEq(stakingRewardsEmitter.pendingRewardsForPools( _poolIDs )[0], 2925009750000000000000005); // (startingRewards + 10 ether) - 2.5%
+        assertEq(stakingRewardsEmitter.pendingRewardsForPools( _poolIDs )[0], 2925009750000000000000000); // (startingRewards + 10 ether) - 2.5%
 
         // Rewards transferred to the staking contract
         assertEq(salt.balanceOf(address(staking)), 75000250000000000000000);
@@ -675,7 +675,7 @@ contract TestRewardsEmitter is Deployment
         uint256 endingBalance = salt.balanceOf(address(liquidityRewardsEmitter));
         uint256 emittedRewards = startingBalance - endingBalance;
 
-        assertEq(emittedRewards, expectedEmittedRewards - 6, "Incorrect emitted rewards after performUpkeep");
+        assertEq(emittedRewards, expectedEmittedRewards - 5, "Incorrect emitted rewards after performUpkeep");
     }
 
 
@@ -701,7 +701,7 @@ contract TestRewardsEmitter is Deployment
         uint256 endingBalance = salt.balanceOf(address(liquidityRewardsEmitter));
         uint256 emittedRewards = startingBalance - endingBalance;
 
-        assertEq(emittedRewards, expectedEmittedRewards - 6, "Incorrect emitted rewards after performUpkeep");
+        assertEq(emittedRewards, expectedEmittedRewards - 5, "Incorrect emitted rewards after performUpkeep");
 
 
         uint256 startingBalance2 = salt.balanceOf(address(liquidityRewardsEmitter));

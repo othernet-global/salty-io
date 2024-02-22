@@ -5,52 +5,52 @@ import "openzeppelin-contracts/contracts/utils/math/Math.sol";
 import "../interfaces/IExchangeConfig.sol";
 import "../pools/PoolUtils.sol";
 
-// Finds a circular path after a user's swap has occurred (from WETH to WETH in this case) that results in an arbitrage profit.
+// Finds a circular path after a user's swap has occurred (from SALT to SALT in this case) that results in an arbitrage profit.
 abstract contract ArbitrageSearch
     {
-	IERC20 immutable public wbtc;
-	IERC20 immutable public weth;
 	ISalt immutable public salt;
+	IERC20 immutable public weth;
+	IERC20 immutable public usdc;
 
 
     constructor( IExchangeConfig _exchangeConfig )
     	{
 		// Cached for efficiency
-		wbtc = _exchangeConfig.wbtc();
-		weth = _exchangeConfig.weth();
 		salt = _exchangeConfig.salt();
+		weth = _exchangeConfig.weth();
+		usdc = _exchangeConfig.usdc();
     	}
 
 
-	// Returns the middle two tokens in an arbitrage path that starts and ends with WETH.
-	// The WETH tokens at the beginning and end of the path are not returned as they are always the same.
-	// Full arbitrage cycle is: WETH->arbToken2->arbToken3->WETH
+	// Returns the middle two tokens in an arbitrage path that starts and ends with SALT.
+	// The SALT tokens at the beginning and end of the path are not returned as they are always the same.
+	// Full arbitrage cycle is: SALT->arbToken2->arbToken3->SALT
 	function _arbitragePath( IERC20 swapTokenIn, IERC20 swapTokenOut ) internal view returns (IERC20 arbToken2, IERC20 arbToken3)
 		{
-		// swap: WBTC->WETH
-        // arb: WETH->WBTC->SALT->WETH
-		if ( address(swapTokenIn) == address(wbtc))
-		if ( address(swapTokenOut) == address(weth))
-			return (wbtc, salt);
-
-		// swap: WETH->WBTC
-        // arb: WETH->SALT->WBTC->WETH
+		// swap: WETH->SALT
+        // arb: SALT->WETH->USDC->SALT
 		if ( address(swapTokenIn) == address(weth))
-		if ( address(swapTokenOut) == address(wbtc))
-			return (salt, wbtc);
+		if ( address(swapTokenOut) == address(salt))
+			return (weth, usdc);
 
-		// swap: WETH->swapTokenOut
-        // arb: WETH->WBTC->swapTokenOut->WETH
-		if ( address(swapTokenIn) == address(weth))
-			return (wbtc, swapTokenOut);
-
-		// swap: swapTokenIn->WETH
-        // arb: WETH->swapTokenIn->WBTC->WETH
+		// swap: SALT->WETH
+        // arb: SALT->USDC->WETH->SALT
+		if ( address(swapTokenIn) == address(salt))
 		if ( address(swapTokenOut) == address(weth))
-			return (swapTokenIn, wbtc);
+			return (usdc, weth);
+
+		// swap: SALT->swapTokenOut
+        // arb: SALT->WETH->swapTokenOut->SALT
+		if ( address(swapTokenIn) == address(salt))
+			return (weth, swapTokenOut);
+
+		// swap: swapTokenIn->SALT
+        // arb: SALT->swapTokenIn->WETH->SALT
+		if ( address(swapTokenOut) == address(salt))
+			return (swapTokenIn, weth);
 
 		// swap: swapTokenIn->swapTokenOut
-        // arb: WETH->swapTokenOut->swapTokenIn->WETH
+        // arb: SALT->swapTokenOut->swapTokenIn->SALT
 		return (swapTokenOut, swapTokenIn);
 		}
 
@@ -87,7 +87,7 @@ abstract contract ArbitrageSearch
 		if ( C1 > max )
 			max = C1;
 
-		return  _mostSignificantBit(max);
+		return _mostSignificantBit(max);
 		}
 
 

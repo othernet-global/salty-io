@@ -39,7 +39,6 @@ contract PoolsConfigTest is Deployment
 	// A unit test which tests the default values for the contract
 	function testConstructor() public {
 		assertEq(poolsConfig.maximumWhitelistedPools(), 50, "Incorrect maximumWhitelistedPools");
-		assertEq(poolsConfig.maximumInternalSwapPercentTimes1000(), 1000, "Incorrect maximumInternalSwapPercentTimes1000");
 		assertEq(PoolUtils.STAKED_SALT, bytes32(0), "Incorrect STAKED_SALT value");
 	}
 
@@ -234,7 +233,7 @@ contract PoolsConfigTest is Deployment
 
     	IERC20 tokenNotWhitelisted = new TestERC20("TEST", 18);
 
-        bool hasWhitelisted = poolsConfig.tokenHasBeenWhitelisted(tokenNotWhitelisted, wbtc, weth);
+        bool hasWhitelisted = poolsConfig.tokenHasBeenWhitelisted(tokenNotWhitelisted, salt, weth);
         assertFalse(hasWhitelisted, "Token should not be whitelisted");
     }
 
@@ -317,27 +316,27 @@ contract PoolsConfigTest is Deployment
     	IERC20 fakeToken = new TestERC20("FAKE", 18);
 
     	// Check if the function returns false when the token is not whitelisted
-    	assertFalse(poolsConfig.tokenHasBeenWhitelisted(fakeToken, wbtc, weth), "Function should return false when the token is not whitelisted");
+    	assertFalse(poolsConfig.tokenHasBeenWhitelisted(fakeToken, salt, weth), "Function should return false when the token is not whitelisted");
 
     	// Whitelist the fake token with WBTC, and check if the function returns true
     	vm.prank(address(dao));
-    	poolsConfig.whitelistPool( pools,   fakeToken, wbtc);
-    	assertTrue(poolsConfig.tokenHasBeenWhitelisted(fakeToken, wbtc, weth), "Function should return true when the token is whitelisted with WBTC");
+    	poolsConfig.whitelistPool( pools,   fakeToken, salt);
+    	assertTrue(poolsConfig.tokenHasBeenWhitelisted(fakeToken, salt, weth), "Function should return true when the token is whitelisted with WBTC");
 
     	// Unwhitelist the fake token from WBTC, and check if the function returns false now
     	vm.prank(address(dao));
-    	poolsConfig.unwhitelistPool( pools, fakeToken, wbtc);
-    	assertFalse(poolsConfig.tokenHasBeenWhitelisted(fakeToken, wbtc, weth), "Function should return false when the token is unwhitelisted from WBTC");
+    	poolsConfig.unwhitelistPool( pools, fakeToken, salt);
+    	assertFalse(poolsConfig.tokenHasBeenWhitelisted(fakeToken, salt, weth), "Function should return false when the token is unwhitelisted from WBTC");
 
     	// Whitelist the fake token with WETH, and check if the function returns true
     	vm.prank(address(dao));
     	poolsConfig.whitelistPool( pools,   fakeToken, weth);
-    	assertTrue(poolsConfig.tokenHasBeenWhitelisted(fakeToken, wbtc, weth), "Function should return true when the token is whitelisted with WETH");
+    	assertTrue(poolsConfig.tokenHasBeenWhitelisted(fakeToken, salt, weth), "Function should return true when the token is whitelisted with WETH");
 
     	// Unwhitelist the fake token from WETH, and check if the function returns false now
     	vm.prank(address(dao));
     	poolsConfig.unwhitelistPool( pools, fakeToken, weth);
-    	assertFalse(poolsConfig.tokenHasBeenWhitelisted(fakeToken, wbtc, weth), "Function should return false when the token is unwhitelisted from WETH");
+    	assertFalse(poolsConfig.tokenHasBeenWhitelisted(fakeToken, salt, weth), "Function should return false when the token is unwhitelisted from WETH");
     }
 
 
@@ -352,8 +351,8 @@ contract PoolsConfigTest is Deployment
 	function testTokenHasBeenWhitelisted2() public {
 
         // Test tokens that have been whitelisted
-        assertTrue(poolsConfig.tokenHasBeenWhitelisted(weth, wbtc, weth), "newTokenA should be whitelisted");
-        assertTrue(poolsConfig.tokenHasBeenWhitelisted(wbtc, wbtc, weth), "newTokenB should be whitelisted");
+        assertTrue(poolsConfig.tokenHasBeenWhitelisted(weth, salt, weth), "newTokenA should be whitelisted");
+        assertTrue(poolsConfig.tokenHasBeenWhitelisted(wbtc, salt, weth), "newTokenB should be whitelisted");
     }
 
 
@@ -429,12 +428,12 @@ contract PoolsConfigTest is Deployment
 
 			(IERC20 arbToken2, IERC20 arbToken3) = poolsConfig.underlyingTokenPair(poolID);
 
-			// The middle two tokens can never be WETH in a valid arbitrage path as the path is WETH->arbToken2->arbToken3->WETH.
-			if ( (arbToken2 != weth) && (arbToken3 != weth) )
+			// The middle two tokens can never be SALT in a valid arbitrage path as the path is SALT->arbToken2->arbToken3->SALT.
+			if ( (arbToken2 != salt) && (arbToken3 != salt) )
 				{
-				uint64 poolIndex1 = _poolIndex( weth, arbToken2, poolIDs );
+				uint64 poolIndex1 = _poolIndex( salt, arbToken2, poolIDs );
 				uint64 poolIndex2 = _poolIndex( arbToken2, arbToken3, poolIDs );
-				uint64 poolIndex3 = _poolIndex( arbToken3, weth, poolIDs );
+				uint64 poolIndex3 = _poolIndex( arbToken3, salt, poolIDs );
 
 				// Check if the indicies in storage have the correct values
 				IPoolStats.ArbitrageIndicies memory indicies = pools.arbitrageIndicies(poolID);
@@ -447,25 +446,6 @@ contract PoolsConfigTest is Deployment
 				}
 			}
 		}
-
-
-    // A unit test that makes sure the updateArbitrageIndicies function in the pools contract is called when the whitelist is changed
-    function testPoolWhitelistChangesUpdatesArbitrageIndices() public {
-        vm.startPrank(address(dao));
-
-		_checkArbitrageIndicies();
-
-
-		// Whitelisting a pool will change the pool indicies
-        poolsConfig.whitelistPool( pools, token1, token3);
-        assertTrue(poolsConfig.isWhitelisted(PoolUtils._poolID(token1, token3)), "token1/token3 should be whitelisted");
-		_checkArbitrageIndicies();
-
-		// Unwhitelisting a pool will change the pool indicies
-        poolsConfig.unwhitelistPool( pools, token2, token3);
-        assertFalse(poolsConfig.isWhitelisted(PoolUtils._poolID(token2, token3)), "token2/token3 should be unwhitelisted");
-		_checkArbitrageIndicies();
-    }
 
 
     // A unit test that ensures the underlyingPoolTokens mapping is correctly updated when pools are whitelisted or unwhitelisted

@@ -11,7 +11,6 @@ contract RewardsConfig is IRewardsConfig, Ownable
     event RewardsEmitterDailyPercentChanged(uint256 newRewardsEmitterDailyPercent);
     event EmissionsWeeklyPercentChanged(uint256 newEmissionsWeeklyPercent);
     event StakingRewardsPercentChanged(uint256 newStakingRewardsPercent);
-    event PercentRewardsSaltUSDCChanged(uint256 newPercentRewardsSaltUSDC);
 
 	// The target daily percent of rewards distributed by the stakingRewardsEmitter and liquidityRewardsEmitter (from the SALT balance in each emitter contract).
 	// Rewards Emitters distribute SALT rewards over time to the SharedRewards contracts where the rewards can be claimed by users.
@@ -25,12 +24,6 @@ contract RewardsConfig is IRewardsConfig, Ownable
 	// By default, xSALT holders get 50% and liquidity providers get 50% of emissions and arbitrage profits sent to SaltRewards (after accounting for SALT/USDC rewards)
 	// Range: 25% to 75% with an adjustment of 5%
     uint256 public stakingRewardsPercent = 50;
-
-	// The percent of SALT Rewards that will be sent to the SALT/USDC pool.
-	// This is done as SALT/USDC while an important pair for the exchange isn't involved in any arbitrage swap cycles (which would yield arbitrage profit for it as well as all pools which take part in arbitrage take a share of the profit).
-	// This is because it isn't part of the usual token/WBTC and token/WETH structure - which allows other pools to be part of arbitrage swap cycles when other pools are traded.
-	// Range: 5% to 25% with an adjustment of 5%
-    uint256 public percentRewardsSaltUSDC = 10;
 
 
 	function changeRewardsEmitterDailyPercent(bool increase) external onlyOwner
@@ -80,22 +73,5 @@ contract RewardsConfig is IRewardsConfig, Ownable
             }
 
 		emit StakingRewardsPercentChanged(stakingRewardsPercent);
-        }
-
-
-	function changePercentRewardsSaltUSDC(bool increase) external onlyOwner
-        {
-        if (increase)
-            {
-            if (percentRewardsSaltUSDC < 25)
-                percentRewardsSaltUSDC = percentRewardsSaltUSDC + 5;
-            }
-        else
-            {
-            if (percentRewardsSaltUSDC > 5)
-                percentRewardsSaltUSDC = percentRewardsSaltUSDC - 5;
-            }
-
-		emit PercentRewardsSaltUSDCChanged(percentRewardsSaltUSDC);
         }
     }

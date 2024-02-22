@@ -5,7 +5,6 @@ import "forge-std/Test.sol";
 import "../pools/interfaces/IPools.sol";
 import "../pools/interfaces/IPoolsConfig.sol";
 import "../interfaces/IExchangeConfig.sol";
-import "../price_feed/interfaces/IPriceAggregator.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../dao/interfaces/IDAOConfig.sol";
 import "../rewards/interfaces/IEmissions.sol";
@@ -86,12 +85,6 @@ contract UpkeepFlawed is Upkeep
 		}
 
 
-	function _step9() public onlySameContract
-		{
-		require( flawedStep != 9, "Step 9 reverts" );
-		this.step9();
-		}
-
 
 	function performFlawedUpkeep() public
 		{
@@ -120,8 +113,5 @@ contract UpkeepFlawed is Upkeep
 
  		try this._step8() {}
 		catch (bytes memory error) { emit UpkeepError("Step 8", error); }
-
- 		try this._step9() {}
-		catch (bytes memory error) { emit UpkeepError("Step 9", error); }
 		}
 	}

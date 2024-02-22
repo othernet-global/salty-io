@@ -569,9 +569,8 @@ contract LiquidityTest is Deployment
         vm.stopPrank();
 
 
-		// Total needs to be worth at least $2500
-		uint256 depositedA = ( 2000 ether *10**8) / priceAggregator.getPriceBTC();
-		uint256 depositedB = ( 2000 ether *10**18) / priceAggregator.getPriceETH();
+		uint256 depositedA = ( 2000 *10**8);
+		uint256 depositedB = ( 2000 *10**18);
 
 		(uint256 reserveA, uint256 reserveB) = pools.getPoolReserves(wbtc, weth);
 		assertEq( reserveA, 0, "reserveA doesn't start as zero" );
@@ -591,7 +590,7 @@ contract LiquidityTest is Deployment
 		vm.prank(alice);
 		(uint256 removedA, uint256 removedB) = liquidity.withdrawLiquidityAndClaim(tokenA, tokenB, aliceCollateral, 0, 0, block.timestamp );
 
-		assertEq( depositedA, removedA + 1 );
+		assertEq( depositedA, removedA );
 		assertEq( depositedB, removedB );
 
 //		console.log( "depositedA: ", depositedA );
@@ -741,8 +740,8 @@ contract LiquidityTest is Deployment
         vm.stopPrank();
 
 
-		uint256 depositedA = ( 2000 ether *10**8) / priceAggregator.getPriceBTC();
-		uint256 depositedB = ( 2000 ether *10**18) / priceAggregator.getPriceETH();
+		uint256 depositedA = ( 2000 *10**8);
+		uint256 depositedB = ( 2000 *10**18);
 
 		(uint256 reserveA, uint256 reserveB) = pools.getPoolReserves(wbtc, weth);
 		assertEq( reserveA, 0, "reserveA doesn't start as zero" );
@@ -757,7 +756,7 @@ contract LiquidityTest is Deployment
 		uint256 aliceCollateral = liquidity.userShareForPool(alice, poolID);
 		(uint256 removedA, ) = liquidity.withdrawLiquidityAndClaim(tokenA, tokenB, aliceCollateral * ( depositedA - 100 ) / depositedA, 0, 0, block.timestamp );
 
-		assertEq( depositedA, removedA + PoolUtils.DUST + 1 );
+		assertEq( depositedA, removedA + PoolUtils.DUST );
 //		assertEq( depositedB, removedB + PoolUtils.DUST );
 
 		vm.warp( block.timestamp + 1 hours );

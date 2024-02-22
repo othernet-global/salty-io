@@ -3,14 +3,12 @@ pragma solidity =0.8.22;
 
 import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import "openzeppelin-contracts/contracts/utils/math/Math.sol";
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
 import "../interfaces/IExchangeConfig.sol";
 import "../arbitrage/ArbitrageSearch.sol";
 import "./interfaces/IPoolsConfig.sol";
 import "./interfaces/IPools.sol";
 import "./PoolStats.sol";
-import "./PoolMath.sol";
 import "./PoolUtils.sol";
 
 
@@ -36,14 +34,6 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		uint128 reserve1;
 		}
 
-	// The curve of arbitrageProfit / userSwapSize is non linear as increasingly expontential as the userSwapSize grows.
-	// Because of this behaviour it is possible to completely eliminate arbitrage profits from user swaps by splitting the user
-	// swap into many smaller swaps (hundreds or htousands of swaps).
-	// In order to prevent this a maximum number of swaps is established per block.
-	// This helps to ensure arbitrage profit for the liquidity providers and stakers and continues to establish significant deterrents
-	// to sandwich attacks as outlined in: https://saltyio.substack.com/p/making-sandwich-attacks-inedible
-	uint256 constant MAXIMUM_SWAPS_PER_BLOCK = 10;
-
 
 	IDAO public dao;
 	ILiquidity public liquidity;
@@ -57,8 +47,8 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	// User token balances for deposited tokens
 	mapping(address=>mapping(IERC20=>uint256)) private _userDeposits;
 
-	// Used to prevent splitting largeswaps within a block into smaller ones as doing so allows for greater price manipulation without consequence from the arbitrage balancing.
-	mapping(address => uint) private lastCallBlockNumber;
+	// Used to prevent splitting large swaps within a block into smaller ones as doing so allows for greater price manipulation without consequence from the arbitrage rebalancing.
+	mapping(address => uint) private lastSwappedBlocks;
 
 
 	constructor( IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig )
@@ -68,13 +58,20 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		}
 
 
-	// Allow users to make only one call per block
-	modifier oncePerBlock()
+	// Allow users to make only one swap per block
+	modifier oneSwapPerBlock()
 		{
-		require(lastCallBlockNumber[msg.sender] != block.number, "User already swapped in this block");
+		require(lastSwappedBlocks[msg.sender] != block.number, "User already swapped in this block");
         _;
-        lastCallBlockNumber[msg.sender] = block.number;
+        lastSwappedBlocks[msg.sender] = block.number;
         }
+
+
+	modifier ensureNotExpired(uint256 deadline)
+		{
+		require(block.timestamp <= deadline, "TX EXPIRED");
+		_;
+		}
 
 
 	// This will be called only once - at deployment time
@@ -96,13 +93,6 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		updateArbitrageIndicies();
 
 		exchangeIsLive = true;
-		}
-
-
-	modifier ensureNotExpired(uint256 deadline)
-		{
-		require(block.timestamp <= deadline, "TX EXPIRED");
-		_;
 		}
 
 
@@ -299,24 +289,24 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
     	}
 
 
-    // Arbitrage a token to itself along a circular path (starting and ending with WETH), taking advantage of imbalances in the exchange pools.
+    // Arbitrage a token to itself along a circular path (starting and ending with SALT), taking advantage of imbalances in the exchange pools.
     // Does not require any deposited tokens to make the call, but requires that the resulting amountOut is greater than the specified arbitrageAmountIn.
     // Essentially the caller virtually "borrows" arbitrageAmountIn of the starting token and virtually "repays" it from their received amountOut at the end of the swap chain.
     // The extra amountOut (compared to arbitrageAmountIn) is the arbitrage profit.
 	function _arbitrage(IERC20 arbToken2, IERC20 arbToken3, uint256 arbitrageAmountIn ) internal returns (uint256 arbitrageProfit)
 		{
-		uint256 amountOut = _adjustReservesForSwap( weth, arbToken2, arbitrageAmountIn );
+		uint256 amountOut = _adjustReservesForSwap( salt, arbToken2, arbitrageAmountIn );
 		amountOut = _adjustReservesForSwap( arbToken2, arbToken3, amountOut );
-		amountOut = _adjustReservesForSwap( arbToken3, weth, amountOut );
+		amountOut = _adjustReservesForSwap( arbToken3, salt, amountOut );
 
 		// Will revert if amountOut < arbitrageAmountIn
 		arbitrageProfit = amountOut - arbitrageAmountIn;
 
-		// Deposit the arbitrage profit for the DAO - later to be divided between the DAO, SALT stakers and liquidity providers in DAO.performUpkeep
- 		_userDeposits[address(dao)][weth] += arbitrageProfit;
+		// Deposit the arbitrageProfit as SALT for the DAO - to be used within DAO.performUpkeep
+ 		_userDeposits[address(dao)][salt] += arbitrageProfit;
 
 		// Update the stats related to the pools that contributed to the arbitrage so they can be rewarded proportionally later
-		// The arbitrage path can be identified by the middle tokens arbToken2 and arbToken3 (with WETH always on both ends)
+		// The arbitrage path can be identified by the middle tokens arbToken2 and arbToken3 (with SALT always on both ends)
 		_updateProfitsFromArbitrage( arbToken2, arbToken3, arbitrageProfit );
 		}
 
@@ -325,14 +315,14 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	function _attemptArbitrage( IERC20 swapTokenIn, IERC20 swapTokenOut ) internal returns (uint256 arbitrageProfit )
 		{
 		// Determine the arbitrage path for the given user swap.
-		// Arbitrage path returned as: weth->arbToken2->arbToken3->weth
+		// Arbitrage path returned as: salt->arbToken2->arbToken3->salt
    		(IERC20 arbToken2, IERC20 arbToken3) = _arbitragePath( swapTokenIn, swapTokenOut );
 
-		(uint256 reservesA0, uint256 reservesA1) = getPoolReserves( weth, arbToken2);
+		(uint256 reservesA0, uint256 reservesA1) = getPoolReserves( salt, arbToken2);
 		(uint256 reservesB0, uint256 reservesB1) = getPoolReserves( arbToken2, arbToken3);
-		(uint256 reservesC0, uint256 reservesC1) = getPoolReserves( arbToken3, weth);
+		(uint256 reservesC0, uint256 reservesC1) = getPoolReserves( arbToken3, salt);
 
-		// Determine the best amount of WETH to start the arbitrage with
+		// Determine the best amount of SALT to start the arbitrage with
 		uint256 arbitrageAmountIn = _bestArbitrageIn(reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1 );
 
 		// If arbitrage is viable, then perform it
@@ -362,7 +352,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
     // Having simpler swaps without multiple tokens in the swap chain makes it simpler (and less expensive gas wise) to find suitable arbitrage opportunities.
     // Cheap arbitrage gas-wise is important as arbitrage will be atomically attempted with every user swap transaction.
     // Requires that the first token in the chain has already been deposited for the caller.
-	function swap( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline ) external oncePerBlock nonReentrant ensureNotExpired(deadline) returns (uint256 swapAmountOut)
+	function swap( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline ) external oneSwapPerBlock nonReentrant ensureNotExpired(deadline) returns (uint256 swapAmountOut)
 		{
 		// Confirm and adjust user deposits
 		mapping(IERC20=>uint256) storage userDeposits = _userDeposits[msg.sender];
@@ -378,7 +368,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 
 	// Deposit tokenIn, swap to tokenOut and then have tokenOut sent to the sender
-	function depositSwapWithdraw(IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline ) external oncePerBlock nonReentrant ensureNotExpired(deadline) returns (uint256 swapAmountOut)
+	function depositSwapWithdraw(IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline ) external oneSwapPerBlock nonReentrant ensureNotExpired(deadline) returns (uint256 swapAmountOut)
 		{
 		// Transfer the tokens from the sender - only tokens without fees should be whitelisted on the DEX
 		swapTokenIn.safeTransferFrom(msg.sender, address(this), swapAmountIn );
@@ -391,7 +381,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 
 	// A convenience method to perform two swaps in one transaction
-	function depositDoubleSwapWithdraw( IERC20 swapTokenIn, IERC20 swapTokenMiddle, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline ) external oncePerBlock nonReentrant ensureNotExpired(deadline) returns (uint256 swapAmountOut)
+	function depositDoubleSwapWithdraw( IERC20 swapTokenIn, IERC20 swapTokenMiddle, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline ) external oneSwapPerBlock nonReentrant ensureNotExpired(deadline) returns (uint256 swapAmountOut)
 		{
 		swapTokenIn.safeTransferFrom(msg.sender, address(this), swapAmountIn );
 

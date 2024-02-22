@@ -2,7 +2,7 @@
 pragma solidity =0.8.22;
 
 import "chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import "./interfaces/IPriceFeed.sol";
+import "./IPriceFeed.sol";
 
 
 // Uses Chainlink price oracles to retrieve prices for BTC and ETH.

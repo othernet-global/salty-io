@@ -94,11 +94,11 @@ contract TestPoolStats is Test, PoolStats
 	// A unit test for `profitsForPools` that verifies it returns profits correctly for given pool IDs
 	function testProfitsForPoolsSimple() public {
 
-		IERC20 weth = exchangeConfig.weth();
+		IERC20 salt = exchangeConfig.salt();
 
 		vm.startPrank(address(deployment.dao()));
-		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenA,weth ); // whitelisted index #9
-		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenB,weth ); // whitelisted index #10
+		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenA,salt ); // whitelisted index #9
+		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenB,salt ); // whitelisted index #10
 		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenA,tokenB ); // whitelisted index #11
 		vm.stopPrank();
 
@@ -129,14 +129,14 @@ contract TestPoolStats is Test, PoolStats
 	// A unit test for `profitsForPools` that verifies it returns profits correctly for given pool IDs
 	function testProfitsForPoolsDouble() public {
 
-		IERC20 weth = exchangeConfig.weth();
+		IERC20 salt = exchangeConfig.salt();
 
 		vm.startPrank(address(deployment.dao()));
-		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenA,weth ); // whitelisted index #9
+		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenA,salt ); // whitelisted index #9
 		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenA,tokenB ); // whitelisted index #10
-		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenB,weth ); // whitelisted index #11
+		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenB,salt ); // whitelisted index #11
 		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenB,tokenC ); // whitelisted index #12
-		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenC,weth ); // whitelisted index #13
+		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenC,salt ); // whitelisted index #13
 		vm.stopPrank();
 
 		this.updateArbitrageIndicies();
@@ -171,21 +171,21 @@ contract TestPoolStats is Test, PoolStats
 	// A unit test for updateArbitrageIndicies
 	function testUpdateArbitrageIndicies() public
 		{
-		IERC20 weth = exchangeConfig.weth();
+		IERC20 salt = exchangeConfig.salt();
 
 		vm.startPrank(address(deployment.dao()));
-		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenA,weth ); // whitelisted index #9
+		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenA,salt ); // whitelisted index #9
 		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenA,tokenB ); // whitelisted index #10
-		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenB,weth ); // whitelisted index #11
+		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenB,salt ); // whitelisted index #11
 		vm.stopPrank();
 
 		this.updateArbitrageIndicies();
 
 		bytes32[] memory whitelistedPoolIDs = deployment.poolsConfig().whitelistedPools();
 
-		uint256 index1 = _poolIndex(tokenA, weth, whitelistedPoolIDs );
+		uint256 index1 = _poolIndex(tokenA, salt, whitelistedPoolIDs );
 		uint256 index2 = _poolIndex(tokenA, tokenB, whitelistedPoolIDs );
-		uint256 index3 = _poolIndex(tokenB, weth, whitelistedPoolIDs );
+		uint256 index3 = _poolIndex(tokenB, salt, whitelistedPoolIDs );
 
 		assertEq( index1, numInitialTokens + 0 );
 		assertEq( index2, numInitialTokens + 1 );
@@ -200,21 +200,21 @@ contract TestPoolStats is Test, PoolStats
 	// A unit test for `profitsForPools` that verifies it returns profits correctly for given pool IDs after some pairs have been unwhitelisted (which changes the whitelistedPools order)
 	function testProfitsForPoolsAfterUnwhitelist() public {
 
-		IERC20 weth = exchangeConfig.weth();
+		IERC20 salt = exchangeConfig.salt();
 
 		vm.startPrank(address(deployment.dao()));
-		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenA,weth ); // whitelisted index #9
+		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenA,salt ); // whitelisted index #9
 		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenA,tokenB ); // whitelisted index #10
-		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenB,weth ); // whitelisted index #11
-		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenC,weth ); // whitelisted index #12
-		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenB,tokenC ); // whitelisted index #13 (will become #9 after unwhitelisting tokenA/weth)
+		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenB,salt ); // whitelisted index #11
+		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenC,salt ); // whitelisted index #12
+		deployment.poolsConfig().whitelistPool( deployment.pools(), tokenB,tokenC ); // whitelisted index #13 (will become #9 after unwhitelisting tokenA/salt)
 		vm.stopPrank();
 
 		this.updateArbitrageIndicies();
 
 		// This will cause tokenB/tokenC to have index #9
 		vm.startPrank(address(deployment.dao()));
-		deployment.poolsConfig().unwhitelistPool( deployment.pools(), tokenA,weth ); // now whitelisted index #9
+		deployment.poolsConfig().unwhitelistPool( deployment.pools(), tokenA,salt ); // now whitelisted index #9
 		vm.stopPrank();
 
 		this.updateArbitrageIndicies();
@@ -240,12 +240,12 @@ contract TestPoolStats is Test, PoolStats
 
 	// A unit test that ensures `_calculateArbitrageProfits` correctly calculates and distributes arbitrage profits to the correct pools
 	function testCalculateArbitrageProfits() public {
-		IERC20 weth = deployment.weth();
+		IERC20 salt = deployment.salt();
 
         // Given three pools contributing to arbitrage profit
         vm.startPrank(address(deployment.dao()));
-        deployment.poolsConfig().whitelistPool(deployment.pools(), tokenA, weth);
-        deployment.poolsConfig().whitelistPool(deployment.pools(), tokenB, weth);
+        deployment.poolsConfig().whitelistPool(deployment.pools(), tokenA, salt);
+        deployment.poolsConfig().whitelistPool(deployment.pools(), tokenB, salt);
         deployment.poolsConfig().whitelistPool(deployment.pools(), tokenA, tokenB);
         vm.stopPrank();
 
@@ -260,8 +260,8 @@ contract TestPoolStats is Test, PoolStats
 
         // Expect profits to be distributed equally to contributing pools
         uint256 expectedProfitPerPool = arbitrageProfit / 3;
-        assertEq(profits[numInitialTokens+0], expectedProfitPerPool, "Incorrect arbitrage profit distribution for WETH-tokenA pool");
-        assertEq(profits[numInitialTokens+1], expectedProfitPerPool, "Incorrect arbitrage profit distribution for WETH-tokenB pool");
+        assertEq(profits[numInitialTokens+0], expectedProfitPerPool, "Incorrect arbitrage profit distribution for SALT-tokenA pool");
+        assertEq(profits[numInitialTokens+1], expectedProfitPerPool, "Incorrect arbitrage profit distribution for SALT-tokenB pool");
         assertEq(profits[numInitialTokens+2], expectedProfitPerPool, "Incorrect arbitrage profit distribution for tokenA-tokenB pool");
     }
 
@@ -350,7 +350,7 @@ contract TestPoolStats is Test, PoolStats
         deployment.poolsConfig().whitelistPool(deployment.pools(), tokenA, tokenB); // whitelisted pool #1
         deployment.poolsConfig().whitelistPool(deployment.pools(), tokenB, tokenC); // whitelisted pool #2
         deployment.poolsConfig().whitelistPool(deployment.pools(), tokenA, tokenC); // whitelisted pool #3
-        deployment.poolsConfig().whitelistPool(deployment.pools(), _weth, tokenC); // whitelisted pool #4 that contributes to multiple arbitrage opportunities
+        deployment.poolsConfig().whitelistPool(deployment.pools(), _salt, tokenC); // whitelisted pool #4 that contributes to multiple arbitrage opportunities
         vm.stopPrank();
 
         this.updateArbitrageIndicies();
@@ -379,7 +379,7 @@ contract TestPoolStats is Test, PoolStats
         assertEq(profits[_poolIndex(tokenA, tokenB, whitelistedPoolIDs)], expectedProfitPool1, "Incorrect profit for tokenA -> tokenB pool");
         assertEq(profits[_poolIndex(tokenB, tokenC, whitelistedPoolIDs)], expectedProfitPool2, "Incorrect profit for tokenB -> tokenC pool");
         assertEq(profits[_poolIndex(tokenA, tokenC, whitelistedPoolIDs)], expectedProfitPool3, "Incorrect profit for tokenA -> tokenC pool");
-        assertEq(profits[_poolIndex(_weth, tokenC, whitelistedPoolIDs)], expectedProfitPool4, "Incorrect profit for WETH -> tokenC pool that contributes to multiple arbitrages");
+        assertEq(profits[_poolIndex(_salt, tokenC, whitelistedPoolIDs)], expectedProfitPool4, "Incorrect profit for WETH -> tokenC pool that contributes to multiple arbitrages");
     }
 	}
 

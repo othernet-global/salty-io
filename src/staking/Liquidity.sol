@@ -26,7 +26,6 @@ contract Liquidity is ILiquidity, StakingRewards
 		StakingRewards( _exchangeConfig, _poolsConfig, _stakingConfig )
 		{
 		pools = _pools;
-
 		}
 
 

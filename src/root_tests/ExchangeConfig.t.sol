@@ -29,7 +29,7 @@ contract TestExchangeConfig is Deployment
 	function testSetAccessManagerAsNonOwner() public
         {
         vm.prank(DEPLOYER);
-        exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, teamWallet);
+        exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, usdt, teamWallet);
 
 		vm.expectRevert("Ownable: caller is not the owner" );
 		exchangeConfig.setAccessManager(IAccessManager(address(0x2222)));
@@ -39,7 +39,7 @@ contract TestExchangeConfig is Deployment
     // A unit test to check the setAccessManager function when called by the owner and the accessManager state variable has not been set yet. Ensure that the accessManager state variable is correctly set.
     function testSetAccessManager() public
     {
-        exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, teamWallet);
+        exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, usdt, teamWallet);
 
         // Initialize an instance of the AccessManager
         IAccessManager _accessManager = IAccessManager(address(0x1111));
@@ -85,7 +85,7 @@ contract TestExchangeConfig is Deployment
 	function testSetContractsRevertsIfCalledMoreThanOnce() public {
         // Arrange: Deploy the contract and setup contracts for the first time
         vm.prank(address(this));
-        ExchangeConfig exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, teamWallet);
+        ExchangeConfig exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, usdt, teamWallet);
 
         IDAO mockDao = IDAO(address(0x1));
         IUpkeep mockUpkeep = IUpkeep(address(0x2));
@@ -105,7 +105,7 @@ contract TestExchangeConfig is Deployment
     function testSetAccessManagerRevertsWithZeroAddress() public
         {
         // Deploy the ExchangeConfig contract
-        exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, teamWallet);
+        exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, usdt, teamWallet);
 
         // Set the expected revert reason and call the function with the zero address
         vm.expectRevert("_accessManager cannot be address(0)");

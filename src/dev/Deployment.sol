@@ -5,7 +5,6 @@ import "forge-std/Test.sol";
 import "../pools/interfaces/IPools.sol";
 import "../pools/interfaces/IPoolsConfig.sol";
 import "../interfaces/IExchangeConfig.sol";
-import "../price_feed/interfaces/IPriceAggregator.sol";
 import "../staking/interfaces/IStakingConfig.sol";
 import "../staking/interfaces/IStaking.sol";
 import "../staking/Staking.sol";
@@ -14,7 +13,6 @@ import "../rewards/Emissions.sol";
 import "../dao/interfaces/IDAOConfig.sol";
 import "../dao/interfaces/IDAO.sol";
 import "../dao/interfaces/IProposals.sol";
-import "../price_feed/tests/IForcedPriceFeed.sol";
 import "../launch/interfaces/IBootstrapBallot.sol";
 import "openzeppelin-contracts/contracts/finance/VestingWallet.sol";
 import "../launch/interfaces/IAirdrop.sol";
@@ -25,7 +23,6 @@ import "../rewards/SaltRewards.sol";
 import "../launch/InitialDistribution.sol";
 import "../pools/PoolsConfig.sol";
 import "../ExchangeConfig.sol";
-import "../price_feed/PriceAggregator.sol";
 import "../pools/Pools.sol";
 import "../staking/Liquidity.sol";
 import "../rewards/RewardsEmitter.sol";
@@ -51,11 +48,9 @@ contract Deployment is Test
 	IERC20 public _testETH = IERC20(0x12e2cA2Cc70f1742EDA01C2980aC43Ca5F12CbFd);
 	IERC20 public _testUSDC = IERC20(0x9C65b1773A95d607f41fa205511cd3327cc39D9D);
 	IERC20 public _testUSDT = IERC20(0xCd58586cC5F0c6c425b99BB94Dc5662cf2A18B84);
-	IForcedPriceFeed public forcedPriceFeed = IForcedPriceFeed(address(0x3B0Eb37f26b502bAe83df4eCc54afBDfb90B5d3a));
 
 	// The DAO contract can provide us with all other contract addresses in the protocol
-	IDAO public dao = IDAO(address(0xfbe7d741202BF555FF1f0622Ec44149358572F2A));
-	IPriceAggregator public priceAggregator = IPriceAggregator(address(0xE163864B0DbbB6Fc9e85ad77498C0C1F1647C55C));
+	IDAO public dao = IDAO(address(0x80935c2a03d6B04EF479b44529AFEb353E20e573));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));
@@ -157,9 +152,7 @@ contract Deployment is Test
 		daoConfig = new DAOConfig();
 		poolsConfig = new PoolsConfig();
 
-		exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, teamWallet );
-
-		priceAggregator = new PriceAggregator(IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)), IPriceFeed(address(forcedPriceFeed)));
+		exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, usdt, teamWallet );
 
 		pools = new Pools(exchangeConfig, poolsConfig);
 		staking = new Staking( exchangeConfig, poolsConfig, stakingConfig );
@@ -171,20 +164,19 @@ contract Deployment is Test
 		saltRewards = new SaltRewards(stakingRewardsEmitter, liquidityRewardsEmitter, exchangeConfig, rewardsConfig);
 		emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
-		poolsConfig.whitelistPool( pools,  salt, wbtc);
-		poolsConfig.whitelistPool( pools,  salt, weth);
-		poolsConfig.whitelistPool( pools,  salt, usdc);
-		poolsConfig.whitelistPool( pools,  wbtc, usdc);
-		poolsConfig.whitelistPool( pools,  weth, usdc);
-		poolsConfig.whitelistPool( pools,  wbtc, usdt);
-		poolsConfig.whitelistPool( pools,  weth, usdt);
-		poolsConfig.whitelistPool( pools,  wbtc, weth);
-		poolsConfig.whitelistPool( pools,  usdc, usdt);
+		poolsConfig.whitelistPool( pools,   salt, usdc);
+		poolsConfig.whitelistPool( pools,   salt, usdt);
+		poolsConfig.whitelistPool( pools,   weth, usdc);
+		poolsConfig.whitelistPool( pools,   weth, usdt);
+		poolsConfig.whitelistPool( pools,   wbtc, salt);
+		poolsConfig.whitelistPool( pools,   wbtc, weth);
+		poolsConfig.whitelistPool( pools,   salt, weth);
+		poolsConfig.whitelistPool( pools,   usdc, usdt);
 
 		proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 
 		address oldDAO = address(dao);
-		dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, daoConfig, liquidityRewardsEmitter, liquidity);
+		dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, daoConfig, liquidityRewardsEmitter);
 
 		airdrop = new Airdrop(exchangeConfig, staking);
 

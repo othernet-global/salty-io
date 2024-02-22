@@ -62,8 +62,6 @@ contract TestDAO is Deployment
 		{
 		if ( parameter == Parameters.ParameterTypes.maximumWhitelistedPools )
 			return poolsConfig.maximumWhitelistedPools();
-		if ( parameter == Parameters.ParameterTypes.maximumInternalSwapPercentTimes1000 )
-			return poolsConfig.maximumInternalSwapPercentTimes1000();
 
 		else if ( parameter == Parameters.ParameterTypes.minUnstakeWeeks )
 			return stakingConfig.minUnstakeWeeks();
@@ -80,21 +78,19 @@ contract TestDAO is Deployment
 			return rewardsConfig.emissionsWeeklyPercentTimes1000();
 		else if ( parameter == Parameters.ParameterTypes.stakingRewardsPercent )
 			return rewardsConfig.stakingRewardsPercent();
-		else if ( parameter == Parameters.ParameterTypes.percentRewardsSaltUSDC )
-			return rewardsConfig.percentRewardsSaltUSDC();
 
 		else if ( parameter == Parameters.ParameterTypes.bootstrappingRewards )
 			return daoConfig.bootstrappingRewards();
-		else if ( parameter == Parameters.ParameterTypes.percentPolRewardsBurned )
-			return daoConfig.percentPolRewardsBurned();
+		else if ( parameter == Parameters.ParameterTypes.percentRewardsBurned )
+			return daoConfig.percentRewardsBurned();
 		else if ( parameter == Parameters.ParameterTypes.baseBallotQuorumPercentTimes1000 )
 			return daoConfig.baseBallotQuorumPercentTimes1000();
 		else if ( parameter == Parameters.ParameterTypes.ballotDuration )
 			return daoConfig.ballotMinimumDuration();
 		else if ( parameter == Parameters.ParameterTypes.requiredProposalPercentStakeTimes1000 )
 			return daoConfig.requiredProposalPercentStakeTimes1000();
-		else if ( parameter == Parameters.ParameterTypes.arbitrageProfitsPercentPOL )
-			return daoConfig.arbitrageProfitsPercentPOL();
+		else if ( parameter == Parameters.ParameterTypes.percentRewardsForReserve )
+			return daoConfig.percentRewardsForReserve();
 		else if ( parameter == Parameters.ParameterTypes.upkeepRewardPercent )
 			return daoConfig.upkeepRewardPercent();
 		else if ( parameter == Parameters.ParameterTypes.ballotMaximumDuration )
@@ -185,7 +181,7 @@ contract TestDAO is Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 5000000 ether );
 
-    	for( uint256 i = 0; i < 18; i++ )
+    	for( uint256 i = 0; i < 16; i++ )
 	 		_checkFinalizeIncreaseParameterBallot( i );
     	}
 
@@ -196,7 +192,7 @@ contract TestDAO is Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 5000000 ether );
 
-    	for( uint256 i = 0; i < 18; i++ )
+    	for( uint256 i = 0; i < 16; i++ )
 	 		_checkFinalizeDecreaseParameterBallot( i );
     	}
 
@@ -207,7 +203,7 @@ contract TestDAO is Deployment
         vm.startPrank(alice);
         staking.stakeSALT( 5000000 ether );
 
-    	for( uint256 i = 0; i < 18; i++ )
+    	for( uint256 i = 0; i < 16; i++ )
 	 		_checkFinalizeNoChangeParameterBallot( i );
     	}
 
@@ -255,11 +251,11 @@ contract TestDAO is Deployment
         dao.finalizeBallot(ballotID);
 
 		// Check for the effects of the vote
-		assertTrue( poolsConfig.tokenHasBeenWhitelisted(token, wbtc, weth), "Token not whitelisted" );
+		assertTrue( poolsConfig.tokenHasBeenWhitelisted(token, salt, weth), "Token not whitelisted" );
 
 		// Check to see that the bootstrapping rewards have been sent
 		bytes32[] memory poolIDs = new bytes32[](2);
-		poolIDs[0] = PoolUtils._poolID(token,wbtc);
+		poolIDs[0] = PoolUtils._poolID(token,salt);
 		poolIDs[1] = PoolUtils._poolID(token,weth);
 
 		uint256[] memory pendingRewards = liquidityRewardsEmitter.pendingRewardsForPools( poolIDs );
@@ -285,7 +281,7 @@ contract TestDAO is Deployment
 		_voteForAndFinalizeBallot(1, Vote.NO);
 
 		// Check for the effects of the vote
-		assertFalse( poolsConfig.tokenHasBeenWhitelisted(token, wbtc, weth), "Token should not be whitelisted" );
+		assertFalse( poolsConfig.tokenHasBeenWhitelisted(token, salt, weth), "Token should not be whitelisted" );
     	}
 
 
@@ -305,7 +301,7 @@ contract TestDAO is Deployment
 		_voteForAndFinalizeBallot(2, Vote.YES);
 
 		// Check for the effects of the vote
-		assertFalse( poolsConfig.tokenHasBeenWhitelisted(token, wbtc, weth), "Token should not be whitelisted" );
+		assertFalse( poolsConfig.tokenHasBeenWhitelisted(token, salt, weth), "Token should not be whitelisted" );
     	}
 
 
@@ -325,7 +321,7 @@ contract TestDAO is Deployment
 		_voteForAndFinalizeBallot(2, Vote.NO);
 
 		// Check for the effects of the vote
-		assertTrue( poolsConfig.tokenHasBeenWhitelisted(token, wbtc, weth), "Token not whitelisted" );
+		assertTrue( poolsConfig.tokenHasBeenWhitelisted(token, salt, weth), "Token not whitelisted" );
     	}
 
 
@@ -591,7 +587,7 @@ contract TestDAO is Deployment
 	function testDAOConstructor() public {
 
         vm.startPrank(DEPLOYER);
-        DAO testDAO = new DAO(pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, daoConfig, liquidityRewardsEmitter, liquidity );
+        DAO testDAO = new DAO(pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, daoConfig, liquidityRewardsEmitter );
 
         assertEq(address(testDAO.pools()), address(pools), "Pools contract address mismatch");
         assertEq(address(testDAO.proposals()), address(proposals), "Proposals contract address mismatch");
@@ -601,7 +597,6 @@ contract TestDAO is Deployment
         assertEq(address(testDAO.rewardsConfig()), address(rewardsConfig), "RewardsConfig contract address mismatch");
         assertEq(address(testDAO.daoConfig()), address(daoConfig), "DAOConfig contract address mismatch");
         assertEq(address(testDAO.liquidityRewardsEmitter()), address(liquidityRewardsEmitter), "LiquidityRewardsEmitter contract address mismatch");
-        assertEq(address(testDAO.liquidity()), address(liquidity), "Liquidity contract address mismatch");
 
         vm.stopPrank();
     }
@@ -685,7 +680,7 @@ contract TestDAO is Deployment
 
         // Call the function
         vm.prank(address(upkeep));
-        dao.withdrawArbitrageProfits(weth);
+        dao.withdrawFromDAO(weth);
 
         uint256 expectedBalance = initialBalance + depositedWETH;
 
@@ -695,57 +690,17 @@ contract TestDAO is Deployment
     }
 
 
-	// A unit test to validate that formPOL works correctly and changes balances as expected
-	function testFormPOL() public {
-
-		assertEq( liquidity.userShareForPool(address(dao), PoolUtils._poolID(salt, usdc)), 0 );
-
-		uint256 saltAmount = 10 ether;
-        uint256 usdcAmount = 5 * 10**6;
-
-        uint256 initialDaoSaltBalance = salt.balanceOf(address(dao));
-        uint256 initialDaoUsdsBalance = usdc.balanceOf(address(dao));
-
-		assertEq( initialDaoSaltBalance, 0 );
-		assertEq( initialDaoUsdsBalance, 0 );
-
-		vm.startPrank(DEPLOYER);
-        salt.transfer(address(dao), saltAmount);
-        usdc.transfer(address(dao), usdcAmount);
-        vm.stopPrank();
-
-        vm.expectRevert( "DAO.formPOL is only callable from the Upkeep contract" );
-        dao.formPOL();
-
-        vm.prank(address(upkeep));
-        dao.formPOL();
-
-        assertEq(salt.balanceOf(address(dao)), 0, "DAO SALT balance incorrect after formPOL");
-        assertEq(usdc.balanceOf(address(dao)), 0, "DAO USDC balance incorrect after formPOL");
-
-		bytes32 poolID = PoolUtils._poolID(salt,usdc);
-		assertTrue( liquidity.userShareForPool(address(dao), poolID) > 0 );
-		assertEq( liquidity.userShareForPool(address(dao), poolID), liquidity.totalShares(poolID) );
-    }
-
 
 	// A unit test to validate that unauthorized users cannot call functions restricted to the Upkeep contract
 	function testUnauthorizedAccessToUpkeepFunctions() public
     	{
     	vm.startPrank(bob);
 
-    	vm.expectRevert("DAO.withdrawArbitrageProfits is only callable from the Upkeep contract");
-    	dao.withdrawArbitrageProfits( weth );
-
-    	vm.expectRevert("DAO.formPOL is only callable from the Upkeep contract");
-    	dao.formPOL();
-
-    	vm.expectRevert("DAO.processRewardsFromPOL is only callable from the Upkeep contract");
-    	dao.processRewardsFromPOL();
+    	vm.expectRevert("DAO.withdrawFromDAO is only callable from the Upkeep contract");
+    	dao.withdrawFromDAO( weth );
 
     	vm.stopPrank();
     	}
-
 
 
     // A unit test to check if a non-excluded country, countryIsExcluded returns false
@@ -890,48 +845,13 @@ contract TestDAO is Deployment
 
 
         // Assert that the token has been whitelisted
-        assertTrue(poolsConfig.tokenHasBeenWhitelisted(test, wbtc, weth), "Token was not whitelisted");
+        assertTrue(poolsConfig.tokenHasBeenWhitelisted(test, salt, weth), "Token was not whitelisted");
 
         // Assert the correct amount of bootstrapping rewards have been deducted
         uint256 finalDaoBalance = salt.balanceOf(address(dao));
         assertEq(finalDaoBalance, initialDaoBalance - (bootstrapRewards * 2), "Bootstrapping rewards were not correctly deducted");
 
         vm.stopPrank();
-    }
-
-
-	// A unit test that verifies the correct calculation and distribution of POL formation when forming POL via the `formPOL` function.
-	function testCorrectPOLFormationAndDistribution() public {
-
-        // Forming POL amounts
-        uint256 saltAmount = 500 ether;
-        uint256 usdcAmount = 500 * 10**6;
-
-        // Transferring tokens to DAO before POL formation
-        vm.prank(address(daoVestingWallet));
-        salt.transfer(address(dao), saltAmount);
-
-        vm.prank(address(DEPLOYER));
-        usdc.transfer(address(dao), usdcAmount);
-
-        // Capture the initial POL state
-        bytes32 saltUsdsPoolID = PoolUtils._poolID(salt, usdc);
-        uint256 initialSaltBalanceDAO = salt.balanceOf(address(dao));
-        uint256 initialUsdsBalanceDAO = usdc.balanceOf(address(dao));
-
-        // Forming POL
-        vm.prank(address(upkeep));
-        dao.formPOL();
-
-        // Capture the post-POL state
-        uint256 finalSaltBalanceDAO = salt.balanceOf(address(dao));
-        uint256 finalUsdsBalanceDAO = usdc.balanceOf(address(dao));
-        uint256 finalPoolShareDAO = liquidity.userShareForPool(address(dao), saltUsdsPoolID);
-
-        // Assert POL formation and distribution correctness
-        assertEq(finalSaltBalanceDAO, initialSaltBalanceDAO - saltAmount, "Incorrect final SALT balance in DAO");
-        assertEq(finalUsdsBalanceDAO, initialUsdsBalanceDAO - usdcAmount, "Incorrect final USDC balance in DAO");
-        assertEq(finalPoolShareDAO, 500 ether + 500 * 10**6, "DAO did not receive pool share tokens");
     }
 
 
@@ -1047,7 +967,7 @@ contract TestDAO is Deployment
 		dao.manuallyRemoveBallot(ballotID);
         assertEq(proposals.ballotForID(ballotID).ballotIsLive, false, "Ballot should have been removed");
 
-        assertFalse( poolsConfig.tokenHasBeenWhitelisted(token, wbtc, weth), "Token should not have been whitelisted" );
+        assertFalse( poolsConfig.tokenHasBeenWhitelisted(token, salt, weth), "Token should not have been whitelisted" );
 		}
 
 

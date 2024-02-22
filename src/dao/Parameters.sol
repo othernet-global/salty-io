@@ -13,7 +13,6 @@ abstract contract Parameters
 
 		// PoolsConfig
 		maximumWhitelistedPools,
-		maximumInternalSwapPercentTimes1000,
 
 		// StakingConfig
 		minUnstakeWeeks,
@@ -25,15 +24,14 @@ abstract contract Parameters
     	rewardsEmitterDailyPercentTimes1000,
 		emissionsWeeklyPercentTimes1000,
 		stakingRewardsPercent,
-		percentRewardsSaltUSDC,
 
 		// DAOConfig
 		bootstrappingRewards,
-		percentPolRewardsBurned,
+		percentRewardsBurned,
 		baseBallotQuorumPercentTimes1000,
 		ballotDuration,
 		requiredProposalPercentStakeTimes1000,
-		arbitrageProfitsPercentPOL,
+		percentRewardsForReserve,
 		upkeepRewardPercent,
 		ballotMaximumDuration
 		}
@@ -45,8 +43,6 @@ abstract contract Parameters
 		// PoolsConfig
 		if ( parameterType == ParameterTypes.maximumWhitelistedPools )
 			poolsConfig.changeMaximumWhitelistedPools( increase );
-		else if ( parameterType == ParameterTypes.maximumInternalSwapPercentTimes1000 )
-			poolsConfig.changeMaximumInternalSwapPercentTimes1000( increase );
 
 		// StakingConfig
 		else if ( parameterType == ParameterTypes.minUnstakeWeeks )
@@ -65,22 +61,20 @@ abstract contract Parameters
 			rewardsConfig.changeEmissionsWeeklyPercent(increase);
 		else if ( parameterType == ParameterTypes.stakingRewardsPercent )
 			rewardsConfig.changeStakingRewardsPercent(increase);
-		else if ( parameterType == ParameterTypes.percentRewardsSaltUSDC )
-			rewardsConfig.changePercentRewardsSaltUSDC(increase);
 
 		// DAOConfig
 		else if ( parameterType == ParameterTypes.bootstrappingRewards )
 			daoConfig.changeBootstrappingRewards(increase);
-		else if ( parameterType == ParameterTypes.percentPolRewardsBurned )
-			daoConfig.changePercentPolRewardsBurned(increase);
+		else if ( parameterType == ParameterTypes.percentRewardsBurned )
+			daoConfig.changePercentRewardsBurned(increase);
 		else if ( parameterType == ParameterTypes.baseBallotQuorumPercentTimes1000 )
 			daoConfig.changeBaseBallotQuorumPercent(increase);
 		else if ( parameterType == ParameterTypes.ballotDuration )
 			daoConfig.changeBallotDuration(increase);
 		else if ( parameterType == ParameterTypes.requiredProposalPercentStakeTimes1000 )
 			daoConfig.changeRequiredProposalPercentStake(increase);
-		else if ( parameterType == ParameterTypes.arbitrageProfitsPercentPOL )
-			daoConfig.changeArbitrageProfitsPercentPOL(increase);
+		else if ( parameterType == ParameterTypes.percentRewardsForReserve )
+			daoConfig.changePercentRewardsForReserve(increase);
 		else if ( parameterType == ParameterTypes.upkeepRewardPercent )
 			daoConfig.changeUpkeepRewardPercent(increase);
 		else if ( parameterType == ParameterTypes.ballotMaximumDuration )
