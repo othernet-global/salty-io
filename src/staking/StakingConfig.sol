@@ -14,7 +14,7 @@ contract StakingConfig is IStakingConfig, Ownable
     event ModificationCooldownChanged(uint256 newModificationCooldown);
 
     // The minimum number of weeks for an unstake request at which point minUnstakePercent of the original staked SALT is reclaimable.
-	// Range: 1 to 12 with an adjustment of 1
+	// Range: 2 to 12 with an adjustment of 1
 	uint256 public minUnstakeWeeks = 2;  // minUnstakePercent returned for unstaking this number of weeks
 
 	// The maximum number of weeks for an unstake request at which point 100% of the original staked SALT is reclaimable.
@@ -40,8 +40,8 @@ contract StakingConfig is IStakingConfig, Ownable
             }
         else
             {
-            if (minUnstakeWeeks > 1)
-                minUnstakeWeeks -= 1;
+            if (minUnstakeWeeks > 2)
+                minUnstakeWeeks -= 2;
             }
 
 		emit MinUnstakeWeeksChanged(minUnstakeWeeks);
