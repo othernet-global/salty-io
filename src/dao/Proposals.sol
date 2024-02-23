@@ -105,7 +105,10 @@ contract Proposals is IProposals, ReentrancyGuard
 
 		// Add the new Ballot to storage
 		ballotID = nextBallotID++;
-		ballots[ballotID] = Ballot( ballotID, true, ballotType, ballotName, address1, number1, string1, string2, ballotMinimumEndTime, ballotMaximumEndTime );
+
+ 		uint requiredQuorum = requiredQuorumForBallotType(ballotType);
+ 		ballots[ballotID] = Ballot( ballotID, true, ballotType, ballotName, address1, number1, string1, string2, ballotMinimumEndTime, ballotMaximumEndTime, requiredQuorum );
+
 		openBallotsByName[ballotName] = ballotID;
 		_allOpenBallots.add( ballotID );
 
@@ -404,7 +407,7 @@ contract Proposals is IProposals, ReentrancyGuard
             return false;
 
         // Check that the required quorum has been reached
-        if ( totalVotesCastForBallot(ballotID) < requiredQuorumForBallotType( ballot.ballotType ))
+        if ( totalVotesCastForBallot(ballotID) < ballot.requiredQuorum)
             return false;
 
         return true;

@@ -383,19 +383,17 @@ contract TestProposals is Deployment
 		uint256 initialStake = 10000000 ether;
 
         vm.startPrank(alice);
-        staking.stakeSALT(1110111 ether);
+        staking.stakeSALT(500000 ether - 1000 ether - 1 ether );
         proposals.proposeParameterBallot(2, "description" );
-        staking.unstake( 1110111 ether, 2);
+
         uint256 ballotID = proposals.openBallotsByName(ballotName);
 
 		// Early ballot, no quorum
         bool canFinalizeBallotStillEarly = proposals.canFinalizeBallot(ballotID);
 
-		// Ballot reached end time, no quorum
+		// Ballot reached end time
         vm.warp(block.timestamp + daoConfig.ballotMinimumDuration() + 1); // ballot end time reached
 
-		vm.expectRevert( "SALT staked cannot be zero to determine quorum" );
-		proposals.canFinalizeBallot(ballotID);
 		vm.stopPrank();
 
 		vm.prank(DEPLOYER);
@@ -405,8 +403,6 @@ contract TestProposals is Deployment
 
 
         // Almost reach quorum
-        vm.prank(alice);
-        staking.stakeSALT(1110111 ether);
 
 		// Default user has no access to the exchange, but can still vote
 		vm.prank(DEPLOYER);
@@ -1077,6 +1073,9 @@ staking.stakeSALT(1000 ether);
 	// A unit test that verifies if the createConfirmationProposal function creates a new proposal from the DAO and checks all necessary state changes.
 	function testCreateConfirmationProposal() public {
         vm.startPrank(DEPLOYER);
+
+        salt.approve(address(staking), 1000 ether);
+        staking.stakeSALT(1000 ether );
 
         // Define a ballotName
         string memory ballotName = "setContract:1";

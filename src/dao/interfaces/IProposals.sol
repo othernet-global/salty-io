@@ -30,6 +30,9 @@ struct Ballot
 
 	// The time at which any user can end the ballot - even if it hasn't been successfully finalized.
 	uint256 ballotMaximumEndTime;
+
+	// The requiredQuorum for the ballot
+	uint256 requiredQuorum;
 	}
 
 
