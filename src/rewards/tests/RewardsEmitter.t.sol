@@ -109,7 +109,7 @@ contract TestRewardsEmitter is Deployment
 
 		// Increase rewardsEmitterDailyPercent to 2.5% for testing
 		vm.startPrank(address(dao));
-		for ( uint256 i = 0; i < 6; i++ )
+		for ( uint256 i = 0; i < 7; i++ )
 			rewardsConfig.changeRewardsEmitterDailyPercent(true);
 		vm.stopPrank();
     	}
@@ -367,7 +367,7 @@ contract TestRewardsEmitter is Deployment
         vm.prank(address(upkeep));
         liquidityRewardsEmitter.performUpkeep(2 weeks);
 
-        // Verify that 5% of the rewards have been distributed (default daily distribution rate)
+        // Verify that the rewards have been distributed
         pendingRewards = liquidityRewardsEmitter.pendingRewardsForPools(poolIDs);
         assertEq(pendingRewards[0], 97500 ether);  // 100000 ether - 2.5%
         assertEq(pendingRewards[1], 97500 ether);  // 100000 ether - 2.5%

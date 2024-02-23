@@ -31,6 +31,9 @@ import "../launch/Airdrop.sol";
 import "../launch/BootstrapBallot.sol";
 import "../Salt.sol";
 import "../dao/DAOConfig.sol";
+import "../rewards/RewardsConfig.sol";
+import "../staking/StakingConfig.sol";
+
 
 // Stores the contract addresses for the various parts of the exchange and allows the unit tests to be run on them.
 
@@ -151,7 +154,8 @@ contract Deployment is Test
 
 		daoConfig = new DAOConfig();
 		poolsConfig = new PoolsConfig();
-
+		rewardsConfig = new RewardsConfig();
+		stakingConfig = new StakingConfig();
 		exchangeConfig = new ExchangeConfig(salt, wbtc, weth, usdc, usdt, teamWallet );
 
 		pools = new Pools(exchangeConfig, poolsConfig);
@@ -175,7 +179,6 @@ contract Deployment is Test
 
 		proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 
-		address oldDAO = address(dao);
 		dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, daoConfig, liquidityRewardsEmitter);
 
 		airdrop = new Airdrop(exchangeConfig, staking);
@@ -199,11 +202,8 @@ contract Deployment is Test
 		Ownable(address(exchangeConfig)).transferOwnership( address(dao) );
 		Ownable(address(poolsConfig)).transferOwnership( address(dao) );
 		Ownable(address(daoConfig)).transferOwnership( address(dao) );
-		vm.stopPrank();
-
-		vm.startPrank(address(oldDAO));
-		Ownable(address(stakingConfig)).transferOwnership( address(dao) );
 		Ownable(address(rewardsConfig)).transferOwnership( address(dao) );
+		Ownable(address(stakingConfig)).transferOwnership( address(dao) );
 		vm.stopPrank();
 
 		// Move the SALT to the new initialDistribution contract
