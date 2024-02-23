@@ -50,16 +50,16 @@ contract TestPools2 is Deployment
 		for( uint256 i = 0; i < 9; i++ )
 			{
 			vm.prank(address(dao));
-			poolsConfig.whitelistPool( pools,    tokens[i], tokens[i + 1] );
+			poolsConfig.whitelistPool(   tokens[i], tokens[i + 1] );
 
 			vm.prank(DEPLOYER);
 			liquidity.depositLiquidityAndIncreaseShare( tokens[i], tokens[i + 1], 500 ether, 500 ether, 0, 0, 0, block.timestamp, false );
 			}
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool( pools,    tokens[5], tokens[7] );
+		poolsConfig.whitelistPool(   tokens[5], tokens[7] );
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool( pools,    tokens[0], tokens[9] );
+		poolsConfig.whitelistPool(   tokens[0], tokens[9] );
 
 		vm.startPrank( DEPLOYER );
 		liquidity.depositLiquidityAndIncreaseShare( tokens[5], tokens[7], 1000 ether, 1000 ether, 0, 0, 0, block.timestamp, false );
@@ -228,7 +228,7 @@ contract TestPools2 is Deployment
 
     	// Scenario: Add liquidity and update pool reserves
     	vm.prank( address(dao));
-    	poolsConfig.whitelistPool( pools,   tokens[5], tokens[7] );
+    	poolsConfig.whitelistPool(  tokens[5], tokens[7] );
 
 		vm.startPrank(address(liquidity));
     	pools.addLiquidity(tokens[5], tokens[7], 1 ether, 1 ether, 0, 0, liquidity.totalShares( PoolUtils._poolID(tokens[5], tokens[7])));
@@ -269,8 +269,8 @@ contract TestPools2 is Deployment
 			vm.stopPrank();
 
 			vm.startPrank(address(dao));
-			poolsConfig.whitelistPool( pools,   token0, token1);
-			poolsConfig.whitelistPool( pools,   token1, token2);
+			poolsConfig.whitelistPool(  token0, token1);
+			poolsConfig.whitelistPool(  token1, token2);
 			vm.stopPrank();
 
 			vm.startPrank(address(liquidity));
@@ -359,7 +359,7 @@ contract TestPools2 is Deployment
 
 
   		vm.startPrank(address(dao));
-        poolsConfig.whitelistPool( pools,   tokenIn, tokenOut);
+        poolsConfig.whitelistPool(  tokenIn, tokenOut);
 		vm.stopPrank();
 
   		vm.startPrank(address(liquidity));
@@ -446,7 +446,7 @@ contract TestPools2 is Deployment
         vm.stopPrank();
 
         vm.prank(address(dao));
-        poolsConfig.whitelistPool( pools,   tokens[0], undepositedToken);
+        poolsConfig.whitelistPool(  tokens[0], undepositedToken);
 
    		vm.startPrank(address(liquidity));
         assertEq(0, pools.depositedUserBalance(address(liquidity), undepositedToken));
@@ -482,7 +482,7 @@ contract TestPools2 is Deployment
 		vm.stopPrank();
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool( pools,   tokenA, tokenB);
+		poolsConfig.whitelistPool(  tokenA, tokenB);
 
         vm.startPrank(address(liquidity));
 
@@ -539,7 +539,7 @@ contract TestPools2 is Deployment
 		vm.stopPrank();
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool( pools,   token0, token1);
+		poolsConfig.whitelistPool(  token0, token1);
 
    		vm.startPrank(address(liquidity));
         token0.approve(address(pools), type(uint256).max);
@@ -770,7 +770,7 @@ contract TestPools2 is Deployment
        	vm.stopPrank();
 
        	vm.prank(address(dao));
-       	poolsConfig.whitelistPool( pools,   token0, token1);
+       	poolsConfig.whitelistPool(  token0, token1);
 
    		vm.startPrank(address(liquidity));
     	token0.transfer(alice, 1000 ether);
@@ -837,7 +837,7 @@ contract TestPools2 is Deployment
        	vm.stopPrank();
 
 		vm.prank(address(dao));
-       	poolsConfig.whitelistPool( pools,   token0, token1);
+       	poolsConfig.whitelistPool(  token0, token1);
 
    		vm.startPrank(address(liquidity));
     	token0.transfer(alice, 1000 ether);
@@ -977,7 +977,7 @@ contract TestPools2 is Deployment
        	vm.stopPrank();
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool( pools,   token0, token1);
+		poolsConfig.whitelistPool(  token0, token1);
 
    		vm.startPrank(address(liquidity));
 		bytes32 poolID = PoolUtils._poolID(token0, token1);
@@ -1156,7 +1156,7 @@ contract TestPools2 is Deployment
 		vm.stopPrank();
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool( pools,   token0, token1);
+		poolsConfig.whitelistPool(  token0, token1);
 
 		// Add the initial liquidity
 		vm.startPrank(alice);
@@ -1278,8 +1278,8 @@ contract TestPools2 is Deployment
 		vm.stopPrank();
 
 		vm.startPrank(address(dao));
-		poolsConfig.whitelistPool( pools,   chain[0], chain[1]);
-		poolsConfig.whitelistPool( pools,   chain[1], chain[2]);
+		poolsConfig.whitelistPool(  chain[0], chain[1]);
+		poolsConfig.whitelistPool(  chain[1], chain[2]);
 		vm.stopPrank();
 
 		vm.startPrank(address(liquidity));
@@ -1439,7 +1439,7 @@ function testMinLiquidityAndReclaimedAmounts() public {
         vm.stopPrank();
 
         vm.prank(address(dao));
-        poolsConfig.whitelistPool( pools,   token0, token1);
+        poolsConfig.whitelistPool(  token0, token1);
 
 		vm.startPrank(address(liquidity));
 		token0.approve( address(pools), type(uint256).max );
@@ -1469,7 +1469,7 @@ function testMinLiquidityAndReclaimedAmounts() public {
 		vm.stopPrank();
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool( pools,   token0, token1);
+		poolsConfig.whitelistPool(  token0, token1);
 
 		vm.startPrank(address(alice));
 		liquidity.depositLiquidityAndIncreaseShare( token0, token1, initialLiquidity0 * 10 ** decimals0, initialLiquidity1 * 10 ** decimals1, 0, 0, 0, block.timestamp, false );
@@ -1579,7 +1579,7 @@ function testMinLiquidityAndReclaimedAmounts() public {
 		vm.stopPrank();
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool( pools,   token0, token1);
+		poolsConfig.whitelistPool(  token0, token1);
 
 		vm.startPrank(alice);
 		token0.approve(address(pools),type(uint256).max);
@@ -1693,7 +1693,7 @@ function testMinLiquidityAndReclaimedAmounts() public {
             uint256 zapAmountB = 1000 ether;
 
 			vm.prank(address(dao));
-			poolsConfig.whitelistPool( pools,   tokenA, tokenB);
+			poolsConfig.whitelistPool(  tokenA, tokenB);
 
             // make initial deposits
             tokenA.approve(address(liquidity),type(uint256).max);
@@ -1752,8 +1752,8 @@ function testMinLiquidityAndReclaimedAmounts() public {
        	IERC20 token2 = new TestERC20("TEST", 18);
 
 		vm.startPrank(address(dao));
-		poolsConfig.whitelistPool( pools,   token0, token1);
-		poolsConfig.whitelistPool( pools,   token1, token2);
+		poolsConfig.whitelistPool(  token0, token1);
+		poolsConfig.whitelistPool(  token1, token2);
 		vm.stopPrank();
 
 		// Approvals for adding liquidity
@@ -1795,10 +1795,10 @@ function testMinLiquidityAndReclaimedAmounts() public {
 		vm.stopPrank();
 
 		vm.startPrank(address(dao));
-		poolsConfig.whitelistPool( pools, tokenA, wbtc);
-		poolsConfig.whitelistPool( pools, tokenA, weth);
-		poolsConfig.whitelistPool( pools, tokenB, wbtc);
-		poolsConfig.whitelistPool( pools, tokenB, weth);
+		poolsConfig.whitelistPool(tokenA, wbtc);
+		poolsConfig.whitelistPool(tokenA, weth);
+		poolsConfig.whitelistPool(tokenB, wbtc);
+		poolsConfig.whitelistPool(tokenB, weth);
 		vm.stopPrank();
 
 		vm.startPrank(DEPLOYER);
@@ -1823,7 +1823,7 @@ function testAdjustReservesForSwap_Overflow_Bug_Audit() public {
     vm.stopPrank();
 
     vm.startPrank(address(dao));
-    poolsConfig.whitelistPool(pools, tokenIn, tokenOut);
+    poolsConfig.whitelistPool(tokenIn, tokenOut);
     vm.stopPrank();
 
     uint256 tokenInBalance = type(uint128).max - 1000;

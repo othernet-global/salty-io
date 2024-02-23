@@ -41,12 +41,14 @@ contract TestDeployment is Deployment
 		assertTrue( ERC20(address(wbtc)).decimals() == 8, "WBTC should have 8 decimals" );
 		assertTrue( ERC20(address(weth)).decimals() == 18, "WETH should have 18 decimals" );
 		assertTrue( ERC20(address(usdc)).decimals() == 6, "USDC should have 6 decimals" );
+		assertTrue( ERC20(address(usdt)).decimals() == 6, "USDT should have 6 decimals" );
 		assertTrue( ERC20(address(salt)).decimals() == 18, "SALT should have 18 decimals" );
 
         assertEq( getContract(address(exchangeConfig), "salt()"), address(salt), "Incorrect exchangeConfig.salt" );
         assertEq( getContract(address(exchangeConfig), "wbtc()"), address(wbtc), "Incorrect exchangeConfig.wbtc" );
         assertEq( getContract(address(exchangeConfig), "weth()"), address(weth), "Incorrect exchangeConfig.weth" );
         assertEq( getContract(address(exchangeConfig), "usdc()"), address(usdc), "Incorrect exchangeConfig.usdc" );
+        assertEq( getContract(address(exchangeConfig), "usdt()"), address(usdt), "Incorrect exchangeConfig.usdt" );
 
         assertEq( getContract(address(exchangeConfig), "dao()"), address(dao), "Incorrect exchangeConfig.dao" );
         assertEq( getContract(address(exchangeConfig), "upkeep()"), address(upkeep), "Incorrect exchangeConfig.upkeep" );
@@ -124,7 +126,6 @@ contract TestDeployment is Deployment
         assertEq( getContract(address(proposals), "exchangeConfig()"), address(exchangeConfig), "Incorrect proposals.exchangeConfig" );
         assertEq( getContract(address(proposals), "poolsConfig()"), address(poolsConfig), "Incorrect proposals.poolsConfig" );
         assertEq( getContract(address(proposals), "daoConfig()"), address(daoConfig), "Incorrect proposals.daoConfig" );
-        assertEq( getContract(address(proposals), "salt()"), address(salt), "Incorrect proposals.salt" );
 
 		assertEq( getContract(address(saltRewards), "exchangeConfig()"), address(exchangeConfig), "Incorrect saltRewards.exchangeConfig" );
         assertEq( getContract(address(saltRewards), "rewardsConfig()"), address(rewardsConfig), "Incorrect saltRewards.rewardsConfig" );

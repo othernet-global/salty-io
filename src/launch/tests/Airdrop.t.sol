@@ -53,14 +53,14 @@ contract TestAirdrop is Deployment
 
 			emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
-			poolsConfig.whitelistPool( pools,   salt, usdc);
-			poolsConfig.whitelistPool( pools,   salt, usdt);
-			poolsConfig.whitelistPool( pools,   weth, usdc);
-			poolsConfig.whitelistPool( pools,   weth, usdt);
-			poolsConfig.whitelistPool( pools,   wbtc, salt);
-			poolsConfig.whitelistPool( pools,   wbtc, weth);
-			poolsConfig.whitelistPool( pools,   salt, weth);
-			poolsConfig.whitelistPool( pools,   usdc, usdt);
+		// Whitelist the pools
+		poolsConfig.whitelistPool(salt, usdc);
+		poolsConfig.whitelistPool(salt, weth);
+		poolsConfig.whitelistPool(weth, usdc);
+		poolsConfig.whitelistPool(weth, usdt);
+		poolsConfig.whitelistPool(wbtc, usdc);
+		poolsConfig.whitelistPool(wbtc, weth);
+		poolsConfig.whitelistPool(usdc, usdt);
 
 			proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 

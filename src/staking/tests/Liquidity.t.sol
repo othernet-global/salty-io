@@ -51,8 +51,8 @@ contract LiquidityTest is Deployment
 
         // Whitelist the _pools
 		vm.startPrank( address(dao) );
-        poolsConfig.whitelistPool( pools,   token1, token2);
-        poolsConfig.whitelistPool( pools,   token2, token3);
+        poolsConfig.whitelistPool(  token1, token2);
+        poolsConfig.whitelistPool(  token2, token3);
         vm.stopPrank();
 
 		vm.prank(DEPLOYER);
@@ -555,7 +555,7 @@ contract LiquidityTest is Deployment
 
         // Whitelist the _pools
 		vm.startPrank( address(dao) );
-        poolsConfig.whitelistPool( pools,  tokenA, tokenB);
+        poolsConfig.whitelistPool( tokenA, tokenB);
         vm.stopPrank();
 
         vm.startPrank(alice);
@@ -618,7 +618,7 @@ contract LiquidityTest is Deployment
 
         // Now, unwhitelist the pool as if it's a DAO decision
         vm.prank(address(dao));
-        poolsConfig.unwhitelistPool(pools, token1, token2);
+        poolsConfig.unwhitelistPool(token1, token2);
 
 		vm.warp(block.timestamp + 1 hours);
 
@@ -726,7 +726,7 @@ contract LiquidityTest is Deployment
 
         // Whitelist the _pools
 		vm.startPrank( address(dao) );
-        poolsConfig.whitelistPool( pools,  tokenA, tokenB);
+        poolsConfig.whitelistPool( tokenA, tokenB);
         vm.stopPrank();
 
         vm.startPrank(alice);

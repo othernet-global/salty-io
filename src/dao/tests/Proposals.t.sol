@@ -539,7 +539,7 @@ staking.stakeSALT(1000 ether);
 //		console.log( "tokenHasBeenWhitelisted(): ", proposals.tokenHasBeenWhitelisted(wbtc) );
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool( pools,    wbtc, weth );
+		poolsConfig.whitelistPool(   wbtc, weth );
 
         vm.startPrank(alice);
         vm.expectRevert( "The token has already been whitelisted" );
@@ -585,7 +585,7 @@ staking.stakeSALT(1000 ether);
 
 		// Make sure the ballot failed to approve the token
 		dao.finalizeBallot(ballotID);
-		assertFalse( poolsConfig.tokenHasBeenWhitelisted( testToken, salt, weth ), "Token should not have been whitelisted" );
+		assertFalse( poolsConfig.tokenHasBeenWhitelisted( testToken, weth, usdc ), "Token should not have been whitelisted" );
 
         assertEq(proposals.openBallotsForTokenWhitelisting().length, 0, "The number of ballots shoudl now be zero");
 
@@ -618,7 +618,7 @@ staking.stakeSALT(1000 ether);
 		salt.transfer( address(dao), 1	 );
 		dao.finalizeBallot(ballotID2);
 
-		assertTrue( poolsConfig.tokenHasBeenWhitelisted( testToken2, salt, weth ), "Token should have been whitelisted" );
+		assertTrue( poolsConfig.tokenHasBeenWhitelisted( testToken2, weth, usdc ), "Token should have been whitelisted" );
     }
 
 
@@ -672,9 +672,9 @@ staking.stakeSALT(1000 ether);
 		IERC20 usdc = exchangeConfig.usdc();
 
 		vm.startPrank(address(dao));
-		poolsConfig.whitelistPool( pools,    wbtc, weth );
-		poolsConfig.whitelistPool( pools,    wbtc, usdc );
-		poolsConfig.whitelistPool( pools,    wbtc, salt );
+		poolsConfig.whitelistPool(   wbtc, weth );
+		poolsConfig.whitelistPool(   wbtc, usdc );
+		poolsConfig.whitelistPool(   wbtc, salt );
 		vm.stopPrank();
 
 		vm.startPrank(DEPLOYER);
@@ -710,9 +710,9 @@ staking.stakeSALT(1000 ether);
 
         // Whitelist the token (which will be paired with WBTC and WETH)
         vm.prank(address(dao));
-		poolsConfig.whitelistPool( pools,    newToken, wbtc );
+		poolsConfig.whitelistPool(   newToken, wbtc );
         vm.prank(address(dao));
-		poolsConfig.whitelistPool( pools,    newToken, weth );
+		poolsConfig.whitelistPool(   newToken, weth );
 
         // Unwhitelist the token and expect no revert
 		vm.prank( DEPLOYER );
@@ -964,7 +964,7 @@ staking.stakeSALT(1000 ether);
 		IERC20 weth = exchangeConfig.weth();
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool( pools,    wbtc, weth );
+		poolsConfig.whitelistPool(   wbtc, weth );
 
 		vm.startPrank(DEPLOYER);
         staking.stakeSALT( 2000000 ether );
@@ -1688,12 +1688,12 @@ staking.stakeSALT(1000 ether);
 
         // Whitelist the token
         vm.startPrank(address(dao));
-        poolsConfig.whitelistPool( pools, testToken, wbtc);
-        poolsConfig.whitelistPool( pools, testToken, weth);
+        poolsConfig.whitelistPool(testToken, wbtc);
+        poolsConfig.whitelistPool(testToken, weth);
         vm.stopPrank();
 
         // Check that the token is now whitelisted
-        assertTrue(poolsConfig.tokenHasBeenWhitelisted(testToken, exchangeConfig.salt(), exchangeConfig.weth()));
+        assertTrue(poolsConfig.tokenHasBeenWhitelisted(testToken, exchangeConfig.weth(), exchangeConfig.usdc()));
 
         vm.startPrank(alice);
 

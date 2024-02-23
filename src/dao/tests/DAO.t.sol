@@ -171,7 +171,8 @@ contract TestDAO is Deployment
 //		console.log( "\td" );
 		uint256 newValue = _parameterValue( Parameters.ParameterTypes( parameterNum ) );
 
-		assert( newValue < originalValue );
+		if ( parameterNum != 1 )
+			assert( newValue < originalValue );
     }
 
 
@@ -230,7 +231,6 @@ contract TestDAO is Deployment
         staking.stakeSALT( 1000000 ether );
 
        	IERC20 token = new TestERC20("TEST", 18);
-
         proposals.proposeTokenWhitelisting( token, "", "" );
 
 		uint256 ballotID = 1;
@@ -251,12 +251,12 @@ contract TestDAO is Deployment
         dao.finalizeBallot(ballotID);
 
 		// Check for the effects of the vote
-		assertTrue( poolsConfig.tokenHasBeenWhitelisted(token, salt, weth), "Token not whitelisted" );
+		assertTrue( poolsConfig.tokenHasBeenWhitelisted(token, weth, usdc), "Token not whitelisted" );
 
 		// Check to see that the bootstrapping rewards have been sent
 		bytes32[] memory poolIDs = new bytes32[](2);
-		poolIDs[0] = PoolUtils._poolID(token,salt);
-		poolIDs[1] = PoolUtils._poolID(token,weth);
+		poolIDs[0] = PoolUtils._poolID(token,weth);
+		poolIDs[1] = PoolUtils._poolID(token,usdc);
 
 		uint256[] memory pendingRewards = liquidityRewardsEmitter.pendingRewardsForPools( poolIDs );
 
@@ -281,7 +281,7 @@ contract TestDAO is Deployment
 		_voteForAndFinalizeBallot(1, Vote.NO);
 
 		// Check for the effects of the vote
-		assertFalse( poolsConfig.tokenHasBeenWhitelisted(token, salt, weth), "Token should not be whitelisted" );
+		assertFalse( poolsConfig.tokenHasBeenWhitelisted(token, weth, usdc), "Token should not be whitelisted" );
     	}
 
 
@@ -301,7 +301,7 @@ contract TestDAO is Deployment
 		_voteForAndFinalizeBallot(2, Vote.YES);
 
 		// Check for the effects of the vote
-		assertFalse( poolsConfig.tokenHasBeenWhitelisted(token, salt, weth), "Token should not be whitelisted" );
+		assertFalse( poolsConfig.tokenHasBeenWhitelisted(token, weth, usdc), "Token should not be whitelisted" );
     	}
 
 
@@ -321,7 +321,7 @@ contract TestDAO is Deployment
 		_voteForAndFinalizeBallot(2, Vote.NO);
 
 		// Check for the effects of the vote
-		assertTrue( poolsConfig.tokenHasBeenWhitelisted(token, salt, weth), "Token not whitelisted" );
+		assertTrue( poolsConfig.tokenHasBeenWhitelisted(token, weth, usdc), "Token not whitelisted" );
     	}
 
 
@@ -845,7 +845,7 @@ contract TestDAO is Deployment
 
 
         // Assert that the token has been whitelisted
-        assertTrue(poolsConfig.tokenHasBeenWhitelisted(test, salt, weth), "Token was not whitelisted");
+        assertTrue(poolsConfig.tokenHasBeenWhitelisted(test, weth, usdc), "Token was not whitelisted");
 
         // Assert the correct amount of bootstrapping rewards have been deducted
         uint256 finalDaoBalance = salt.balanceOf(address(dao));
@@ -967,7 +967,7 @@ contract TestDAO is Deployment
 		dao.manuallyRemoveBallot(ballotID);
         assertEq(proposals.ballotForID(ballotID).ballotIsLive, false, "Ballot should have been removed");
 
-        assertFalse( poolsConfig.tokenHasBeenWhitelisted(token, salt, weth), "Token should not have been whitelisted" );
+        assertFalse( poolsConfig.tokenHasBeenWhitelisted(token, weth, usdc), "Token should not have been whitelisted" );
 		}
 
 

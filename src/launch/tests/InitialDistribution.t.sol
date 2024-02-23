@@ -53,14 +53,14 @@ contract TestInitialDistribution is Deployment
 
 			emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
-			poolsConfig.whitelistPool( pools,   salt, usdc);
-			poolsConfig.whitelistPool( pools,   salt, usdt);
-			poolsConfig.whitelistPool( pools,   weth, usdc);
-			poolsConfig.whitelistPool( pools,   weth, usdt);
-			poolsConfig.whitelistPool( pools,   wbtc, salt);
-			poolsConfig.whitelistPool( pools,   wbtc, weth);
-			poolsConfig.whitelistPool( pools,   salt, weth);
-			poolsConfig.whitelistPool( pools,   usdc, usdt);
+		// Whitelist the pools
+		poolsConfig.whitelistPool(salt, usdc);
+		poolsConfig.whitelistPool(salt, weth);
+		poolsConfig.whitelistPool(weth, usdc);
+		poolsConfig.whitelistPool(weth, usdt);
+		poolsConfig.whitelistPool(wbtc, usdc);
+		poolsConfig.whitelistPool(wbtc, weth);
+		poolsConfig.whitelistPool(usdc, usdt);
 
 			proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 
@@ -169,8 +169,8 @@ contract TestInitialDistribution is Deployment
 		assertEq(salt.balanceOf(address(daoVestingWallet)), 25 * MILLION_ETHER);
 		assertEq(salt.balanceOf(address(teamVestingWallet)), 10 * MILLION_ETHER);
 		assertEq(salt.balanceOf(address(airdrop)), 5 * MILLION_ETHER);
-		assertEq(salt.balanceOf(address(liquidityRewardsEmitter)), 5000000000000000000000000);
-		assertEq(salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000000);
+		assertEq(salt.balanceOf(address(liquidityRewardsEmitter)), 4999999999999999999999995);
+		assertEq(salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005);
 
 		assertEq( salt.balanceOf(address(initialDistribution)), 0 );
 	}

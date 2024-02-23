@@ -66,7 +66,7 @@ contract TestSaltRewards2 is Deployment
 		IERC20 token2 = new TestERC20( "TEST", 18 );
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool( pools,   token1, token2);
+		poolsConfig.whitelistPool(  token1, token2);
 
         bytes32[] memory poolIDs = new bytes32[](2);
         poolIDs[0] = PoolUtils._poolID(salt,usdc);
@@ -225,7 +225,7 @@ contract TestSaltRewards2 is Deployment
 		IERC20 token2 = new TestERC20( "TEST", 18 );
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool( pools,   token1, token2);
+		poolsConfig.whitelistPool(  token1, token2);
 
         bytes32[] memory poolIDs = new bytes32[](2);
         poolIDs[0] = PoolUtils._poolID(salt,usdc);
@@ -288,7 +288,7 @@ contract TestSaltRewards2 is Deployment
 		IERC20 token2 = new TestERC20( "TEST", 18 );
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool( pools,   token1, token2);
+		poolsConfig.whitelistPool(  token1, token2);
 
         bytes32[] memory poolIDs = new bytes32[](2);
         poolIDs[0] = PoolUtils._poolID(salt,usdc);
@@ -331,7 +331,7 @@ contract TestSaltRewards2 is Deployment
             IERC20 tokenB = new TestERC20("TESTB", 18);
 
             vm.prank(address(dao));
-            poolsConfig.whitelistPool(pools, tokenA, tokenB);
+            poolsConfig.whitelistPool(tokenA, tokenB);
 
             bytes32 poolIdA = PoolUtils._poolID(salt,usdc);
             bytes32 poolIdB = PoolUtils._poolID(tokenA, tokenB);
@@ -408,7 +408,7 @@ contract TestSaltRewards2 is Deployment
         poolIDs[0] = PoolUtils._poolID(salt, usdc);
         poolIDs[1] = PoolUtils._poolID(wbtc, weth);
         poolIDs[2] = PoolUtils._poolID(weth, usdc);
-        poolIDs[3] = PoolUtils._poolID(salt, wbtc);
+        poolIDs[3] = PoolUtils._poolID(wbtc, usdc);
 
         uint256 liquidityBootstrapAmount = 1000 ether;
 
@@ -491,7 +491,7 @@ contract TestSaltRewards2 is Deployment
         bytes32 otherPoolIDTest = PoolUtils._poolID(newToken, usdc);
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool(pools, newToken, usdc);
+		poolsConfig.whitelistPool(newToken, usdc);
 
         // Set pool IDs and profits with one pool being the saltUSDCPoolID and another being any other pool
         bytes32[] memory poolIDs = new bytes32[](2);

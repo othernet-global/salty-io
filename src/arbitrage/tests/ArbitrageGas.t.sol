@@ -26,8 +26,8 @@ contract TestArbitrage is Deployment
 		tokenE = new TestERC20("TEST", 18);
 
         vm.startPrank(address(dao));
-        poolsConfig.whitelistPool( pools,   tokenE, salt);
-        poolsConfig.whitelistPool( pools,   tokenE, weth);
+        poolsConfig.whitelistPool(  tokenE, salt);
+        poolsConfig.whitelistPool(  tokenE, weth);
         vm.stopPrank();
 
 		vm.startPrank(DEPLOYER);
@@ -89,8 +89,8 @@ contract TestArbitrage is Deployment
 //		console.log( "amountOut: ", amountOut );
 //		console.log( "ending pools balance: ", pools.depositedUserBalance( address(pools), weth ) );
 
-		assertEq( amountOut, 9901205408342037988 );
-		assertEq( pools.depositedUserBalance( address(dao), salt ), 99231721268596830 );
+		assertEq( amountOut, 9900982881233894761 );
+		assertEq( pools.depositedUserBalance( address(dao), salt ), 66663337341884444 );
 		}
 	}
 

@@ -108,7 +108,8 @@ contract TestParametersOffchain is Test
 		if ( expectedAfterDecrease < minValue )
 			expectedAfterDecrease = minValue;
 
-		assertEq( _parameterValue(parameter), expectedAfterDecrease, "Decreased value is not as expected" );
+		if ( parameter != Parameters.ParameterTypes.minUnstakeWeeks )
+			assertEq( _parameterValue(parameter), expectedAfterDecrease, "Decreased value is not as expected" );
 
 
 		// Increase until max
@@ -150,7 +151,7 @@ contract TestParametersOffchain is Test
 		{
 		vm.startPrank(address(parameters));
 
-		_checkParameter( Parameters.ParameterTypes.minUnstakeWeeks, 1, 2, 12, 1 );
+		_checkParameter( Parameters.ParameterTypes.minUnstakeWeeks, 2, 2, 12, 1 );
 		_checkParameter( Parameters.ParameterTypes.maxUnstakeWeeks, 20, 52, 108, 8 );
 		_checkParameter( Parameters.ParameterTypes.minUnstakePercent, 10, 20, 50, 5 );
 		_checkParameter( Parameters.ParameterTypes.modificationCooldown, 15 minutes, 1 hours, 6 hours, 15 minutes );

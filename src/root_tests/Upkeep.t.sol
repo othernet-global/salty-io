@@ -296,8 +296,8 @@ contract TestUpkeep2 is Deployment
     	// Wait an hour to generate some emissions
        	skip( 1 hours );
 
-    	assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000000 );  // 3 million
-    	assertEq( salt.balanceOf(address(liquidityRewardsEmitter)), 5000000000000000000000000 ); // 5 million
+    	assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );  // 3 million
+    	assertEq( salt.balanceOf(address(liquidityRewardsEmitter)), 4999999999999999999999995 ); // 5 million
 
     	vm.prank(address(upkeep));
     	ITestUpkeep(address(upkeep)).step6();
@@ -331,7 +331,7 @@ contract TestUpkeep2 is Deployment
     	assertEq( salt.balanceOf(address(daoVestingWallet)), 25 * 1000000 ether );
 
 		// Warp to the start of when the daoVestingWallet starts to emit as there is an initial one week delay
-		vm.warp( daoVestingWallet.start() );
+		vm.warp( VestingWallet(payable(daoVestingWallet)).start() );
 
 		// 24 hours later
 		vm.warp( block.timestamp + 24 hours );
@@ -353,7 +353,7 @@ contract TestUpkeep2 is Deployment
     	assertEq( salt.balanceOf(address(daoVestingWallet)), 25 * 1000000 ether );
 
 		// Warp to the start of when the daoVestingWallet starts to emit as there is an initial one week delay
-		vm.warp( daoVestingWallet.start() );
+		vm.warp( VestingWallet(payable(daoVestingWallet)).start() );
 
 		// One year later
 		vm.warp( block.timestamp + 365 days );
@@ -375,7 +375,7 @@ contract TestUpkeep2 is Deployment
     	assertEq( salt.balanceOf(address(teamVestingWallet)), 10 * 1000000 ether );
 
 		// Warp to the start of when the teamVestingWallet starts to emit as there is an initial one week delay
-		vm.warp( teamVestingWallet.start() );
+		vm.warp( VestingWallet(payable(teamVestingWallet)).start() );
 
 		// 24 hours later
 		vm.warp( block.timestamp + 24 hours );
@@ -407,10 +407,10 @@ contract TestUpkeep2 is Deployment
     	pools.deposit(salt, 100 ether);
     	vm.stopPrank();
 
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000000 );
+		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005 );
 		assertEq( salt.balanceOf(address(staking)), 0 );
 
-		assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5004994341971248241 );
+		assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5003278458319569669 );
 
 		// === Perform upkeep ===
 		address upkeepCaller = address(0x9999);
@@ -422,12 +422,12 @@ contract TestUpkeep2 is Deployment
 
 		// Check Step 1. Withdraws deposited SALT arbitrage profits from the Pools contract and rewards the caller of performUpkeep()
 		// From the directly added 100 ether + arbitrage profits
-    	assertEq( salt.balanceOf(upkeepCaller), 5004994341971248241 );
+    	assertEq( salt.balanceOf(upkeepCaller), 5003278458319569669 );
 
 
 		// Check Step 2. Burns 10% of the remaining withdrawn salt and sends 10% to the DAO's reserve.
 
-		assertEq( salt.totalBurned(), 9509489249745371659 );
+		assertEq( salt.totalBurned(), 9506229070807182372 );
 
 		// Check Step 3. Sends the remaining SALT to SaltRewards.
 		// Check Step 4. Send SALT Emissions to the SaltRewards contract.
@@ -440,7 +440,7 @@ contract TestUpkeep2 is Deployment
 
 		// As there were profits, SaltRewards distributed the 1488 ether + 72.2 ether rewards to the rewards emitters.
 		// 50% to stakingRewardsEmitter and 50% to liquidityRewardsEmitter, 1% / day for one hour.
-		assertEq( salt.balanceOf(address(saltRewards)), 2 ); // should be basically empty now
+		assertEq( salt.balanceOf(address(saltRewards)), 1 ); // should be basically empty now
 
 		// Additionally stakingRewardsEmitter started with 3 million bootstrapping rewards.
 		// liquidityRewardsEmitter started with 5 million bootstrapping rewards, divided evenly amongst the initial pools.
@@ -452,7 +452,7 @@ contract TestUpkeep2 is Deployment
 		// Check that the staking rewards were transferred to the staking contract:
 		// One hour of emitted rewards (1% a day) of (3 million bootstrapping in the stakingRewardsEmitter and 50% of 1560.2 ether)
 		// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
-		assertEq( staking.totalRewardsForPools(poolIDsA)[0], 1250338269783670210540  );
+		assertEq( staking.totalRewardsForPools(poolIDsA)[0], 1250338264350038646891  );
 
 		bytes32[] memory poolIDs = new bytes32[](3);
 		poolIDs[0] = PoolUtils._poolID(salt,weth);
@@ -464,9 +464,9 @@ contract TestUpkeep2 is Deployment
 		// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
 		uint256[] memory rewards = liquidity.totalRewardsForPools(poolIDs);
 
-		assertEq( rewards[0], 260529423261223403513);
-		assertEq( rewards[1], 260529423261223403513);
-		assertEq( rewards[2], 260529423261223403513);
+		assertEq( rewards[0], 297731802402393834678);
+		assertEq( rewards[1], 297731802402393834678);
+		assertEq( rewards[2], 297731802402393834678);
 
 
 		// Check Step 7. Sends SALT from the DAO vesting wallet to the DAO (linear distribution over 10 years).
@@ -478,7 +478,7 @@ contract TestUpkeep2 is Deployment
 
 		// The daoVestingWallet contains 25 million SALT and vests over a 10 year period.
 		// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34394 in the first 5 days + one hour
-		assertEq( salt.balanceOf(address(dao)), 34403424063070141109862 );
+		assertEq( salt.balanceOf(address(dao)), 34403420802891202920575 );
 		}
 
 
@@ -510,12 +510,12 @@ contract TestUpkeep2 is Deployment
 
 		// Check Step 1. Withdraws deposited SALT arbitrage profits from the Pools contract and rewards the caller of performUpkeep()
 		// From the directly added 100 ether + arbitrage profits
-    	assertEq( salt.balanceOf(upkeepCaller), 10009966589553192391 );
+    	assertEq( salt.balanceOf(upkeepCaller), 10011379285267865803 );
 
 
 		// Check Step 2. Burns 10% of the remaining withdrawn salt and sends 10% to the DAO's reserve.
 
-		assertEq( salt.totalBurned(), 19018936520151065544 );
+		assertEq( salt.totalBurned(), 19021620642008945027 );
 
 		// Check Step 3. Sends the remaining SALT to SaltRewards.
 		// Check Step 4. Send SALT Emissions to the SaltRewards contract.
@@ -540,7 +540,7 @@ contract TestUpkeep2 is Deployment
 		// Check that the staking rewards were transferred to the staking contract:
 		// One hour of emitted rewards (1% a day) of (3 million bootstrapping in the stakingRewardsEmitter and 50% of 1560.2 ether)
 		// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
-		assertEq( staking.totalRewardsForPools(poolIDsA)[0], 1354493270797834104251  );
+		assertEq( staking.totalRewardsForPools(poolIDsA)[0], 1354493265737185910848  );
 
 		bytes32[] memory poolIDs = new bytes32[](3);
 		poolIDs[0] = PoolUtils._poolID(salt,weth);
@@ -552,9 +552,9 @@ contract TestUpkeep2 is Deployment
 		// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
 		uint256[] memory rewards = liquidity.totalRewardsForPools(poolIDs);
 
-		assertEq( rewards[0], 282232348946500256972);
-		assertEq( rewards[1], 282232348946500256972);
-		assertEq( rewards[2], 282232348946500256972);
+		assertEq( rewards[0], 322533634875358266579);
+		assertEq( rewards[1], 322533634875358266579);
+		assertEq( rewards[2], 322533634875358266579);
 
 
 		// Check Step 7. Sends SALT from the DAO vesting wallet to the DAO (linear distribution over 10 years).
@@ -566,7 +566,7 @@ contract TestUpkeep2 is Deployment
 
 		// The daoVestingWallet contains 25 million SALT and vests over a 10 year period.
 		// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34394 in the first 5 days + one hour
-		assertEq( salt.balanceOf(address(dao)), 34436620724952418949866 );
+		assertEq( salt.balanceOf(address(dao)), 34436623409074276829349 );
 		}
 
 

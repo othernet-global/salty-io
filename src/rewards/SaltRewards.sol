@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.22;
 
-import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../rewards/interfaces/IRewardsEmitter.sol";
 import "../rewards/interfaces/IRewardsConfig.sol";
 import "../interfaces/IExchangeConfig.sol";
@@ -14,8 +13,6 @@ import "../pools/PoolUtils.sol";
 // Sends SALT rewards to the stakingRewardsEmitter and liquidityRewardsEmitter (with proportions for the latter based on each pool's share in generating recent arbitrage profits).
 contract SaltRewards is ISaltRewards
     {
-    using SafeERC20 for ISalt;
-
 	IRewardsEmitter immutable public stakingRewardsEmitter;
 	IRewardsEmitter immutable public liquidityRewardsEmitter;
 	IExchangeConfig immutable public exchangeConfig;

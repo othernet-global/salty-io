@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.22;
 
-import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
 import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
-import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-contracts/contracts/utils/Strings.sol";
 import "../pools/interfaces/IPoolsConfig.sol";
 import "../staking/interfaces/IStaking.sol";
@@ -22,7 +21,6 @@ contract Proposals is IProposals, ReentrancyGuard
     event BallotFinalized(uint256 indexed ballotID);
     event VoteCast(address indexed voter, uint256 indexed ballotID, Vote vote, uint256 votingPower);
 
-	using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.UintSet;
 
     IStaking immutable public staking;
@@ -166,10 +164,10 @@ contract Proposals is IProposals, ReentrancyGuard
 		{
 		require( address(token) != address(0), "token cannot be address(0)" );
 		require( token.totalSupply() < type(uint112).max, "Token supply cannot exceed uint112.max" ); // 5 quadrillion max supply with 18 decimals of precision
-		require( ERC20(address(token)).decimals() <= 18, "Token decimal maximum is 18" );
+		require( IERC20Metadata(address(token)).decimals() <= 18, "Token decimal maximum is 18" );
 
 		require( poolsConfig.numberOfWhitelistedPools() < poolsConfig.maximumWhitelistedPools(), "Maximum number of whitelisted pools already reached" );
-		require( ! poolsConfig.tokenHasBeenWhitelisted(token, exchangeConfig.salt(), exchangeConfig.weth()), "The token has already been whitelisted" );
+		require( ! poolsConfig.tokenHasBeenWhitelisted(token, exchangeConfig.weth(), exchangeConfig.usdc()), "The token has already been whitelisted" );
 
 		string memory ballotName = string.concat("whitelist:", Strings.toHexString(address(token)), tokenIconURL, description );
 
@@ -182,7 +180,7 @@ contract Proposals is IProposals, ReentrancyGuard
 
 	function proposeTokenUnwhitelisting( IERC20 token, string calldata tokenIconURL, string calldata description ) external nonReentrant returns (uint256 ballotID)
 		{
-		require( poolsConfig.tokenHasBeenWhitelisted(token, exchangeConfig.salt(), exchangeConfig.weth()), "Can only unwhitelist a whitelisted token" );
+		require( poolsConfig.tokenHasBeenWhitelisted(token, exchangeConfig.weth(), exchangeConfig.usdc()), "Can only unwhitelist a whitelisted token" );
 		require( address(token) != address(exchangeConfig.wbtc()), "Cannot unwhitelist WBTC" );
 		require( address(token) != address(exchangeConfig.weth()), "Cannot unwhitelist WETH" );
 		require( address(token) != address(exchangeConfig.usdc()), "Cannot unwhitelist USDC" );
@@ -344,7 +342,7 @@ contract Proposals is IProposals, ReentrancyGuard
 		// Make sure that the requiredQuorum is at least 0.50% of the total SALT supply.
 		// Circulating supply after the first 45 days of emissions will be about 3 million - so this would require about 16% of the circulating
 		// SALT to be staked and voting to pass a proposal (including whitelisting) 45 days after deployment..
-		uint256 totalSupply = ERC20(address(exchangeConfig.salt())).totalSupply();
+		uint256 totalSupply = IERC20Metadata(address(exchangeConfig.salt())).totalSupply();
 		uint256 minimumQuorum = totalSupply * 5 / 1000;
 
 		if ( requiredQuorum < minimumQuorum )

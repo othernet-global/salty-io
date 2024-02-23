@@ -114,9 +114,9 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		{
 		if ( ballot.ballotType == BallotType.UNWHITELIST_TOKEN )
 			{
-			// All tokens are paired with both WBTC and WETH so unwhitelist those pools
-			poolsConfig.unwhitelistPool( pools, IERC20(ballot.address1), exchangeConfig.salt() );
-			poolsConfig.unwhitelistPool( pools, IERC20(ballot.address1), exchangeConfig.weth() );
+			// All tokens are paired with both WETH and USDC so unwhitelist those pools
+			poolsConfig.unwhitelistPool(IERC20(ballot.address1), exchangeConfig.weth() );
+			poolsConfig.unwhitelistPool(IERC20(ballot.address1), exchangeConfig.usdc() );
 
 			// Make sure that the cached arbitrage indicies in PoolStats are updated
 			pools.updateArbitrageIndicies();
@@ -204,19 +204,19 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 			uint256 bootstrappingRewards = daoConfig.bootstrappingRewards();
 
 			// Make sure that the DAO contract holds the required amount of SALT for bootstrappingRewards.
-			// Twice the bootstrapping rewards are needed (for both the token/WBTC and token/WETH pools)
+			// Twice the bootstrapping rewards are needed (for both the token/WETH and token/USDC pools)
 			uint256 saltBalance = exchangeConfig.salt().balanceOf( address(this) );
 			require( saltBalance >= bootstrappingRewards * 2, "Whitelisting is not currently possible due to insufficient bootstrapping rewards" );
 
-			// All tokens are paired with both WBTC and WETH, so whitelist both pairings
-			poolsConfig.whitelistPool( pools,  IERC20(ballot.address1), exchangeConfig.salt() );
-			poolsConfig.whitelistPool( pools,  IERC20(ballot.address1), exchangeConfig.weth() );
+			// All tokens are paired with both WETH and USDC, so whitelist both pairings
+			poolsConfig.whitelistPool( IERC20(ballot.address1), exchangeConfig.weth() );
+			poolsConfig.whitelistPool( IERC20(ballot.address1), exchangeConfig.usdc() );
 
 			// Make sure that the cached arbitrage indicies in PoolStats are updated
 			pools.updateArbitrageIndicies();
 
-			bytes32 pool1 = PoolUtils._poolID( IERC20(ballot.address1), exchangeConfig.salt() );
-			bytes32 pool2 = PoolUtils._poolID( IERC20(ballot.address1), exchangeConfig.weth() );
+			bytes32 pool1 = PoolUtils._poolID( IERC20(ballot.address1), exchangeConfig.weth() );
+			bytes32 pool2 = PoolUtils._poolID( IERC20(ballot.address1), exchangeConfig.usdc() );
 
 			// Send the initial bootstrappingRewards to promote initial liquidity on these two newly whitelisted pools
 			AddedReward[] memory addedRewards = new AddedReward[](2);

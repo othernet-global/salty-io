@@ -11,6 +11,7 @@ abstract contract ArbitrageSearch
 	ISalt immutable public salt;
 	IERC20 immutable public weth;
 	IERC20 immutable public usdc;
+	IERC20 immutable public usdt;
 
 
     constructor( IExchangeConfig _exchangeConfig )
@@ -19,38 +20,39 @@ abstract contract ArbitrageSearch
 		salt = _exchangeConfig.salt();
 		weth = _exchangeConfig.weth();
 		usdc = _exchangeConfig.usdc();
+		usdt = _exchangeConfig.usdt();
     	}
 
 
-	// Returns the middle two tokens in an arbitrage path that starts and ends with SALT.
-	// The SALT tokens at the beginning and end of the path are not returned as they are always the same.
-	// Full arbitrage cycle is: SALT->arbToken2->arbToken3->SALT
+	// Returns the middle two tokens in an arbitrage path that starts and ends with WETH.
+	// The WETH tokens at the beginning and end of the path are not returned as they are always the same.
+	// Full arbitrage cycle is: WETH->arbToken2->arbToken3->WETH
 	function _arbitragePath( IERC20 swapTokenIn, IERC20 swapTokenOut ) internal view returns (IERC20 arbToken2, IERC20 arbToken3)
 		{
-		// swap: WETH->SALT
-        // arb: SALT->WETH->USDC->SALT
-		if ( address(swapTokenIn) == address(weth))
-		if ( address(swapTokenOut) == address(salt))
-			return (weth, usdc);
-
-		// swap: SALT->WETH
-        // arb: SALT->USDC->WETH->SALT
-		if ( address(swapTokenIn) == address(salt))
+		// swap: USDC->WETH
+        // arb: WETH->USDC->USDT->WETH
+		if ( address(swapTokenIn) == address(usdc))
 		if ( address(swapTokenOut) == address(weth))
-			return (usdc, weth);
+			return (usdc, usdt);
 
-		// swap: SALT->swapTokenOut
-        // arb: SALT->WETH->swapTokenOut->SALT
-		if ( address(swapTokenIn) == address(salt))
-			return (weth, swapTokenOut);
+		// swap: WETH->USDC
+        // arb: WETH->USDT->USDC->WETH
+		if ( address(swapTokenIn) == address(weth))
+		if ( address(swapTokenOut) == address(usdc))
+			return (usdt, usdc);
 
-		// swap: swapTokenIn->SALT
-        // arb: SALT->swapTokenIn->WETH->SALT
-		if ( address(swapTokenOut) == address(salt))
-			return (swapTokenIn, weth);
+		// swap: WETH->swapTokenOut
+        // arb: WETH->USDC->swapTokenOut->WETH
+		if ( address(swapTokenIn) == address(weth))
+			return (usdc, swapTokenOut);
+
+		// swap: swapTokenIn->WETH
+        // arb: WETH->swapTokenIn->USDC->WETH
+		if ( address(swapTokenOut) == address(weth))
+			return (swapTokenIn, usdc);
 
 		// swap: swapTokenIn->swapTokenOut
-        // arb: SALT->swapTokenOut->swapTokenIn->SALT
+        // arb: WETH->swapTokenOut->swapTokenIn->WETH
 		return (swapTokenOut, swapTokenIn);
 		}
 

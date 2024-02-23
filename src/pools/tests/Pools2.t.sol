@@ -50,16 +50,16 @@ contract TestPools2 is Deployment
 		for( uint256 i = 0; i < 9; i++ )
 			{
 			vm.prank(address(dao));
-			poolsConfig.whitelistPool( pools,    tokens[i], tokens[i + 1] );
+			poolsConfig.whitelistPool(   tokens[i], tokens[i + 1] );
 
 			vm.prank(DEPLOYER);
 			liquidity.depositLiquidityAndIncreaseShare( tokens[i], tokens[i + 1], 500 ether, 500 ether, 0, 0, 0, block.timestamp, false );
 			}
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool( pools,    tokens[5], tokens[7] );
+		poolsConfig.whitelistPool(   tokens[5], tokens[7] );
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool( pools,    tokens[0], tokens[9] );
+		poolsConfig.whitelistPool(   tokens[0], tokens[9] );
 
 		vm.startPrank( DEPLOYER );
 		liquidity.depositLiquidityAndIncreaseShare( tokens[5], tokens[7], 1000 ether, 1000 ether, 0, 0, 0, block.timestamp, false );
@@ -113,7 +113,7 @@ contract TestPools2 is Deployment
         vm.stopPrank();
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool( pools, tokenA, tokenB);
+		poolsConfig.whitelistPool(tokenA, tokenB);
 
 		vm.startPrank(address(liquidity));
 		tokenA.approve(address(pools), type(uint256).max);
@@ -164,7 +164,7 @@ contract TestPools2 is Deployment
         vm.stopPrank();
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool( pools, tokenA, tokenB);
+		poolsConfig.whitelistPool(tokenA, tokenB);
 
 		vm.startPrank(address(liquidity));
 		tokenA.approve(address(pools), type(uint256).max);
@@ -631,7 +631,7 @@ function testSequentialLiquidityAdjustment() public {
         vm.stopPrank();
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool( pools, tokenA, tokenB);
+		poolsConfig.whitelistPool(tokenA, tokenB);
 
 		vm.startPrank(address(liquidity));
 		tokenA.approve(address(pools), type(uint256).max);
@@ -668,7 +668,7 @@ function testSequentialLiquidityAdjustment() public {
 		vm.stopPrank();
 
 		vm.prank(address(dao));
-		poolsConfig.whitelistPool( pools, tokenA, tokenB);
+		poolsConfig.whitelistPool(tokenA, tokenB);
 
 		vm.startPrank(address(liquidity));
 		tokenA.approve(address(pools), type(uint256).max);
@@ -818,7 +818,7 @@ function testNeoCraoDepositOnlyReserve0Tokens() public {
     vm.stopPrank();
 
     vm.prank(address(dao));
-    poolsConfig.whitelistPool(pools, testTokens[0], testTokens[1]);
+    poolsConfig.whitelistPool(testTokens[0], testTokens[1]);
 
     vm.prank(DEPLOYER);
     liquidity.depositLiquidityAndIncreaseShare(

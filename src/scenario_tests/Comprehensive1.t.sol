@@ -35,6 +35,10 @@ contract TestComprehensive1 is Deployment
 		weth.transfer(alice, 1000 ether);
 		weth.transfer(bob, 1000 ether);
 		weth.transfer(charlie, 1000 ether);
+
+		usdc.transfer(alice, 1000 * 10**6 );
+		usdc.transfer(bob, 1000 * 10**6 );
+		usdc.transfer(charlie, 1000 * 10**6 );
 		vm.stopPrank();
 
 		// Everyone approves
@@ -123,21 +127,23 @@ contract TestComprehensive1 is Deployment
 
 		// No liquidity exists yet
 
-		// Alice adds some SALT/WETH, AND SALT/WBTC
+		// Alice adds some SALT/WETH, AND SALT/USDC
 		vm.startPrank(alice);
 		salt.approve(address(liquidity), type(uint256).max);
 		weth.approve(address(liquidity), type(uint256).max);
 		wbtc.approve(address(liquidity), type(uint256).max);
+		usdc.approve(address(liquidity), type(uint256).max);
 
 		liquidity.depositLiquidityAndIncreaseShare(salt, weth, 1000 ether, 10 ether, 0, 0, 0, block.timestamp, false);
-		liquidity.depositLiquidityAndIncreaseShare(salt, wbtc, 1000 ether, 10 * 10**8, 0, 0, 0, block.timestamp, false);
+		liquidity.depositLiquidityAndIncreaseShare(salt, usdc, 1000 ether, 10 * 10**6, 0, 0, 0, block.timestamp, false);
 		vm.stopPrank();
 
-		// Bob adds some WBTC/WETH liquidity and borrows some USDC
+		// Bob adds some WBTC/WETH liquidity
 		vm.startPrank(bob);
 		salt.approve(address(liquidity), type(uint256).max);
 		weth.approve(address(liquidity), type(uint256).max);
 		wbtc.approve(address(liquidity), type(uint256).max);
+		usdc.approve(address(liquidity), type(uint256).max);
 
     	liquidity.depositLiquidityAndIncreaseShare(wbtc, weth, 1000 * 10**8, 1000 ether, 0, 0, 0, block.timestamp, false);
     	vm.stopPrank();

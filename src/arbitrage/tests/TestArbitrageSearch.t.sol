@@ -47,14 +47,14 @@ contract TestArbitrageSearch2 is Deployment
 
 			emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
-			poolsConfig.whitelistPool( pools,   salt, usdc);
-			poolsConfig.whitelistPool( pools,   salt, usdt);
-			poolsConfig.whitelistPool( pools,   weth, usdc);
-			poolsConfig.whitelistPool( pools,   weth, usdt);
-			poolsConfig.whitelistPool( pools,   wbtc, salt);
-			poolsConfig.whitelistPool( pools,   wbtc, weth);
-			poolsConfig.whitelistPool( pools,   salt, weth);
-			poolsConfig.whitelistPool( pools,   usdc, usdt);
+		// Whitelist the pools
+		poolsConfig.whitelistPool(salt, usdc);
+		poolsConfig.whitelistPool(salt, weth);
+		poolsConfig.whitelistPool(weth, usdc);
+		poolsConfig.whitelistPool(weth, usdt);
+		poolsConfig.whitelistPool(wbtc, usdc);
+		poolsConfig.whitelistPool(wbtc, weth);
+		poolsConfig.whitelistPool(usdc, usdt);
 
 
 			proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
@@ -137,31 +137,32 @@ contract TestArbitrageSearch2 is Deployment
         address swapTokenOutAddress = address(uint160(uint256(keccak256("tokenOut"))));
         IERC20 swapTokenOut = IERC20(swapTokenOutAddress);
 
-        // WETH->SALT scenario
+
+        // USDC->WETH scenario
         vm.prank(alice);
         IERC20 arbToken2;
         IERC20 arbToken3;
-        (arbToken2, arbToken3) = testArbitrageSearch.arbitragePath(weth, salt);
-        assertEq(address(arbToken2), address(weth));
+        (arbToken2, arbToken3) = testArbitrageSearch.arbitragePath(usdc, weth);
+        assertEq(address(arbToken2), address(usdc));
+        assertEq(address(arbToken3), address(usdt));
+
+        // WETH->USDC scenario
+        vm.prank(alice);
+        (arbToken2, arbToken3) = testArbitrageSearch.arbitragePath(weth, usdc);
+        assertEq(address(arbToken2), address(usdt));
         assertEq(address(arbToken3), address(usdc));
 
-        // SALT->WETH scenario
+        // WETH->swapTokenOut scenario
         vm.prank(alice);
-        (arbToken2, arbToken3) = testArbitrageSearch.arbitragePath(salt, weth);
+        (arbToken2, arbToken3) = testArbitrageSearch.arbitragePath(weth, swapTokenOut);
         assertEq(address(arbToken2), address(usdc));
-        assertEq(address(arbToken3), address(weth));
-
-        // SALT->swapTokenOut scenario
-        vm.prank(alice);
-        (arbToken2, arbToken3) = testArbitrageSearch.arbitragePath(salt, swapTokenOut);
-        assertEq(address(arbToken2), address(weth));
         assertEq(address(arbToken3), address(swapTokenOut));
 
-        // swapTokenIn->SALT scenario
+        // swapTokenIn->WETH scenario
         vm.prank(alice);
-        (arbToken2, arbToken3) = testArbitrageSearch.arbitragePath(swapTokenIn, salt);
+        (arbToken2, arbToken3) = testArbitrageSearch.arbitragePath(swapTokenIn, weth);
         assertEq(address(arbToken2), address(swapTokenIn));
-        assertEq(address(arbToken3), address(weth));
+        assertEq(address(arbToken3), address(usdc));
 
         // swapTokenIn->swapTokenOut scenario
         vm.prank(alice);

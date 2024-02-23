@@ -2,6 +2,7 @@
 pragma solidity =0.8.22;
 
 import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
+import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
 import "../interfaces/IExchangeConfig.sol";
@@ -289,24 +290,27 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
     	}
 
 
-    // Arbitrage a token to itself along a circular path (starting and ending with SALT), taking advantage of imbalances in the exchange pools.
+    // Arbitrage a token to itself along a circular path (starting and ending with WETH), taking advantage of imbalances in the exchange pools.
     // Does not require any deposited tokens to make the call, but requires that the resulting amountOut is greater than the specified arbitrageAmountIn.
     // Essentially the caller virtually "borrows" arbitrageAmountIn of the starting token and virtually "repays" it from their received amountOut at the end of the swap chain.
     // The extra amountOut (compared to arbitrageAmountIn) is the arbitrage profit.
 	function _arbitrage(IERC20 arbToken2, IERC20 arbToken3, uint256 arbitrageAmountIn ) internal returns (uint256 arbitrageProfit)
 		{
-		uint256 amountOut = _adjustReservesForSwap( salt, arbToken2, arbitrageAmountIn );
+		uint256 amountOut = _adjustReservesForSwap( weth, arbToken2, arbitrageAmountIn );
 		amountOut = _adjustReservesForSwap( arbToken2, arbToken3, amountOut );
-		amountOut = _adjustReservesForSwap( arbToken3, salt, amountOut );
+		amountOut = _adjustReservesForSwap( arbToken3, weth, amountOut );
 
 		// Will revert if amountOut < arbitrageAmountIn
 		arbitrageProfit = amountOut - arbitrageAmountIn;
+
+		// Instantly swap the WETH arbitrage profits to SALT
+		_adjustReservesForSwap(weth, salt, arbitrageProfit);
 
 		// Deposit the arbitrageProfit as SALT for the DAO - to be used within DAO.performUpkeep
  		_userDeposits[address(dao)][salt] += arbitrageProfit;
 
 		// Update the stats related to the pools that contributed to the arbitrage so they can be rewarded proportionally later
-		// The arbitrage path can be identified by the middle tokens arbToken2 and arbToken3 (with SALT always on both ends)
+		// The arbitrage path can be identified by the middle tokens arbToken2 and arbToken3 (with WETH always on both ends)
 		_updateProfitsFromArbitrage( arbToken2, arbToken3, arbitrageProfit );
 		}
 
@@ -315,14 +319,14 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	function _attemptArbitrage( IERC20 swapTokenIn, IERC20 swapTokenOut ) internal returns (uint256 arbitrageProfit )
 		{
 		// Determine the arbitrage path for the given user swap.
-		// Arbitrage path returned as: salt->arbToken2->arbToken3->salt
+		// Arbitrage path returned as: weth->arbToken2->arbToken3->weth
    		(IERC20 arbToken2, IERC20 arbToken3) = _arbitragePath( swapTokenIn, swapTokenOut );
 
-		(uint256 reservesA0, uint256 reservesA1) = getPoolReserves( salt, arbToken2);
+		(uint256 reservesA0, uint256 reservesA1) = getPoolReserves( weth, arbToken2);
 		(uint256 reservesB0, uint256 reservesB1) = getPoolReserves( arbToken2, arbToken3);
-		(uint256 reservesC0, uint256 reservesC1) = getPoolReserves( arbToken3, salt);
+		(uint256 reservesC0, uint256 reservesC1) = getPoolReserves( arbToken3, weth);
 
-		// Determine the best amount of SALT to start the arbitrage with
+		// Determine the best amount of WETH to start the arbitrage with
 		uint256 arbitrageAmountIn = _bestArbitrageIn(reservesA0, reservesA1, reservesB0, reservesB1, reservesC0, reservesC1 );
 
 		// If arbitrage is viable, then perform it

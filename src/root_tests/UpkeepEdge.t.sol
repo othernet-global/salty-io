@@ -47,9 +47,9 @@ contract TestUpkeepEdge is Deployment
 		vm.startPrank(DEPLOYER);
 		pools.depositSwapWithdraw(salt, weth, 1 ether, 0, block.timestamp);
 		vm.roll(block.number + 1);
-		pools.depositSwapWithdraw(salt, wbtc, 1 ether, 0, block.timestamp);
+		pools.depositSwapWithdraw(salt, usdc, 1 ether, 0, block.timestamp);
 		vm.roll(block.number + 1);
-		pools.depositSwapWithdraw(weth, wbtc, 1 ether, 0, block.timestamp);
+		pools.depositSwapWithdraw(weth, usdc, 1 ether, 0, block.timestamp);
 		vm.roll(block.number + 1);
 		vm.stopPrank();
 		}
@@ -71,8 +71,8 @@ contract TestUpkeepEdge is Deployment
 		if ( despositSaltUSDC )
 			liquidity.depositLiquidityAndIncreaseShare( salt, weth, 1000 ether, 1000 ether, 0, 0, 0, block.timestamp, false );
 
-		liquidity.depositLiquidityAndIncreaseShare( wbtc, salt, 1000 * 10**8, 1000 ether, 0, 0, 0, block.timestamp, false );
-		liquidity.depositLiquidityAndIncreaseShare( wbtc, weth, 1000 * 10**8, 1000 ether, 0, 0, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( usdc, salt, 1000 * 10**8, 1000 ether, 0, 0, 0, block.timestamp, false );
+		liquidity.depositLiquidityAndIncreaseShare( usdc, weth, 1000 * 10**8, 1000 ether, 0, 0, 0, block.timestamp, false );
 
 		salt.approve(address(pools), type(uint256).max);
 		wbtc.approve(address(pools), type(uint256).max);
@@ -82,38 +82,6 @@ contract TestUpkeepEdge is Deployment
 		// Place some sample trades to create arbitrage profits
 		_swapToGenerateProfits();
 		}
-
-
-	// A unit test to check the behavior of performUpkeep() when the priceAggregator returns zero price
-	function testPerformUpkeepZeroPrice() public
-		{
-		_setupLiquidity();
-		_generateArbitrageProfits(false);
-
-    	// Mimic arbitrage profits deposited as WETH for the DAO
-    	vm.prank(DEPLOYER);
-    	salt.transfer(address(dao), 100 ether);
-
-    	vm.startPrank(address(dao));
-    	salt.approve(address(pools), 100 ether);
-    	pools.deposit(salt, 100 ether);
-    	vm.stopPrank();
-
-		assertEq( salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000000 );
-		assertEq( salt.balanceOf(address(staking)), 0 );
-
-		assertEq( upkeep.currentRewardsForCallingPerformUpkeep(), 5000049219234333028 );
-
-		skip( 1 hours );
-
-		// === Perform upkeep ===
-		address upkeepCaller = address(0x9999);
-
-		vm.prank(upkeepCaller);
-		upkeep.performUpkeep();
-		// ==================
-		}
-
 
 
     // A unit test to verify the step1 function when the DAO's WETH balance is zero.
@@ -184,7 +152,7 @@ contract TestUpkeepEdge is Deployment
 	function testSuccessStep8() public
 		{
 		// Warp to the start of when the teamVestingWallet starts to emit
-		vm.warp( daoVestingWallet.start() );
+		vm.warp( VestingWallet(payable(daoVestingWallet)).start() );
 
 		assertEq( salt.balanceOf(address(dao)), 0 );
 

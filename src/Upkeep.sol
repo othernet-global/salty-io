@@ -154,14 +154,14 @@ contract Upkeep is IUpkeep, ReentrancyGuard
 	// 7. Send SALT from the DAO vesting wallet to the DAO (linear distribution over 10 years).
 	function step7() public onlySameContract
 		{
-		exchangeConfig.daoVestingWallet().release(address(salt));
+		VestingWallet(payable(exchangeConfig.daoVestingWallet())).release(address(salt));
 		}
 
 
 	// 8. Sends SALT from the team vesting wallet to the team (linear distribution over 10 years).
 	function step8() public onlySameContract
 		{
-		exchangeConfig.teamVestingWallet().release(address(salt));
+		VestingWallet(payable(exchangeConfig.teamVestingWallet())).release(address(salt));
 		}
 
 

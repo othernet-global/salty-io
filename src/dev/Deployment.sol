@@ -50,7 +50,7 @@ contract Deployment is Test
 	IERC20 public _testUSDT = IERC20(0xCd58586cC5F0c6c425b99BB94Dc5662cf2A18B84);
 
 	// The DAO contract can provide us with all other contract addresses in the protocol
-	IDAO public dao = IDAO(address(0x80935c2a03d6B04EF479b44529AFEb353E20e573));
+	IDAO public dao = IDAO(address(0x917DC16706B685b47d6AD4B59Dac26B0a266718B));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));
@@ -67,7 +67,7 @@ contract Deployment is Test
     IERC20 public wbtc = exchangeConfig.wbtc();
     IERC20 public weth = exchangeConfig.weth();
     IERC20 public usdc = exchangeConfig.usdc();
-    IERC20 public usdt = _testUSDT;
+    IERC20 public usdt = exchangeConfig.usdt();
 
 	ISaltRewards public saltRewards = ISaltRewards(getContract(address(upkeep), "saltRewards()" ));
 	IRewardsEmitter public stakingRewardsEmitter = IRewardsEmitter(getContract(address(saltRewards), "stakingRewardsEmitter()" ));
@@ -164,14 +164,14 @@ contract Deployment is Test
 		saltRewards = new SaltRewards(stakingRewardsEmitter, liquidityRewardsEmitter, exchangeConfig, rewardsConfig);
 		emissions = new Emissions( saltRewards, exchangeConfig, rewardsConfig );
 
-		poolsConfig.whitelistPool( pools,   salt, usdc);
-		poolsConfig.whitelistPool( pools,   salt, usdt);
-		poolsConfig.whitelistPool( pools,   weth, usdc);
-		poolsConfig.whitelistPool( pools,   weth, usdt);
-		poolsConfig.whitelistPool( pools,   wbtc, salt);
-		poolsConfig.whitelistPool( pools,   wbtc, weth);
-		poolsConfig.whitelistPool( pools,   salt, weth);
-		poolsConfig.whitelistPool( pools,   usdc, usdt);
+		// Whitelist the pools
+		poolsConfig.whitelistPool(salt, usdc);
+		poolsConfig.whitelistPool(salt, weth);
+		poolsConfig.whitelistPool(weth, usdc);
+		poolsConfig.whitelistPool(weth, usdt);
+		poolsConfig.whitelistPool(wbtc, usdc);
+		poolsConfig.whitelistPool(wbtc, weth);
+		poolsConfig.whitelistPool(usdc, usdt);
 
 		proposals = new Proposals( staking, exchangeConfig, poolsConfig, daoConfig );
 

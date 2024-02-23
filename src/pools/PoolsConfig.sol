@@ -37,7 +37,7 @@ contract PoolsConfig is IPoolsConfig, Ownable
 
 
 	// Whitelist a given pair of tokens
-	function whitelistPool( IPools pools, IERC20 tokenA, IERC20 tokenB ) external onlyOwner
+	function whitelistPool( IERC20 tokenA, IERC20 tokenB ) external onlyOwner
 		{
 		require( _whitelist.length() < maximumWhitelistedPools, "Maximum number of whitelisted pools already reached" );
 		require(tokenA != tokenB, "tokenA and tokenB cannot be the same token");
@@ -52,7 +52,7 @@ contract PoolsConfig is IPoolsConfig, Ownable
 		}
 
 
-	function unwhitelistPool( IPools pools, IERC20 tokenA, IERC20 tokenB ) external onlyOwner
+	function unwhitelistPool( IERC20 tokenA, IERC20 tokenB ) external onlyOwner
 		{
 		bytes32 poolID = PoolUtils._poolID(tokenA,tokenB);
 
@@ -111,15 +111,15 @@ contract PoolsConfig is IPoolsConfig, Ownable
 		}
 
 
-	// Returns true if the token has been whitelisted (meaning it has been pooled with either WBTC and WETH)
-	function tokenHasBeenWhitelisted( IERC20 token, IERC20 salt, IERC20 weth ) external view returns (bool)
+	// Returns true if the token has been whitelisted (meaning it has been pooled with either WETH and USDC)
+	function tokenHasBeenWhitelisted( IERC20 token, IERC20 weth, IERC20 usdc ) external view returns (bool)
 		{
-		// See if the token has been whitelisted with either SALT or WETH, as all whitelisted tokens are pooled with both WBTC and WETH
-		bytes32 poolID1 = PoolUtils._poolID( token, salt );
+		// See if the token has been whitelisted with either WETH or USDC, as all whitelisted tokens are pooled with both WETH and USDC
+		bytes32 poolID1 = PoolUtils._poolID( token, weth );
 		if ( isWhitelisted(poolID1) )
 			return true;
 
-		bytes32 poolID2 = PoolUtils._poolID( token, weth );
+		bytes32 poolID2 = PoolUtils._poolID( token, usdc );
 		if ( isWhitelisted(poolID2) )
 			return true;
 

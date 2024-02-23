@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.22;
 
-import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "../rewards/interfaces/IRewardsConfig.sol";
 import "../pools/interfaces/IPoolsConfig.sol";
@@ -24,11 +24,7 @@ contract Utils
 		string[] memory names = new string[]( tokens.length );
 
 		for( uint256 i = 0; i < tokens.length; i++ )
-			{
-			ERC20 token = ERC20( tokens[i] );
-
-			names[i] = token.symbol();
-			}
+			names[i] = IERC20Metadata( tokens[i] ).symbol();
 
 		return names;
 		}
@@ -39,11 +35,7 @@ contract Utils
 		uint256[] memory decimals = new uint256[]( tokens.length );
 
 		for( uint256 i = 0; i < tokens.length; i++ )
-			{
-			ERC20 token = ERC20( tokens[i] );
-
-			decimals[i] = token.decimals();
-			}
+			decimals[i] = IERC20Metadata( tokens[i] ).decimals();
 
 		return decimals;
 		}
