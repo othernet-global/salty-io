@@ -15,7 +15,7 @@ contract RewardsConfig is IRewardsConfig, Ownable
 	// The target daily percent of rewards distributed by the stakingRewardsEmitter and liquidityRewardsEmitter (from the SALT balance in each emitter contract).
 	// Rewards Emitters distribute SALT rewards over time to the SharedRewards contracts where the rewards can be claimed by users.
 	// Range: .25% to 2.5% with an adjustment of 0.25%
-	uint256 public rewardsEmitterDailyPercentTimes1000 = 1000;  // Defaults to 1.0% with a 1000x multiplier
+	uint256 public rewardsEmitterDailyPercentTimes1000 = 750;  // Defaults to 0.75% with a 1000x multiplier
 
 	// The weekly percent of SALT emissions that will be distributed from Emissions.sol to the Liquidity and xSALT Holder Reward Emitters.
 	// Range: 0.25% to 1.0% with an adjustment of 0.25%

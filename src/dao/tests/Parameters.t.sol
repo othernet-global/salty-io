@@ -162,7 +162,7 @@ contract TestParametersOffchain is Test
 		{
 		vm.startPrank(address(parameters));
 
-		_checkParameter( Parameters.ParameterTypes.rewardsEmitterDailyPercentTimes1000, 250, 1000, 2500, 250 );
+		_checkParameter( Parameters.ParameterTypes.rewardsEmitterDailyPercentTimes1000, 250, 750, 2500, 250 );
 		_checkParameter( Parameters.ParameterTypes.emissionsWeeklyPercentTimes1000, 250, 500, 1000, 250 );
 		_checkParameter( Parameters.ParameterTypes.stakingRewardsPercent, 25, 50, 75, 5 );
 		}
