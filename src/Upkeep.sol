@@ -13,7 +13,7 @@ import "./dao/interfaces/IDAO.sol";
 
 
 // Performs the following upkeep for each call to performUpkeep():
-// (Uses a maximum of 1 million gas with 100 whitelisted pools according to UpkeepGasUsage.t.sol)
+// (Uses a maximum of 1.1 million gas with 100 whitelisted pools according to UpkeepGasUsage.t.sol)
 
 // 1. Withdraws deposited SALT arbitrage profits from the Pools contract and rewards the caller of performUpkeep()
 // 2. Burns 10% of the remaining withdrawn salt and sends 10% to the DAO's reserve.
@@ -132,8 +132,8 @@ contract Upkeep is IUpkeep, ReentrancyGuard
 	function step5() public onlySameContract
 		{
 		uint256[] memory profitsForPools = pools.profitsForWhitelistedPools();
-
 		bytes32[] memory poolIDs = poolsConfig.whitelistedPools();
+
 		saltRewards.performUpkeep(poolIDs, profitsForPools );
 		pools.clearProfitsForPools();
 		}
@@ -154,14 +154,14 @@ contract Upkeep is IUpkeep, ReentrancyGuard
 	// 7. Send SALT from the DAO vesting wallet to the DAO (linear distribution over 10 years).
 	function step7() public onlySameContract
 		{
-		VestingWallet(payable(exchangeConfig.daoVestingWallet())).release(address(salt));
+		exchangeConfig.daoVestingWallet().release(address(salt));
 		}
 
 
 	// 8. Sends SALT from the team vesting wallet to the team (linear distribution over 10 years).
 	function step8() public onlySameContract
 		{
-		VestingWallet(payable(exchangeConfig.teamVestingWallet())).release(address(salt));
+		exchangeConfig.teamVestingWallet().release(address(salt));
 		}
 
 

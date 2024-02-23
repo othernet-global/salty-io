@@ -90,7 +90,7 @@ contract TestArbitrage is Deployment
 //		console.log( "ending pools balance: ", pools.depositedUserBalance( address(pools), weth ) );
 
 		assertEq( amountOut, 9900982881233894761 );
-		assertEq( pools.depositedUserBalance( address(dao), salt ), 66663337341884444 );
+		assertEq( pools.depositedUserBalance( address(dao), salt ), 66446611804469303 );
 		}
 	}
 

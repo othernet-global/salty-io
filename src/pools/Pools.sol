@@ -303,11 +303,11 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		// Will revert if amountOut < arbitrageAmountIn
 		arbitrageProfit = amountOut - arbitrageAmountIn;
 
-		// Instantly swap the WETH arbitrage profits to SALT
-		_adjustReservesForSwap(weth, salt, arbitrageProfit);
+		// Swap the WETH arbitrage profits to SALT
+		uint256 saltOut = _adjustReservesForSwap(weth, salt, arbitrageProfit);
 
-		// Deposit the arbitrageProfit as SALT for the DAO - to be used within DAO.performUpkeep
- 		_userDeposits[address(dao)][salt] += arbitrageProfit;
+		// Deposit the swapped SALT for the DAO - to be used within DAO.performUpkeep
+ 		_userDeposits[address(dao)][salt] += saltOut;
 
 		// Update the stats related to the pools that contributed to the arbitrage so they can be rewarded proportionally later
 		// The arbitrage path can be identified by the middle tokens arbToken2 and arbToken3 (with WETH always on both ends)

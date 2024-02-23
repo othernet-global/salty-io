@@ -14,7 +14,7 @@ contract DAOConfig is IDAOConfig, Ownable
     event BallotDurationChanged(uint256 newBallotDuration);
     event BallotMaximumDurationChanged(uint256 newMaximumDuration);
     event RequiredProposalPercentStakeChanged(uint256 newRequiredProposalPercentStakeTimes1000);
-    event ArbitrageProfitsPercentPOLChanged(uint256 newArbitrageProfitsPercentPOL);
+    event PercentRewardsForReserveChanged(uint256 newArbitrageProfitsPercentPOL);
     event UpkeepRewardPercentChanged(uint256 newUpkeepRewardPercent);
 
 	// The amount of SALT provided as a bootstrapping reward when a new token is whitelisted.
@@ -176,7 +176,7 @@ contract DAOConfig is IDAOConfig, Ownable
                 percentRewardsForReserve -= 1;
             }
 
-		emit ArbitrageProfitsPercentPOLChanged(percentRewardsForReserve);
+		emit PercentRewardsForReserveChanged(percentRewardsForReserve);
 		}
 
 

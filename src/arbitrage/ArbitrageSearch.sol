@@ -5,7 +5,7 @@ import "openzeppelin-contracts/contracts/utils/math/Math.sol";
 import "../interfaces/IExchangeConfig.sol";
 import "../pools/PoolUtils.sol";
 
-// Finds a circular path after a user's swap has occurred (from SALT to SALT in this case) that results in an arbitrage profit.
+// Finds a circular path after a user's swap has occurred (from WETH to WETH in this case) that results in an arbitrage profit.
 abstract contract ArbitrageSearch
     {
 	ISalt immutable public salt;

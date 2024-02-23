@@ -135,7 +135,7 @@ contract TestArbitrage is Deployment
 		assertTrue( reservesC1 < (100 ether), "reservesC1 incorrect" );
 
 //		console.log( "profit: ", pools.depositedUserBalance( address(dao), salt ) );
-		assertTrue( pools.depositedUserBalance( address(dao), salt ) > 284* 10**15, "arbitrage profit too low" );
+		assertTrue( pools.depositedUserBalance( address(dao), salt ) > 283* 10**15, "arbitrage profit too low" );
 		}
 
 
@@ -173,7 +173,7 @@ contract TestArbitrage is Deployment
 		assertTrue( reservesC1 < (100 ether + 10 ether), "reservesC1 incorrect" );
 
 //		console.log( "profit: ", pools.depositedUserBalance( address(dao), salt ) );
-		assertTrue( pools.depositedUserBalance( address(dao), salt ) > 284* 10**15, "arbitrage profit too low" );
+		assertTrue( pools.depositedUserBalance( address(dao), salt ) > 283* 10**15, "arbitrage profit too low" );
 		}
 
 
@@ -211,7 +211,7 @@ contract TestArbitrage is Deployment
 		assertTrue( reservesC1 < (100 ether + 10 ether), "reservesC1 incorrect" );
 
 //		console.log( "profit: ", pools.depositedUserBalance( address(dao), salt ) );
-		assertTrue( pools.depositedUserBalance( address(dao), salt ) > 284* 10**15, "arbitrage profit too low" );
+		assertTrue( pools.depositedUserBalance( address(dao), salt ) > 283* 10**15, "arbitrage profit too low" );
 		}
 
 
@@ -249,7 +249,7 @@ contract TestArbitrage is Deployment
 		assertTrue( reservesC0 > (100 *10**6), "reservesC0 incorrect" );
 		assertTrue( reservesC1 < (100 ether), "reservesC1 incorrect" );
 
-		assertTrue( pools.depositedUserBalance( address(dao), salt ) > 284* 10**15, "arbitrage profit too low" );
+		assertTrue( pools.depositedUserBalance( address(dao), salt ) > 283* 10**15, "arbitrage profit too low" );
 		}
 
 
@@ -299,7 +299,7 @@ contract TestArbitrage is Deployment
 		assertTrue( reservesC1 < (100 ether), "reservesC1 incorrect" );
 
 //		console.log( "profit: ", pools.depositedUserBalance( address(dao), salt ) );
-		assertTrue( pools.depositedUserBalance( address(dao), salt ) > 284* 10**15, "arbitrage profit too low" );
+		assertTrue( pools.depositedUserBalance( address(dao), salt ) > 283* 10**15, "arbitrage profit too low" );
 		}
 
 
@@ -423,7 +423,7 @@ contract TestArbitrage is Deployment
 		assertTrue( reservesC1 < 100000, "reservesC1 incorrect" );
 
 //		console.log( "profit: ", pools.depositedUserBalance( address(dao), salt ) );
-		assertEq( pools.depositedUserBalance( address(dao), salt ), 321, "arbitrage profit incorrect" );
+		assertEq( pools.depositedUserBalance( address(dao), salt ), 282, "arbitrage profit incorrect" );
 		}
 	}
 
