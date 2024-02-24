@@ -60,7 +60,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 
 	// Allow users to make only one swap per block
-	modifier oneSwapPerBlock()
+	modifier oneUserSwapPerBlock()
 		{
 		require(lastSwappedBlocks[msg.sender] != block.number, "User already swapped in this block");
         _;
@@ -303,10 +303,10 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		// Will revert if amountOut < arbitrageAmountIn
 		arbitrageProfit = amountOut - arbitrageAmountIn;
 
-		// Swap the WETH arbitrage profits to SALT
+		// Immediately swap the WETH arbitrage profits to SALT
 		uint256 saltOut = _adjustReservesForSwap(weth, salt, arbitrageProfit);
 
-		// Deposit the swapped SALT for the DAO - to be used within DAO.performUpkeep
+		// Deposit the swapped SALT for the DAO - to be used later within DAO.performUpkeep
  		_userDeposits[address(dao)][salt] += saltOut;
 
 		// Update the stats related to the pools that contributed to the arbitrage so they can be rewarded proportionally later
@@ -356,7 +356,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
     // Having simpler swaps without multiple tokens in the swap chain makes it simpler (and less expensive gas wise) to find suitable arbitrage opportunities.
     // Cheap arbitrage gas-wise is important as arbitrage will be atomically attempted with every user swap transaction.
     // Requires that the first token in the chain has already been deposited for the caller.
-	function swap( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline ) external oneSwapPerBlock nonReentrant ensureNotExpired(deadline) returns (uint256 swapAmountOut)
+	function swap( IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline ) external oneUserSwapPerBlock nonReentrant ensureNotExpired(deadline) returns (uint256 swapAmountOut)
 		{
 		// Confirm and adjust user deposits
 		mapping(IERC20=>uint256) storage userDeposits = _userDeposits[msg.sender];
@@ -372,7 +372,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 
 	// Deposit tokenIn, swap to tokenOut and then have tokenOut sent to the sender
-	function depositSwapWithdraw(IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline ) external oneSwapPerBlock nonReentrant ensureNotExpired(deadline) returns (uint256 swapAmountOut)
+	function depositSwapWithdraw(IERC20 swapTokenIn, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline ) external oneUserSwapPerBlock nonReentrant ensureNotExpired(deadline) returns (uint256 swapAmountOut)
 		{
 		// Transfer the tokens from the sender - only tokens without fees should be whitelisted on the DEX
 		swapTokenIn.safeTransferFrom(msg.sender, address(this), swapAmountIn );
@@ -385,7 +385,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 
 	// A convenience method to perform two swaps in one transaction
-	function depositDoubleSwapWithdraw( IERC20 swapTokenIn, IERC20 swapTokenMiddle, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline ) external oneSwapPerBlock nonReentrant ensureNotExpired(deadline) returns (uint256 swapAmountOut)
+	function depositDoubleSwapWithdraw( IERC20 swapTokenIn, IERC20 swapTokenMiddle, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline ) external oneUserSwapPerBlock nonReentrant ensureNotExpired(deadline) returns (uint256 swapAmountOut)
 		{
 		swapTokenIn.safeTransferFrom(msg.sender, address(this), swapAmountIn );
 

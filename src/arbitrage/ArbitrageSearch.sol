@@ -8,7 +8,6 @@ import "../pools/PoolUtils.sol";
 // Finds a circular path after a user's swap has occurred (from WETH to WETH in this case) that results in an arbitrage profit.
 abstract contract ArbitrageSearch
     {
-	ISalt immutable public salt;
 	IERC20 immutable public weth;
 	IERC20 immutable public usdc;
 	IERC20 immutable public usdt;
@@ -17,7 +16,6 @@ abstract contract ArbitrageSearch
     constructor( IExchangeConfig _exchangeConfig )
     	{
 		// Cached for efficiency
-		salt = _exchangeConfig.salt();
 		weth = _exchangeConfig.weth();
 		usdc = _exchangeConfig.usdc();
 		usdt = _exchangeConfig.usdt();

@@ -15,7 +15,7 @@ import "./dao/interfaces/IDAO.sol";
 // Performs the following upkeep for each call to performUpkeep():
 // (Uses a maximum of 1.1 million gas with 100 whitelisted pools according to UpkeepGasUsage.t.sol)
 
-// 1. Withdraws deposited SALT arbitrage profits from the Pools contract and rewards the caller of performUpkeep()
+// 1. Withdraws deposited SALT arbitrage profits from the Pools contract and rewards the caller of performUpkeep() with 5% of the withdrawn SALT
 // 2. Burns 10% of the remaining withdrawn salt and sends 10% to the DAO's reserve.
 // 3. Sends the remaining SALT to SaltRewards.
 
@@ -74,7 +74,7 @@ contract Upkeep is IUpkeep, ReentrancyGuard
 
 	// Note - while the following steps are public so that they can be wrapped in a try/catch, they are all still only callable from this same contract.
 
-	// 1. Withdraw deposited SALT arbitrage profits from the Pools contract and reward the caller of performUpkeep()
+	// 1. Withdraw deposited SALT arbitrage profits from the Pools contract and reward the caller of performUpkeep() with 5% of the withdrawn SALT
 	function step1(address receiver) public onlySameContract
 		{
 		uint256 withdrawnSALT = dao.withdrawFromDAO(salt);
