@@ -38,6 +38,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 	IDAO public dao;
 	ILiquidity public liquidity;
+	ISalt public salt;
 
 	// Set to true when starting the exchange is approved by the bootstrapBallot
 	bool public exchangeIsLive;
@@ -56,6 +57,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	ArbitrageSearch(_exchangeConfig)
 	PoolStats(_exchangeConfig, _poolsConfig)
 		{
+		salt = _exchangeConfig.salt();
 		}
 
 
