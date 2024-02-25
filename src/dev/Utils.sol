@@ -108,21 +108,21 @@ contract Utils
 
 
 	// The current circulating supply of SALT
-	function circulatingSALT( IERC20 salt, address emissions, address daoVestingWallet, address teamVestingWallet, address stakingRewardsEmitter, address liquidityRewardsEmitter ) public view returns (uint256)
+	function circulatingSALT( IERC20 salt, address emissions, address daoVestingWallet, address teamVestingWallet, address stakingRewardsEmitter, address liquidityRewardsEmitter, address airdrop, address initialDistribution ) public view returns (uint256)
 		{
 		// Don't include balances that still haven't been distributed
-		return salt.totalSupply() - salt.balanceOf(emissions) - salt.balanceOf(daoVestingWallet) - salt.balanceOf(teamVestingWallet) - salt.balanceOf(stakingRewardsEmitter) - salt.balanceOf(liquidityRewardsEmitter);
+		return salt.totalSupply() - salt.balanceOf(emissions) - salt.balanceOf(daoVestingWallet) - salt.balanceOf(teamVestingWallet) - salt.balanceOf(stakingRewardsEmitter) - salt.balanceOf(liquidityRewardsEmitter) - salt.balanceOf(airdrop) - salt.balanceOf(initialDistribution);
 		}
 
 
 	// Shortcut for returning the current percentStakedTimes1000 and stakingAPRTimes1000
-	function stakingPercentAndAPR(ISalt salt, IStaking staking, IRewardsConfig rewardsConfig, address stakingRewardsEmitter, address liquidityRewardsEmitter, address emissions, address daoVestingWallet, address teamVestingWallet) public view returns (uint256 percentStakedTimes1000, uint256 stakingAPRTimes1000)
+	function stakingPercentAndAPR(ISalt salt, IStaking staking, IRewardsConfig rewardsConfig, address stakingRewardsEmitter, address liquidityRewardsEmitter, address emissions, address daoVestingWallet, address teamVestingWallet, address airdrop, address initialDistribution) public view returns (uint256 percentStakedTimes1000, uint256 stakingAPRTimes1000)
 		{
 		// Make sure that the InitDistribution has already happened
 		if ( salt.balanceOf(stakingRewardsEmitter) == 0 )
 			return (0, 0);
 
-		uint256 totalCirculating = circulatingSALT(salt, emissions, daoVestingWallet, teamVestingWallet, stakingRewardsEmitter, liquidityRewardsEmitter);
+		uint256 totalCirculating = circulatingSALT(salt, emissions, daoVestingWallet, teamVestingWallet, stakingRewardsEmitter, liquidityRewardsEmitter, airdrop, initialDistribution);
 
 		uint256 totalStaked = staking.totalShares(PoolUtils.STAKED_SALT);
 		if ( totalStaked == 0 )
@@ -154,29 +154,40 @@ contract Utils
 
 
 	// Returns prices with 18 decimals
-	function corePrices(IPools pools, IExchangeConfig exchangeConfig, IPriceFeed priceFeed) public view returns (uint256 btcPrice, uint256 ethPrice, uint256 saltPrice)
+	function corePrices(IPools pools, IExchangeConfig exchangeConfig, IPriceFeed priceFeed) public view returns (uint256 wethPrice, uint256 usdcPrice, uint256 saltPrice)
 		{
-		btcPrice =  priceFeed.getPriceBTC();
-		ethPrice =  priceFeed.getPriceETH();
+		usdcPrice = priceFeed.getPriceUSDC();
 
-		IERC20 wbtc = exchangeConfig.wbtc();
 		IERC20 weth = exchangeConfig.weth();
+		IERC20 usdc = exchangeConfig.usdc();
 		ISalt salt = exchangeConfig.salt();
 
-		// Use SALT/WBTC and SALT/WETH as the basis for the SALT price
-		(uint256 reservesA1, uint256 reservesB1) = pools.getPoolReserves(salt, wbtc);
-		(uint256 reservesA2, uint256 reservesB2) = pools.getPoolReserves(salt, weth);
+		// USDC has 6 decimals, usdcPrice has 8
+		// Convert to 18 decimals
 
-		if ( reservesA1 > PoolUtils.DUST )
-		if ( reservesA2 > PoolUtils.DUST )
+		(uint256 reserves1, uint256 reserves2) = pools.getPoolReserves(weth, usdc);
+		if ( reserves1 > PoolUtils.DUST )
+		if ( reserves2 > PoolUtils.DUST )
+			wethPrice = (reserves2 * usdcPrice * 10**12 ) / (reserves1/10**10);
+
+		(reserves1, reserves2) = pools.getPoolReserves(salt, usdc);
+		if ( reserves1 > PoolUtils.DUST )
+		if ( reserves2 > PoolUtils.DUST )
 			{
-			// Bitcoin reserves have 8 decimals so convert to 18 decimals
-			uint256 price1 = reservesB1 * btcPrice * 10**10 / reservesA1;
-			uint256 price2 = reservesB2 * ethPrice / reservesA2;
+			uint256 saltPriceUSDC = (reserves2 * usdcPrice * 10**12) / (reserves1/10**10);
 
-			// Price proportional to the reserves of each pool
-			saltPrice = ( price1 * reservesA1 + price2 * reservesA2 ) / ( reservesA1 + reservesA2 );
+			(uint256 reserves1b, uint256 reserves2b) = pools.getPoolReserves(salt, weth);
+			if ( reserves1b > PoolUtils.DUST )
+			if ( reserves2b > PoolUtils.DUST )
+				{
+				uint256 saltPriceWETH = (reserves2b * wethPrice) / reserves1b;
+
+				saltPrice = ( saltPriceUSDC * reserves1 + saltPriceWETH * reserves1b ) / ( reserves1 + reserves1b );
+				}
 			}
+
+		// Convert to 18 decimals
+		usdcPrice = usdcPrice * 10**10;
 		}
 
 
@@ -314,17 +325,13 @@ contract Utils
 			addedAmountB = proportionalB;
 			}
 
-		// Determine the amount of liquidity that will be given to the user to reflect their share of the total liquidity.
-		if ( addedAmountA > addedAmountB)
-			addedLiquidity = (totalLiquidity * addedAmountA) / reservesA;
-		else
-			addedLiquidity = (totalLiquidity * addedAmountB) / reservesB;
+		addedLiquidity = (totalLiquidity * (addedAmountA+addedAmountB) ) / (reservesA+reservesB);
 		}
 
 
-	function statsData(ISalt salt, address emissions, address daoVestingWallet, address teamVestingWallet, address stakingRewardsEmitter, address liquidityRewardsEmitter, IStaking staking, IRewardsConfig rewardsConfig ) external view returns ( uint256 saltSupply, uint256 stakedSALT, uint256 burnedSALT, uint256 liquidityRewardsSalt, uint256 rewardsEmitterDailyPercentTimes1000 )
+	function statsData(ISalt salt, address emissions, address daoVestingWallet, address teamVestingWallet, address stakingRewardsEmitter, address liquidityRewardsEmitter, IStaking staking, IRewardsConfig rewardsConfig, address airdrop, address initialDistribution  ) external view returns ( uint256 saltSupply, uint256 stakedSALT, uint256 burnedSALT, uint256 liquidityRewardsSalt, uint256 rewardsEmitterDailyPercentTimes1000 )
 		{
-		saltSupply = circulatingSALT(salt, emissions, daoVestingWallet, teamVestingWallet, stakingRewardsEmitter, liquidityRewardsEmitter);
+		saltSupply = circulatingSALT(salt, emissions, daoVestingWallet, teamVestingWallet, stakingRewardsEmitter, liquidityRewardsEmitter, airdrop, initialDistribution);
 		stakedSALT = staking.totalShares(PoolUtils.STAKED_SALT );
 		burnedSALT = salt.totalBurned();
 		liquidityRewardsSalt = salt.balanceOf( liquidityRewardsEmitter );

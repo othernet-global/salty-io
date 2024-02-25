@@ -39,7 +39,9 @@ import "../staking/StakingConfig.sol";
 
 contract Deployment is Test
     {
-    bool public DEBUG = true;
+    // Default to running on mainnet
+    bool public DEBUG = false;
+
 	address constant public DEPLOYER = 0x73107dA86708c2DAd0D91388fB057EeE3E2581aF;
 
 	// Test addresses on Sepolia for the Price Feeds
@@ -108,6 +110,13 @@ contract Deployment is Test
 	bytes aliceVotingSignature = hex"291f777bcf554105b4067f14d2bb3da27f778af49fe2f008e718328a91cae2f81eceb0b4ed1d65c546bf0603c6c35567a69c8cb371cf4880a2964df8f6d1c0601c";
 	bytes bobVotingSignature = hex"a08a0612b60d9c911d357664de578cd8e17c5f0ee10b82b829e35a999fa3f5e11a33e5f3d06c6b2b6f3ef3066cee3b47285a57cfc85f2c3e166f831a285aebcd1c";
 	bytes charlieVotingSignature = hex"7fec06ab9da26790e4520b4476b7043ef8444178ec10cdf37942a229290ec70d01c7dced0a6e22080239df6fdc3983f515f52d06a32c03d5d6a0077f31fd9f841c";
+
+
+	constructor()
+		{
+		if ( block.chainid == 11155111 )
+			DEBUG = true;
+		}
 
 
 	function getContract( address _contract, string memory _functionName ) public returns (address result) {

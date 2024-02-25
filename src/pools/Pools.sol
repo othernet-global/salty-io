@@ -292,6 +292,39 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
     	}
 
 
+	// Calculate amountOut based on the current token reserves and the specified amountIn and then update the reserves.
+	// Only the reserves are updated - the function does not adjust deposited user balances or do ERC20 transfers.
+	// If there are insufficient reserves to perform the swap - the function simply returns rather than reverting.
+    function _adjustReservesForSwapNoRevert( IERC20 tokenIn, IERC20 tokenOut, uint256 amountIn ) internal returns (uint256 amountOut)
+    	{
+        (bytes32 poolID, bool flipped) = PoolUtils._poolIDAndFlipped(tokenIn, tokenOut);
+
+        PoolReserves storage reserves = _poolReserves[poolID];
+        uint256 reserve0 = reserves.reserve0;
+        uint256 reserve1 = reserves.reserve1;
+
+		if ( ( reserve0 < PoolUtils.DUST ) || ( reserve1 < PoolUtils.DUST ) )
+			return 0;
+
+		// See if the reserves are flipped in regards to the argument token order
+        if (flipped)
+        	{
+			reserve1 += amountIn;
+			amountOut = reserve0 * amountIn / reserve1;
+			reserve0 -= amountOut;
+        	}
+        else
+        	{
+			reserve0 += amountIn;
+			amountOut = reserve1 * amountIn / reserve0;
+			reserve1 -= amountOut;
+        	}
+
+		reserves.reserve0 = uint128(reserve0);
+		reserves.reserve1 = uint128(reserve1);
+    	}
+
+
     // Arbitrage a token to itself along a circular path (starting and ending with WETH), taking advantage of imbalances in the exchange pools.
     // Does not require any deposited tokens to make the call, but requires that the resulting amountOut is greater than the specified arbitrageAmountIn.
     // Essentially the caller virtually "borrows" arbitrageAmountIn of the starting token and virtually "repays" it from their received amountOut at the end of the swap chain.
@@ -306,7 +339,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		arbitrageProfit = amountOut - arbitrageAmountIn;
 
 		// Immediately swap the WETH arbitrage profits to SALT
-		uint256 saltOut = _adjustReservesForSwap(weth, salt, arbitrageProfit);
+		uint256 saltOut = _adjustReservesForSwapNoRevert(weth, salt, arbitrageProfit);
 
 		// Deposit the swapped SALT for the DAO - to be used later within DAO.performUpkeep
  		_userDeposits[address(dao)][salt] += saltOut;
