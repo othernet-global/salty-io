@@ -91,12 +91,8 @@ abstract contract ArbitrageSearch
 		}
 
 
-	function _bestArbitrageIn( uint256 A0, uint256 A1, uint256 B0, uint256 B1, uint256 C0, uint256 C1 ) public pure returns (uint256 bestArbAmountIn)
+	function _bestArbitrageIn( uint256 a0, uint256 a1, uint256 b0, uint256 b1, uint256 c0, uint256 c1 ) internal pure returns (uint256 bestArbAmountIn)
 		{
-		// When actual swaps along the arbitrage path are executed - they can fail with insufficient reserves
-		if ( A0 <= PoolUtils.DUST || A1 <= PoolUtils.DUST || B0 <= PoolUtils.DUST || B1 <= PoolUtils.DUST || C0 <= PoolUtils.DUST || C1 <= PoolUtils.DUST )
-			return 0;
-
 		// This can be unchecked as the actual arbitrage that is performed when this is non-zero is checked and duplicates the check for profitability.
 		// testArbitrageMethodsLarge() checks for proper behavior with extremely large reserves as well.
 		unchecked
@@ -112,7 +108,7 @@ abstract contract ArbitrageSearch
 			//	z *= Math.sqrt(B1 * C0);
 			//	bestArbAmountIn = (z - n0) / m;
 
-			uint256 maximumMSB = _maximumReservesMSB( A0, A1, B0, B1, C0, C1 );
+			uint256 maximumMSB = _maximumReservesMSB( a0, a1, b0, b1, c0, c1 );
 
 			// Assumes the largest number should use no more than 80 bits.
 			// Multiplying three 80 bit numbers will yield 240 bits - within the 256 bit limit.
@@ -121,22 +117,22 @@ abstract contract ArbitrageSearch
 				{
 				shift = maximumMSB - 80;
 
-				A0 = A0 >> shift;
-				A1 = A1 >> shift;
-				B0 = B0 >> shift;
-				B1 = B1 >> shift;
-				C0 = C0 >> shift;
-				C1 = C1 >> shift;
+				a0 = a0 >> shift;
+				a1 = a1 >> shift;
+				b0 = b0 >> shift;
+				b1 = b1 >> shift;
+				c0 = c0 >> shift;
+				c1 = c1 >> shift;
 				}
 
 			// Each variable will use less than 80 bits
-			uint256 n0 = A0 * B0 * C0;
-			uint256 n1 = A1 * B1 * C1;
+			uint256 n0 = a0 * b0 * c0;
+			uint256 n1 = a1 * b1 * c1;
 
 			if (n1 <= n0)
 				return 0;
 
-			uint256 m = A1 *  B1 + C0 * ( B0 + A1 );
+			uint256 m = a1 *  b1 + c0 * ( b0 + a1 );
 
 			// Calculating n0 * n1 directly would overflow under some situations.
 			// Multiply the sqrt's instead - effectively keeping the max size the same
@@ -150,17 +146,17 @@ abstract contract ArbitrageSearch
 			bestArbAmountIn = bestArbAmountIn << shift;
 
 			// Needed for the below arbitrage profit testing
-			A0 = A0 << shift;
-			A1 = A1 << shift;
-			B0 = B0 << shift;
-			B1 = B1 << shift;
-			C0 = C0 << shift;
-			C1 = C1 << shift;
+			a0 = a0 << shift;
+			a1 = a1 << shift;
+			b0 = b0 << shift;
+			b1 = b1 << shift;
+			c0 = c0 << shift;
+			c1 = c1 << shift;
 
 			// Make sure bestArbAmountIn arbitrage is actually profitable (or else it will revert when actually performed in Pools.sol)
-			uint256 amountOut = (A1 * bestArbAmountIn) / (A0 + bestArbAmountIn);
-			amountOut = (B1 * amountOut) / (B0 + amountOut);
-			amountOut = (C1 * amountOut) / (C0 + amountOut);
+			uint256 amountOut = (a1 * bestArbAmountIn) / (a0 + bestArbAmountIn);
+			amountOut = (b1 * amountOut) / (b0 + amountOut);
+			amountOut = (c1 * amountOut) / (c0 + amountOut);
 
 			if ( amountOut < bestArbAmountIn )
 				return 0;
