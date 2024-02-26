@@ -51,11 +51,11 @@ contract TestArbitrage is Deployment
 
 		// Initial transactions cost more gas so perform the first ones here
 		pools.swap( tokenE, salt, 10 ether, 0, block.timestamp );
-		vm.roll(block.number + 1 );
+		rollToNextBlock();
 
 		pools.depositSwapWithdraw( salt, tokenE, 10 ether, 0, block.timestamp );
 
-		vm.roll(block.number + 1 );
+		rollToNextBlock();
 		}
 
 

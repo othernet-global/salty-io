@@ -153,9 +153,9 @@ contract TestComprehensive1 is Deployment
     	// Charlie places some trades
     	vm.startPrank(charlie);
     	uint256 amountOut1 = pools.depositSwapWithdraw(weth, salt, 1 ether, 0, block.timestamp);
-    	vm.roll(block.number + 1);
+    	rollToNextBlock();
     	uint256 amountOut2 = pools.depositSwapWithdraw(weth, salt, 1 ether, 0, block.timestamp);
-		vm.roll(block.number + 1);
+		rollToNextBlock();
 		vm.stopPrank();
 
 		console.log( "ARBITRAGE PROFITS: ", pools.depositedUserBalance( address(dao), weth ) );

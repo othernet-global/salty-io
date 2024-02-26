@@ -103,11 +103,11 @@ contract TestUpkeepFlawed is Deployment
 		{
 		vm.startPrank(DEPLOYER);
 		pools.depositSwapWithdraw(salt, weth, 10 ether, 0, block.timestamp);
-		vm.roll(block.number + 1);
+		rollToNextBlock();
 		pools.depositSwapWithdraw(salt, usdc, 10 ether, 0, block.timestamp);
-		vm.roll(block.number + 1);
+		rollToNextBlock();
 		pools.depositSwapWithdraw(weth, usdc, 10 ether, 0, block.timestamp);
-		vm.roll(block.number + 1);
+		rollToNextBlock();
 		vm.stopPrank();
 		}
 
@@ -460,7 +460,7 @@ contract TestUpkeepFlawed is Deployment
 
 		// As there were profits, SaltRewards distributed the 1488 ether + 72.2 ether rewards to the rewards emitters.
 		// 50% to stakingRewardsEmitter and 50% to liquidityRewardsEmitter, 1% / day for one hour.
-		assertEq( salt.balanceOf(address(saltRewards)), 2 ); // should be basically empty now
+		assertEq( salt.balanceOf(address(saltRewards)), 1 ); // should be basically empty now
 
 		// Additionally stakingRewardsEmitter started with 3 million bootstrapping rewards.
 		// liquidityRewardsEmitter started with 5 million bootstrapping rewards, divided evenly amongst the initial pools.
@@ -550,7 +550,7 @@ contract TestUpkeepFlawed is Deployment
 
 		// As there were profits, SaltRewards distributed the 1488 ether + 72.2 ether rewards to the rewards emitters.
 		// 50% to stakingRewardsEmitter and 50% to liquidityRewardsEmitter, 1% / day for one hour.
-		assertEq( salt.balanceOf(address(saltRewards)), 1623669712650470466200 ); // should be basically empty now
+		assertEq( salt.balanceOf(address(saltRewards)), 1623669712650470466199 ); // should be basically empty now
 
 		// Additionally stakingRewardsEmitter started with 3 million bootstrapping rewards.
 		// liquidityRewardsEmitter started with 5 million bootstrapping rewards, divided evenly amongst the initial pools.

@@ -55,7 +55,7 @@ contract Deployment is Test
 	IERC20 public _testUSDT = IERC20(0xCd58586cC5F0c6c425b99BB94Dc5662cf2A18B84);
 
 	// The DAO contract can provide us with all other contract addresses in the protocol
-	IDAO public dao = IDAO(address(0x917DC16706B685b47d6AD4B59Dac26B0a266718B));
+	IDAO public dao = IDAO(address(0x8600253aE5E96CcEFa542d09a1c47184b83B47BB));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));
@@ -111,11 +111,25 @@ contract Deployment is Test
 	bytes bobVotingSignature = hex"a08a0612b60d9c911d357664de578cd8e17c5f0ee10b82b829e35a999fa3f5e11a33e5f3d06c6b2b6f3ef3066cee3b47285a57cfc85f2c3e166f831a285aebcd1c";
 	bytes charlieVotingSignature = hex"7fec06ab9da26790e4520b4476b7043ef8444178ec10cdf37942a229290ec70d01c7dced0a6e22080239df6fdc3983f515f52d06a32c03d5d6a0077f31fd9f841c";
 
+	uint256 startingBlock;
+	uint256 rollCount;
+
 
 	constructor()
 		{
 		if ( block.chainid == 11155111 )
 			DEBUG = true;
+
+		startingBlock = block.number;
+		}
+
+
+	// Overcomes an issue with Yul via-ir inlining block.number
+	function rollToNextBlock() public
+		{
+		rollCount++;
+
+		vm.roll(startingBlock + rollCount);
 		}
 
 

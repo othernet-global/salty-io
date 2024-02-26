@@ -544,4 +544,12 @@ contract TestBootstrapBallot is Deployment
 		vm.prank(DEPLOYER);
 		bootstrapBallot.vote( true, deployerVotingSignature );
 		}
+//
+//
+//	function testFinalize() public
+//		{
+//		bootstrapBallot.finalizeBallot();
+//
+//		console.log( "BOOTSTRAP BALLOT: ", address(bootstrapBallot) );
+//		}
 	}

@@ -25,8 +25,10 @@ contract TestArbitrage is Deployment
 
 		finalizeBootstrap();
 
-		vm.prank(address(daoVestingWallet));
+		vm.startPrank(address(daoVestingWallet));
 		salt.transfer(DEPLOYER, 1000000 ether);
+		salt.transfer(alice, 1000000 ether);
+		vm.stopPrank();
 		}
 
 
@@ -344,7 +346,7 @@ contract TestArbitrage is Deployment
 			uint256 startingDepositSALT = pools.depositedUserBalance( address(dao), salt );
 
 			pools.depositSwapWithdraw( salt, weth, 1 ether, 0, block.timestamp );
-			vm.roll(block.number + 1);
+			rollToNextBlock();
 
 			uint256 profit = pools.depositedUserBalance( address(dao), salt ) - startingDepositSALT;
 			assertTrue( profit > 4*10**13, "Profit lower than expected" );
@@ -363,7 +365,7 @@ contract TestArbitrage is Deployment
         vm.stopPrank();
 
 		vm.startPrank(DEPLOYER);
-		wbtc.transfer(alice, 100000 ether);
+		wbtc.transfer(alice, 100000 * 10**8);
 		weth.transfer(alice, 100000 ether);
 		salt.transfer(alice, 100000 ether);
 		usdc.transfer(alice, 100000 *10**6);

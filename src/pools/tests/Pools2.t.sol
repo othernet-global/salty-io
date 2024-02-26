@@ -585,13 +585,13 @@ function testSequentialLiquidityAdjustment() public {
 
 
 		uint256 amountOut1 = pools.depositDoubleSwapWithdraw(tokens[0], tokens[1], tokens[2], 100 ether, 0, block.timestamp);
-		vm.roll(block.number + 1);
+		rollToNextBlock();
 
 		uint256 amountOut2a = pools.depositSwapWithdraw(tokens[3], tokens[4], 100 ether, 0, block.timestamp);
-		vm.roll(block.number + 1);
+		rollToNextBlock();
 
 		uint256 amountOut2b = pools.depositSwapWithdraw(tokens[4], tokens[5], amountOut2a, 0, block.timestamp);
-		vm.roll(block.number + 1);
+		rollToNextBlock();
 
 		assertEq( amountOut1, amountOut2b);
     }
