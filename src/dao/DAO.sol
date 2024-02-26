@@ -270,8 +270,11 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		require( msg.sender == address(exchangeConfig.upkeep()), "DAO.withdrawFromDAO is only callable from the Upkeep contract" );
 
 		withdrawnAmount = pools.depositedUserBalance(address(this), token );
-		if ( withdrawnAmount <= PoolUtils.DUST )
+		if ( withdrawnAmount <= ( PoolUtils.DUST + 1 ) )
 			return 0;
+
+		// Don't withdraw all profits to avoid the increased gas cost of overwriting zero
+		withdrawnAmount -= 1;
 
 		pools.withdraw( token, withdrawnAmount );
 

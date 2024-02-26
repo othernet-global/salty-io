@@ -50,8 +50,9 @@ abstract contract PoolStats is IPoolStats
 
 		bytes32[] memory poolIDs = poolsConfig.whitelistedPools();
 
+		// Don't fully set profits to zero to avoid the increased gas cost of overwriting zero
 		for( uint256 i = 0; i < poolIDs.length; i++ )
-			_arbitrageProfits[ poolIDs[i] ] = 0;
+			_arbitrageProfits[ poolIDs[i] ] = 1;
 		}
 
 
