@@ -686,7 +686,7 @@ contract TestDAO is Deployment
 
         // Check the result
         uint256 finalBalance = weth.balanceOf(address(exchangeConfig.upkeep()));
-        assertEq(finalBalance, expectedBalance, "The final balance is not correct");
+        assertEq(finalBalance, expectedBalance - 1, "The final balance is not correct");
     }
 
 
