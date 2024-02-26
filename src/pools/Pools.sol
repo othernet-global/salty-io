@@ -49,7 +49,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 	// User token balances for deposited tokens
 	mapping(address=>mapping(IERC20=>uint256)) private _userDeposits;
 
-	// Used to prevent splitting large swaps within a block into smaller ones as doing so allows for greater price manipulation without consequence from the arbitrage rebalancing.
+	// Used to prevent splitting large swaps within a single block into smaller ones as doing so allows for greater price manipulation without consequence from the arbitrage rebalancing.
 	mapping(address => uint) private lastSwappedBlocks;
 
 
@@ -244,7 +244,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
     	}
 
 
-	// Calculate amountOut based on the current token reserves and the specified amountIn and then update the reserves.
+	// Swap amountIn tokens for amountOut tokens in the direction specified by flipped and update the reserves.
 	// Only the reserves are updated - the function does not adjust deposited user balances or do ERC20 transfers.
 	// Assumes that the reserves have already been checked for minimal necessary liquidity.
     function _adjustReservesForSwap( PoolReserves storage reserves, bool flipped, uint256 amountIn ) internal returns (uint256 amountOut)
@@ -280,7 +280,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		// Make sure that the reserves after swap are greater than DUST
         require( (reserve0 > PoolUtils.DUST) && (reserve1 > PoolUtils.DUST), "Insufficient reserves after swap");
 
-		// Update the reserves with overflow check
+		// Update the reserves with an overflow check
 		require( (reserve0 <= type(uint128).max) && (reserve1 <= type(uint128).max), "Reserves overflow after swap" );
 
 		reserves.reserve0 = uint128(reserve0);
@@ -288,7 +288,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
     	}
 
 
-    // Arbitrage a token to itself along a circular path (starting and ending with WETH), taking advantage of imbalances in the exchange pools.
+    // Arbitrage a token to itself along a specified circular path (starting and ending with WETH), taking advantage of imbalances in the exchange pools.
     // Does not require any deposited tokens to make the call, but requires that the resulting amountOut is greater than the specified arbitrageAmountIn.
     // Essentially the caller virtually "borrows" arbitrageAmountIn of the starting token and virtually "repays" it from their received amountOut at the end of the swap chain.
     // The extra amountOut (compared to arbitrageAmountIn) is the arbitrageProfit.
@@ -317,6 +317,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 
 	// Check to see if profitable arbitrage is possible after the user swap that was just made
+	// Check the arbitrage path: WETH->arbToken2->arbToken3->WETH
 	function _attemptArbitrage( IERC20 arbToken2, IERC20 arbToken3 ) internal returns (uint256 arbitrageProfit)
 		{
 		bytes32 poolID;
@@ -333,26 +334,27 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 			{
 			(poolID, flippedA) = PoolUtils._poolIDAndFlipped(weth, arbToken2);
 			reservesA = _poolReserves[poolID];
-			(uint256 reserve1, uint256 reserve2) = (reservesA.reserve0, reservesA.reserve1 );
+			(uint256 a0, uint256 a1) = (reservesA.reserve0, reservesA.reserve1 );
 			if (flippedA)
-				(reserve1, reserve2) = (reserve2, reserve1);
+				(a0, a1) = (a1, a0);
 
 
 			(poolID, flippedB) = PoolUtils._poolIDAndFlipped(arbToken2, arbToken3);
 			reservesB = _poolReserves[poolID];
-			(uint256 reserve3, uint256 reserve4) = (reservesB.reserve0, reservesB.reserve1 );
+			(uint256 b0, uint256 b1) = (reservesB.reserve0, reservesB.reserve1 );
 			if (flippedB)
-				(reserve3, reserve4) = (reserve4, reserve3);
+				(b0, b1) = (b1, b0);
 
 
 			(poolID, flippedC) = PoolUtils._poolIDAndFlipped(arbToken3, weth);
 			reservesC = _poolReserves[poolID];
-			(uint256 reserve5, uint256 reserve6) = (reservesC.reserve0, reservesC.reserve1 );
+			(uint256 c0, uint256 c1) = (reservesC.reserve0, reservesC.reserve1 );
 			if (flippedC)
-				(reserve5, reserve6) = (reserve6, reserve5);
+				(c0, c1) = (c1, c0);
 
 			// Determine the best amount of WETH to start the arbitrage with
-			arbitrageAmountIn = _bestArbitrageIn(reserve1, reserve2, reserve3, reserve4, reserve5, reserve6 );
+			if ( a0 > PoolUtils.DUST && a1 > PoolUtils.DUST && b0 > PoolUtils.DUST && b1 > PoolUtils.DUST && c0 > PoolUtils.DUST && c1 > PoolUtils.DUST )
+				arbitrageAmountIn = _bestArbitrageIn(a0, a1, b0, b1, c0, c1 );
 			}
 
 		// If arbitrage is viable, then perform it
@@ -360,7 +362,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 			{
 			 arbitrageProfit = _arbitrage(arbitrageAmountIn, reservesA, reservesB, reservesC, flippedA, flippedB, flippedC);
 
-			// Update the stats related to the pools that contributed to the arbitrage so they can be rewarded proportionally later
+			// Update the stats related to the pools that contributed to the arbitrage so they can be rewarded proportionally later.
 			// The arbitrage path can be identified by the middle tokens arbToken2 and arbToken3 (with WETH always on both ends)
 			_updateProfitsFromArbitrage( arbToken2, arbToken3, arbitrageProfit );
 			 }
@@ -382,7 +384,7 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		// Make sure the swap meets the minimums specified by the user
 		require( swapAmountOut >= minAmountOut, "Insufficient resulting token amount" );
 
-		// The user's swap has just been made - attempt atomic arbitrage to rebalance the pool and yield arbitrage profit
+		// The user's swap has just been made - attempt atomic arbitrage to rebalance the pool and yield arbitrage profit.
 
 		// Determine the arbitrage path for the given user swap.
 		// Arbitrage path returned as: weth->arbToken2->arbToken3->weth
