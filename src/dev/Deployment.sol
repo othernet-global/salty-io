@@ -55,7 +55,7 @@ contract Deployment is Test
 	IERC20 public _testUSDT = IERC20(0xCd58586cC5F0c6c425b99BB94Dc5662cf2A18B84);
 
 	// The DAO contract can provide us with all other contract addresses in the protocol
-	IDAO public dao = IDAO(address(0x8600253aE5E96CcEFa542d09a1c47184b83B47BB));
+	IDAO public dao = IDAO(address(0x15c484a2b3e594Ff9d7F497dc58994F82D39Ab66));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));

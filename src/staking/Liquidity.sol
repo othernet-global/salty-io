@@ -53,7 +53,7 @@ contract Liquidity is ILiquidity, StakingRewards
 
 			// Swap from tokenA to tokenB and adjust the zapAmounts
 			zapAmountA -= swapAmountA;
-			zapAmountB += pools.depositSwapWithdraw( tokenA, tokenB, swapAmountA, 0, block.timestamp );
+			zapAmountB += pools.depositZapSwapWithdraw( tokenA, tokenB, swapAmountA );
 			}
 
 		// tokenB is in excess so swap some of it to tokenA?
@@ -65,7 +65,7 @@ contract Liquidity is ILiquidity, StakingRewards
 
 			// Swap from tokenB to tokenA and adjust the zapAmounts
 			zapAmountB -= swapAmountB;
-			zapAmountA += pools.depositSwapWithdraw( tokenB, tokenA, swapAmountB, 0, block.timestamp );
+			zapAmountA += pools.depositZapSwapWithdraw( tokenB, tokenA, swapAmountB );
 			}
 
 		return (zapAmountA, zapAmountB);

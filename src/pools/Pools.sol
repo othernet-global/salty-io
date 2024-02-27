@@ -427,6 +427,33 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 		}
 
 
+	// Deposit tokenIn, swap to tokenOut without arbitrage and then have tokenOut sent to the sender.
+	// Only callable by the Liquidity contract
+	function depositZapSwapWithdraw(IERC20 zapSwapTokenIn, IERC20 zapSwapTokenOut, uint256 zapSwapAmountIn ) external returns (uint256 zapSwapAmountOut)
+		{
+		require( msg.sender == address(liquidity), "Pools.depositZapSwapWithdraw is only callable from the Liquidity contract" );
+
+		// Transfer the tokens from the sender - only tokens without fees should be whitelisted on the DEX
+		zapSwapTokenIn.safeTransferFrom(msg.sender, address(this), zapSwapAmountIn );
+
+		// Perform the zap swap without arbitrage or minimum checks (as the users final swap will be checked for relevant minimums).
+		// PoolMath.determineZapSwapAmount already checked for reservers > DUST as well.
+		(bytes32 poolID, bool flipped) = PoolUtils._poolIDAndFlipped(zapSwapTokenIn, zapSwapTokenOut);
+        PoolReserves storage reserves = _poolReserves[poolID];
+
+		// Prevent users from zapping too much at once as they may encounter unexpected slippage
+		if ( flipped )
+			require( zapSwapAmountIn < reserves.reserve1 / 100, "Cannot zap more than 1% of the reserves" );
+		else
+			require( zapSwapAmountIn < reserves.reserve0 / 100, "Cannot zap more than 1% of the reserves" );
+
+		zapSwapAmountOut = _adjustReservesForSwap( reserves, flipped, zapSwapAmountIn );
+
+    	// Send tokenOut to the user
+    	zapSwapTokenOut.safeTransfer( msg.sender, zapSwapAmountOut );
+		}
+
+
 	// A convenience method to perform two swaps in one transaction
 	function depositDoubleSwapWithdraw( IERC20 swapTokenIn, IERC20 swapTokenMiddle, IERC20 swapTokenOut, uint256 swapAmountIn, uint256 minAmountOut, uint256 deadline ) external oneUserSwapPerBlock nonReentrant ensureNotExpired(deadline) returns (uint256 swapAmountOut)
 		{

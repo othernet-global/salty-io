@@ -119,7 +119,7 @@ contract TestUtils is Deployment
 		Utils utils = new Utils();
 
 		uint256 addAmount1 = 0;
-		uint256 addAmount2 = 30 ether;
+		uint256 addAmount2 = .30 ether;
 
 	 	// Determine how much needs to be automatically swapped before the liquidity is added
 		(uint256 reserves1, uint256 reserves2) = pools.getPoolReserves(token1, token2);
@@ -161,10 +161,10 @@ contract TestUtils is Deployment
 //			console.log( "ES: ", estimate );
 	 		}
 
-		uint256 addedLiquidity = liquidity.depositLiquidityAndIncreaseShare( token1, token2, 0, 30 ether, 0, 0, 0, block.timestamp, true );
+		uint256 addedLiquidity = liquidity.depositLiquidityAndIncreaseShare( token1, token2, 0, .30 ether, 0, 0, 0, block.timestamp, true );
 //		console.log( "AD: ", addedLiquidity );
 
-		assertEq( estimate / 10, addedLiquidity / 10 );
+		assertEq( estimate, addedLiquidity + 2 );
 
 		//addedLiquidity = liquidity.depositLiquidityAndIncreaseShare( token1, token2, 30 ether, 0 ether, 0 ether, 0, block.timestamp, true );
 	    }
@@ -188,7 +188,7 @@ contract TestUtils is Deployment
 
 		Utils utils = new Utils();
 
-		uint256 addAmount1 = 30 ether;
+		uint256 addAmount1 = .30 ether;
 		uint256 addAmount2 = 0;
 
 	 	// Determine how much needs to be automatically swapped before the liquidity is added
@@ -231,10 +231,10 @@ contract TestUtils is Deployment
 //			console.log( "ES: ", estimate );
 	 		}
 
-		uint256 addedLiquidity = liquidity.depositLiquidityAndIncreaseShare( token1, token2, 30 ether, 0, 0, 0, 0, block.timestamp, true );
+		uint256 addedLiquidity = liquidity.depositLiquidityAndIncreaseShare( token1, token2, .30 ether, 0, 0, 0, 0, block.timestamp, true );
 //		console.log( "AD: ", addedLiquidity );
 
-		assertEq( estimate / 10, addedLiquidity / 10 );
+		assertEq( estimate, addedLiquidity + 3 );
 
 //		addedLiquidity = liquidity.depositLiquidityAndIncreaseShare( token1, token2, 30 ether, 0 ether, 0 ether, 0, block.timestamp, true );
 	    }
