@@ -35,7 +35,7 @@ COVERAGE="yes" NETWORK="sep" forge test -vv --rpc-url https://x.x.x.x:yyy
 **Additional Resources**
 
 [Documentation](https://docs.salty.io) \
-[In-depth Gitbook Technical Overview](https://tech.salty.io) \
+[In-depth Gitbook Technical Overview](https://tech.salty.io)
 
 \
 **Audits**
