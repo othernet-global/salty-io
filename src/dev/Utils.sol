@@ -8,6 +8,7 @@ import "../pools/interfaces/IPoolsConfig.sol";
 import "../staking/interfaces/IStaking.sol";
 import "../staking/interfaces/IStakingConfig.sol";
 import "../pools/interfaces/IPools.sol";
+import "../interfaces/IUpkeep.sol";
 import "../interfaces/ISalt.sol";
 import "../interfaces/IExchangeConfig.sol";
 import "../pools/PoolUtils.sol";
@@ -336,6 +337,12 @@ contract Utils
 		burnedSALT = salt.totalBurned();
 		liquidityRewardsSalt = salt.balanceOf( liquidityRewardsEmitter );
 		rewardsEmitterDailyPercentTimes1000 = rewardsConfig.rewardsEmitterDailyPercentTimes1000();
+		}
+
+
+	function secondsSinceLastUpkeep(IUpkeep upkeep) external view returns (uint256 elapsedSeconds)
+		{
+		return block.timestamp - upkeep.lastUpkeepTimeEmissions();
 		}
 	}
 
