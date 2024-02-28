@@ -11,11 +11,7 @@ The Salty.IO codebase is divided up into the following folders:
 
 **/pools** - a core part of the exchange which handles liquidity pools, swaps, arbitrage, and user token deposits (which reduces gas costs for multiple trades) and pools contribution to recent arbitrage trades (for proportional rewards distribution).
 
-**/price_feed** - implements a redundant price aggregator (initially using Chainlink, Uniswap v3 TWAP and Salty.IO reserves) to provide the WBTC and WETH prices used by the overcollateralized stablecoin framework.
-
 **/rewards** - handles global SALT emissions, SALT rewards (which are sent to liquidity providers and stakers), and includes a rewards emitter mechanism (which emits a percentage of rewards over time to reduce rewards volatility).
-
-**/stable** - includes the USDS contract and collateral functionality which allows users to deposit WBTC/WETH LP as collateral, borrow USDS (which mints it), repay USDS and allow users to liquidate undercollateralized positions.
 
 **/staking** - implements a staking rewards mechanism which handles users receiving rewards proportional to some "userShare".  What the userShare actually represents is dependent on the contract that derives from StakingRewards.sol (namely Staking.sol which handles users staking SALT, and Liquidity.sol which handles users depositing liquidity).
 
