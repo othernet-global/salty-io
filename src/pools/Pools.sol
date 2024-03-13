@@ -190,8 +190,17 @@ contract Pools is IPools, ReentrancyGuard, PoolStats, ArbitrageSearch, Ownable
 
 		// Determine how much liquidity is being withdrawn and round down in favor of the protocol
 		PoolReserves storage reserves = _poolReserves[poolID];
-		reclaimedA = ( reserves.reserve0 * liquidityToRemove ) / totalLiquidity;
-		reclaimedB = ( reserves.reserve1 * liquidityToRemove ) / totalLiquidity;
+
+		if (reserves.reserve0 <= reserves.reserve1 )
+			{
+			reclaimedA = ( reserves.reserve0 * liquidityToRemove ) / totalLiquidity;
+			reclaimedB = ( reserves.reserve1 * reclaimedA ) / reserves.reserve0;
+			}
+		else
+			{
+			reclaimedB = ( reserves.reserve1 * liquidityToRemove ) / totalLiquidity;
+			reclaimedA = ( reserves.reserve0 * reclaimedB ) / reserves.reserve1;
+			}
 
 		reserves.reserve0 -= uint128(reclaimedA);
 		reserves.reserve1 -= uint128(reclaimedB);
