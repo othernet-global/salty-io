@@ -29,7 +29,7 @@ contract DAOConfig is IDAOConfig, Ownable
 
 	// The minimum amount of xSALT required for ballot quorum (to take action on the ballot).
 	// baseBallotQuorum is decided as a percent of the total amount of SALT staked.
-	// NOTE: there is a hard minimum of 1% of SALT.totalSupply that takes effect if the amount of staked SALT is low (at launch for instance).
+	// NOTE: there is a hard minimum of 0.50% of SALT.totalSupply that takes effect if the amount of staked SALT is low (at launch for instance).
 	// Parameter adjustment quorum: = 1 * baseBallotQuorum
 	// Token whitelisting quorum: = 2 * baseBallotQuorum
 	// Sending SALT from the DAO quorum: = 3 * baseBallotQuorum
@@ -37,7 +37,7 @@ contract DAOConfig is IDAOConfig, Ownable
 	// Contract updating quorum: = 3 * baseBallotQuorum
 	// Website updating quorum: = 3 * baseBallotQuorum
 	// Range: 5% to 20% with an adjustment of 1%
-	uint256 public baseBallotQuorumPercentTimes1000 = 10 * 1000; // Default 10% of the total amount of SALT staked with a 1000x multiplier
+	uint256 public baseBallotQuorumPercentTimes1000 = 7 * 1000; // Default 7% of the total amount of SALT staked with a 1000x multiplier
 
 	// How many days minimum a ballot has to exist before it can be taken action on.
 	// Action will only be taken if it has the required votes and quorum to do so.
