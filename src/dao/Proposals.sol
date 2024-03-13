@@ -343,7 +343,7 @@ contract Proposals is IProposals, ReentrancyGuard
 			requiredQuorum = ( 3 * totalStaked * daoConfig.baseBallotQuorumPercentTimes1000()) / ( 100 * 1000 );
 
 		// Make sure that the requiredQuorum is at least 0.50% of the total SALT supply.
-		// Circulating supply after the first 45 days of emissions will be about 3 million - so this would require about 16% of the circulating
+		// Circulating supply after the first 45 days of emissions will be about 8 million - so this would require about 6% of the circulating
 		// SALT to be staked and voting to pass a proposal (including whitelisting) 45 days after deployment..
 		uint256 totalSupply = IERC20Metadata(address(exchangeConfig.salt())).totalSupply();
 		uint256 minimumQuorum = totalSupply * 5 / 1000;
