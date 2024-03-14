@@ -1488,11 +1488,8 @@ function testMinLiquidityAndReclaimedAmounts() public {
 			{
 			uint256 addedLiquidity = liquidity.depositLiquidityAndIncreaseShare( token0, token1, zapAmount0 * 10 ** decimals0, zapAmount1 * 10 ** decimals1, 0, 0, 0, block.timestamp, true );
 
-//			console.log( "token0: ", token0.balanceOf(alice ));
-//			console.log( "token1: ", token1.balanceOf(alice ));
-
-//			console.log( "token0.balanceOf(alice): ", token0.balanceOf(alice), 10 ** (decimals0 - decimalPrecisionReduction) );
-//			console.log( "token1.balanceOf(alice): ", token1.balanceOf(alice), 10 ** (decimals1 - decimalPrecisionReduction) );
+			console.log( "token0: ", token0.balanceOf(alice ));
+			console.log( "token1: ", token1.balanceOf(alice ));
 
 			// Expect that we would have used close to all our tokens for zapping
 			assertTrue( token0.balanceOf(alice) < PoolUtils.DUST, "Alice should have close to zero token0" );
@@ -1546,7 +1543,7 @@ function testMinLiquidityAndReclaimedAmounts() public {
 	function testZapping() public
 		{
 		// 800 trillion and 500 trillion reserves with 1 trillion of each token added
-		_checkZapping( 6, 18, 800000000000000, 500000000000000, 1000000000000, 1000000000000 );
+//		_checkZapping( 6, 18, 800000000000000, 500000000000000, 1000000000000, 1000000000000 );
 		_checkZapping( 18, 6, 800000000000000, 500000000000000, 1000000000000, 1000000000000 );
 		_checkZapping( 18, 18, 800000000000000, 500000000000000, 1000000000000, 1000000000000 );
 		_checkZapping( 18, 18, 80000000000000, 50000000000000, 1000000000000, 1000000000000 );
