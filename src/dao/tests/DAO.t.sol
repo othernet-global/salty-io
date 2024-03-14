@@ -341,6 +341,74 @@ contract TestDAO is Deployment
     	}
 
 
+	// A unit test to test that send SALT can't be done too quickly
+    function testSendSaltApprovedFast() public
+    	{
+        vm.startPrank(alice);
+		salt.transfer( address(dao), 1000000 ether );
+		salt.transfer( bob, 1000000 ether );
+
+        staking.stakeSALT( 1000000 ether );
+        proposals.proposeSendSALT( bob, 123 ether, "description 1" );
+        vm.stopPrank();
+
+        vm.startPrank(bob);
+        salt.approve( address(staking), type(uint256).max );
+        staking.stakeSALT( 1000000 ether );
+        proposals.proposeSendSALT( bob, 123 ether, "description 2" );
+        vm.stopPrank();
+
+        // Increase block time to finalize the ballot
+        vm.warp(block.timestamp + 11 days );
+
+
+        vm.startPrank(alice);
+        proposals.castVote(1, Vote.YES);
+        dao.finalizeBallot(1);
+
+        proposals.castVote(2, Vote.YES);
+        dao.finalizeBallot(2);
+
+ 		// Check for the effects of the votes
+ 		assertEq( salt.balanceOf( bob ), 123 ether, "Bob shouldn't have receieved the extra SALT" );
+     	}
+
+
+	// A unit test to test that send SALT can be done after the one week cooldown
+    function testSendSaltApprovedNotTooFast() public
+    	{
+        vm.startPrank(alice);
+		salt.transfer( address(dao), 1000000 ether );
+		salt.transfer( bob, 1000000 ether );
+
+        staking.stakeSALT( 1000000 ether );
+        proposals.proposeSendSALT( bob, 123 ether, "description 1" );
+        vm.stopPrank();
+
+        vm.startPrank(bob);
+        salt.approve( address(staking), type(uint256).max );
+        staking.stakeSALT( 1000000 ether );
+        proposals.proposeSendSALT( bob, 123 ether, "description 2" );
+        vm.stopPrank();
+
+        // Increase block time to finalize the ballot
+        vm.warp(block.timestamp + 11 days );
+
+
+        vm.startPrank(alice);
+        proposals.castVote(1, Vote.YES);
+        dao.finalizeBallot(1);
+
+        vm.warp( block.timestamp + 1 weeks );
+
+        proposals.castVote(2, Vote.YES);
+        dao.finalizeBallot(2);
+
+ 		// Check for the effects of the votes
+ 		assertEq( salt.balanceOf( bob ), 246 ether, "Bob shouldn't have receieved the extra SALT" );
+     	}
+
+
 	// A unit test to test that finalizing a denied send SALT ballot has the desired effect
     function testSendSaltDenied() public
     	{

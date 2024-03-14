@@ -33,6 +33,8 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 	using SafeERC20 for ISalt;
 	using SafeERC20 for IERC20;
 
+	uint256 constant SEND_SALT_COOLDOWN = 1 weeks;
+
 	IPools immutable public pools;
 	IProposals immutable public proposals;
 	IExchangeConfig immutable public exchangeConfig;
@@ -48,6 +50,9 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 	// Countries that have been excluded from access to the DEX (used by AccessManager.sol)
 	// Keys as ISO 3166 Alpha-2 Codes
 	mapping(string=>bool) public excludedCountries;
+
+	// The last timestamp that SALT was sent from the DAO
+	uint256 public nextValidTimestampSendSALT;
 
 
     constructor( IPools _pools, IProposals _proposals, IExchangeConfig _exchangeConfig, IPoolsConfig _poolsConfig, IStakingConfig _stakingConfig, IRewardsConfig _rewardsConfig, IDAOConfig _daoConfig, IRewardsEmitter _liquidityRewardsEmitter )
@@ -131,6 +136,8 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 			if ( exchangeConfig.salt().balanceOf(address(this)) >= ballot.number1 )
 				{
 				IERC20(exchangeConfig.salt()).safeTransfer( ballot.address1, ballot.number1 );
+
+				nextValidTimestampSendSALT = block.timestamp + SEND_SALT_COOLDOWN;
 
 				emit SaltSent(ballot.address1, ballot.number1);
 				}
@@ -245,7 +252,14 @@ contract DAO is IDAO, Parameters, ReentrancyGuard
 		else if ( ballot.ballotType == BallotType.WHITELIST_TOKEN )
 			_finalizeTokenWhitelisting(ballotID);
 		else
+			{
+			// SALT can only be sent from the DAO once a week to combat DAO reserve draining attacks.
+			if ( ballot.ballotType == BallotType.SEND_SALT )
+			if ( block.timestamp < nextValidTimestampSendSALT )
+				return; // return and allow the Send SALT to be executed later
+
 			_finalizeApprovalBallot(ballotID);
+			}
 
 		// Mark the ballot as no longer votable and remove it from the list of open ballots
 		proposals.markBallotAsFinalized(ballotID);
