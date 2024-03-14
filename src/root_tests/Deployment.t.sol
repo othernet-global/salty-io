@@ -37,6 +37,29 @@ contract TestDeployment is Deployment
 	// Tests that the contract address variables within the various contracts are correct
     function testProperDeployment() public
     	{
+    	// For sanity, check that the vesting wallet starts are within one month of now
+    	uint256 daoVestingWalletStart = daoVestingWallet.start();
+    	uint256 teamVestingWalletStart = teamVestingWallet.start();
+
+		uint256 daoWithin;
+		uint256 teamWithin;
+
+		if ( daoVestingWalletStart > block.timestamp )
+			daoWithin = daoVestingWalletStart - block.timestamp;
+		else
+			daoWithin = block.timestamp - daoVestingWalletStart;
+
+		if ( teamVestingWalletStart > block.timestamp )
+			teamWithin = teamVestingWalletStart - block.timestamp;
+		else
+			teamWithin = block.timestamp - teamVestingWalletStart;
+
+		assertTrue( daoWithin < 60 * 60 * 24 * 30, "daoVestingWallet start() is too far away!" );
+		assertTrue( teamWithin < 60 * 60 * 24 * 30, "teamVestingWallet start() is too far away!" );
+
+		assertEq( daoVestingWalletStart, uint64(bootstrapBallot.completionTimestamp()), "daoVestingWallet start() doesn't match bootstrapBallot completionTimestamp" );
+		assertEq( teamVestingWalletStart, uint64(bootstrapBallot.completionTimestamp()), "teamVestingWallet start() doesn't match bootstrapBallot completionTimestamp" );
+
     	// Check token decimals
 		assertTrue( ERC20(address(wbtc)).decimals() == 8, "WBTC should have 8 decimals" );
 		assertTrue( ERC20(address(weth)).decimals() == 18, "WETH should have 18 decimals" );

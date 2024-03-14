@@ -55,7 +55,7 @@ contract Deployment is Test
 	IERC20 public _testUSDT = IERC20(0xCd58586cC5F0c6c425b99BB94Dc5662cf2A18B84);
 
 	// The DAO contract can provide us with all other contract addresses in the protocol
-	IDAO public dao = IDAO(address(0x789965a5A1B8b82EC4968d38d057Ab9184B00558));
+	IDAO public dao = IDAO(address(0x74913BFf4Eb2D84dd42dc276e7D06Cf0FD1d8A93));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));
@@ -210,10 +210,13 @@ contract Deployment is Test
 
 		upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, saltRewards, emissions, dao);
 
-		daoVestingWallet = new VestingWallet( address(dao), uint64(block.timestamp), 60 * 60 * 24 * 365 * 10 );
-		teamVestingWallet = new VestingWallet( teamWallet, uint64(block.timestamp), 60 * 60 * 24 * 365 * 10 );
 
 		bootstrapBallot = new BootstrapBallot(exchangeConfig, airdrop, 60 * 60 * 24 * 5 );
+
+		// Vesting wallets start emitting at the same time that the bootstrapBallot ends
+		daoVestingWallet = new VestingWallet( address(dao), uint64(bootstrapBallot.completionTimestamp()), 60 * 60 * 24 * 365 * 10 );
+		teamVestingWallet = new VestingWallet( teamWallet, uint64(bootstrapBallot.completionTimestamp()), 60 * 60 * 24 * 365 * 10 );
+
 		initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards);
 
 		pools.setContracts(dao, liquidity);

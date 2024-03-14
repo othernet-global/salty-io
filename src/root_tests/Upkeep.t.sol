@@ -473,11 +473,11 @@ contract TestUpkeep2 is Deployment
 
 		// The teamVestingWallet contains 10 million SALT and vests over a 10 year period.
 		// It emits about 13561 in the first 5 days + 1 hour (started at the time of contract deployment)
-		assertEq( salt.balanceOf(teamWallet), 13812817097919837645865 );
+		assertEq( salt.balanceOf(teamWallet), 114186960933536276002 );
 
 		// The daoVestingWallet contains 25 million SALT and vests over a 10 year period.
 		// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34394 in the first 5 days + one hour
-		assertEq( salt.balanceOf(address(dao)), 34403420906949323594096 );
+		assertEq( salt.balanceOf(address(dao)), 293831865853433183138 );
 		}
 
 
@@ -561,11 +561,11 @@ contract TestUpkeep2 is Deployment
 
 		// The teamVestingWallet contains 10 million SALT and vests over a 10 year period.
 		// It emits about 13561 in the first 5 days + 1 hour (started at the time of contract deployment)
-		assertEq( salt.balanceOf(teamWallet), 13822330035514967021816 );
+		assertEq( salt.balanceOf(teamWallet), 123699898528665651953 );
 
 		// The daoVestingWallet contains 25 million SALT and vests over a 10 year period.
 		// 100k SALT were removed from it in _generateArbitrageProfits() - so it emits about 34394 in the first 5 days + one hour
-		assertEq( salt.balanceOf(address(dao)), 34436623942998532569526 );
+		assertEq( salt.balanceOf(address(dao)), 327034901902642158567 );
 		}
 
 
