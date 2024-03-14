@@ -119,8 +119,12 @@ abstract contract StakingRewards is IStakingRewards, ReentrancyGuard
 		uint256 rewardsForAmount = ( totalRewards[poolID] * decreaseShareAmount ) / totalShares[poolID];
 
 		// For the amountToDecrease determine the proportion of virtualRewards (proportional to all virtualRewards for the user)
-		// Round virtualRewards up in favor of the protocol
-		uint256 virtualRewardsToRemove = Math.ceilDiv(user.virtualRewards * decreaseShareAmount,  user.userShare );
+
+		// Round virtualRewardsToRemoveFromClaimable up in favor of the protocol
+		uint256 virtualRewardsToRemoveFromClaimable = Math.ceilDiv(user.virtualRewards * decreaseShareAmount,  user.userShare );
+
+		// Round virtualRewardsToRemoveFromUserVirtRewards down in favor of the protocol
+		uint256 virtualRewardsToRemoveFromUserVirtRewards = (user.virtualRewards * decreaseShareAmount) / user.userShare;
 
 		// Update totals
 		totalRewards[poolID] -= rewardsForAmount;
@@ -128,14 +132,15 @@ abstract contract StakingRewards is IStakingRewards, ReentrancyGuard
 
 		// Update the user's share and virtual rewards
 		user.userShare -= decreaseShareAmount;
-		user.virtualRewards -= virtualRewardsToRemove;
+		user.virtualRewards -= virtualRewardsToRemoveFromUserVirtRewards;
 
 		uint256 claimableRewards = 0;
 
 		// Some of the rewardsForAmount are actually virtualRewards and can't be claimed.
-		// In the event that virtualRewards are greater than actual rewards - claimableRewards will stay zero.
-		if ( virtualRewardsToRemove < rewardsForAmount )
-			claimableRewards = rewardsForAmount - virtualRewardsToRemove;
+
+		// In the event that virtualRewardsToRemoveFromClaimable are greater than actual rewards - claimableRewards will stay zero.
+		if ( virtualRewardsToRemoveFromClaimable < rewardsForAmount )
+			claimableRewards = rewardsForAmount - virtualRewardsToRemoveFromClaimable;
 
 		// Send the claimable rewards
 		if ( claimableRewards != 0 )
