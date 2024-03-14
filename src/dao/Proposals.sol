@@ -134,6 +134,7 @@ contract Proposals is IProposals, ReentrancyGuard
 		require( msg.sender == address(exchangeConfig.dao()), "Only the DAO can mark a ballot as finalized" );
 
 		Ballot storage ballot = ballots[ballotID];
+		require( ballot.ballotIsLive, "The ballot has already been finalized" );
 
 		// Remove finalized whitelist token ballots from the list of open whitelisting proposals
 		if ( ballot.ballotType == BallotType.WHITELIST_TOKEN )
