@@ -175,4 +175,67 @@ contract TestArbitrageSearch is ArbitrageSearch, Test
 		_bruteForceFindBestArbAmountIn(type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max);
 		_bestArbitrageIn(type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max, type(uint112).max);
 		}
+
+
+
+    	function testArbitrageMethods2() public view {
+            // Initial, roughly balanced pools
+            // 18 ETH ~ 1 BTC ~ 40k TOKEN A
+            // uint256 reservesA0 = 900 ether; // ETH
+            // uint256 reservesA1 = 2000000 ether; // TOKEN A
+            // uint256 reservesB0 = 4000000 ether; // TOKEN A
+            // uint256 reservesB1 = 100 ether; // BTC
+            // uint256 reservesC0 = 500 ether; // BTC
+            // uint256 reservesC1 = 9000 ether; // ETH
+
+    		uint256 reservesA0 = 90000000; // ETH
+    		uint256 reservesA1 = 900000000; // TOKEN A
+    		uint256 reservesB0 = 900000000; // TOKEN A
+    		uint256 reservesB1 = 200000000100 ether; // TOKEN B
+    		uint256 reservesC0 = 1500000000; // TOKEN B
+    		uint256 reservesC1 = 1000 ether; // ETH
+
+            for (uint256 i = 0; i < 4; i++) {
+
+                console.log("");
+
+                uint256 bestApproxProfit;
+                uint256 auxReservesB1;
+                uint256 auxReservesB0;
+
+                {
+                    // Swap BTC for TOKEN A
+                    uint256 swapAmountInValueInBTC = 1 ether * (i + 1);  // Arbitrary value for test
+                    console.log(i, "- swap", swapAmountInValueInBTC / 10 ** 18, "BTC for TOKEN A");
+                    auxReservesB1 = reservesB1 + swapAmountInValueInBTC;
+                    auxReservesB0 = reservesB0 - reservesB0 * swapAmountInValueInBTC / auxReservesB1;
+
+    				uint256 gas0 = gasleft();
+                    uint256 bestBrute = _bruteForceFindBestArbAmountIn(swapAmountInValueInBTC / 18, reservesA0, reservesA1, auxReservesB0, auxReservesB1, reservesC0, reservesC1);
+    				console.log( "BRUTE GAS: ", gas0 - gasleft() );
+
+                    console.log("Original brute arbitrage estimation: ", bestBrute);
+                    bestApproxProfit = getArbitrageProfit(bestBrute, reservesA0, reservesA1, auxReservesB0, auxReservesB1, reservesC0, reservesC1);
+                    console.log("Brute arbitrage profit: ", bestApproxProfit);
+                }
+
+    			uint256 bestExact;
+    			unchecked
+    				{
+    				uint256 gas0 = gasleft();
+                	bestExact = _bestArbitrageIn(reservesA0, reservesA1, auxReservesB0, auxReservesB1, reservesC0, reservesC1);
+    				console.log( "BEST GAS: ", gas0 - gasleft() );
+    				}
+
+                console.log("Best arbitrage computation: ", bestExact);
+                uint256 bestExactProfit = getArbitrageProfit(bestExact, reservesA0, reservesA1, auxReservesB0, auxReservesB1, reservesC0, reservesC1);
+                console.log("Best arbitrage profit: ", bestExactProfit);
+
+    			// Assumes an ETH price of $2300
+    			if (bestExactProfit > bestApproxProfit)
+                console.log("PROFIT IMPROVEMENT (in USD cents): ", 2300 * (bestExactProfit - bestApproxProfit) / 10 ** 16);
+    			if (bestApproxProfit > bestExactProfit)
+    			console.log("PROFIT DECREASE (in USD cents): ", 2300 * (bestApproxProfit - bestExactProfit) / 10 ** 16);
+            }
+        }
 	}

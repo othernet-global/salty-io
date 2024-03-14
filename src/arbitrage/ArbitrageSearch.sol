@@ -72,22 +72,31 @@ abstract contract ArbitrageSearch
 	    }
 
 
-	// Determine the maximum msb across the given values
-	function _maximumReservesMSB( uint256 A0, uint256 A1, uint256 B0, uint256 B1, uint256 C0, uint256 C1 ) internal pure returns (uint256 msb)
+	// Given that x, y and z will be multiplied: determine the bit shift necessary to keep the product contained in 240 bits
+	function _shiftRequired( uint256 x, uint256 y, uint256 z ) internal pure returns (uint256)
 		{
-		uint256 max = A0;
-		if ( A1 > max )
-			max = A1;
-		if ( B0 > max )
-			max = B0;
-		if ( B1 > max )
-			max = B1;
-		if ( C0 > max )
-			max = C0;
-		if ( C1 > max )
-			max = C1;
+		unchecked
+			{
+			// Determine the maximum number of bits required without shifting
+			uint256 requiredBits0 = _mostSignificantBit(x) + _mostSignificantBit(y) + _mostSignificantBit(z);
 
-		return _mostSignificantBit(max);
+			// Already fits in 240?
+			if ( requiredBits0 < 240 )
+				return 0;
+
+			// Each number will be shifted so we can divide the required difference by 3
+			return Math.ceilDiv( requiredBits0 - 240, 3 );
+			}
+		}
+
+
+	// Determine the shift required to keep a0 * b0 * c0 and a1 * b1 * c1 within 240 bits
+	function _determineShift( uint256 a0, uint256 b0, uint256 c0, uint256 a1, uint256 b1, uint256 c1 ) internal pure returns (uint256)
+		{
+		uint256 shift0 = _shiftRequired(a0, b0, c0);
+		uint256 shift1 = _shiftRequired(a1, b1, c1);
+
+		return shift0 > shift1 ? shift0 : shift1;
 		}
 
 
@@ -108,15 +117,11 @@ abstract contract ArbitrageSearch
 			//	z *= Math.sqrt(B1 * C0);
 			//	bestArbAmountIn = (z - n0) / m;
 
-			uint256 maximumMSB = _maximumReservesMSB( a0, a1, b0, b1, c0, c1 );
+			// Determine the shift required to keep a0 * b0 * c0 and a1 * b1 * c1 each within 240 bits
+			uint256 shift = _determineShift( a0, b0, c0, a1, b1, c1 );
 
-			// Assumes the largest number should use no more than 80 bits.
-			// Multiplying three 80 bit numbers will yield 240 bits - within the 256 bit limit.
-			uint256 shift = 0;
-			if ( maximumMSB > 80 )
+			if ( shift > 0 )
 				{
-				shift = maximumMSB - 80;
-
 				a0 = a0 >> shift;
 				a1 = a1 >> shift;
 				b0 = b0 >> shift;
@@ -142,16 +147,19 @@ abstract contract ArbitrageSearch
 			if ( bestArbAmountIn == 0 )
 				return 0;
 
-			// Convert back to normal scaling
-			bestArbAmountIn = bestArbAmountIn << shift;
-
 			// Needed for the below arbitrage profit testing
-			a0 = a0 << shift;
-			a1 = a1 << shift;
-			b0 = b0 << shift;
-			b1 = b1 << shift;
-			c0 = c0 << shift;
-			c1 = c1 << shift;
+			if ( shift > 0 )
+				{
+				// Convert back to normal scaling
+				bestArbAmountIn = bestArbAmountIn << shift;
+
+				a0 = a0 << shift;
+				a1 = a1 << shift;
+				b0 = b0 << shift;
+				b1 = b1 << shift;
+				c0 = c0 << shift;
+				c1 = c1 << shift;
+				}
 
 			// Make sure bestArbAmountIn arbitrage is actually profitable (or else it will revert when actually performed in Pools.sol)
 			uint256 amountOut = (a1 * bestArbAmountIn) / (a0 + bestArbAmountIn);
