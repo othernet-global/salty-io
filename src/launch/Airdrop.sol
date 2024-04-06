@@ -1,101 +1,122 @@
 // SPDX-License-Identifier: BUSL 1.1
 pragma solidity =0.8.22;
 
-import "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
+import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import "../interfaces/IExchangeConfig.sol";
-import "../staking/interfaces/IStaking.sol";
 import "./interfaces/IAirdrop.sol";
 
 
-// The Airdrop contract keeps track of users who qualify for the Salty.IO Airdrop (participants of prominent DeFi protocols who retweet the launch announcement and vote).
-// The airdrop participants are able to claim staked SALT after the BootingstapBallot has concluded.
+// The Airdrop contract keeps track of users who qualify for the Salty.IO Airdrop.
+// The amount of awarded SALT for each user will be claimable over 52 weeks (starting from when allowClaiming() is called)
 
 contract Airdrop is IAirdrop, ReentrancyGuard
     {
-    using EnumerableSet for EnumerableSet.AddressSet;
+	using SafeERC20 for ISalt;
+
+    uint256 constant VESTING_PERIOD = 52 weeks;
 
 	IExchangeConfig immutable public exchangeConfig;
-    IStaking immutable public staking;
     ISalt immutable public salt;
 
-	// These are users who have retweeted the launch announcement and voted
-	EnumerableSet.AddressSet private _authorizedUsers;
+	// The timestamp when allowClaiming() was called
+	uint256 public claimingStartTimestamp;
 
-	// Set to true when airdrop claiming is allowed
-	bool public claimingAllowed;
+	// The claimable airdrop amount for each user
+	mapping (address=>uint256) airdropPerUser;
 
-	// Those users who have already claimed
-	mapping(address=>bool) public claimed;
-
-	// How much SALT each user receives for the airdrop
-	uint256 public saltAmountForEachUser;
+	// The amount already claimed by each user
+	mapping (address=>uint256) claimedPerUser;
 
 
-	constructor( IExchangeConfig _exchangeConfig, IStaking _staking )
+	constructor( IExchangeConfig _exchangeConfig )
 		{
 		exchangeConfig = _exchangeConfig;
-		staking = _staking;
 
 		salt = _exchangeConfig.salt();
 		}
 
 
-	// Authorize the wallet as being able to claim the airdrop.
-	// The BootstrapBallot would have already confirmed the user retweeted and voted.
-    function authorizeWallet( address wallet ) external
+	// Authorize the wallet as being able to claim a specific amount of the airdrop.
+	// The BootstrapBallot would have already confirmed the user is authorized to receive the specified saltAmount.
+    function authorizeWallet( address wallet, uint256 saltAmount ) external
     	{
     	require( msg.sender == address(exchangeConfig.initialDistribution().bootstrapBallot()), "Only the BootstrapBallot can call Airdrop.authorizeWallet" );
-    	require( ! claimingAllowed, "Cannot authorize after claiming is allowed" );
+    	require( claimingStartTimestamp == 0, "Cannot authorize after claiming is allowed" );
+    	require( airdropPerUser[wallet] == 0, "Wallet already authorized" );
 
-		_authorizedUsers.add(wallet);
+		airdropPerUser[wallet] = saltAmount;
     	}
 
 
-	// Called by the InitialDistribution contract during its distributionApproved() function - which is called on successful conclusion of the BootstrappingBallot
+	// Called to signify that users are able to start claiming their airdrop
     function allowClaiming() external
     	{
-    	require( msg.sender == address(exchangeConfig.initialDistribution()), "Airdrop.allowClaiming can only be called by the InitialDistribution contract" );
-    	require( ! claimingAllowed, "Claiming is already allowed" );
-		require(numberAuthorized() > 0, "No addresses authorized to claim airdrop.");
+    	require( msg.sender == address(exchangeConfig.initialDistribution().bootstrapBallot()), "Only the BootstrapBallot can call Airdrop.allowClaiming" );
+    	require( claimingStartTimestamp == 0, "Claiming is already allowed" );
 
-    	// All users receive an equal share of the airdrop.
-    	uint256 saltBalance = salt.balanceOf(address(this));
-		saltAmountForEachUser = saltBalance / numberAuthorized();
-
-		// Have the Airdrop approve max so that that xSALT (staked SALT) can later be transferred to airdrop recipients.
-		salt.approve( address(staking), saltBalance );
-
-    	claimingAllowed = true;
+		claimingStartTimestamp = block.timestamp;
     	}
 
 
-	// Sends a fixed amount of xSALT (staked SALT) to a qualifying user
-    function claimAirdrop() external nonReentrant
+	// Allow the user to claim up to the vested amount they are entitled to
+    function claim() external nonReentrant
     	{
-    	require( claimingAllowed, "Claiming is not allowed yet" );
-    	require( isAuthorized(msg.sender), "Wallet is not authorized for airdrop" );
-    	require( ! claimed[msg.sender], "Wallet already claimed the airdrop" );
+  		uint256 claimableSALT = claimableAmount(msg.sender);
 
-		// Have the Airdrop contract stake a specified amount of SALT and then transfer it to the user
-		staking.stakeSALT( saltAmountForEachUser );
-		staking.transferStakedSaltFromAirdropToUser( msg.sender, saltAmountForEachUser );
+    	require( claimableSALT != 0, "User has no claimable airdrop at this time" );
 
-    	claimed[msg.sender] = true;
+		// Send SALT to the user
+		salt.safeTransfer( msg.sender, claimableSALT);
+
+		// Remember the amount that was claimed by the user
+		claimedPerUser[msg.sender] += claimableSALT;
     	}
 
 
     // === VIEWS ===
-    // Returns true if the specified wallet has been authorized
-    function isAuthorized(address wallet) public view returns (bool)
+
+	// Whether or not claiming is allowed
+	function claimingAllowed() public view returns (bool)
+		{
+		return claimingStartTimestamp != 0;
+		}
+
+
+	// The amount that the user has already claimed
+	function claimedByUser( address wallet) public view returns (uint256)
+		{
+		return claimedPerUser[wallet];
+		}
+
+
+	// The amount of SALT that is currently claimable for the user
+    function claimableAmount(address wallet) public view returns (uint256)
     	{
-    	return _authorizedUsers.contains(wallet);
+    	// Claiming not allowed yet?
+    	if ( claimingStartTimestamp == 0 )
+    		return 0;
+
+    	// Look up the airdrop amount for the user
+		uint256 airdropAmount = airdropPerUser[wallet];
+		if ( airdropAmount == 0 )
+			return 0;
+
+		uint256 timeElapsed = block.timestamp - claimingStartTimestamp;
+		uint256 vestedAmount = ( airdropAmount * timeElapsed) / VESTING_PERIOD;
+
+		// Don't exceed the airdropAmount
+		if ( vestedAmount > airdropAmount )
+			vestedAmount = airdropAmount;
+
+		// Users can claim the vested amount they are entitled to minus the amount they have already claimed
+		return vestedAmount - claimedPerUser[wallet];
     	}
 
 
-	// The current number of authorized wallets
-    function numberAuthorized() public view returns (uint256)
+    // The totral airdrop that the user will receive
+    function airdropForUser( address wallet ) public view returns (uint256)
     	{
-    	return _authorizedUsers.length();
+    	return airdropPerUser[wallet];
     	}
 	}

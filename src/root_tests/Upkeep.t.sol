@@ -198,7 +198,7 @@ contract TestUpkeep2 is Deployment
 		// Emissions emit about 1547.6 SALT in one hour.
 		// This is due to Emissions holding 52 million SALT and emitting at a default rate of .50% / week.
 
-		assertEq( salt.balanceOf(address(saltRewards)), 1547619047619047619047);
+		assertEq( salt.balanceOf(address(saltRewards)), 1517857142857142857142);
 	  	}
 
 
@@ -439,7 +439,7 @@ contract TestUpkeep2 is Deployment
 
 		// As there were profits, SaltRewards distributed the 1488 ether + 72.2 ether rewards to the rewards emitters.
 		// 50% to stakingRewardsEmitter and 50% to liquidityRewardsEmitter, 1% / day for one hour.
-		assertEq( salt.balanceOf(address(saltRewards)), 1 ); // should be basically empty now
+		assertEq( salt.balanceOf(address(saltRewards)), 2 ); // should be basically empty now
 
 		// Additionally stakingRewardsEmitter started with 3 million bootstrapping rewards.
 		// liquidityRewardsEmitter started with 5 million bootstrapping rewards, divided evenly amongst the initial pools.
@@ -451,7 +451,7 @@ contract TestUpkeep2 is Deployment
 		// Check that the staking rewards were transferred to the staking contract:
 		// One hour of emitted rewards (1% a day) of (3 million bootstrapping in the stakingRewardsEmitter and 50% of 1560.2 ether)
 		// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
-		assertEq( staking.totalRewardsForPools(poolIDsA)[0], 937753698392601636010  );
+		assertEq( staking.totalRewardsForPools(poolIDsA)[0], 937749048094982588391  );
 
 		bytes32[] memory poolIDs = new bytes32[](3);
 		poolIDs[0] = PoolUtils._poolID(salt,weth);
@@ -463,9 +463,9 @@ contract TestUpkeep2 is Deployment
 		// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
 		uint256[] memory rewards = liquidity.totalRewardsForPools(poolIDs);
 
-		assertEq( rewards[0], 223298851845152926289);
-		assertEq( rewards[1], 223298851845152926289);
-		assertEq( rewards[2], 223298851845152926289);
+		assertEq( rewards[0], 223297301745946577082);
+		assertEq( rewards[1], 223297301745946577082);
+		assertEq( rewards[2], 223297301745946577082);
 
 
 		// Check Step 7. Sends SALT from the DAO vesting wallet to the DAO (linear distribution over 10 years).
@@ -527,7 +527,7 @@ contract TestUpkeep2 is Deployment
 
 		// As there were profits, SaltRewards distributed the 1488 ether + 72.2 ether rewards to the rewards emitters.
 		// 50% to stakingRewardsEmitter and 50% to liquidityRewardsEmitter, 1% / day for one hour.
-		assertEq( salt.balanceOf(address(saltRewards)), 1 ); // should be basically empty now
+		assertEq( salt.balanceOf(address(saltRewards)), 2 ); // should be basically empty now
 
 		// Additionally stakingRewardsEmitter started with 3 million bootstrapping rewards.
 		// liquidityRewardsEmitter started with 5 million bootstrapping rewards, divided evenly amongst the initial pools.
@@ -539,7 +539,7 @@ contract TestUpkeep2 is Deployment
 		// Check that the staking rewards were transferred to the staking contract:
 		// One hour of emitted rewards (1% a day) of (3 million bootstrapping in the stakingRewardsEmitter and 50% of 1560.2 ether)
 		// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
-		assertEq( staking.totalRewardsForPools(poolIDsA)[0], 1015878089711651002206  );
+		assertEq( staking.totalRewardsForPools(poolIDsA)[0], 1015873019717559525193  );
 
 		bytes32[] memory poolIDs = new bytes32[](3);
 		poolIDs[0] = PoolUtils._poolID(salt,weth);
@@ -551,9 +551,9 @@ contract TestUpkeep2 is Deployment
 		// Keep in mind that totalRewards contains rewards that have already been claimed (and become virtual rewards)
 		uint256[] memory rewards = liquidity.totalRewardsForPools(poolIDs);
 
-		assertEq( rewards[0], 241902164576502715021);
-		assertEq( rewards[1], 241902164576502715021);
-		assertEq( rewards[2], 241902164576502715021);
+		assertEq( rewards[0], 241900474578472222682);
+		assertEq( rewards[1], 241900474578472222682);
+		assertEq( rewards[2], 241900474578472222682);
 
 
 		// Check Step 7. Sends SALT from the DAO vesting wallet to the DAO (linear distribution over 10 years).

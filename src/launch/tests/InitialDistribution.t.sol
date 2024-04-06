@@ -67,7 +67,8 @@ contract TestInitialDistribution is Deployment
 			address oldDAO = address(dao);
 			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, daoConfig, liquidityRewardsEmitter);
 
-			airdrop = new Airdrop(exchangeConfig, staking);
+			airdrop1 = new Airdrop(exchangeConfig);
+			airdrop2 = new Airdrop(exchangeConfig);
 
 			accessManager = new AccessManager(dao);
 
@@ -75,11 +76,11 @@ contract TestInitialDistribution is Deployment
 
 			upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, saltRewards, emissions, dao);
 
-			initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards);
+			initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, saltRewards);
 
 			pools.setContracts(dao, liquidity);
 
-			exchangeConfig.setContracts(dao, upkeep, initialDistribution, airdrop, teamVestingWallet, daoVestingWallet );
+			exchangeConfig.setContracts(dao, upkeep, initialDistribution, teamVestingWallet, daoVestingWallet );
 			exchangeConfig.setAccessManager(accessManager);
 
 			// Transfer ownership of the newly created config files to the DAO
@@ -106,7 +107,7 @@ contract TestInitialDistribution is Deployment
 	// A unit test to ensure the constructor has correctly set the input parameters.
 	function testInitial_distribution_constructor() public
     {
-    	InitialDistribution initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards);
+    	InitialDistribution initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, saltRewards);
 
     	assertEq(address(initialDistribution.salt()), address(salt), "error in initialDistribution.salt()");
     	assertEq(address(initialDistribution.poolsConfig()), address(poolsConfig), "error in initialDistribution.poolsConfig()");
@@ -115,17 +116,16 @@ contract TestInitialDistribution is Deployment
     	assertEq(address(initialDistribution.dao()), address(dao), "error in initialDistribution.dao()");
     	assertEq(address(initialDistribution.daoVestingWallet()), address(daoVestingWallet), "error in initialDistribution.daoVestingWallet()");
     	assertEq(address(initialDistribution.teamVestingWallet()), address(teamVestingWallet), "error in initialDistribution.teamVestingWallet()");
-    	assertEq(address(initialDistribution.airdrop()), address(airdrop), "error in initialDistribution.airdrop()");
     	assertEq(address(initialDistribution.saltRewards()), address(saltRewards), "error in initialDistribution.saltRewards()");
     }
 
 
 	// A unit test to verify that the `distributionApproved` function can only be called from the BootstrapBallot contract.
 	function testCannotCallDistributionApprovedFromInvalidAddress() public {
-        InitialDistribution id = new InitialDistribution( salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards );
+        InitialDistribution id = new InitialDistribution( salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, saltRewards );
 
         vm.expectRevert("InitialDistribution.distributionApproved can only be called from the BootstrapBallot contract");
-        id.distributionApproved();
+        id.distributionApproved(airdrop1, airdrop2);
     }
 
 
@@ -142,7 +142,7 @@ contract TestInitialDistribution is Deployment
     	vm.prank(address(bootstrapBallot));
 
     	vm.expectRevert("SALT has already been sent from the contract");
-    	initialDistribution.distributionApproved();
+    	initialDistribution.distributionApproved(airdrop1, airdrop2);
     }
 
 
@@ -156,19 +156,13 @@ contract TestInitialDistribution is Deployment
 		assertEq(salt.balanceOf(address(stakingRewardsEmitter)), 0);
 
 		vm.prank(address(bootstrapBallot));
-		initialDistribution.distributionApproved();
+		initialDistribution.distributionApproved(airdrop1, airdrop2);
 
-    	// Emissions								52 million
-	    // DAO Reserve Vesting Wallet	25 million
-	    // Initial Team Vesting Wallet		10 million
-	    // Airdrop Participants				5 million
-	    // Liquidity Bootstrapping			5 million
-	    // Staking Bootstrapping				3 million
-
-		assertEq(salt.balanceOf(address(emissions)), 52 * MILLION_ETHER);
+		assertEq(salt.balanceOf(address(emissions)), 51 * MILLION_ETHER);
 		assertEq(salt.balanceOf(address(daoVestingWallet)), 25 * MILLION_ETHER);
 		assertEq(salt.balanceOf(address(teamVestingWallet)), 10 * MILLION_ETHER);
-		assertEq(salt.balanceOf(address(airdrop)), 5 * MILLION_ETHER);
+		assertEq(salt.balanceOf(address(airdrop1)), 3 * MILLION_ETHER);
+		assertEq(salt.balanceOf(address(airdrop2)), 3 * MILLION_ETHER);
 		assertEq(salt.balanceOf(address(liquidityRewardsEmitter)), 4999999999999999999999995);
 		assertEq(salt.balanceOf(address(stakingRewardsEmitter)), 3000000000000000000000005);
 
@@ -184,7 +178,7 @@ contract TestInitialDistribution is Deployment
 
         // First call should succeed
         vm.prank(address(bootstrapBallot));
-        initialDistribution.distributionApproved();
+        initialDistribution.distributionApproved(airdrop1, airdrop2);
 
         // Verify the balance of SALT contract is zero after distribution
         assertEq(salt.balanceOf(address(initialDistribution)), 0);
@@ -192,27 +186,18 @@ contract TestInitialDistribution is Deployment
         // Second call should revert
         vm.expectRevert("SALT has already been sent from the contract");
         vm.prank(address(bootstrapBallot));
-        initialDistribution.distributionApproved();
+        initialDistribution.distributionApproved(airdrop1, airdrop2);
     }
 
 
 	// A unit test to check that the Airdrop contract has been setup correctly on a call to distributionApproved()
 	function testAirdropSetupOnDistributionApproved() public {
 
-		// Create some dummy aidrop recipients
-		whitelistAlice();
-		whitelistBob();
-		whitelistCharlie();
-
 		vm.prank(address(bootstrapBallot));
-		initialDistribution.distributionApproved();
+		initialDistribution.distributionApproved(airdrop1, airdrop2);
 
-		// Make sure claiming has been activated for airdrop
-		assertTrue( airdrop.claimingAllowed() );
-		assertEq( airdrop.numberAuthorized(), 3 );
-		assertEq( salt.balanceOf(address(airdrop)), 5 * MILLION_ETHER );
-
-		assertEq( airdrop.saltAmountForEachUser(), 5 * MILLION_ETHER / 3 );
+		assertEq( salt.balanceOf(address(airdrop1)), 3 * MILLION_ETHER );
+		assertEq( salt.balanceOf(address(airdrop2)), 3 * MILLION_ETHER );
 	}
     }
 

@@ -78,52 +78,38 @@ contract TestComprehensive1 is Deployment
 		// Cast votes for the BootstrapBallot so that the initialDistribution can happen
 		bytes memory sig = abi.encodePacked(aliceVotingSignature);
 		vm.startPrank(alice);
-		bootstrapBallot.vote(true, sig);
+		bootstrapBallot.vote(true, 1000 ether, sig);
 		vm.stopPrank();
 
 		sig = abi.encodePacked(bobVotingSignature);
 		vm.startPrank(bob);
-		bootstrapBallot.vote(true, sig);
+		bootstrapBallot.vote(true, 1000 ether, sig);
 		vm.stopPrank();
 
 		sig = abi.encodePacked(charlieVotingSignature);
 		vm.startPrank(charlie);
-		bootstrapBallot.vote(false, sig);
+		bootstrapBallot.vote(false, 1000 ether, sig);
 		vm.stopPrank();
 
 		// Finalize the ballot to distribute SALT to the protocol contracts and start up the exchange
-		vm.warp( bootstrapBallot.completionTimestamp() );
+		vm.warp( bootstrapBallot.claimableTimestamp1() );
 		bootstrapBallot.finalizeBallot();
-
-		// Have alice, bob and charlie claim their xSALT airdrop
-		vm.prank(alice);
-		airdrop.claimAirdrop();
-		vm.prank(bob);
-		airdrop.claimAirdrop();
-		vm.prank(charlie);
-		airdrop.claimAirdrop();
-
-		console.log( "alice xSALT: ", staking.userXSalt(alice) );
-		console.log( "bob xSALT: ", staking.userXSalt(bob) );
-		console.log( "charlie xSALT: ", staking.userXSalt(charlie) );
 
 		// Wait a day so that alice, bob and charlie receive some SALT emissions for their xSALT
 		vm.warp( block.timestamp + 1 days );
-		upkeep.performUpkeep();
-
-		bytes32[] memory poolIDs = new bytes32[](1);
-		poolIDs[0] = PoolUtils.STAKED_SALT;
 
 		vm.prank(alice);
-		staking.claimAllRewards(poolIDs);
+		airdrop1.claim();
 		vm.prank(bob);
-		staking.claimAllRewards(poolIDs);
+		airdrop1.claim();
 		vm.prank(charlie);
-		staking.claimAllRewards(poolIDs);
+		airdrop1.claim();
 
-		console.log( "alice SALT: ", salt.balanceOf(alice) );
-		console.log( "bob SALT: ", salt.balanceOf(bob) );
-		console.log( "charlie SALT: ", salt.balanceOf(charlie) );
+		assertEq( salt.balanceOf(alice), 2747252747252747252 );
+		assertEq( salt.balanceOf(bob), 2747252747252747252 );
+		assertEq( salt.balanceOf(charlie), 2747252747252747252 );
+
+		upkeep.performUpkeep();
 
 		// No liquidity exists yet
 
@@ -134,8 +120,8 @@ contract TestComprehensive1 is Deployment
 		wbtc.approve(address(liquidity), type(uint256).max);
 		usdc.approve(address(liquidity), type(uint256).max);
 
-		liquidity.depositLiquidityAndIncreaseShare(salt, weth, 1000 ether, 10 ether, 0, 0, 0, block.timestamp, false);
-		liquidity.depositLiquidityAndIncreaseShare(salt, usdc, 1000 ether, 10 * 10**6, 0, 0, 0, block.timestamp, false);
+		liquidity.depositLiquidityAndIncreaseShare(salt, weth, 1 ether, 10 ether, 0, 0, 0, block.timestamp, false);
+		liquidity.depositLiquidityAndIncreaseShare(salt, usdc, 1 ether, 10 * 10**6, 0, 0, 0, block.timestamp, false);
 		vm.stopPrank();
 
 		// Bob adds some WBTC/WETH liquidity
@@ -145,7 +131,7 @@ contract TestComprehensive1 is Deployment
 		wbtc.approve(address(liquidity), type(uint256).max);
 		usdc.approve(address(liquidity), type(uint256).max);
 
-    	liquidity.depositLiquidityAndIncreaseShare(wbtc, weth, 1000 * 10**8, 1000 ether, 0, 0, 0, block.timestamp, false);
+    	liquidity.depositLiquidityAndIncreaseShare(usdc, weth, 1000 * 10**6, 1000 ether, 0, 0, 0, block.timestamp, false);
     	vm.stopPrank();
 
     	console.log( "bob USDC: ", usdc.balanceOf(bob) );
@@ -158,7 +144,7 @@ contract TestComprehensive1 is Deployment
 		rollToNextBlock();
 		vm.stopPrank();
 
-		console.log( "ARBITRAGE PROFITS: ", pools.depositedUserBalance( address(dao), weth ) );
+		console.log( "ARBITRAGE PROFITS: ", pools.depositedUserBalance( address(dao), salt ) );
 
     	console.log( "charlie swapped SALT:", amountOut1 );
     	console.log( "charlie swapped SALT:", amountOut2 );
@@ -170,6 +156,6 @@ contract TestComprehensive1 is Deployment
     	vm.prank(delta);
     	upkeep.performUpkeep();
 
-    	console.log( "delta BALANCE: ", weth.balanceOf(address(delta)) );
+    	console.log( "delta BALANCE: ", salt.balanceOf(address(delta)) );
     	}
 	}

@@ -917,37 +917,6 @@ contract StakingTest is Deployment
     }
 
 
-    // A unit test to check that the transferStakedSaltFromAirdropToUser functino can only be called by the Airdrop contract and that the function performs correctly
-	function testtransferStakedSaltFromAirdropToUser() public
-		{
-		address airdrop = address(exchangeConfig.airdrop());
-
-		vm.prank(DEPLOYER);
-		salt.transfer(airdrop, 1000000 ether);
-
-		uint256 amountToTransfer = 10 ether;
-
-		// Start with Airdrop contract staking 10 ether
-		vm.startPrank(airdrop);
-		salt.approve(address(staking), type(uint256).max);
-		staking.stakeSALT(amountToTransfer);
-		assertEq(staking.userXSalt(airdrop), amountToTransfer);
-		vm.stopPrank();
-
-		// Attempt to transfer xSALT from non-Airdrop contract should fail
-		vm.expectRevert("Staking.transferStakedSaltFromAirdropToUser is only callable from the Airdrop contract");
-		staking.transferStakedSaltFromAirdropToUser(alice, 1 ether);
-
-		// transfer 2 of those xSALT to Alice
-		vm.prank(airdrop);
-		staking.transferStakedSaltFromAirdropToUser(alice, 2 ether);
-
-		// Alice's balance should update and Airdrop's balance should decrease
-		assertEq(staking.userXSalt(airdrop), 8 ether);
-		assertEq(staking.userXSalt(alice), 2 ether);
-		}
-
-
 	// A unit test that checks the proper burning of SALT tokens when the expeditedUnstakeFee is applied.
 	function testExpeditedUnstakeBurnsSalt() external {
         // Alice stakes SALT to receive xSALT

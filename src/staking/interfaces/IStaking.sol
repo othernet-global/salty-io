@@ -29,7 +29,6 @@ interface IStaking is IStakingRewards
 	function unstake( uint256 amountUnstaked, uint256 numWeeks ) external returns (uint256 unstakeID);
 	function cancelUnstake( uint256 unstakeID ) external;
 	function recoverSALT( uint256 unstakeID ) external;
-	function transferStakedSaltFromAirdropToUser(address wallet, uint256 amount) external;
 
 	// Views
 	function userXSalt( address wallet ) external view returns (uint256);

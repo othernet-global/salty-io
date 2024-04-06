@@ -110,7 +110,7 @@ contract TestUpkeepEdge is Deployment
     // A unit test to verify the step4 function when the Emissions' performUpkeep function does not emit any SALT. Ensure that it does not perform any emission actions.
 	function testStep4() public
 		{
-		assertEq( salt.balanceOf(address(emissions)), 52 * 1000000 ether );
+		assertEq( salt.balanceOf(address(emissions)), 51 * 1000000 ether );
 
 		vm.warp( upkeep.lastUpkeepTimeEmissions() );
 

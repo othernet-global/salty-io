@@ -57,8 +57,8 @@ contract TestDeployment is Deployment
 		assertTrue( daoWithin < 60 * 60 * 24 * 30, "daoVestingWallet start() is too far away!" );
 		assertTrue( teamWithin < 60 * 60 * 24 * 30, "teamVestingWallet start() is too far away!" );
 
-		assertEq( daoVestingWalletStart, uint64(bootstrapBallot.completionTimestamp()), "daoVestingWallet start() doesn't match bootstrapBallot completionTimestamp" );
-		assertEq( teamVestingWalletStart, uint64(bootstrapBallot.completionTimestamp()), "teamVestingWallet start() doesn't match bootstrapBallot completionTimestamp" );
+		assertEq( daoVestingWalletStart, uint64(bootstrapBallot.claimableTimestamp1()), "daoVestingWallet start() doesn't match bootstrapBallot completionTimestamp" );
+		assertEq( teamVestingWalletStart, uint64(bootstrapBallot.claimableTimestamp1()), "teamVestingWallet start() doesn't match bootstrapBallot completionTimestamp" );
 
     	// Check token decimals
 		assertTrue( ERC20(address(wbtc)).decimals() == 8, "WBTC should have 8 decimals" );
@@ -77,7 +77,6 @@ contract TestDeployment is Deployment
         assertEq( getContract(address(exchangeConfig), "upkeep()"), address(upkeep), "Incorrect exchangeConfig.upkeep" );
         assertEq( getContract(address(exchangeConfig), "accessManager()"), address(accessManager), "Incorrect exchangeConfig.accessManager" );
         assertEq( getContract(address(exchangeConfig), "initialDistribution()"), address(initialDistribution), "Incorrect exchangeConfig.initialDistribution" );
-		assertEq( getContract(address(exchangeConfig), "airdrop()"), address(airdrop), "Incorrect exchangeConfig.airdrop" );
         assertEq( getContract(address(exchangeConfig), "teamVestingWallet()"), address(teamVestingWallet), "Incorrect exchangeConfig.teamVestingWallet" );
         assertEq( getContract(address(exchangeConfig), "daoVestingWallet()"), address(daoVestingWallet), "Incorrect exchangeConfig.daoVestingWallet" );
         assertEq( getContract(address(exchangeConfig), "teamWallet()"), address(teamWallet), "Incorrect exchangeConfig.teamWallet" );
@@ -88,9 +87,11 @@ contract TestDeployment is Deployment
         assertEq( getContract(address(teamVestingWallet), "beneficiary()"), address(teamWallet), "Incorrect teamVestingWallet.beneficiary" );
         assertEq( getContract(address(daoVestingWallet), "beneficiary()"), address(dao), "Incorrect daoVestingWallet.beneficiary" );
 
-        assertEq( getContract(address(airdrop), "exchangeConfig()"), address(exchangeConfig), "Incorrect airdrop.exchangeConfig" );
-        assertEq( getContract(address(airdrop), "staking()"), address(staking), "Incorrect airdrop.staking" );
-        assertEq( getContract(address(airdrop), "salt()"), address(salt), "Incorrect airdrop.salt" );
+        assertEq( getContract(address(airdrop1), "exchangeConfig()"), address(exchangeConfig), "Incorrect airdrop1.exchangeConfig" );
+        assertEq( getContract(address(airdrop1), "salt()"), address(salt), "Incorrect airdrop1.salt" );
+
+        assertEq( getContract(address(airdrop2), "exchangeConfig()"), address(exchangeConfig), "Incorrect airdrop2.exchangeConfig" );
+        assertEq( getContract(address(airdrop2), "salt()"), address(salt), "Incorrect airdrop2.salt" );
 
         assertEq( getContract(address(pools), "exchangeConfig()"), address(exchangeConfig), "Incorrect pools.exchangeConfig" );
         assertEq( getContract(address(pools), "poolsConfig()"), address(poolsConfig), "Incorrect pools.poolsConfig" );
@@ -164,7 +165,8 @@ contract TestDeployment is Deployment
 		assertEq( getContract( address(daoConfig), "owner()" ), address(dao), "daoConfig owner is not dao" );
 
 		assertEq( getContract(address(bootstrapBallot), "exchangeConfig()"), address(exchangeConfig), "Incorrect bootstrapBallot.exchangeConfig" );
-		assertEq( getContract(address(bootstrapBallot), "airdrop()"), address(airdrop), "Incorrect bootstrapBallot.airdrop" );
+		assertEq( getContract(address(bootstrapBallot), "airdrop1()"), address(airdrop1), "Incorrect bootstrapBallot.airdrop1" );
+		assertEq( getContract(address(bootstrapBallot), "airdrop2()"), address(airdrop2), "Incorrect bootstrapBallot.airdrop2" );
 
 		assertEq( getContract(address(initialDistribution), "salt()"), address(salt), "Incorrect initialDistribution.salt" );
 		assertEq( getContract(address(initialDistribution), "poolsConfig()"), address(poolsConfig), "Incorrect initialDistribution.poolsConfig" );
@@ -173,7 +175,6 @@ contract TestDeployment is Deployment
 		assertEq( getContract(address(initialDistribution), "dao()"), address(dao), "Incorrect initialDistribution.dao" );
 		assertEq( getContract(address(initialDistribution), "daoVestingWallet()"), address(daoVestingWallet), "Incorrect initialDistribution.daoVestingWallet" );
 		assertEq( getContract(address(initialDistribution), "teamVestingWallet()"), address(teamVestingWallet), "Incorrect initialDistribution.teamVestingWallet" );
-		assertEq( getContract(address(initialDistribution), "airdrop()"), address(airdrop), "Incorrect initialDistribution.airdrop" );
 		assertEq( getContract(address(initialDistribution), "saltRewards()"), address(saltRewards), "Incorrect initialDistribution.saltRewards" );
 
 		assertEq( salt.balanceOf(address(initialDistribution)), 100000000 ether, "The InitialDistribution contract should start with a SALT balance of 100 million SALT" );
@@ -214,7 +215,8 @@ contract TestDeployment is Deployment
    		console.log( "usdc: ", address(usdc) );
    		console.log( "accessManager: ", address(accessManager) );
 		console.log( "" );
-	   	console.log( "airdrop: ", address(airdrop) );
+	   	console.log( "airdrop1: ", address(airdrop1) );
+	   	console.log( "airdrop2: ", address(airdrop2) );
    		console.log( "bootstrapBallot: ", address(bootstrapBallot) );
 	   	console.log( "dao: ", address(dao) );
    		console.log( "daoConfig: ", address(daoConfig) );

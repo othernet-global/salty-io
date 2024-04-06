@@ -23,7 +23,6 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 	IDAO public dao; // can only be set once
 	IUpkeep public upkeep; // can only be set once
 	IInitialDistribution public initialDistribution; // can only be set once
-	IAirdrop public airdrop; // can only be set once
 
 	// Gradually distribute SALT to the teamWallet and DAO over 10 years
 	VestingWallet public teamVestingWallet;		// can only be set once
@@ -44,7 +43,7 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 
 
 	// setContracts can only be be called once - and is called at deployment time.
-	function setContracts( IDAO _dao, IUpkeep _upkeep, IInitialDistribution _initialDistribution, IAirdrop _airdrop, VestingWallet _teamVestingWallet, VestingWallet _daoVestingWallet ) external onlyOwner
+	function setContracts( IDAO _dao, IUpkeep _upkeep, IInitialDistribution _initialDistribution, VestingWallet _teamVestingWallet, VestingWallet _daoVestingWallet ) external onlyOwner
 		{
 		// setContracts is only called once (on deployment)
 		require( address(dao) == address(0), "setContracts can only be called once" );
@@ -52,7 +51,6 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 		dao = _dao;
 		upkeep = _upkeep;
 		initialDistribution = _initialDistribution;
-		airdrop = _airdrop;
 		teamVestingWallet = _teamVestingWallet;
 		daoVestingWallet = _daoVestingWallet;
 		}
@@ -74,10 +72,6 @@ contract ExchangeConfig is IExchangeConfig, Ownable
 		{
 		// The DAO contract always has access (needed to form POL)
 		if ( wallet == address(dao) )
-			return true;
-
-		// The Airdrop contract always has access (needed to stake SALT)
-		if ( wallet == address(airdrop) )
 			return true;
 
 		return accessManager.walletHasAccess( wallet );

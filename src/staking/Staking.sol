@@ -125,18 +125,6 @@ contract Staking is IStaking, StakingRewards
 		}
 
 
-	// Send xSALT from the Airdrop contract to a user
-	function transferStakedSaltFromAirdropToUser(address wallet, uint256 amountToTransfer) external
-		{
-		require( msg.sender == address(exchangeConfig.airdrop()), "Staking.transferStakedSaltFromAirdropToUser is only callable from the Airdrop contract" );
-
-		_decreaseUserShare( msg.sender, PoolUtils.STAKED_SALT, amountToTransfer, false );
-		_increaseUserShare( wallet, PoolUtils.STAKED_SALT, amountToTransfer, false );
-
-		emit XSALTTransferredFromAirdrop(wallet, amountToTransfer);
-		}
-
-
 	// === VIEWS ===
 
 	function userXSalt( address wallet ) external view returns (uint256)

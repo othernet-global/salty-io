@@ -128,7 +128,6 @@ contract LiquidityManipulation is Deployment
 		assertEq(totalSharesForPool( pool1 ), addedLiquidityAlice, "totalShares mismatch after Alice's deposit" );
 
 		vm.startPrank(bob);
-		uint256 bobInitialBalance = 2 * token1.balanceOf(bob) + token2.balanceOf(bob); // Dollar value of his holdings
 
 		// Bob's 10 accounts add some liquidity too in the correct ratio
 		uint numberOfAccountsUsedByBobForTheAttack = 10;
@@ -168,7 +167,7 @@ contract LiquidityManipulation is Deployment
 		vm.prank(bob);
 		liquidity.withdrawLiquidityAndClaim(token1, token2, addedLiquidityBob - liquidityToRemove * numberOfAccountsUsedByBobForTheAttack, 0, 0, block.timestamp);
 
-		uint256 bobFinalBalance = 2 * token1.balanceOf(bob) + token2.balanceOf(bob); // In Dollar terms
+//		uint256 bobFinalBalance = 2 * token1.balanceOf(bob) + token2.balanceOf(bob); // In Dollar terms
 //		assertGt( bobFinalBalance, bobInitialBalance, "Bob did not profit" );
 //		console.log("\nProfit made by Bob = $", bobFinalBalance - bobInitialBalance);
 	}

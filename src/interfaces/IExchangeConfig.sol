@@ -16,7 +16,7 @@ import "./IUpkeep.sol";
 
 interface IExchangeConfig
 	{
-	function setContracts( IDAO _dao, IUpkeep _upkeep, IInitialDistribution _initialDistribution, IAirdrop _airdrop, VestingWallet _teamVestingWallet, VestingWallet _daoVestingWallet ) external; // onlyOwner
+	function setContracts( IDAO _dao, IUpkeep _upkeep, IInitialDistribution _initialDistribution, VestingWallet _teamVestingWallet, VestingWallet _daoVestingWallet ) external; // onlyOwner
 	function setAccessManager( IAccessManager _accessManager ) external; // onlyOwner
 
 	// Views
@@ -33,7 +33,6 @@ interface IExchangeConfig
 	function accessManager() external view returns (IAccessManager);
 	function dao() external view returns (IDAO);
 	function upkeep() external view returns (IUpkeep);
-	function airdrop() external view returns (IAirdrop);
 	function teamWallet() external view returns (address);
 
 	function walletHasAccess( address wallet ) external view returns (bool);

@@ -55,7 +55,7 @@ contract Deployment is Test
 	IERC20 public _testUSDT = IERC20(0xCd58586cC5F0c6c425b99BB94Dc5662cf2A18B84);
 
 	// The DAO contract can provide us with all other contract addresses in the protocol
-	IDAO public dao = IDAO(address(0x74913BFf4Eb2D84dd42dc276e7D06Cf0FD1d8A93));
+	IDAO public dao = IDAO(address(0xE92d34C646665252DF703A17Cc19CE8CC13D95b2));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));
@@ -90,8 +90,9 @@ contract Deployment is Test
 	VestingWallet public teamVestingWallet = VestingWallet(payable(exchangeConfig.teamVestingWallet()));
 
 	IInitialDistribution public initialDistribution = exchangeConfig.initialDistribution();
-	IAirdrop public airdrop = IAirdrop(getContract(address(initialDistribution), "airdrop()" ));
 	IBootstrapBallot public bootstrapBallot = IBootstrapBallot(getContract(address(initialDistribution), "bootstrapBallot()" ));
+	IAirdrop public airdrop1 = IAirdrop(getContract(address(bootstrapBallot), "airdrop1()" ));
+	IAirdrop public airdrop2 = IAirdrop(getContract(address(bootstrapBallot), "airdrop2()" ));
 
 	// Access signatures
 	bytes aliceAccessSignature = hex"a34525874e8d962ca56353ee341719744ce31cb7558e2fbcfe25edb82924bf93460bf47d787dd6ca17382424919cdfa2a525f762ad8eac7292f56be6053c461d1b";
@@ -107,9 +108,9 @@ contract Deployment is Test
 	bytes charlieAccessSignature1 = hex"4c0901d584be8b570a8a03a2c4bdd60ac3339c4bef4b27d9bc292d1eaeaed02b30b65c69f42ec2404dd420c1bf9cb16bf44875258e385c004dd67eecc726e8811b";
 
 	// Voting signatures
-	bytes aliceVotingSignature = hex"291f777bcf554105b4067f14d2bb3da27f778af49fe2f008e718328a91cae2f81eceb0b4ed1d65c546bf0603c6c35567a69c8cb371cf4880a2964df8f6d1c0601c";
-	bytes bobVotingSignature = hex"a08a0612b60d9c911d357664de578cd8e17c5f0ee10b82b829e35a999fa3f5e11a33e5f3d06c6b2b6f3ef3066cee3b47285a57cfc85f2c3e166f831a285aebcd1c";
-	bytes charlieVotingSignature = hex"7fec06ab9da26790e4520b4476b7043ef8444178ec10cdf37942a229290ec70d01c7dced0a6e22080239df6fdc3983f515f52d06a32c03d5d6a0077f31fd9f841c";
+	bytes aliceVotingSignature = hex"b84ebb8dc4e7f727393bf355c9777630a2e1201dbdd72bb1c5d7fe87a6eaeae43a775465059058034b59c8d63e8d278a1978ab59b1514101b4049f6221f9e76d1b";
+	bytes bobVotingSignature = hex"f9d61eebbd848bb12bbfd1b39da385f6a7e90d31ccd78647ac20e5ce68cb35ff3af380354e34c4f1897fa977e91024a74b91f1f8643cab704ce5be57f76737b61b";
+	bytes charlieVotingSignature = hex"6b371ed02c1f3aa1b26d8d084a595e064515da24908ffd1dd31413ad05d41e0d23882f58d65e700c88da41d3c95f92049edf8b63bddbcef92398dd12970451a91b";
 
 	uint256 startingBlock;
 	uint256 rollCount;
@@ -204,24 +205,25 @@ contract Deployment is Test
 
 		dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, daoConfig, liquidityRewardsEmitter);
 
-		airdrop = new Airdrop(exchangeConfig, staking);
+		airdrop1 = new Airdrop(exchangeConfig);
+		airdrop2 = new Airdrop(exchangeConfig);
 
 		accessManager = new AccessManager(dao);
 
 		upkeep = new Upkeep(pools, exchangeConfig, poolsConfig, daoConfig, saltRewards, emissions, dao);
 
 
-		bootstrapBallot = new BootstrapBallot(exchangeConfig, airdrop, 60 * 60 * 24 * 5 );
+		bootstrapBallot = new BootstrapBallot(exchangeConfig, airdrop1, airdrop2, 60 * 60 * 24 * 3, 60 * 60 * 24 * 45 );
 
 		// Vesting wallets start emitting at the same time that the bootstrapBallot ends
-		daoVestingWallet = new VestingWallet( address(dao), uint64(bootstrapBallot.completionTimestamp()), 60 * 60 * 24 * 365 * 10 );
-		teamVestingWallet = new VestingWallet( teamWallet, uint64(bootstrapBallot.completionTimestamp()), 60 * 60 * 24 * 365 * 10 );
+		daoVestingWallet = new VestingWallet( address(dao), uint64(bootstrapBallot.claimableTimestamp1()), 60 * 60 * 24 * 365 * 10 );
+		teamVestingWallet = new VestingWallet( teamWallet, uint64(bootstrapBallot.claimableTimestamp1()), 60 * 60 * 24 * 365 * 10 );
 
-		initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, airdrop, saltRewards);
+		initialDistribution = new InitialDistribution(salt, poolsConfig, emissions, bootstrapBallot, dao, daoVestingWallet, teamVestingWallet, saltRewards);
 
 		pools.setContracts(dao, liquidity);
 
-		exchangeConfig.setContracts(dao, upkeep, initialDistribution, airdrop, teamVestingWallet, daoVestingWallet );
+		exchangeConfig.setContracts(dao, upkeep, initialDistribution, teamVestingWallet, daoVestingWallet );
 		exchangeConfig.setAccessManager(accessManager);
 
 		// Transfer ownership of the newly created config files to the DAO
@@ -292,34 +294,39 @@ contract Deployment is Test
 		}
 
 
-
-
-
 	function whitelistAlice() public
 		{
-		vm.prank( address(bootstrapBallot) );
-		airdrop.authorizeWallet(address(0x1111));
+		vm.startPrank( address(bootstrapBallot) );
+		airdrop1.authorizeWallet(address(0x1111), 1000 ether);
+		airdrop2.authorizeWallet(address(0x1111), 1000 ether);
+		vm.stopPrank();
 		}
 
 
 	function whitelistBob() public
 		{
-		vm.prank( address(bootstrapBallot) );
-		airdrop.authorizeWallet(address(0x2222));
+		vm.startPrank( address(bootstrapBallot) );
+		airdrop1.authorizeWallet(address(0x2222), 1000 ether);
+		airdrop2.authorizeWallet(address(0x2222), 1000 ether);
+		vm.stopPrank();
 		}
 
 
 	function whitelistCharlie() public
 		{
-		vm.prank( address(bootstrapBallot) );
-		airdrop.authorizeWallet(address(0x3333));
+		vm.startPrank( address(bootstrapBallot) );
+		airdrop1.authorizeWallet(address(0x3333), 1000 ether);
+		airdrop2.authorizeWallet(address(0x3333), 1000 ether);
+		vm.stopPrank();
 		}
 
 
 	function whitelistTeam() public
 		{
-		vm.prank( address(bootstrapBallot) );
-		airdrop.authorizeWallet(address(0x123456789));
+		vm.startPrank( address(bootstrapBallot) );
+		airdrop1.authorizeWallet(address(0x123456789), 1000 ether);
+		airdrop2.authorizeWallet(address(0x123456789), 1000 ether);
+		vm.stopPrank();
 		}
 
 
@@ -328,21 +335,21 @@ contract Deployment is Test
 		address alice = address(0x1111);
 		address bob = address(0x2222);
 
-		whitelistAlice();
-		whitelistBob();
+//		whitelistAlice();
+//		whitelistBob();
 
 		bytes memory sig = abi.encodePacked(aliceVotingSignature);
 		vm.startPrank(alice);
-		bootstrapBallot.vote(true, sig);
+		bootstrapBallot.vote(true, 1000 ether, sig);
 		vm.stopPrank();
 
 		sig = abi.encodePacked(bobVotingSignature);
 		vm.startPrank(bob);
-		bootstrapBallot.vote(true, sig);
+		bootstrapBallot.vote(true, 1000 ether, sig);
 		vm.stopPrank();
 
 		// Increase current blocktime to be greater than completionTimestamp
-		vm.warp( bootstrapBallot.completionTimestamp() + 1);
+		vm.warp( bootstrapBallot.claimableTimestamp1() + 1);
 
 		// Call finalizeBallot()
 		bootstrapBallot.finalizeBallot();

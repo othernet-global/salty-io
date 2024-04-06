@@ -4,15 +4,14 @@ pragma solidity =0.8.22;
 
 interface IAirdrop
 	{
-	function authorizeWallet( address wallet ) external;
+	function authorizeWallet( address wallet, uint256 saltAmount ) external;
 	function allowClaiming() external;
-	function claimAirdrop() external;
+	function claim() external;
 
 	// Views
-	function saltAmountForEachUser() external view returns (uint256);
+	function claimedByUser( address wallet) external view returns (uint256);
 	function claimingAllowed() external view returns (bool);
-	function claimed(address wallet) external view returns (bool);
-
-	function isAuthorized(address wallet) external view returns (bool);
-	function numberAuthorized() external view returns (uint256);
+	function claimingStartTimestamp() external view returns (uint256);
+	function claimableAmount(address wallet) external view returns (uint256);
+    function airdropForUser( address wallet ) external view returns (uint256);
 	}

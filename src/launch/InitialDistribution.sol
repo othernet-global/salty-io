@@ -18,7 +18,6 @@ contract InitialDistribution is IInitialDistribution
 
 	uint256 constant public MILLION_ETHER = 1000000 ether;
 
-
    	ISalt immutable public salt;
 	IPoolsConfig immutable public poolsConfig;
    	IEmissions immutable public emissions;
@@ -26,11 +25,10 @@ contract InitialDistribution is IInitialDistribution
 	IDAO immutable public dao;
 	VestingWallet immutable public daoVestingWallet;
 	VestingWallet immutable public teamVestingWallet;
-	IAirdrop immutable public airdrop;
 	ISaltRewards immutable public saltRewards;
 
 
-	constructor( ISalt _salt, IPoolsConfig _poolsConfig, IEmissions _emissions, IBootstrapBallot _bootstrapBallot, IDAO _dao, VestingWallet _daoVestingWallet, VestingWallet _teamVestingWallet, IAirdrop _airdrop, ISaltRewards _saltRewards  )
+	constructor( ISalt _salt, IPoolsConfig _poolsConfig, IEmissions _emissions, IBootstrapBallot _bootstrapBallot, IDAO _dao, VestingWallet _daoVestingWallet, VestingWallet _teamVestingWallet, ISaltRewards _saltRewards  )
 		{
 		salt = _salt;
 		poolsConfig = _poolsConfig;
@@ -39,19 +37,18 @@ contract InitialDistribution is IInitialDistribution
 		dao = _dao;
 		daoVestingWallet = _daoVestingWallet;
 		teamVestingWallet = _teamVestingWallet;
-		airdrop = _airdrop;
 		saltRewards = _saltRewards;
         }
 
 
     // Called when the BootstrapBallot is approved by the initial airdrop recipients.
-    function distributionApproved() external
+    function distributionApproved( IAirdrop airdrop1, IAirdrop airdrop2 ) external
     	{
     	require( msg.sender == address(bootstrapBallot), "InitialDistribution.distributionApproved can only be called from the BootstrapBallot contract" );
 		require( salt.balanceOf(address(this)) == 100 * MILLION_ETHER, "SALT has already been sent from the contract" );
 
-    	// 52 million		Emissions
-		salt.safeTransfer( address(emissions), 52 * MILLION_ETHER );
+    	// 51 million		Emissions
+		salt.safeTransfer( address(emissions), 51 * MILLION_ETHER );
 
 	    // 25 million		DAO Reserve Vesting Wallet
 		salt.safeTransfer( address(daoVestingWallet), 25 * MILLION_ETHER );
@@ -59,9 +56,11 @@ contract InitialDistribution is IInitialDistribution
 	    // 10 million		Initial Development Team Vesting Wallet
 		salt.safeTransfer( address(teamVestingWallet), 10 * MILLION_ETHER );
 
-	    // 5 million		Airdrop Participants
-		salt.safeTransfer( address(airdrop), 5 * MILLION_ETHER );
-		airdrop.allowClaiming();
+	    // 3 million		Airdrop Phase I
+		salt.safeTransfer( address(airdrop1), 3 * MILLION_ETHER );
+
+	    // 3 million		Airdrop Phase II
+		salt.safeTransfer( address(airdrop2), 3 * MILLION_ETHER );
 
 		bytes32[] memory poolIDs = poolsConfig.whitelistedPools();
 

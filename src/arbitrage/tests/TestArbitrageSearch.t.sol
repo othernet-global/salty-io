@@ -64,7 +64,7 @@ contract TestArbitrageSearch2 is Deployment
 
 			accessManager = new AccessManager(dao);
 
-			exchangeConfig.setContracts(dao, upkeep, initialDistribution, airdrop, teamVestingWallet, daoVestingWallet );
+			exchangeConfig.setContracts(dao, upkeep, initialDistribution, teamVestingWallet, daoVestingWallet );
 			exchangeConfig.setAccessManager(accessManager);
 
 			testArbitrageSearch = new TestArbitrageSearch( exchangeConfig);
