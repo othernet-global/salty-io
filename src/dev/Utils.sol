@@ -109,21 +109,21 @@ contract Utils
 
 
 	// The current circulating supply of SALT
-	function circulatingSALT( IERC20 salt, address emissions, address daoVestingWallet, address teamVestingWallet, address stakingRewardsEmitter, address liquidityRewardsEmitter, address airdrop, address initialDistribution ) public view returns (uint256)
+	function circulatingSALT( IERC20 salt, IExchangeConfig exchangeConfig, address emissions, address stakingRewardsEmitter, address liquidityRewardsEmitter, address airdrop1, address airdrop2 ) public view returns (uint256)
 		{
 		// Don't include balances that still haven't been distributed
-		return salt.totalSupply() - salt.balanceOf(emissions) - salt.balanceOf(daoVestingWallet) - salt.balanceOf(teamVestingWallet) - salt.balanceOf(stakingRewardsEmitter) - salt.balanceOf(liquidityRewardsEmitter) - salt.balanceOf(airdrop) - salt.balanceOf(initialDistribution);
+		return salt.totalSupply() - salt.balanceOf(emissions) - salt.balanceOf(address(exchangeConfig.daoVestingWallet())) - salt.balanceOf(address(exchangeConfig.teamVestingWallet())) - salt.balanceOf(stakingRewardsEmitter) - salt.balanceOf(liquidityRewardsEmitter) - salt.balanceOf(airdrop1) - salt.balanceOf(airdrop2) - salt.balanceOf(address(exchangeConfig.initialDistribution()));
 		}
 
 
 	// Shortcut for returning the current percentStakedTimes1000 and stakingAPRTimes1000
-	function stakingPercentAndAPR(ISalt salt, IStaking staking, IRewardsConfig rewardsConfig, address stakingRewardsEmitter, address liquidityRewardsEmitter, address emissions, address daoVestingWallet, address teamVestingWallet, address airdrop, address initialDistribution) public view returns (uint256 percentStakedTimes1000, uint256 stakingAPRTimes1000)
+	function stakingPercentAndAPR(ISalt salt, IExchangeConfig exchangeConfig, IStaking staking, IRewardsConfig rewardsConfig, address stakingRewardsEmitter, address liquidityRewardsEmitter, address emissions, address airdrop1, address airdrop2) public view returns (uint256 percentStakedTimes1000, uint256 stakingAPRTimes1000)
 		{
 		// Make sure that the InitDistribution has already happened
 		if ( salt.balanceOf(stakingRewardsEmitter) == 0 )
 			return (0, 0);
 
-		uint256 totalCirculating = circulatingSALT(salt, emissions, daoVestingWallet, teamVestingWallet, stakingRewardsEmitter, liquidityRewardsEmitter, airdrop, initialDistribution);
+		uint256 totalCirculating = circulatingSALT(salt, exchangeConfig, emissions, stakingRewardsEmitter, liquidityRewardsEmitter, airdrop1, airdrop2);
 
 		uint256 totalStaked = staking.totalShares(PoolUtils.STAKED_SALT);
 		if ( totalStaked == 0 )
@@ -159,9 +159,9 @@ contract Utils
 		{
 		usdcPrice = priceFeed.getPriceUSDC();
 
+		ISalt salt = exchangeConfig.salt();
 		IERC20 weth = exchangeConfig.weth();
 		IERC20 usdc = exchangeConfig.usdc();
-		ISalt salt = exchangeConfig.salt();
 
 		// USDC has 6 decimals, usdcPrice has 8
 		// Convert to 18 decimals
@@ -330,9 +330,9 @@ contract Utils
 		}
 
 
-	function statsData(ISalt salt, address emissions, address daoVestingWallet, address teamVestingWallet, address stakingRewardsEmitter, address liquidityRewardsEmitter, IStaking staking, IRewardsConfig rewardsConfig, address airdrop, address initialDistribution  ) external view returns ( uint256 saltSupply, uint256 stakedSALT, uint256 burnedSALT, uint256 liquidityRewardsSalt, uint256 rewardsEmitterDailyPercentTimes1000 )
+	function statsData(ISalt salt, IExchangeConfig exchangeConfig, address emissions, address stakingRewardsEmitter, address liquidityRewardsEmitter, IStaking staking, IRewardsConfig rewardsConfig, address airdrop1, address airdrop2 ) external view returns ( uint256 saltSupply, uint256 stakedSALT, uint256 burnedSALT, uint256 liquidityRewardsSalt, uint256 rewardsEmitterDailyPercentTimes1000 )
 		{
-		saltSupply = circulatingSALT(salt, emissions, daoVestingWallet, teamVestingWallet, stakingRewardsEmitter, liquidityRewardsEmitter, airdrop, initialDistribution);
+		saltSupply = circulatingSALT(salt, exchangeConfig, emissions, stakingRewardsEmitter, liquidityRewardsEmitter, airdrop1, airdrop2 );
 		stakedSALT = staking.totalShares(PoolUtils.STAKED_SALT );
 		burnedSALT = salt.totalBurned();
 		liquidityRewardsSalt = salt.balanceOf( liquidityRewardsEmitter );

@@ -67,8 +67,8 @@ contract TestAirdrop is Deployment
 			address oldDAO = address(dao);
 			dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, daoConfig, liquidityRewardsEmitter);
 
-			airdrop1 = new Airdrop(exchangeConfig);
-			airdrop2 = new Airdrop(exchangeConfig);
+			airdrop1 = new Airdrop(exchangeConfig, IAirdrop(address(0x0)));
+			airdrop2 = new Airdrop(exchangeConfig, IAirdrop(address(0x0)));
 
 			accessManager = new AccessManager(dao);
 
@@ -328,7 +328,7 @@ contract TestAirdrop is Deployment
         ISalt expectedSalt = salt; // Assuming `salt` is accessible in the test environment.
 
         // Deploys a new Airdrop contract instance within the test environment.
-        Airdrop airdropTestInstance = new Airdrop(expectedExchangeConfig);
+        Airdrop airdropTestInstance = new Airdrop(expectedExchangeConfig, IAirdrop(address(0x0)));
 
         // Retrieves the actual `exchangeConfig` and `salt` from the deployed `Airdrop` instance.
         IExchangeConfig actualExchangeConfig = airdropTestInstance.exchangeConfig();

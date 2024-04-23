@@ -26,13 +26,18 @@ contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
 	bool public startExchangeApproved;
 
 	// Ensures that voters can only vote once
-	mapping(address=>bool) public hasVoted;
+//	mapping(address=>bool) public hasVoted;
+
 
 	// === VOTE TALLIES ===
 	// Yes/No tallies on whether or not to start the exchange and distribute SALT to the ecosystem contracts
-	uint256 public startExchangeYes;
-	uint256 public startExchangeNo;
 
+	// The original BootstrapBallot
+	IBootstrapBallot public previousDeployment = IBootstrapBallot(address(0xF1E667f40460Ec3327f1BB57d686F568D474b02c));
+
+	// This contract is a redeployed version due to a USDT related approval error in Liquidity.sol
+	uint256 public startExchangeYes = previousDeployment.startExchangeYes();
+	uint256 public startExchangeNo = previousDeployment.startExchangeNo();
 
 
 	constructor( IExchangeConfig _exchangeConfig, IAirdrop _airdrop1, IAirdrop _airdrop2, uint256 ballotDuration, uint256 airdrop2DelayTillDistribution )
@@ -51,42 +56,30 @@ contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
 		}
 
 
-	function bytes32ToHexString(bytes32 input) internal pure returns (string memory) {
-			bytes memory lookup = "0123456789abcdef";
-			bytes memory result = new bytes(64);
-			for (uint i = 0; i < 32; i++) {
-				uint8 currentByte = uint8(input[i]);
-				uint8 hi = uint8(currentByte / 16);
-				uint8 lo = currentByte - 16 * hi;
-				result[i*2] = lookup[hi];
-				result[i*2+1] = lookup[lo];
-			}
-			return string(result);
-		}
-
-
 	// Cast a YES or NO vote to start up the exchange, distribute SALT and establish initial geo restrictions.
 	// Votes cannot be changed once they are cast.
 	// Requires a valid signature to signify that the msg.sender is authorized to vote and entitled to receive the specified saltAmount (checked offchain)
 	function vote( bool voteStartExchangeYes, uint256 saltAmount, bytes calldata signature ) external nonReentrant
 		{
-		require( ! hasVoted[msg.sender], "User already voted" );
-		require( ! ballotFinalized, "Ballot has already been finalized" );
-		require( saltAmount != 0, "saltAmount cannot be zero" );
+		// Not necessary in the redeployed version
 
-		// Verify the signature to confirm the user is authorized to vote
-		bytes32 messageHash = keccak256(abi.encodePacked( uint256(1), block.chainid, saltAmount, msg.sender));
-		require(SigningTools._verifySignature(messageHash, signature), "Incorrect BootstrapBallot.vote signatory" );
-
-		if ( voteStartExchangeYes )
-			startExchangeYes++;
-		else
-			startExchangeNo++;
-
-		hasVoted[msg.sender] = true;
-
-		// Authorize the user to receive Airdrop 1
-		airdrop1.authorizeWallet(msg.sender, saltAmount);
+//		require( ! hasVoted[msg.sender], "User already voted" );
+//		require( ! ballotFinalized, "Ballot has already been finalized" );
+//		require( saltAmount != 0, "saltAmount cannot be zero" );
+//
+//		// Verify the signature to confirm the user is authorized to vote and receive a share of Airdrop 1
+//		bytes32 messageHash = keccak256(abi.encodePacked( uint256(1), block.chainid, saltAmount, msg.sender));
+//		require(SigningTools._verifySignature(messageHash, signature), "Incorrect BootstrapBallot.vote signatory" );
+//
+//		if ( voteStartExchangeYes )
+//			startExchangeYes++;
+//		else
+//			startExchangeNo++;
+//
+//		hasVoted[msg.sender] = true;
+//
+//		// Authorize the user to receive Airdrop 1
+//		airdrop1.authorizeWallet(msg.sender, saltAmount);
 		}
 
 
@@ -135,5 +128,11 @@ contract BootstrapBallot is IBootstrapBallot, ReentrancyGuard
 		require( block.timestamp >= claimableTimestamp2, "Airdrop 2 cannot be finalized yet" );
 
 		airdrop2.allowClaiming();
+		}
+
+
+	function hasVoted(address wallet) external view returns (bool)
+		{
+		return previousDeployment.hasVoted(wallet);
 		}
 	}

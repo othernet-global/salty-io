@@ -55,7 +55,7 @@ contract Deployment is Test
 	IERC20 public _testUSDT = IERC20(0xCd58586cC5F0c6c425b99BB94Dc5662cf2A18B84);
 
 	// The DAO contract can provide us with all other contract addresses in the protocol
-	IDAO public dao = IDAO(address(0xE92d34C646665252DF703A17Cc19CE8CC13D95b2));
+	IDAO public dao = IDAO(address(0x2Ab8108f795375Cc26E99799A7aFA59640214820));
 
 	IExchangeConfig public exchangeConfig = IExchangeConfig(getContract(address(dao), "exchangeConfig()" ));
 	IPoolsConfig public poolsConfig = IPoolsConfig(getContract(address(dao), "poolsConfig()" ));
@@ -205,8 +205,8 @@ contract Deployment is Test
 
 		dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, daoConfig, liquidityRewardsEmitter);
 
-		airdrop1 = new Airdrop(exchangeConfig);
-		airdrop2 = new Airdrop(exchangeConfig);
+		airdrop1 = new Airdrop(exchangeConfig, IAirdrop(address(0x0)));
+		airdrop2 = new Airdrop(exchangeConfig, IAirdrop(address(0x0)));
 
 		accessManager = new AccessManager(dao);
 

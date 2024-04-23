@@ -6,16 +6,16 @@ import "./IPriceFeed.sol";
 
 
 // Uses Chainlink price oracles to retrieve prices for USDC/USD
-// Prices are returned with Chianlink's defualt 8 decimals.
+// Prices are returned with Chainlink's defualt 8 decimals.
 contract CoreChainlinkFeed is IPriceFeed
     {
 	// https://docs.chain.link/data-feeds/price-feeds/addresses
-	AggregatorV3Interface immutable public CHAINLINK_USDC_USD;
+	AggregatorV3Interface immutable public CHAINLINK_USDC_USD_FEED;
 
 
 	constructor( address _CHAINLINK_USDC_USD )
 		{
-		CHAINLINK_USDC_USD = AggregatorV3Interface(_CHAINLINK_USDC_USD);
+		CHAINLINK_USDC_USD_FEED = AggregatorV3Interface(_CHAINLINK_USDC_USD);
 		}
 
 
@@ -57,6 +57,6 @@ contract CoreChainlinkFeed is IPriceFeed
 
 	function getPriceUSDC() external view returns (uint256)
 		{
-		return latestChainlinkPrice( CHAINLINK_USDC_USD );
+		return latestChainlinkPrice( CHAINLINK_USDC_USD_FEED );
 		}
     }

@@ -53,8 +53,8 @@ contract TestUpkeepFlawed is Deployment
 
 		dao = new DAO( pools, proposals, exchangeConfig, poolsConfig, stakingConfig, rewardsConfig, daoConfig, liquidityRewardsEmitter);
 
-		airdrop1 = new Airdrop(exchangeConfig);
-		airdrop2 = new Airdrop(exchangeConfig);
+		airdrop1 = new Airdrop(exchangeConfig, IAirdrop(address(0x0)));
+		airdrop2 = new Airdrop(exchangeConfig, IAirdrop(address(0x0)));
 
 		accessManager = new AccessManager(dao);
 

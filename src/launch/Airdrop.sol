@@ -22,16 +22,20 @@ contract Airdrop is IAirdrop, ReentrancyGuard
 	// The timestamp when allowClaiming() was called
 	uint256 public claimingStartTimestamp;
 
+	// A previous deployment that should be referenced
+	IAirdrop public previousDeployment;
+
 	// The claimable airdrop amount for each user
-	mapping (address=>uint256) airdropPerUser;
+	mapping (address=>uint256) _airdropPerUser;
 
 	// The amount already claimed by each user
 	mapping (address=>uint256) claimedPerUser;
 
 
-	constructor( IExchangeConfig _exchangeConfig )
+	constructor( IExchangeConfig _exchangeConfig, IAirdrop _previousDeployment )
 		{
 		exchangeConfig = _exchangeConfig;
+		previousDeployment = _previousDeployment;
 
 		salt = _exchangeConfig.salt();
 		}
@@ -43,9 +47,9 @@ contract Airdrop is IAirdrop, ReentrancyGuard
     	{
     	require( msg.sender == address(exchangeConfig.initialDistribution().bootstrapBallot()), "Only the BootstrapBallot can call Airdrop.authorizeWallet" );
     	require( claimingStartTimestamp == 0, "Cannot authorize after claiming is allowed" );
-    	require( airdropPerUser[wallet] == 0, "Wallet already authorized" );
+    	require( _airdropPerUser[wallet] == 0, "Wallet already authorized" );
 
-		airdropPerUser[wallet] = saltAmount;
+		_airdropPerUser[wallet] = saltAmount;
     	}
 
 
@@ -63,7 +67,6 @@ contract Airdrop is IAirdrop, ReentrancyGuard
     function claim() external nonReentrant
     	{
   		uint256 claimableSALT = claimableAmount(msg.sender);
-
     	require( claimableSALT != 0, "User has no claimable airdrop at this time" );
 
 		// Send SALT to the user
@@ -98,7 +101,7 @@ contract Airdrop is IAirdrop, ReentrancyGuard
     		return 0;
 
     	// Look up the airdrop amount for the user
-		uint256 airdropAmount = airdropPerUser[wallet];
+		uint256 airdropAmount = airdropForUser(wallet);
 		if ( airdropAmount == 0 )
 			return 0;
 
@@ -114,9 +117,13 @@ contract Airdrop is IAirdrop, ReentrancyGuard
     	}
 
 
-    // The totral airdrop that the user will receive
+    // The total airdrop that the user will receive
     function airdropForUser( address wallet ) public view returns (uint256)
     	{
-    	return airdropPerUser[wallet];
+    	// Use the previousDeployment if specified
+  		if ( address(previousDeployment) != address(0) )
+			return previousDeployment.airdropForUser(wallet);
+
+    	return _airdropPerUser[wallet];
     	}
 	}
