@@ -48,8 +48,10 @@ contract Liquidity is ILiquidity, StakingRewards
 		if ( swapAmountA > 0)
 			{
 			// https://github.com/code-423n4/2024-01-salty/blob/main/bot-report.md#l-02
-			tokenA.approve( address(pools), 0 );
-			tokenA.approve( address(pools), swapAmountA );
+			if ( tokenA.allowance(address(this), address(pools) ) > 0 )
+				tokenA.safeApprove( address(pools), 0 );
+
+			tokenA.safeApprove( address(pools), swapAmountA );
 
 			// Swap from tokenA to tokenB and adjust the zapAmounts
 			zapAmountA -= swapAmountA;
@@ -60,8 +62,10 @@ contract Liquidity is ILiquidity, StakingRewards
 		else if ( swapAmountB > 0)
 			{
 			// https://github.com/code-423n4/2024-01-salty/blob/main/bot-report.md#l-02
-			tokenB.approve( address(pools), 0 );
-			tokenB.approve( address(pools), swapAmountB );
+			if ( tokenB.allowance(address(this), address(pools) ) > 0 )
+				tokenB.safeApprove( address(pools), 0 );
+
+			tokenB.safeApprove( address(pools), swapAmountB );
 
 			// Swap from tokenB to tokenA and adjust the zapAmounts
 			zapAmountB -= swapAmountB;
@@ -91,11 +95,14 @@ contract Liquidity is ILiquidity, StakingRewards
 		// Approve the liquidity to add
 
 		// https://github.com/code-423n4/2024-01-salty/blob/main/bot-report.md#l-02
-		tokenA.approve(address(pools), 0 );
-		tokenB.approve(address(pools), 0 );
+		if ( tokenA.allowance(address(this), address(pools) ) > 0 )
+			tokenA.safeApprove(address(pools), 0 );
 
-		tokenA.approve( address(pools), maxAmountA );
-		tokenB.approve( address(pools), maxAmountB );
+		if ( tokenB.allowance(address(this), address(pools) ) > 0 )
+			tokenB.safeApprove(address(pools), 0 );
+
+		tokenA.safeApprove( address(pools), maxAmountA );
+		tokenB.safeApprove( address(pools), maxAmountB );
 
 		uint256 addedAmountA;
 		uint256 addedAmountB;
